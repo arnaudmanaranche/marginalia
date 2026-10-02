@@ -21,6 +21,7 @@ export interface ReviewItem {
   stackId: string | null;
   crossLayer: CrossFinding[];
   stale: boolean;
+  resumeCommand: string | null;
 }
 
 export interface CrossFinding {
@@ -48,7 +49,7 @@ export interface Stack {
 export interface BotStatus {
   pid: number;
   phase: 'idle' | 'polling' | 'reviewing' | 'error' | 'stopped';
-  current: { iid: number; title: string; startedAt: string } | null;
+  current: { iid: number; title: string; startedAt: string; progress?: string[] } | null;
   lastPoll: { at: string; ok: boolean; error: string | null } | null;
   nextPollAt: string | null;
   mrs?: { iid: number; status: string; reviewPath?: string | null }[];
@@ -153,4 +154,48 @@ export async function postComment(slug: string, commentId: string, body: string,
   const j = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(j.error ?? `HTTP ${res.status}`);
   return j;
+}
+
+export type ChatAsk = { id: string; tool: string; input: Record<string, unknown>; description: string | null; reason: string | null };
+
+export type ChatEvent = {
+  type: 'hello' | 'queued' | 'step' | 'answer' | 'error' | 'closed' | 'permission' | 'permission_answered';
+  text?: string;
+  costUsd?: number | null;
+  pending: number;
+  ask?: ChatAsk;
+  asks?: ChatAsk[];
+  id?: string;
+};
+
+// Sends one message to the bot about a review; answers arrive on chatEvents().
+export async function sendChat(slug: string, message: string): Promise<void> {
+  const res = await fetch('/api/chat', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ slug, message }),
+  });
+  if (!res.ok) {
+    const j = await res.json().catch(() => ({}));
+    throw new Error(j.error ?? `HTTP ${res.status}`);
+  }
+}
+
+// Allow or deny what the bot asked for, as the y/n of a terminal.
+export async function answerChatPermission(slug: string, id: string, allow: boolean): Promise<void> {
+  const res = await fetch('/api/chat/permission', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ slug, id, allow }),
+  });
+  if (!res.ok) {
+    const j = await res.json().catch(() => ({}));
+    throw new Error(j.error ?? `HTTP ${res.status}`);
+  }
+}
+
+export function chatEvents(slug: string, onEvent: (event: ChatEvent) => void): () => void {
+  const source = new EventSource(`/api/chat/stream?slug=${encodeURIComponent(slug)}`);
+  source.onmessage = (e) => onEvent(JSON.parse(e.data));
+  return () => source.close();
 }
