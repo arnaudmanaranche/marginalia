@@ -110,6 +110,10 @@ has changed since the last pass (new commit, or MR never seen before).
   Before each review/triage, checks out the MR's branch there — skipping the
   MR instead of forcing it if that branch happens to be checked out somewhere
   else (e.g. your own working copy).
+- With `MR_WORKTREES_DIR` set, there is no shared bot worktree: each MR is
+  worked on in its own folder. Your own worktree for the MR's branch is used
+  as it is; otherwise the bot keeps `review-<iid>` there, synced to the MR's
+  head before each run and removed once the MR is merged or closed.
 
 ### Stacked MRs
 
@@ -207,6 +211,12 @@ the flag the button doesn't exist and `POST /api/post` answers 403.
 
 The "Review ready" notification and the SwiftBar menu open the studio (the
 notification falls back to VS Code if the studio isn't listening).
+
+**Live progress and cost of each run.** Runs use `claude -p --output-format
+stream-json`. While a run is going, the studio shows its last steps above the
+review's details ("Opening …", "Reading …", the commands it runs). When it ends,
+its cost, output tokens and turns are logged and appended to `runs.jsonl`
+(gitignored), so you can see what each pass really costs.
 
 ## Keeping the script running
 
