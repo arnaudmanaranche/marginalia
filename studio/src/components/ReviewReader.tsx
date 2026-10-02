@@ -17,8 +17,9 @@ import { useScrollLock } from '../lib/useScrollLock';
 import { usePersistentState } from '../lib/layout';
 import { useModalFocus } from '../lib/useModalFocus';
 import { createContext } from 'react';
-import { Check, ChevronRight, Copy, ExternalLink, Loader2, PanelRight, Pencil, Send, Sparkles, Undo2 } from 'lucide-react';
-import { postComment, type PostedInfo, type ReviewItem } from '../lib/api';
+import { Check, ChevronRight, Copy, ExternalLink, Loader2, PanelRight, Pencil, Send, Sparkles, Undo2, SquareTerminal } from 'lucide-react';
+import { ReviewChat } from './ReviewChat';
+import { postComment, type BotStatus, type PostedInfo, type ReviewItem } from '../lib/api';
 import { cn, timeAgo } from '../lib/utils';
 import { VerdictBadge } from './VerdictBadge';
 import { LinkContext, commentLocation, linkify, linkifyCode, type LinkContextValue } from '../lib/links';
@@ -340,7 +341,28 @@ function Md({ children, semantic }: { children: string; semantic: boolean }) {
   );
 }
 
-export function ReviewReader({ item, markdown, projectUrl, allowPosting, posted, reload }: { item: ReviewItem | undefined; markdown: string | null; projectUrl: string | null; allowPosting: boolean; posted: Record<string, PostedInfo>; reload: () => void }) {
+// What the run is doing right now, for the MR on screen.
+function LiveRun({ live }: { live: NonNullable<BotStatus['current']> }) {
+  const steps = live.progress ?? [];
+  return (
+    <section aria-live="polite">
+      <h2 className="mb-2 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-fg-muted">
+        <Loader2 className="size-3 animate-spin motion-reduce:animate-pulse" aria-hidden />Running now
+      </h2>
+      {steps.length ? (
+        <ol className="space-y-1 text-xs text-fg-muted">
+          {steps.map((s, i) => (
+            <li key={`${i}-${s}`} className={cn('break-words', i === steps.length - 1 && 'font-medium text-zinc-900 dark:text-zinc-100')}>{s}</li>
+          ))}
+        </ol>
+      ) : (
+        <p className="text-xs text-fg-muted">Starting…</p>
+      )}
+    </section>
+  );
+}
+
+export function ReviewReader({ item, markdown, projectUrl, allowPosting, live, posted, reload }: { item: ReviewItem | undefined; markdown: string | null; projectUrl: string | null; allowPosting: boolean; live: BotStatus['current']; posted: Record<string, PostedInfo>; reload: () => void }) {
   const postCtx = useMemo(() => ({ allowPosting, slug: item?.slug ?? null, iid: item?.tracked ? item.iid : null, posted, reload }), [allowPosting, item?.slug, item?.tracked, item?.iid, posted, reload]);
   const linkCtx = useMemo(() => ({ projectUrl, branch: item?.branch ?? null, mrWebUrl: item?.webUrl ?? null }), [projectUrl, item?.branch, item?.webUrl]);
   const { intro, sections } = useMemo(() => splitSections(markdown ?? ''), [markdown]);
@@ -382,6 +404,22 @@ export function ReviewReader({ item, markdown, projectUrl, allowPosting, posted,
           >
             <Sparkles className="size-3.5" />Semantic type
           </button>
+          {item?.resumeCommand && (
+            <button
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(item.resumeCommand!);
+                  toast.success('Command copied: paste it in a terminal to talk with the bot', { description: item.resumeCommand! });
+                } catch {
+                  toast.error('Could not copy: clipboard access was denied', { description: item.resumeCommand! });
+                }
+              }}
+              title={'Copies the command that resumes, in your terminal, the Claude session of the latest run on this MR, with everything it read.\nThe bot worktree may have moved on to another MR since.'}
+              className="touch-target inline-flex items-center justify-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-sm hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:bg-zinc-800"
+            >
+              <SquareTerminal className="size-3.5" aria-hidden />Continue in terminal
+            </button>
+          )}
           {item?.webUrl && (
             <a href={item.webUrl} target="_blank" rel="noreferrer" className="touch-target inline-flex items-center justify-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-sm hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:bg-zinc-800">
               Open in GitLab<ExternalLink className="size-3.5" />
@@ -425,6 +463,7 @@ export function ReviewReader({ item, markdown, projectUrl, allowPosting, posted,
                 </Collapsible.Content>
               </Collapsible.Root>
             ))}
+            {item?.resumeCommand && <ReviewChat slug={item.slug} />}
           </article>
 
           {/* Side panel: context that stays visible while reading. Collapses to give the article the room. */}
@@ -434,6 +473,7 @@ export function ReviewReader({ item, markdown, projectUrl, allowPosting, posted,
             className={cn('sticky top-[calc(var(--chrome-h)+1rem)] hidden h-[calc(100vh-var(--chrome-h)-2rem)] shrink-0 self-start overflow-hidden transition-[width,opacity] duration-300 ease-out motion-reduce:transition-none lg:block', panelOpen ? 'w-64 opacity-100' : 'w-0 opacity-0')}
           >
             <div className="flex h-full w-64 flex-col gap-5 overflow-y-auto pr-1 text-sm">
+              {live && <LiveRun live={live} />}
               <section>
                 <h2 className="mb-2 text-xs font-medium uppercase tracking-wide text-fg-muted">Details</h2>
                 <dl className="space-y-1.5">
