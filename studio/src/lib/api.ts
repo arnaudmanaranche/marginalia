@@ -21,6 +21,7 @@ export interface ReviewItem {
   stackId: string | null;
   crossLayer: CrossFinding[];
   stale: boolean;
+  resumeCommand: string | null;
 }
 
 export interface CrossFinding {
@@ -48,7 +49,7 @@ export interface Stack {
 export interface BotStatus {
   pid: number;
   phase: 'idle' | 'polling' | 'reviewing' | 'error' | 'stopped';
-  current: { iid: number; title: string; startedAt: string } | null;
+  current: { iid: number; title: string; startedAt: string; progress?: string[] } | null;
   lastPoll: { at: string; ok: boolean; error: string | null } | null;
   nextPollAt: string | null;
   mrs?: { iid: number; status: string; reviewPath?: string | null }[];
@@ -69,6 +70,8 @@ interface ReviewsPayload {
   projectUrl: string | null;
   settings: { pollIntervalMinutes: number };
   allowPosting: boolean;
+  ideEnabled?: boolean;
+  diffInIdeEnabled?: boolean;
   posted: Record<string, PostedInfo>;
 }
 
@@ -153,4 +156,48 @@ export async function postComment(slug: string, commentId: string, body: string,
   const j = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(j.error ?? `HTTP ${res.status}`);
   return j;
+}
+
+// Opens the file a comment is anchored on, in the MR's worktree, with IDE_COMMAND.
+export async function openInIde(slug: string, path: string, line: number): Promise<void> {
+  const res = await fetch('/api/open-in-ide', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ slug, path, line }),
+  });
+  const j = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(j.error ?? `HTTP ${res.status}`);
+}
+
+// Opens the MR's worktree in the IDE with the MR's changes shown as uncommitted.
+export async function showDiffInIde(slug: string): Promise<{ folder: string; owned: boolean }> {
+  const res = await fetch('/api/show-diff-in-ide', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ slug }),
+  });
+  const j = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(j.error ?? `HTTP ${res.status}`);
+  return j;
+}
+
+export type ChatEvent = { type: 'hello' | 'queued' | 'step' | 'answer' | 'error' | 'closed'; text?: string; costUsd?: number | null; pending: number };
+
+// Sends one message to the bot about a review; answers arrive on chatEvents().
+export async function sendChat(slug: string, message: string): Promise<void> {
+  const res = await fetch('/api/chat', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ slug, message }),
+  });
+  if (!res.ok) {
+    const j = await res.json().catch(() => ({}));
+    throw new Error(j.error ?? `HTTP ${res.status}`);
+  }
+}
+
+export function chatEvents(slug: string, onEvent: (event: ChatEvent) => void): () => void {
+  const source = new EventSource(`/api/chat/stream?slug=${encodeURIComponent(slug)}`);
+  source.onmessage = (e) => onEvent(JSON.parse(e.data));
+  return () => source.close();
 }
