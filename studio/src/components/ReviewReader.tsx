@@ -17,8 +17,9 @@ import { useScrollLock } from '../lib/useScrollLock';
 import { usePersistentState } from '../lib/layout';
 import { useModalFocus } from '../lib/useModalFocus';
 import { createContext } from 'react';
-import { Check, ChevronRight, Copy, ExternalLink, Loader2, PanelRight, Pencil, Send, Sparkles, Undo2 } from 'lucide-react';
-import { postComment, type PostedInfo, type ReviewItem } from '../lib/api';
+import { Check, ChevronRight, Clock, Copy, ExternalLink, FlaskConical, Loader2, Microscope, PanelRight, Pencil, Send, Sparkles, Undo2 } from 'lucide-react';
+import { postComment, requestAction, type ActionKind, type BotStatus, type PostedInfo, type ReviewItem } from '../lib/api';
+import type { BotState } from './TabIcon';
 import { cn, timeAgo } from '../lib/utils';
 import { VerdictBadge } from './VerdictBadge';
 import { LinkContext, commentLocation, linkify, linkifyCode, type LinkContextValue } from '../lib/links';
@@ -340,7 +341,79 @@ function Md({ children, semantic }: { children: string; semantic: boolean }) {
   );
 }
 
-export function ReviewReader({ item, markdown, projectUrl, allowPosting, posted, reload }: { item: ReviewItem | undefined; markdown: string | null; projectUrl: string | null; allowPosting: boolean; posted: Record<string, PostedInfo>; reload: () => void }) {
+type ActionState = 'idle' | 'queued' | 'running';
+
+const ACTION_UI: Record<ActionKind, { Icon: typeof Microscope; label: Record<ActionState, string>; title: string }> = {
+  deepen: {
+    Icon: Microscope,
+    label: { idle: 'Deep review', queued: 'Deep review queued', running: 'Deep review running…' },
+    title: [
+      'Deep review, on top of the automatic review:',
+      '• re-checks each finding and the MR description against the full source files',
+      '• installs the dependencies, runs the type check and the tests related to the changed files',
+      '• reads all the MR discussions, so nothing a reviewer said is repeated',
+      'The deep review replaces the automatic one when done. Slower and more expensive.',
+    ].join('\n'),
+  },
+  qa: {
+    Icon: FlaskConical,
+    label: { idle: 'Run QA', queued: 'QA queued', running: 'QA running…' },
+    title: [
+      'QA of the running app, not of the code:',
+      '• finds the review app of this MR and checks it answers',
+      '• plays adversarial scenarios in a browser, as a customer (B2C) and as an agent (B2B)',
+      '• takes a screenshot when something breaks',
+      'The result is added as a QA section at the end of this review.',
+    ].join('\n'),
+  },
+};
+
+function ActionButton({ slug, action, state }: { slug: string; action: ActionKind; state: ActionState }) {
+  const { Icon, label, title } = ACTION_UI[action];
+  return (
+    <button
+      disabled={state !== 'idle'}
+      onClick={async () => {
+        try {
+          const r = await requestAction(slug, action);
+          toast.info(r.state === 'started' ? `${label.running.replace('…', '')} on !${r.iid}` : `${label.queued} on !${r.iid}: it starts after the running review`);
+        } catch (e) {
+          toast.error(`Could not start: ${label.idle}`, { description: (e as Error).message });
+        }
+      }}
+      title={title}
+      className="touch-target inline-flex items-center justify-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-sm hover:bg-zinc-50 disabled:opacity-60 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:bg-zinc-800"
+    >
+      {state === 'running' ? <Loader2 className="size-3.5 animate-spin motion-reduce:animate-pulse" aria-hidden /> : state === 'queued' ? <Clock className="size-3.5" aria-hidden /> : <Icon className="size-3.5" aria-hidden />}
+      {label[state]}
+    </button>
+  );
+}
+
+const formatRunAt = (iso: string) => new Date(iso).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+
+// What the run is doing right now, for the MR on screen.
+function LiveRun({ live }: { live: NonNullable<BotStatus['current']> }) {
+  const steps = live.progress ?? [];
+  return (
+    <section aria-live="polite">
+      <h2 className="mb-2 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-fg-muted">
+        <Loader2 className="size-3 animate-spin motion-reduce:animate-pulse" aria-hidden />Running now
+      </h2>
+      {steps.length ? (
+        <ol className="space-y-1 text-xs text-fg-muted">
+          {steps.map((s, i) => (
+            <li key={`${i}-${s}`} className={cn('break-words', i === steps.length - 1 && 'font-medium text-zinc-900 dark:text-zinc-100')}>{s}</li>
+          ))}
+        </ol>
+      ) : (
+        <p className="text-xs text-fg-muted">Starting…</p>
+      )}
+    </section>
+  );
+}
+
+export function ReviewReader({ item, markdown, projectUrl, allowPosting, deepenEnabled, qaEnabled, botState, live, posted, reload }: { item: ReviewItem | undefined; markdown: string | null; projectUrl: string | null; allowPosting: boolean; deepenEnabled: boolean; qaEnabled: boolean; botState: BotState; live: BotStatus['current']; posted: Record<string, PostedInfo>; reload: () => void }) {
   const postCtx = useMemo(() => ({ allowPosting, slug: item?.slug ?? null, iid: item?.tracked ? item.iid : null, posted, reload }), [allowPosting, item?.slug, item?.tracked, item?.iid, posted, reload]);
   const linkCtx = useMemo(() => ({ projectUrl, branch: item?.branch ?? null, mrWebUrl: item?.webUrl ?? null }), [projectUrl, item?.branch, item?.webUrl]);
   const { intro, sections } = useMemo(() => splitSections(markdown ?? ''), [markdown]);
@@ -382,6 +455,8 @@ export function ReviewReader({ item, markdown, projectUrl, allowPosting, posted,
           >
             <Sparkles className="size-3.5" />Semantic type
           </button>
+          {deepenEnabled && item?.tracked && <ActionButton slug={item.slug} action="deepen" state={botState === 'deepening' ? 'running' : botState === 'deepen-queued' ? 'queued' : 'idle'} />}
+          {qaEnabled && item?.tracked && <ActionButton slug={item.slug} action="qa" state={botState === 'testing' ? 'running' : botState === 'qa-queued' ? 'queued' : 'idle'} />}
           {item?.webUrl && (
             <a href={item.webUrl} target="_blank" rel="noreferrer" className="touch-target inline-flex items-center justify-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-sm hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:bg-zinc-800">
               Open in GitLab<ExternalLink className="size-3.5" />
@@ -434,6 +509,12 @@ export function ReviewReader({ item, markdown, projectUrl, allowPosting, posted,
             className={cn('sticky top-[calc(var(--chrome-h)+1rem)] hidden h-[calc(100vh-var(--chrome-h)-2rem)] shrink-0 self-start overflow-hidden transition-[width,opacity] duration-300 ease-out motion-reduce:transition-none lg:block', panelOpen ? 'w-64 opacity-100' : 'w-0 opacity-0')}
           >
             <div className="flex h-full w-64 flex-col gap-5 overflow-y-auto pr-1 text-sm">
+              {live ? <LiveRun live={live} /> : (item?.lastDeepAt || item?.lastQaAt) && (
+                <section className="space-y-1.5 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                  {item.lastDeepAt && <p className="flex items-center gap-2"><Microscope className="size-4 shrink-0" aria-hidden />Deep review on {formatRunAt(item.lastDeepAt)}</p>}
+                  {item.lastQaAt && <p className="flex items-center gap-2"><FlaskConical className="size-4 shrink-0" aria-hidden />QA run on {formatRunAt(item.lastQaAt)}</p>}
+                </section>
+              )}
               <section>
                 <h2 className="mb-2 text-xs font-medium uppercase tracking-wide text-fg-muted">Details</h2>
                 <dl className="space-y-1.5">
