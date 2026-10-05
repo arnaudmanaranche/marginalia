@@ -1,4 +1,4 @@
-import { createContext, Fragment, type ReactNode } from 'react';
+import { createContext, type ReactNode } from 'react';
 
 export interface LinkContextValue {
   projectUrl: string | null;
@@ -97,5 +97,3 @@ export function linkifyCode(text: string, ctx: LinkContextValue): string | null 
   if (/^!\d+$/.test(text)) return mrUrl(ctx, text);
   return FULL_PATH.test(text) ? fileUrl(ctx, text) : null;
 }
-
-export { Fragment };

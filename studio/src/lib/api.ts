@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 
 export type Verdict = 'APPROVE' | 'REQUEST_CHANGES' | 'OTHER' | null;
-export type Kind = 'review' | 'comments' | 'retro';
+type Kind = 'review' | 'comments' | 'retro';
 
 export interface ReviewItem {
   slug: string;
