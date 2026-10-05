@@ -3,6 +3,7 @@ import { ArrowUpRight, GitBranch, User } from 'lucide-react';
 import type { ReviewItem } from '../lib/api';
 import { cn, timeAgo } from '../lib/utils';
 import { VerdictBadge } from './VerdictBadge';
+import { Badge } from './ui/Badge';
 
 export type CardSize = 'small' | 'medium' | 'large';
 
@@ -81,8 +82,8 @@ export function ReviewCard({ item, unread, size, resizing }: { item: ReviewItem;
 
       <motion.div layout="position" transition={LAYOUT} className="mt-auto flex flex-wrap items-center gap-1.5">
         <VerdictBadge verdict={item.verdict} compact={small} />
-        {item.critical > 0 && <span className="rounded-full bg-red-500/10 px-2 py-0.5 text-xs text-red-700 dark:text-red-300">{item.critical}{!small && ' critical'}</span>}
-        {item.important > 0 && <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-xs text-amber-700 dark:text-amber-300">{item.important}{!small && ' important'}</span>}
+        {item.critical > 0 && <Badge tone="danger">{item.critical}{!small && ' critical'}</Badge>}
+        {item.important > 0 && <Badge tone="warning">{item.important}{!small && ' important'}</Badge>}
       </motion.div>
 
       <AnimatePresence initial={false} mode="popLayout">

@@ -21,6 +21,8 @@ import { Check, ChevronRight, Copy, Trash2, X, ExternalLink, Loader2, PanelRight
 import { deleteDraft, fetchDrafts, postComment, updateDraft, submitReview, type DraftNote, BotStatus, type PostedInfo, type ReviewItem } from '../lib/api';
 import { cn, timeAgo } from '../lib/utils';
 import { VerdictBadge } from './VerdictBadge';
+import { Button } from './ui/Button';
+import { Badge, badgeClass } from './ui/Badge';
 import { LinkContext, commentLocation, linkify, linkifyCode, type LinkContextValue } from '../lib/links';
 
 interface Section {
@@ -69,7 +71,8 @@ function textOf(node: ReactNode): string {
 function CopyButton({ getText, label }: { getText: () => string; label: string }) {
   const [done, setDone] = useState(false);
   return (
-    <button
+    <Button
+      size="sm"
       onClick={async () => {
         try {
           await navigator.clipboard.writeText(getText());
@@ -80,11 +83,10 @@ function CopyButton({ getText, label }: { getText: () => string; label: string }
           toast.error('Could not copy: clipboard access was denied');
         }
       }}
-      className="touch-target inline-flex items-center justify-center gap-1 rounded-md border border-zinc-200 bg-white px-2 py-1 text-xs text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
     >
       {done ? <Check className="size-3.5 text-emerald-600" /> : <Copy className="size-3.5" />}
       {done ? 'Copied' : label}
-    </button>
+    </Button>
   );
 }
 
@@ -146,8 +148,9 @@ function ConfirmPost({ iid, text, target, onCancel, onConfirm, fallbackRef }: { 
         </p>
         <pre id="confirm-post-text" tabIndex={0} aria-label="Comment text" className="mt-3 max-h-64 overflow-y-auto whitespace-pre-wrap rounded-lg border border-zinc-200 bg-zinc-50 p-3 text-sm dark:border-zinc-800 dark:bg-zinc-950">{text}</pre>
         <div className="mt-4 flex justify-end gap-2">
-          <button data-autofocus disabled={busy} onClick={onCancel} className="touch-target rounded-lg border border-zinc-200 px-3 py-1.5 text-sm hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-700 dark:hover:bg-zinc-800">Cancel</button>
-          <button
+          <Button data-autofocus disabled={busy} onClick={onCancel}>Cancel</Button>
+          <Button
+            variant="primary"
             disabled={busy}
             onClick={async () => {
               setBusy(true);
@@ -158,10 +161,9 @@ function ConfirmPost({ iid, text, target, onCancel, onConfirm, fallbackRef }: { 
                 setBusy(false);
               }
             }}
-            className="touch-target inline-flex items-center justify-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-60"
           >
             {busy ? <Loader2 className="size-4 animate-spin motion-reduce:animate-pulse" /> : <Send className="size-4" />}Add to review
-          </button>
+          </Button>
         </div>
       </div>
     </div>
@@ -182,7 +184,6 @@ function DraftRow({ slug, draft, disabled, onChanged }: { slug: string; draft: D
     }
     setBusy(false);
   };
-  const btn = 'touch-target inline-flex items-center justify-center gap-1 rounded-md px-2 py-1 text-xs hover:bg-zinc-200/60 disabled:opacity-50 dark:hover:bg-zinc-800';
   return (
     <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-2.5 text-sm dark:border-zinc-800 dark:bg-zinc-950">
       <div className="flex items-center justify-between gap-2">
@@ -190,19 +191,19 @@ function DraftRow({ slug, draft, disabled, onChanged }: { slug: string; draft: D
         <span className="flex shrink-0 items-center gap-1">
           {editing ? (
             <>
-              <button disabled={busy || disabled || !text.trim()} className={btn} onClick={() => run(async () => { await updateDraft(slug, draft.id, text.trim()); onChanged({ ...draft, body: text.trim() }); setEditing(false); }, 'Could not update the draft')}>
+              <Button size="sm" variant="ghost" disabled={busy || disabled || !text.trim()} onClick={() => run(async () => { await updateDraft(slug, draft.id, text.trim()); onChanged({ ...draft, body: text.trim() }); setEditing(false); }, 'Could not update the draft')}>
                 <Check className="size-3.5" />Save
-              </button>
-              <button disabled={busy} className={btn} onClick={() => { setText(draft.body); setEditing(false); }}>
+              </Button>
+              <Button size="sm" variant="ghost" disabled={busy} onClick={() => { setText(draft.body); setEditing(false); }}>
                 <X className="size-3.5" />Cancel
-              </button>
+              </Button>
             </>
           ) : (
             <>
-              <button disabled={busy || disabled} className={btn} onClick={() => setEditing(true)} aria-label="Edit this draft"><Pencil className="size-3.5" />Edit</button>
-              <button disabled={busy || disabled} className={cn(btn, 'text-red-600 dark:text-red-400')} onClick={() => run(async () => { await deleteDraft(slug, draft.id); onChanged(null); }, 'Could not delete the draft')} aria-label="Delete this draft">
+              <Button size="sm" variant="ghost" disabled={busy || disabled} onClick={() => setEditing(true)} aria-label="Edit this draft"><Pencil className="size-3.5" />Edit</Button>
+              <Button size="sm" variant="danger" disabled={busy || disabled} onClick={() => run(async () => { await deleteDraft(slug, draft.id); onChanged(null); }, 'Could not delete the draft')} aria-label="Delete this draft">
                 <Trash2 className="size-3.5" />Delete
-              </button>
+              </Button>
             </>
           )}
         </span>
@@ -254,8 +255,9 @@ function ConfirmSubmit({ slug, iid, count, reload, onCancel, onConfirm }: { slug
         <label htmlFor="review-summary" className="mt-3 block text-sm font-medium">Summary <span className="font-normal text-fg-muted">(optional)</span></label>
         <textarea id="review-summary" data-autofocus value={summary} onChange={(e) => setSummary(e.target.value)} rows={4} className="mt-1 w-full resize-y rounded-md border border-zinc-300 bg-white p-3 text-sm outline-none focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/50 dark:border-zinc-700 dark:bg-zinc-900" />
         <div className="mt-4 flex justify-end gap-2">
-          <button disabled={busy} onClick={onCancel} className="touch-target rounded-lg border border-zinc-200 px-3 py-1.5 text-sm hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-700 dark:hover:bg-zinc-800">Cancel</button>
-          <button
+          <Button disabled={busy} onClick={onCancel}>Cancel</Button>
+          <Button
+            variant="primary"
             disabled={busy}
             onClick={async () => {
               setBusy(true);
@@ -266,10 +268,9 @@ function ConfirmSubmit({ slug, iid, count, reload, onCancel, onConfirm }: { slug
                 setBusy(false);
               }
             }}
-            className="touch-target inline-flex items-center justify-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-60"
           >
             {busy ? <Loader2 className="size-4 animate-spin motion-reduce:animate-pulse" /> : <Send className="size-4" />}Submit review
-          </button>
+          </Button>
         </div>
       </div>
     </div>
@@ -322,37 +323,31 @@ function Quote({ children, offset }: { children?: ReactNode; offset?: number }) 
         <span>
           Comment to post{edited !== null && !editing ? ' · edited' : ''}
           {postedInfo?.state === 'draft' && (
-            <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 normal-case tracking-normal text-amber-700 ring-1 ring-inset ring-amber-500/30 dark:text-amber-300">
+            <Badge tone="warning" ring className="ml-2 normal-case tracking-normal">
               <Check className="size-3" />In pending review
-            </span>
+            </Badge>
           )}
           {postedInfo && postedInfo.state !== 'draft' && (
-            <a href={postedInfo.url} target="_blank" rel="noreferrer" className="ml-2 inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 normal-case tracking-normal text-emerald-700 ring-1 ring-inset ring-emerald-500/30 dark:text-emerald-300">
+            <a href={postedInfo.url} target="_blank" rel="noreferrer" className={cn(badgeClass({ tone: 'success', ring: true }), 'ml-2 normal-case tracking-normal')}>
               <Check className="size-3" />Posted {timeAgo(postedInfo.at)}<ExternalLink className="size-3" />
             </a>
           )}
         </span>
         <span className="flex flex-wrap items-center justify-end gap-1.5 normal-case tracking-normal [&>button]:whitespace-nowrap">
           {edited !== null && (
-            <button onClick={reset} className="touch-target inline-flex items-center justify-center gap-1 rounded-md px-2 py-1 text-xs text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800">
+            <Button size="sm" variant="ghost" onClick={reset}>
               <Undo2 className="size-3.5" />Reset
-            </button>
+            </Button>
           )}
-          <button
-            onClick={() => (editing ? setEditing(false) : startEdit())}
-            className="touch-target inline-flex items-center justify-center gap-1 rounded-md border border-zinc-200 bg-white px-2 py-1 text-xs text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
-          >
+          <Button size="sm" onClick={() => (editing ? setEditing(false) : startEdit())}>
             {editing ? <Check className="size-3.5" /> : <Pencil className="size-3.5" />}
             {editing ? 'Done' : 'Edit'}
-          </button>
+          </Button>
           <CopyButton label="Copy" getText={() => current} />
           {post.allowPosting && post.slug && post.iid && !postedInfo && (
-            <button
-              onClick={() => setConfirming(true)}
-              className="touch-target inline-flex items-center justify-center gap-1 rounded-md bg-blue-600 px-2 py-1 text-xs font-medium text-white hover:bg-blue-500"
-            >
+            <Button size="sm" variant="primary" onClick={() => setConfirming(true)}>
               <Send className="size-3.5" />Add to review
-            </button>
+            </Button>
           )}
         </span>
       </div>
@@ -511,9 +506,9 @@ export function ReviewReader({ item, markdown, projectUrl, allowPosting, live, p
         </div>
         <div className="flex items-center gap-2">
           {allowPosting && item?.tracked && draftCount > 0 && (
-            <button onClick={() => setSubmitting(true)} className="touch-target inline-flex items-center justify-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-500">
+            <Button variant="primary" onClick={() => setSubmitting(true)}>
               <Send className="size-3.5" />Submit review ({draftCount})
-            </button>
+            </Button>
           )}
           <button
             onClick={() => setSemantic((v) => !v)}

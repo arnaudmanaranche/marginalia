@@ -213,6 +213,12 @@ started in GitLab's own UI are published too). The MR is resolved server-side fr
 review" then "Posted" badge. Off by default: without the flag the buttons don't
 exist and `POST /api/post` and `POST /api/submit-review` answer 403.
 
+**Design system (Scholia).** The studio's UI is documented in Storybook:
+`npm run studio:storybook` (port 6006). It holds the foundations from `DESIGN.md`
+(colours, type, radii, spacing) and a story per presentational component. Light and dark
+follow the OS, as in the app. `npm --prefix studio run build-storybook` builds a static copy
+(`studio/storybook-static`, gitignored).
+
 **API contract.** `studio/public/openapi.yaml` (OpenAPI 3.1) describes every endpoint between
 the server and the app. With the studio running, read it at
 <http://localhost:4477/api-docs.html> (rendered read-only: "Try it out" is off, since the write
