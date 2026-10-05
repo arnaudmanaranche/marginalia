@@ -201,13 +201,17 @@ away. This is the studio's only write endpoint (`PUT /api/settings`); it
 refuses requests whose `Host` or `Origin` isn't the studio itself.
 
 **Posting (opt-in).** With `ALLOW_POSTING=true` in `.env`, each "Comment to post"
-block gets a *Post to GitLab* button. It opens a confirmation showing the final
-(possibly edited) text and the target MR, then posts a general comment on that MR
-through the GitLab API with your `GITLAB_TOKEN`, i.e. as you. The MR is resolved
-server-side from `status.json`, never from the request. Posted comments are
-remembered in `posted.json` (gitignored) so the same one can't be posted twice,
-and shown with a "Posted" badge linking to the note. Off by default: without
-the flag the button doesn't exist and `POST /api/post` answers 403.
+block gets an *Add to review* button. It opens a confirmation showing the final
+(possibly edited) text and the target MR, then creates a GitLab **draft note**
+(inline on the file/line when it can, else general) through the API with your
+`GITLAB_TOKEN`. Drafts are private to you: nothing is visible to the MR author
+until the *Submit review (N)* button, which asks for an optional summary and
+publishes everything as one real GitLab review (`draft_notes/bulk_publish`; drafts
+started in GitLab's own UI are published too). The MR is resolved server-side from
+`status.json`, never from the request. Comments are remembered in `posted.json`
+(gitignored) so the same one can't be added twice, and shown with an "In pending
+review" then "Posted" badge. Off by default: without the flag the buttons don't
+exist and `POST /api/post` and `POST /api/submit-review` answer 403.
 
 The "Review ready" notification and the SwiftBar menu open the studio (the
 notification falls back to VS Code if the studio isn't listening).

@@ -17,8 +17,8 @@ import { useScrollLock } from '../lib/useScrollLock';
 import { usePersistentState } from '../lib/layout';
 import { useModalFocus } from '../lib/useModalFocus';
 import { createContext } from 'react';
-import { Check, ChevronRight, Copy, ExternalLink, Loader2, PanelRight, Pencil, Send, Sparkles, Undo2 } from 'lucide-react';
-import { postComment, type BotStatus, type PostedInfo, type ReviewItem } from '../lib/api';
+import { Check, ChevronRight, Copy, Trash2, X, ExternalLink, Loader2, PanelRight, Pencil, Send, Sparkles, Undo2 } from 'lucide-react';
+import { deleteDraft, fetchDrafts, postComment, updateDraft, submitReview, type DraftNote, BotStatus, type PostedInfo, type ReviewItem } from '../lib/api';
 import { cn, timeAgo } from '../lib/utils';
 import { VerdictBadge } from './VerdictBadge';
 import { LinkContext, commentLocation, linkify, linkifyCode, type LinkContextValue } from '../lib/links';
@@ -124,7 +124,7 @@ const SourceContext = createContext('');
 // The "**Comment to post:**" line before a blockquote: the card already carries that label.
 const COMMENT_LABEL = /^comment to post\s*:?$/i;
 
-// Nothing is sent until "Post comment" is clicked here, with the final text.
+// Nothing is sent until "Add to review" is clicked here, with the final text.
 function ConfirmPost({ iid, text, target, onCancel, onConfirm, fallbackRef }: { iid: string | number; text: string; target: { path: string; line?: number } | null; onCancel: () => void; onConfirm: () => Promise<void>; fallbackRef: RefObject<HTMLElement | null> }) {
   const [busy, setBusy] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -139,8 +139,8 @@ function ConfirmPost({ iid, text, target, onCancel, onConfirm, fallbackRef }: { 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4" onClick={busy ? undefined : onCancel}>
       <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="confirm-post-title" aria-describedby="confirm-post-text" className="w-full max-w-lg rounded-xl border border-zinc-200 bg-white p-5 shadow-2xl dark:border-zinc-800 dark:bg-zinc-900" onClick={(e) => e.stopPropagation()}>
-        <h2 id="confirm-post-title" className="text-base font-semibold">Post this comment on !{iid}?</h2>
-        <p className="mt-1 text-sm text-fg-muted">It will be posted on GitLab under your account and visible to the MR author.</p>
+        <h2 id="confirm-post-title" className="text-base font-semibold">Add this comment to your review of !{iid}?</h2>
+        <p className="mt-1 text-sm text-fg-muted">It joins your pending GitLab review: nobody sees it until you submit the review.</p>
         <p className="mt-1 text-sm text-fg-muted">
           {target ? <>Anchored on <code className="rounded bg-zinc-100 px-1 py-0.5 text-[0.85em] dark:bg-zinc-800">{target.path}{target.line ? `:${target.line}` : ''}</code> in the diff{target.line ? '' : ' (whole file)'}.</> : 'No file found above it: it will be a general comment.'}
         </p>
@@ -154,13 +154,121 @@ function ConfirmPost({ iid, text, target, onCancel, onConfirm, fallbackRef }: { 
               try {
                 await onConfirm();
               } catch (e) {
-                toast.error('Could not post the comment', { description: (e as Error).message });
+                toast.error('Could not add the comment', { description: (e as Error).message });
                 setBusy(false);
               }
             }}
             className="touch-target inline-flex items-center justify-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-60"
           >
-            {busy ? <Loader2 className="size-4 animate-spin motion-reduce:animate-pulse" /> : <Send className="size-4" />}Post comment
+            {busy ? <Loader2 className="size-4 animate-spin motion-reduce:animate-pulse" /> : <Send className="size-4" />}Add to review
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// One pending draft: read, edit in place, or delete. Goes straight to GitLab's draft notes.
+function DraftRow({ slug, draft, disabled, onChanged }: { slug: string; draft: DraftNote; disabled: boolean; onChanged: (next: DraftNote | null) => void }) {
+  const [editing, setEditing] = useState(false);
+  const [text, setText] = useState(draft.body);
+  const [busy, setBusy] = useState(false);
+  const run = async (action: () => Promise<void>, failure: string) => {
+    setBusy(true);
+    try {
+      await action();
+    } catch (e) {
+      toast.error(failure, { description: (e as Error).message });
+    }
+    setBusy(false);
+  };
+  const btn = 'touch-target inline-flex items-center justify-center gap-1 rounded-md px-2 py-1 text-xs hover:bg-zinc-200/60 disabled:opacity-50 dark:hover:bg-zinc-800';
+  return (
+    <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-2.5 text-sm dark:border-zinc-800 dark:bg-zinc-950">
+      <div className="flex items-center justify-between gap-2">
+        <code className="min-w-0 break-all text-xs text-fg-muted">{draft.path ? `${draft.path}${draft.line ? `:${draft.line}` : ''}` : 'General comment'}</code>
+        <span className="flex shrink-0 items-center gap-1">
+          {editing ? (
+            <>
+              <button disabled={busy || disabled || !text.trim()} className={btn} onClick={() => run(async () => { await updateDraft(slug, draft.id, text.trim()); onChanged({ ...draft, body: text.trim() }); setEditing(false); }, 'Could not update the draft')}>
+                <Check className="size-3.5" />Save
+              </button>
+              <button disabled={busy} className={btn} onClick={() => { setText(draft.body); setEditing(false); }}>
+                <X className="size-3.5" />Cancel
+              </button>
+            </>
+          ) : (
+            <>
+              <button disabled={busy || disabled} className={btn} onClick={() => setEditing(true)} aria-label="Edit this draft"><Pencil className="size-3.5" />Edit</button>
+              <button disabled={busy || disabled} className={cn(btn, 'text-red-600 dark:text-red-400')} onClick={() => run(async () => { await deleteDraft(slug, draft.id); onChanged(null); }, 'Could not delete the draft')} aria-label="Delete this draft">
+                <Trash2 className="size-3.5" />Delete
+              </button>
+            </>
+          )}
+        </span>
+      </div>
+      {editing ? (
+        <textarea value={text} onChange={(e) => setText(e.target.value)} rows={Math.min(10, Math.max(3, text.split('\n').length + 1))} aria-label="Draft text" className="mt-2 w-full resize-y rounded-md border border-zinc-300 bg-white p-2 text-sm outline-none focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/50 dark:border-zinc-700 dark:bg-zinc-900" />
+      ) : (
+        <p className="mt-1 whitespace-pre-wrap">{draft.body}</p>
+      )}
+    </div>
+  );
+}
+
+// Publishes the pending review: every draft comment of this MR, plus an optional summary.
+function ConfirmSubmit({ slug, iid, count, reload, onCancel, onConfirm }: { slug: string; reload: () => void; iid: string | number; count: number; onCancel: () => void; onConfirm: (summary: string) => Promise<void> }) {
+  const [busy, setBusy] = useState(false);
+  const [summary, setSummary] = useState('');
+  // Read from GitLab itself, so drafts started in its own UI are listed too.
+  const [drafts, setDrafts] = useState<DraftNote[] | null>(null);
+  const [draftsError, setDraftsError] = useState<string | null>(null);
+  useEffect(() => {
+    let live = true;
+    fetchDrafts(slug).then((d) => live && setDrafts(d), (e) => live && setDraftsError((e as Error).message));
+    return () => {
+      live = false;
+    };
+  }, [slug]);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useScrollLock(true);
+  useModalFocus(true, dialogRef, { initial: '[data-autofocus]' });
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && !busy && onCancel();
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [busy, onCancel]);
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4" onClick={busy ? undefined : onCancel}>
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="confirm-submit-title" className="w-full max-w-lg rounded-xl border border-zinc-200 bg-white p-5 shadow-2xl dark:border-zinc-800 dark:bg-zinc-900" onClick={(e) => e.stopPropagation()}>
+        <h2 id="confirm-submit-title" className="text-base font-semibold">Submit your review of !{iid}?</h2>
+        <p className="mt-1 text-sm text-fg-muted">{count} pending comment{count === 1 ? '' : 's'} will be published as one review, under your account and visible to the MR author. Drafts started in GitLab itself are published too.</p>
+        <div className="mt-3 max-h-60 space-y-2 overflow-y-auto" aria-label="Pending comments" aria-busy={!drafts && !draftsError}>
+          {draftsError && <p className="text-sm text-red-600 dark:text-red-400">Could not load the drafts: {draftsError}</p>}
+          {!drafts && !draftsError && <p className="text-sm text-fg-muted">Loading…</p>}
+          {drafts?.length === 0 && <p className="text-sm text-fg-muted">No pending comment on GitLab.</p>}
+          {drafts?.map((d) => (
+            <DraftRow key={d.id} slug={slug} draft={d} disabled={busy} onChanged={(next) => { setDrafts((all) => (all ?? []).flatMap((x) => (x.id !== d.id ? [x] : next ? [next] : []))); reload(); }} />
+          ))}
+        </div>
+        <label htmlFor="review-summary" className="mt-3 block text-sm font-medium">Summary <span className="font-normal text-fg-muted">(optional)</span></label>
+        <textarea id="review-summary" data-autofocus value={summary} onChange={(e) => setSummary(e.target.value)} rows={4} className="mt-1 w-full resize-y rounded-md border border-zinc-300 bg-white p-3 text-sm outline-none focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/50 dark:border-zinc-700 dark:bg-zinc-900" />
+        <div className="mt-4 flex justify-end gap-2">
+          <button disabled={busy} onClick={onCancel} className="touch-target rounded-lg border border-zinc-200 px-3 py-1.5 text-sm hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-700 dark:hover:bg-zinc-800">Cancel</button>
+          <button
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true);
+              try {
+                await onConfirm(summary);
+              } catch (e) {
+                toast.error('Could not submit the review', { description: (e as Error).message });
+                setBusy(false);
+              }
+            }}
+            className="touch-target inline-flex items-center justify-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-60"
+          >
+            {busy ? <Loader2 className="size-4 animate-spin motion-reduce:animate-pulse" /> : <Send className="size-4" />}Submit review
           </button>
         </div>
       </div>
@@ -213,7 +321,12 @@ function Quote({ children, offset }: { children?: ReactNode; offset?: number }) 
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2 text-xs font-medium uppercase tracking-wide text-blue-700 dark:text-blue-300">
         <span>
           Comment to post{edited !== null && !editing ? ' · edited' : ''}
-          {postedInfo && (
+          {postedInfo?.state === 'draft' && (
+            <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 normal-case tracking-normal text-amber-700 ring-1 ring-inset ring-amber-500/30 dark:text-amber-300">
+              <Check className="size-3" />In pending review
+            </span>
+          )}
+          {postedInfo && postedInfo.state !== 'draft' && (
             <a href={postedInfo.url} target="_blank" rel="noreferrer" className="ml-2 inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 normal-case tracking-normal text-emerald-700 ring-1 ring-inset ring-emerald-500/30 dark:text-emerald-300">
               <Check className="size-3" />Posted {timeAgo(postedInfo.at)}<ExternalLink className="size-3" />
             </a>
@@ -238,7 +351,7 @@ function Quote({ children, offset }: { children?: ReactNode; offset?: number }) 
               onClick={() => setConfirming(true)}
               className="touch-target inline-flex items-center justify-center gap-1 rounded-md bg-blue-600 px-2 py-1 text-xs font-medium text-white hover:bg-blue-500"
             >
-              <Send className="size-3.5" />Post to GitLab
+              <Send className="size-3.5" />Add to review
             </button>
           )}
         </span>
@@ -267,8 +380,8 @@ function Quote({ children, offset }: { children?: ReactNode; offset?: number }) 
             const posted = await postComment(post.slug!, commentId, current, target ?? undefined);
             setConfirming(false);
             post.reload();
-            if (target && posted.inline === false) toast.warning('Could not anchor it to the diff, posted as a general comment');
-            toast.success(posted.inline ? `Comment posted on ${target?.path}${target?.line ? `:${target.line}` : ''}` : `Comment posted on !${post.iid}`, { action: { label: 'Open', onClick: () => window.open(posted.url, '_blank', 'noopener') } });
+            if (target && posted.inline === false) toast.warning('Could not anchor it to the diff, added as a general comment');
+            toast.success(`Added to your pending review of !${post.iid}`, { description: 'Submit the review to publish it.' });
           }}
         />
       )}
@@ -362,6 +475,8 @@ function LiveRun({ live }: { live: NonNullable<BotStatus['current']> }) {
 }
 
 export function ReviewReader({ item, markdown, projectUrl, allowPosting, live, posted, reload }: { item: ReviewItem | undefined; markdown: string | null; projectUrl: string | null; allowPosting: boolean; live: BotStatus['current']; posted: Record<string, PostedInfo>; reload: () => void }) {
+  const [submitting, setSubmitting] = useState(false);
+  const draftCount = item ? Object.entries(posted).filter(([k, p]) => k.startsWith(`${item.slug}:`) && p.state === 'draft').length : 0;
   const postCtx = useMemo(() => ({ allowPosting, slug: item?.slug ?? null, iid: item?.tracked ? item.iid : null, posted, reload }), [allowPosting, item?.slug, item?.tracked, item?.iid, posted, reload]);
   const linkCtx = useMemo(() => ({ projectUrl, branch: item?.branch ?? null, mrWebUrl: item?.webUrl ?? null }), [projectUrl, item?.branch, item?.webUrl]);
   const { intro, sections } = useMemo(() => splitSections(markdown ?? ''), [markdown]);
@@ -395,6 +510,11 @@ export function ReviewReader({ item, markdown, projectUrl, allowPosting, live, p
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {allowPosting && item?.tracked && draftCount > 0 && (
+            <button onClick={() => setSubmitting(true)} className="touch-target inline-flex items-center justify-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-500">
+              <Send className="size-3.5" />Submit review ({draftCount})
+            </button>
+          )}
           <button
             onClick={() => setSemantic((v) => !v)}
             aria-pressed={semantic}
@@ -494,6 +614,21 @@ export function ReviewReader({ item, markdown, projectUrl, allowPosting, live, p
         </div>
       )}
     </div>
+    {submitting && item?.iid && (
+      <ConfirmSubmit
+        slug={item.slug}
+        reload={reload}
+        iid={item.iid}
+        count={draftCount}
+        onCancel={() => setSubmitting(false)}
+        onConfirm={async (summary) => {
+          await submitReview(item.slug, summary.trim() || undefined);
+          setSubmitting(false);
+          reload();
+          toast.success(`Review of !${item.iid} submitted`, item.webUrl ? { action: { label: 'Open', onClick: () => window.open(item.webUrl!, '_blank', 'noopener') } } : undefined);
+        }}
+      />
+    )}
     </PostContext.Provider>
     </LinkContext.Provider>
   );

@@ -59,6 +59,8 @@ export interface PostedInfo {
   at: string;
   iid: number;
   url: string;
+  // 'draft': in GitLab's pending review until submitted. Absent on older records (published).
+  state?: 'draft' | 'published';
   // false: GitLab refused the line anchor, so it went up as a general comment.
   inline?: boolean;
 }
@@ -154,4 +156,43 @@ export async function postComment(slug: string, commentId: string, body: string,
   const j = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(j.error ?? `HTTP ${res.status}`);
   return j;
+}
+
+export async function submitReview(slug: string, summary?: string): Promise<{ submitted: number; summary: boolean }> {
+  const res = await fetch('/api/submit-review', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ slug, summary }),
+  });
+  const j = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(j.error ?? `HTTP ${res.status}`);
+  return j;
+}
+
+export interface DraftNote {
+  id: number;
+  body: string;
+  path: string | null;
+  line: number | null;
+}
+
+export async function fetchDrafts(slug: string): Promise<DraftNote[]> {
+  const res = await fetch(`/api/drafts/${encodeURIComponent(slug)}`);
+  const j = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(j.error ?? `HTTP ${res.status}`);
+  return j.drafts;
+}
+
+export async function updateDraft(slug: string, id: number, body: string): Promise<void> {
+  const res = await fetch(`/api/drafts/${encodeURIComponent(slug)}/${id}`, {
+    method: 'PUT',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ body }),
+  });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? `HTTP ${res.status}`);
+}
+
+export async function deleteDraft(slug: string, id: number): Promise<void> {
+  const res = await fetch(`/api/drafts/${encodeURIComponent(slug)}/${id}`, { method: 'DELETE' });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? `HTTP ${res.status}`);
 }

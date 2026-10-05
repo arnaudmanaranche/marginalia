@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url';
 import { REVIEWS_DIR, STATUS_FILE, STUDIO_PORT, ALLOW_POSTING } from '../lib/config.mjs';
 import { TRIAGE_FILE_PREFIX } from '../lib/paths.mjs';
 import { loadPosted, savePosted } from '../lib/posted.mjs';
-import { postMergeRequestNote, postMergeRequestInlineNote, mergeRequestNoteExists } from '../lib/gitlab.mjs';
+import { createDraftNote, createInlineDraftNote, listDraftNotes, updateDraftNote, deleteDraftNote, publishDraftNotes, draftNoteExists, findPublishedNoteId, mergeRequestNoteExists } from '../lib/gitlab.mjs';
 import { byPriorityThenDate } from '../lib/jira.mjs';
 import { loadSettings, saveSettings } from '../lib/settings.mjs';
 import { parseAcrossLayers } from '../lib/stack.mjs';
@@ -106,10 +106,21 @@ async function reconcilePosted() {
     const posted = await loadPosted();
     let changed = false;
     for (const [key, info] of Object.entries(posted)) {
-      const noteId = info.url?.match(/#note_(\d+)$/)?.[1];
-      if (!noteId || !info.iid) continue;
+      if (!info.iid) continue;
       try {
-        if (!(await mergeRequestNoteExists(info.iid, noteId))) {
+        if (info.state === 'draft') {
+          if (await draftNoteExists(info.iid, info.draftId)) continue;
+          // Gone from the drafts: published from GitLab itself, or deleted there.
+          const noteId = info.body ? await findPublishedNoteId(info.iid, info.body) : null;
+          if (noteId) {
+            posted[key] = { ...info, state: 'published', url: `${info.mrUrl}#note_${noteId}` };
+            delete posted[key].draftId;
+          } else delete posted[key];
+          changed = true;
+          continue;
+        }
+        const noteId = info.url?.match(/#note_(\d+)$/)?.[1];
+        if (noteId && !(await mergeRequestNoteExists(info.iid, noteId))) {
           delete posted[key];
           changed = true;
         }
@@ -228,9 +239,12 @@ async function serveStatic(pathname, res) {
 // us when present, and the body must be JSON (a cross-origin JSON request needs
 // a CORS preflight we don't answer).
 const OWN_HOSTS = new Set([`localhost:${STUDIO_PORT}`, `127.0.0.1:${STUDIO_PORT}`]);
-async function readJsonBody(req, res) {
+function isOwnOrigin(req) {
   const origin = req.headers.origin;
-  if (!OWN_HOSTS.has(req.headers.host ?? '') || (origin && !OWN_HOSTS.has(origin.replace(/^https?:\/\//, '')))) {
+  return OWN_HOSTS.has(req.headers.host ?? '') && !(origin && !OWN_HOSTS.has(origin.replace(/^https?:\/\//, '')));
+}
+async function readJsonBody(req, res) {
+  if (!isOwnOrigin(req)) {
     json(res, 403, { error: 'forbidden' });
     return null;
   }
@@ -293,30 +307,118 @@ async function postComment(req, res) {
     const posted = await loadPosted();
     const key = `${slug}:${commentId}`;
     if (posted[key]) return json(res, 409, { error: 'already posted', posted: posted[key] });
-    let noteId;
+    let draft;
+    let text = body.trim();
     let inline = false;
     try {
       if (hasTarget) {
         try {
-          const discussion = await postMergeRequestInlineNote(mr.iid, body.trim(), path, line);
-          noteId = discussion.notes?.[0]?.id;
+          draft = await createInlineDraftNote(mr.iid, text, path, line);
           inline = true;
         } catch (err) {
           // Typically a line outside the diff (400): keep the comment, drop the anchor.
-          console.warn(`[studio] inline post on ${path}${line ? `:${line}` : ''} failed, posting a general note: ${String(err.message).slice(0, 200)}`);
+          console.warn(`[studio] inline draft on ${path}${line ? `:${line}` : ''} failed, adding a general note: ${String(err.message).slice(0, 200)}`);
         }
       }
       if (!inline) {
-        const text = hasTarget ? `\`${path}${line ? `:${line}` : ''}\`\n\n${body.trim()}` : body.trim();
-        noteId = (await postMergeRequestNote(mr.iid, text)).id;
+        if (hasTarget) text = `\`${path}${line ? `:${line}` : ''}\`\n\n${text}`;
+        draft = await createDraftNote(mr.iid, text);
       }
     } catch (err) {
       return json(res, 502, { error: String(err.message).slice(0, 300) });
     }
-    posted[key] = { at: new Date().toISOString(), iid: mr.iid, url: `${mr.web_url}#note_${noteId}`, inline: hasTarget ? inline : undefined };
+    posted[key] = { at: new Date().toISOString(), iid: mr.iid, state: 'draft', draftId: draft.id, body: text, mrUrl: mr.web_url, url: mr.web_url, inline: hasTarget ? inline : undefined };
     await savePosted(posted);
     broadcast();
     return json(res, 200, posted[key]);
+  });
+  postQueue = run.catch(() => {});
+  return run;
+}
+
+// Submits the drafts of one review as a real GitLab review, with an optional
+// summary note. Like postComment(), the MR comes from status.json.
+async function submitReview(req, res) {
+  if (ALLOW_POSTING !== 'true') return json(res, 403, { error: 'posting is disabled (ALLOW_POSTING=false)' });
+  const input = await readJsonBody(req, res);
+  if (input === null) return undefined;
+  const { slug, summary } = input;
+  if (typeof slug !== 'string' || !SLUG_RE.test(slug)) return json(res, 400, { error: 'bad slug' });
+  if (summary !== undefined && (typeof summary !== 'string' || summary.length > 10_000)) return json(res, 400, { error: 'summary must be a string under 10000 characters' });
+  const run = postQueue.then(async () => {
+    const status = await readStatus();
+    const mr = (status?.mrs ?? []).find((m) => m.reviewPath && m.reviewPath === join(REVIEWS_DIR, `${slug}.md`));
+    if (!mr) return json(res, 404, { error: 'no tracked merge request for this review' });
+    const posted = await loadPosted();
+    const drafts = Object.entries(posted).filter(([key, info]) => key.startsWith(`${slug}:`) && info.state === 'draft');
+    const text = summary?.trim();
+    if (!drafts.length && !text) return json(res, 400, { error: 'nothing to submit' });
+    try {
+      if (text) await createDraftNote(mr.iid, text);
+      await publishDraftNotes(mr.iid);
+    } catch (err) {
+      return json(res, 502, { error: String(err.message).slice(0, 300) });
+    }
+    for (const [key, info] of drafts) {
+      let noteId = null;
+      try {
+        noteId = await findPublishedNoteId(info.iid, info.body);
+      } catch {
+        /* the review is out; only the deep link is missing */
+      }
+      const { draftId, ...rest } = info;
+      posted[key] = { ...rest, state: 'published', at: new Date().toISOString(), url: noteId ? `${info.mrUrl}#note_${noteId}` : info.mrUrl };
+    }
+    await savePosted(posted);
+    broadcast();
+    return json(res, 200, { submitted: drafts.length, summary: Boolean(text) });
+  });
+  postQueue = run.catch(() => {});
+  return run;
+}
+
+// Edits (PUT, { body }) or deletes (DELETE) one pending draft of a tracked review,
+// including drafts started in GitLab itself. The draft is addressed under the MR
+// resolved from status.json, so it can't reach another MR's drafts.
+async function mutateDraft(req, res, pathname) {
+  if (ALLOW_POSTING !== 'true') return json(res, 403, { error: 'posting is disabled (ALLOW_POSTING=false)' });
+  if (!isOwnOrigin(req)) return json(res, 403, { error: 'forbidden' });
+  const [, slugPart, idPart] = pathname.match(/^\/api\/drafts\/([^/]+)\/(\d{1,12})$/) ?? [];
+  let slug;
+  try {
+    slug = decodeURIComponent(slugPart ?? '');
+  } catch {
+    slug = '';
+  }
+  if (!SLUG_RE.test(slug) || slug.includes('..') || !idPart) return json(res, 400, { error: 'bad slug or draft id' });
+  const draftId = Number(idPart);
+  let text;
+  if (req.method === 'PUT') {
+    const input = await readJsonBody(req, res);
+    if (input === null) return undefined;
+    text = typeof input.body === 'string' ? input.body.trim() : '';
+    if (!text || text.length > 10_000) return json(res, 400, { error: 'body must be a non-empty string under 10000 characters' });
+  }
+  const run = postQueue.then(async () => {
+    const status = await readStatus();
+    const mr = (status?.mrs ?? []).find((m) => m.reviewPath && m.reviewPath === join(REVIEWS_DIR, `${slug}.md`));
+    if (!mr) return json(res, 404, { error: 'no tracked merge request for this review' });
+    try {
+      if (req.method === 'PUT') await updateDraftNote(mr.iid, draftId, text);
+      else await deleteDraftNote(mr.iid, draftId);
+    } catch (err) {
+      return json(res, / -> 404:/.test(String(err.message)) ? 404 : 502, { error: String(err.message).slice(0, 300) });
+    }
+    // Keep the local record in step: a deleted draft can be added again, an edited one keeps its new text for matching.
+    const posted = await loadPosted();
+    const entry = Object.entries(posted).find(([, info]) => info.state === 'draft' && info.draftId === draftId && info.iid === mr.iid);
+    if (entry) {
+      if (req.method === 'DELETE') delete posted[entry[0]];
+      else posted[entry[0]] = { ...entry[1], body: text };
+      await savePosted(posted);
+    }
+    broadcast();
+    return json(res, 200, { ok: true });
   });
   postQueue = run.catch(() => {});
   return run;
@@ -326,9 +428,30 @@ async function handle(req, res) {
   const { pathname } = new URL(req.url, 'http://localhost');
   if (req.method === 'PUT' && pathname === '/api/settings') return putSettings(req, res);
   if (req.method === 'POST' && pathname === '/api/post') return postComment(req, res);
+  if (req.method === 'POST' && pathname === '/api/submit-review') return submitReview(req, res);
+  if ((req.method === 'PUT' || req.method === 'DELETE') && pathname.startsWith('/api/drafts/')) return mutateDraft(req, res, pathname);
   if (req.method !== 'GET') return json(res, 405, { error: 'read-only' });
 
   if (pathname === '/api/reviews') return json(res, 200, await listReviews());
+
+  if (pathname.startsWith('/api/drafts/')) {
+    if (ALLOW_POSTING !== 'true') return json(res, 403, { error: 'posting is disabled (ALLOW_POSTING=false)' });
+    let slug;
+    try {
+      slug = decodeURIComponent(pathname.slice('/api/drafts/'.length));
+    } catch {
+      return json(res, 400, { error: 'bad slug' });
+    }
+    if (!SLUG_RE.test(slug) || slug.includes('..')) return json(res, 400, { error: 'bad slug' });
+    const status = await readStatus();
+    const mr = (status?.mrs ?? []).find((m) => m.reviewPath && m.reviewPath === join(REVIEWS_DIR, `${slug}.md`));
+    if (!mr) return json(res, 404, { error: 'no tracked merge request for this review' });
+    try {
+      return json(res, 200, { drafts: await listDraftNotes(mr.iid) });
+    } catch (err) {
+      return json(res, 502, { error: String(err.message).slice(0, 300) });
+    }
+  }
 
   if (pathname.startsWith('/api/reviews/')) {
     let slug;
