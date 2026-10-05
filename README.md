@@ -213,6 +213,12 @@ started in GitLab's own UI are published too). The MR is resolved server-side fr
 review" then "Posted" badge. Off by default: without the flag the buttons don't
 exist and `POST /api/post` and `POST /api/submit-review` answer 403.
 
+**API contract.** `studio/public/openapi.yaml` (OpenAPI 3.1) describes every endpoint between
+the server and the app. With the studio running, read it at
+<http://localhost:4477/api-docs.html> (rendered read-only: "Try it out" is off, since the write
+endpoints post to GitLab as you). Keep it in step with `studio/server.mjs` and
+`studio/src/lib/api.ts` when an endpoint changes.
+
 The "Review ready" notification and the SwiftBar menu open the studio (the
 notification falls back to VS Code if the studio isn't listening).
 
