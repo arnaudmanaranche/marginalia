@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { MotionConfig, motion } from 'motion/react';
 import { Inbox, LayoutGrid, Grid3x3, List, Rows3 } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
@@ -46,7 +46,14 @@ function loadSize(): Layout {
 type Tab = 'review' | 'comments';
 
 function useHashSlug() {
-  const read = () => decodeURIComponent(location.hash.replace(/^#\/?/, '')) || null;
+  // A malformed escape (`#/%E0%A4`) makes decodeURIComponent throw: treat it as no review.
+  const read = () => {
+    try {
+      return decodeURIComponent(location.hash.replace(/^#\/?/, '')) || null;
+    } catch {
+      return null;
+    }
+  };
   const [slug, setSlug] = useState(read);
   useEffect(() => {
     const on = () => setSlug(read());
@@ -101,7 +108,7 @@ export function App() {
   const sidebarAvailable = slug !== null;
   const sidebarOpen = sidebarPref && sidebarAvailable;
 
-  const items = data?.items ?? [];
+  const items = useMemo(() => data?.items ?? [], [data]);
   const known = useMemo(() => (data ? new Set(data.items.map((i) => i.slug)) : null), [data]);
   const { tabs: openSlugs, close: closeTab } = useOpenTabs(slug, known);
   const tabItems = openSlugs.map((s) => items.find((i) => i.slug === s)).filter((i): i is ReviewItem => Boolean(i));
@@ -119,17 +126,15 @@ export function App() {
   const stack = current?.stackId ? data?.stacks.find((s) => s.id === current.stackId) : undefined;
   const review = useReview(slug, current?.reviewedAt);
 
+  // Opening a review marks it as read; saved here, not inside a state updater.
   useEffect(() => {
-    if (!current) return;
-    setSeen((prev) => {
-      if (prev[current.slug] === current.reviewedAt) return prev;
-      const next = { ...prev, [current.slug]: current.reviewedAt };
-      saveSeen(next);
-      return next;
-    });
-  }, [current]);
+    if (!current || seen[current.slug] === current.reviewedAt) return;
+    const next = { ...seen, [current.slug]: current.reviewedAt };
+    saveSeen(next);
+    setSeen(next);
+  }, [current, seen]);
 
-  const isUnread = (i: ReviewItem) => seen[i.slug] !== i.reviewedAt;
+  const isUnread = useCallback((i: ReviewItem) => seen[i.slug] !== i.reviewedAt, [seen]);
 
   // ⌘B toggles the sidebar.
   useEffect(() => {
@@ -190,12 +195,11 @@ export function App() {
       if (filter === 'unread') return isUnread(i);
       return true;
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fresh, tab, filter, seen]);
+  }, [fresh, tab, filter, isUnread]);
 
   // Unread first, then already-read, each under a heading so a long queue
   // shows at a glance what still needs a look. Stable sort keeps the API order.
-  const ordered = useMemo(() => [...visible.filter(isUnread), ...visible.filter((i) => !isUnread(i))], [visible, seen]);
+  const ordered = useMemo(() => [...visible.filter(isUnread), ...visible.filter((i) => !isUnread(i))], [visible, isUnread]);
   const unreadVisible = ordered.filter(isUnread).length;
   const sectioned = unreadVisible > 0 && unreadVisible < ordered.length;
 

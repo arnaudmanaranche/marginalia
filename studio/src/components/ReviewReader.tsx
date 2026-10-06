@@ -225,7 +225,7 @@ function ConfirmSubmit({ slug, iid, count, reload, onCancel, onConfirm }: { slug
     return () => document.removeEventListener('keydown', onKey);
   }, [busy, onCancel]);
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4" onClick={busy ? undefined : onCancel}>
+    <div role="presentation" className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4" onClick={busy ? undefined : onCancel}>
       <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="confirm-submit-title" className="w-full max-w-lg rounded-xl border border-zinc-200 bg-white p-5 shadow-2xl dark:border-zinc-800 dark:bg-zinc-900" onClick={(e) => e.stopPropagation()}>
         <h2 id="confirm-submit-title" className="text-base font-semibold">Submit your review of !{iid}?</h2>
         <p className="mt-1 text-sm text-fg-muted">{count} pending comment{count === 1 ? '' : 's'} will be published as one review, under your account and visible to the MR author. Drafts started in GitLab itself are published too.</p>
@@ -250,6 +250,7 @@ function ConfirmSubmit({ slug, iid, count, reload, onCancel, onConfirm }: { slug
                 await onConfirm(summary);
               } catch (e) {
                 toast.error('Could not submit the review', { description: (e as Error).message });
+              } finally {
                 setBusy(false);
               }
             }}
@@ -360,6 +361,7 @@ function Quote({ children, offset }: { children?: ReactNode; offset?: number }) 
       {editing ? (
         <textarea
           autoFocus
+          aria-label="Edit the comment"
           value={edited ?? ''}
           onChange={(e) => update(e.target.value)}
           rows={Math.min(14, Math.max(4, (edited ?? '').split('\n').length + 2))}

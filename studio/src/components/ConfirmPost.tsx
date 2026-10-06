@@ -18,7 +18,7 @@ export function ConfirmPost({ iid, text, target, onCancel, onConfirm, fallbackRe
     return () => document.removeEventListener('keydown', onKey);
   }, [busy, onCancel]);
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4" onClick={busy ? undefined : onCancel}>
+    <div role="presentation" className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4" onClick={busy ? undefined : onCancel}>
       <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="confirm-post-title" aria-describedby="confirm-post-text" className="w-full max-w-lg rounded-xl border border-zinc-200 bg-white p-5 shadow-2xl dark:border-zinc-800 dark:bg-zinc-900" onClick={(e) => e.stopPropagation()}>
         <h2 id="confirm-post-title" className="text-base font-semibold">Add this comment to your review of !{iid}?</h2>
         <p className="mt-1 text-sm text-fg-muted">It joins your pending GitLab review: nobody sees it until you submit the review.</p>
@@ -37,6 +37,7 @@ export function ConfirmPost({ iid, text, target, onCancel, onConfirm, fallbackRe
                 await onConfirm();
               } catch (e) {
                 toast.error('Could not add the comment', { description: (e as Error).message });
+              } finally {
                 setBusy(false);
               }
             }}
