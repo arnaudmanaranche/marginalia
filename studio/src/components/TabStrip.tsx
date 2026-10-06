@@ -93,7 +93,6 @@ export function TabStrip({ tabs, activeSlug, botBySlug, isUnread, isPosted, home
                   {unread && !active && <span className="absolute -right-1 -top-1 size-2 rounded-full bg-blue-500 ring-2 ring-zinc-100 @min-[96px]:hidden dark:ring-zinc-900" aria-hidden />}
                 </span>
                 <span className="hidden min-w-0 truncate @min-[96px]:block">
-                  {item.iid && <span className="mr-1.5 hidden font-mono text-xs text-fg-muted @min-[150px]:inline">!{item.iid}</span>}
                   {item.title}
                 </span>
               </a>

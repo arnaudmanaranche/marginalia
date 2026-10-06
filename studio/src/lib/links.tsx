@@ -10,9 +10,9 @@ export const LinkContext = createContext<LinkContextValue>({ projectUrl: null, b
 
 // `!3909` (MR) or a file path with an optional `:line` / `:start-end`.
 // A bare name (no slash) must have a well-known extension, so "Next.js" or
-// "e.g." don't match.
+// "e.g." don't match; a dotfile like `.gitlab-ci.yml` does.
 const EXT = 'tsx?|jsx?|mjs|cjs|json|ya?ml|md|css|scss|sh|toml|lock|html|graphql|sql';
-const PATH = `(?:[\\w@.~-]+/)+[\\w@.~-]+\\.(?:${EXT})|\\b[\\w@-]+(?:\\.[\\w@-]+)*\\.(?:tsx?|mjs|cjs|json|ya?ml|md|lock|toml|sh)\\b`;
+const PATH = `(?:[\\w@.~-]+/)+[\\w@.~-]+\\.(?:${EXT})|\\.?[\\w@-]+(?:\\.[\\w@-]+)*\\.(?:tsx?|mjs|cjs|json|ya?ml|md|lock|toml|sh)\\b`;
 const TOKEN = new RegExp(`(?<![\\w/])(?:(!\\d+)|((?:${PATH})(?::(\\d+)(?:-(\\d+))?)?))`, 'g');
 const FULL_PATH = new RegExp(`^(?:${PATH})(?::(\\d+)(?:-(\\d+))?)?$`);
 
@@ -62,10 +62,22 @@ function fileUrl(ctx: LinkContextValue, ref: string): string | null {
 // line is optional and, when absent, the comment attaches to the whole file.
 export function commentLocation(above: string): { path: string; line?: number } | null {
   const bullet = above.slice(Math.max(above.lastIndexOf('\n- '), 0)).split('\n').filter((l) => !l.startsWith('>')).join('\n');
-  for (const m of bullet.matchAll(TOKEN)) {
-    if (m[2]?.includes('/')) return { path: m[2].replace(/:\d+(?:-\d+)?$/, ''), ...(m[3] ? { line: Number(m[3]) } : {}) };
-  }
-  return null;
+  const refs = [...bullet.matchAll(TOKEN)].filter((m) => m[2]);
+  // A path with a directory is a surer anchor than a bare name; a root file (`.gitlab-ci.yml`,
+  // `package.json`) still counts when that is all the bullet names.
+  const m = refs.find((r) => r[2].includes('/')) ?? refs[0];
+  return m ? { path: m[2].replace(/:\d+(?:-\d+)?$/, ''), ...(m[3] ? { line: Number(m[3]) } : {}) } : null;
+}
+
+// `src/app/page.tsx:42` split for display. Null when `text` is not a file reference.
+export function parseFileRef(text: string): { dir: string; name: string; ext: string; line: string | null } | null {
+  if (!FULL_PATH.test(text)) return null;
+  const m = text.match(/^(.*?)(?::(\d+(?:-\d+)?))?$/);
+  if (!m) return null;
+  const slash = m[1].lastIndexOf('/');
+  const file = m[1].slice(slash + 1);
+  const dot = file.lastIndexOf('.');
+  return { dir: slash >= 0 ? m[1].slice(0, slash + 1) : '', name: dot > 0 ? file.slice(0, dot) : file, ext: dot > 0 ? file.slice(dot) : '', line: m[2] ?? null };
 }
 
 const mrUrl = (ctx: LinkContextValue, ref: string) => (ctx.projectUrl ? `${ctx.projectUrl}/-/merge_requests/${ref.slice(1)}` : null);
@@ -96,4 +108,21 @@ export function linkify(text: string, ctx: LinkContextValue): ReactNode[] {
 export function linkifyCode(text: string, ctx: LinkContextValue): string | null {
   if (/^!\d+$/.test(text)) return mrUrl(ctx, text);
   return FULL_PATH.test(text) ? fileUrl(ctx, text) : null;
+}
+
+// A file reference as a chip: the directory fades, the file name carries the weight,
+// the extension takes the accent and the line is a badge of its own.
+export function FileRef({ text, href }: { text: string; href: string | null }) {
+  const ref = parseFileRef(text);
+  if (!ref) return null;
+  const cls = 'not-prose inline-flex max-w-full items-baseline gap-px rounded-md border border-zinc-200 bg-zinc-100 px-1.5 py-0.5 align-baseline font-mono text-[0.85em] leading-snug text-zinc-800 no-underline dark:border-zinc-700/70 dark:bg-zinc-800/70 dark:text-zinc-100';
+  const body = (
+    <>
+      {ref.dir && <span className="text-fg-subtle [overflow-wrap:anywhere]">{ref.dir}</span>}
+      <span className="font-medium">{ref.name}</span>
+      <span className="text-violet-600 dark:text-violet-400">{ref.ext}</span>
+      {ref.line && <span className="ml-1 self-center rounded bg-blue-500/15 px-1 text-[0.8em] text-blue-700 dark:text-blue-300">:{ref.line}</span>}
+    </>
+  );
+  return href ? <a href={href} target="_blank" rel="noreferrer" title="Open in the diff" className={`${cls} hover:border-blue-500/50`}>{body}</a> : <span className={cls}>{body}</span>;
 }

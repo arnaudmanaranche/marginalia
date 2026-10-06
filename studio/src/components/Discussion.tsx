@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useContext, useEffect, useState } from 'react';
 import { MessageSquare, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import { fetchDiscussions, postComment, replyToDiscussion, type Discussion as Thread } from '../lib/api';
+import { FileRef, LinkContext, linkifyCode, parseFileRef } from '../lib/links';
 import { timeAgo } from '../lib/utils';
+import { NoteMarkdown } from './NoteMarkdown';
 import { Badge } from './ui/Badge';
 import { Button } from './ui/Button';
 
@@ -87,6 +89,10 @@ function ThreadCard({ thread, slug, canReply, onReplied }: { thread: Thread; slu
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
   const last = thread.notes[thread.notes.length - 1];
+  const linkCtx = useContext(LinkContext);
+  // The file the thread is on, as a chip, when it reads as a path.
+  const placeText = thread.path ? `${thread.path}${thread.line ? `:${thread.line}` : ''}` : null;
+  const place = placeText && parseFileRef(placeText) ? placeText : null;
   const send = async () => {
     setBusy(true);
     try {
@@ -103,7 +109,7 @@ function ThreadCard({ thread, slug, canReply, onReplied }: { thread: Thread; slu
   return (
     <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3 text-sm dark:border-zinc-800 dark:bg-zinc-950">
       <div className="mb-2 flex flex-wrap items-center gap-2">
-        <code className="break-all text-xs text-fg-muted">{thread.path ? `${thread.path}${thread.line ? `:${thread.line}` : ''}` : 'General comment'}</code>
+        {place ? <FileRef text={place} href={linkifyCode(place, linkCtx)} /> : <span className="text-xs text-fg-muted">{thread.path ?? 'General comment'}{thread.path && thread.line ? `:${thread.line}` : ''}</span>}
         {thread.resolved && <Badge>Resolved</Badge>}
       </div>
       <ol className="space-y-2">
@@ -112,7 +118,7 @@ function ThreadCard({ thread, slug, canReply, onReplied }: { thread: Thread; slu
             <div className="text-xs text-fg-muted">
               <span className="font-medium text-fg">{n.mine ? 'You' : n.authorName ?? n.author}</span> · {timeAgo(n.at)}
             </div>
-            <p className="whitespace-pre-wrap">{n.body}</p>
+            <NoteMarkdown>{n.body}</NoteMarkdown>
           </li>
         ))}
       </ol>

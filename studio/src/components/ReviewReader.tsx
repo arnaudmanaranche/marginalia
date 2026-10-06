@@ -2,14 +2,6 @@ import { Children, Fragment, createElement, isValidElement, useContext, useEffec
 import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
-import bash from 'highlight.js/lib/languages/bash';
-import css from 'highlight.js/lib/languages/css';
-import diff from 'highlight.js/lib/languages/diff';
-import javascript from 'highlight.js/lib/languages/javascript';
-import json from 'highlight.js/lib/languages/json';
-import typescript from 'highlight.js/lib/languages/typescript';
-import xml from 'highlight.js/lib/languages/xml';
-import yaml from 'highlight.js/lib/languages/yaml';
 import * as Collapsible from '@radix-ui/react-collapsible';
 import { SemanticText } from 'semfont';
 import { toast } from 'sonner';
@@ -26,7 +18,10 @@ import { cn, timeAgo } from '../lib/utils';
 import { VerdictBadge } from './VerdictBadge';
 import { Button } from './ui/Button';
 import { Badge, badgeClass } from './ui/Badge';
-import { LinkContext, commentLocation, linkify, linkifyCode, type LinkContextValue } from '../lib/links';
+import { LinkContext, commentLocation, linkify, type LinkContextValue } from '../lib/links';
+import { HIGHLIGHT } from '../lib/highlight';
+import { codeComponents, textOf } from '../lib/markdown';
+import { NoteMarkdown } from './NoteMarkdown';
 
 interface Section {
   id: string;
@@ -92,13 +87,6 @@ function extractMeta(md: string): { markdown: string; ticket: { key: string; not
   const raw = m[2].replace(/[*`[\]]/g, '').trim();
   const key = raw.match(TICKET_KEY)?.[0];
   return { markdown: md.replace(META_LINE, ''), ticket: key ? { key, note: raw === key ? null : raw } : null };
-}
-
-function textOf(node: ReactNode): string {
-  if (typeof node === 'string' || typeof node === 'number') return String(node);
-  if (Array.isArray(node)) return node.map(textOf).join('');
-  if (isValidElement<{ children?: ReactNode }>(node)) return textOf(node.props.children);
-  return '';
 }
 
 function CopyButton({ getText, label, disabled }: { getText: () => string; label: string; disabled?: boolean }) {
@@ -208,7 +196,7 @@ function DraftRow({ slug, draft, disabled, onChanged }: { slug: string; draft: D
       {editing ? (
         <textarea value={text} onChange={(e) => setText(e.target.value)} rows={Math.min(10, Math.max(3, text.split('\n').length + 1))} aria-label="Draft text" className="mt-2 w-full resize-y rounded-md border border-zinc-300 bg-white p-2 text-sm outline-none focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/50 dark:border-zinc-700 dark:bg-zinc-900" />
       ) : (
-        <p className="mt-1 whitespace-pre-wrap">{draft.body}</p>
+        <NoteMarkdown className="mt-1">{draft.body}</NoteMarkdown>
       )}
     </div>
   );
@@ -282,9 +270,20 @@ function Quote({ children, offset }: { children?: ReactNode; offset?: number }) 
   const key = editKey(original);
   const [edited, setEdited] = useState<string | null>(() => readEdit(key));
   const [editing, setEditing] = useState(false);
-  const current = edited ?? ref.current?.innerText.trim() ?? original;
   const post = useContext(PostContext);
   const source = useContext(SourceContext);
+  // The comment as the skill wrote it (fences and backticks intact, which GitLab renders), not
+  // the rendered text: the code cards add their own labels to what the page shows.
+  const written = useMemo(() => {
+    if (offset === undefined) return null;
+    const out: string[] = [];
+    for (const line of source.slice(offset).split('\n')) {
+      if (!/^\s*>/.test(line)) break;
+      out.push(line.replace(/^\s*>\s?/, ''));
+    }
+    return out.join('\n').trim() || null;
+  }, [source, offset]);
+  const current = edited ?? written ?? ref.current?.innerText.trim() ?? original;
   // The id of the finding this comment belongs to, which survives a re-run that rewords it.
   // Comments posted before findings existed were keyed by a hash of their text.
   const legacyId = key.split(':').pop() ?? '';
@@ -308,7 +307,7 @@ function Quote({ children, offset }: { children?: ReactNode; offset?: number }) 
   }, [post.locked]);
 
   const startEdit = () => {
-    const text = ref.current?.innerText.trim() ?? original;
+    const text = written ?? ref.current?.innerText.trim() ?? original;
     setOriginal((o) => o || text);
     setEdited((e) => e ?? text);
     setEditing(true);
@@ -391,15 +390,6 @@ function Quote({ children, offset }: { children?: ReactNode; offset?: number }) 
   );
 }
 
-// A handful of languages instead of highlight.js's whole "common" set: reviews quote
-// TypeScript, config and shell, and rarely anything else (unknown fences stay plain).
-const HIGHLIGHT = {
-  detect: false,
-  languages: { bash, css, diff, javascript, json, typescript, xml, yaml },
-  aliases: { bash: ['sh', 'shell', 'zsh'], javascript: ['js', 'jsx', 'mjs'], typescript: ['ts', 'tsx'], xml: ['html', 'svg'], yaml: ['yml'] },
-};
-
-// Vocabulary of code reviews, merged over semfont's defaults.
 const LEXICON = {
   valence: { blocker: -0.8, blocks: -0.6, regression: -0.7, leak: -0.6, unsafe: -0.7, vulnerability: -0.8, broken: -0.7, missing: -0.4, downgrade: -0.5, fixed: 0.5, resolved: 0.5 },
   salience: { critical: 0.9, important: 0.6, blocker: 0.9, merge: 0.5, must: 0.6, security: 0.7 },
@@ -428,15 +418,9 @@ function makeComponents(semantic: boolean, ctx: LinkContextValue): Components {
     td: ({ children }) => <td>{wrap(children)}</td>,
     strong: ({ children }) => <strong>{wrap(children)}</strong>,
     em: ({ children }) => <em>{wrap(children)}</em>,
-    code: ({ className, children }) => {
-      const text = typeof children === 'string' ? children : '';
-      const url = !className && text ? linkifyCode(text, ctx) : null;
-      const code = createElement('code', { className }, children);
-      return url ? <a href={url} target="_blank" rel="noreferrer" className="no-underline hover:underline">{code}</a> : code;
-    },
+    ...codeComponents(ctx),
     blockquote: ({ node, children }) => <Quote offset={node?.position?.start.offset}>{children}</Quote>,
     a: ({ href, children }) => <a href={href} target="_blank" rel="noreferrer">{children}</a>,
-    pre: ({ children }) => <pre className="overflow-x-auto rounded-lg border border-zinc-200 bg-zinc-100 p-3 text-[13px] dark:border-zinc-800 dark:bg-zinc-900">{children}</pre>,
     table: ({ children }) => <div className="overflow-x-auto"><table>{children}</table></div>,
   };
 }
@@ -595,15 +579,9 @@ export function ReviewReader({ item, review: currentReview, projectUrl, jiraBase
     <div className="px-6 py-6">
       <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="mb-1 flex items-center gap-2 text-sm text-fg-muted">
-            {item?.iid && <span className="font-mono">!{item.iid}</span>}
-            {item?.author && <span>· {item.author}</span>}
-            {item && <span>· {timeAgo(item.reviewedAt)}</span>}
-          </div>
           <h1 className="text-2xl font-semibold tracking-tight">{item?.title ?? 'Review'}</h1>
-          <div className="mt-2 flex flex-wrap items-center gap-2">
+          <div className="mt-2">
             <VerdictBadge verdict={item?.verdict ?? null} />
-            {item?.branch && <code className="rounded bg-zinc-100 px-1.5 py-0.5 text-xs dark:bg-zinc-800">{item.branch}</code>}
           </div>
         </div>
         <div className="flex items-center gap-2">

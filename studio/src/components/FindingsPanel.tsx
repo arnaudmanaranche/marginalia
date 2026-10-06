@@ -6,6 +6,7 @@ import { cn, timeAgo } from '../lib/utils';
 import { Badge, badgeClass, type BadgeTone } from './ui/Badge';
 import { Button } from './ui/Button';
 import { ConfirmPost } from './ConfirmPost';
+import { NoteMarkdown } from './NoteMarkdown';
 
 const TONE: Record<Finding['severity'], BadgeTone> = { critical: 'danger', important: 'warning', suggestion: 'info', info: 'neutral' };
 
@@ -52,7 +53,7 @@ function FindingCard({ finding, slug, iid, allowPosting, locked, posted, reload 
           </a>
         )}
       </div>
-      {finding.body !== finding.title && <p className="mt-2 whitespace-pre-wrap text-fg-muted">{finding.body}</p>}
+      {finding.body !== finding.title && <NoteMarkdown className="mt-2 text-fg-muted">{finding.body}</NoteMarkdown>}
       {!info && (
         <div className="mt-2">
           {editing || !finding.comment ? (
