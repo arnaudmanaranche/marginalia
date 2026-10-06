@@ -1,4 +1,4 @@
-import { Children, createElement, isValidElement, useContext, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
+import { Children, Fragment, createElement, isValidElement, useContext, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
 import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
@@ -17,8 +17,9 @@ import { useScrollLock } from '../lib/useScrollLock';
 import { usePersistentState } from '../lib/layout';
 import { useModalFocus } from '../lib/useModalFocus';
 import { createContext } from 'react';
-import { Check, ChevronRight, Copy, Trash2, X, ExternalLink, Loader2, PanelRight, Pencil, Send, Sparkles, Undo2 } from 'lucide-react';
-import { deleteDraft, fetchDrafts, postComment, updateDraft, submitReview, type DraftNote, BotStatus, type PostedInfo, type ReviewItem } from '../lib/api';
+import { Check, ChevronRight, Copy, RefreshCw, Trash2, X, ExternalLink, Loader2, PanelRight, Pencil, Send, Sparkles, Undo2 } from 'lucide-react';
+import { deleteDraft, fetchDrafts, fetchHistory, fetchHistoryVersion, postComment, rerunReview, updateDraft, submitReview, type DraftNote, BotStatus, type PostedInfo, type ReviewItem, type ReviewVersion } from '../lib/api';
+import { Discussion } from './Discussion';
 import { cn, timeAgo } from '../lib/utils';
 import { VerdictBadge } from './VerdictBadge';
 import { Button } from './ui/Button';
@@ -31,7 +32,23 @@ interface Section {
   body: string;
 }
 
-const OPEN_BY_DEFAULT = /critical|important|verdict|summary|blocking|bloquant|statut|status/i;
+const OPEN_BY_DEFAULT = /critical|important|verdict|summary|blocking|bloquant|statut|status|at a glance|shape of the change/i;
+
+// Reading order: what the MR does first, then what to act on, then the supporting
+// sections. Reviews written before "At a Glance" existed just skip those ranks.
+const SECTION_RANKS: [RegExp, number][] = [
+  [/summary/i, 0],
+  [/at a glance/i, 1],
+  [/shape of the change/i, 2],
+  [/critical/i, 3],
+  [/important/i, 4],
+  [/suggestion/i, 5],
+  [/out of scope/i, 6],
+];
+const SUPPORTING_RANK = 7;
+const rankOf = (title: string) => SECTION_RANKS.find(([re]) => re.test(title))?.[1] ?? SUPPORTING_RANK;
+const GLANCE_LINE = /^[-*]\s+\*\*(What|Why|Risk|Blocking):\*\*\s*(.+)$/i;
+const NOTHING_BLOCKING = /^(nothing|none|rien|aucun)\b/i;
 
 function slugify(s: string) {
   return s.toLowerCase().replace(/[^\w]+/g, '-').replace(/^-|-$/g, '') || 'section';
@@ -61,6 +78,20 @@ function splitSections(md: string): { intro: string; sections: Section[] } {
   return { intro: intro.join('\n'), sections };
 }
 
+// The "**Branch:** x | **Ticket:** y | **MR:** !n" line of the summary: pulled out of
+// the text, since the side panel shows it (with links).
+const META_LINE = /^[ \t]*\*\*Branch:\*\*[ \t]*(.*?)[ \t]*\|[ \t]*\*\*Ticket:\*\*[ \t]*(.*?)[ \t]*\|[ \t]*\*\*MR:\*\*[ \t]*(.*?)[ \t]*$\n?/m;
+const TICKET_KEY = /\b[A-Z][A-Z0-9]+-\d+\b/;
+// The Ticket field is free text ("ESD-1446 (Jira not reachable…)"): only the key is kept,
+// the rest goes to a tooltip.
+function extractMeta(md: string): { markdown: string; ticket: { key: string; note: string | null } | null } {
+  const m = md.match(META_LINE);
+  if (!m) return { markdown: md, ticket: null };
+  const raw = m[2].replace(/[*`[\]]/g, '').trim();
+  const key = raw.match(TICKET_KEY)?.[0];
+  return { markdown: md.replace(META_LINE, ''), ticket: key ? { key, note: raw === key ? null : raw } : null };
+}
+
 function textOf(node: ReactNode): string {
   if (typeof node === 'string' || typeof node === 'number') return String(node);
   if (Array.isArray(node)) return node.map(textOf).join('');
@@ -68,11 +99,12 @@ function textOf(node: ReactNode): string {
   return '';
 }
 
-function CopyButton({ getText, label }: { getText: () => string; label: string }) {
+function CopyButton({ getText, label, disabled }: { getText: () => string; label: string; disabled?: boolean }) {
   const [done, setDone] = useState(false);
   return (
     <Button
       size="sm"
+      disabled={disabled}
       onClick={async () => {
         try {
           await navigator.clipboard.writeText(getText());
@@ -118,8 +150,10 @@ interface PostContextValue {
   iid: string | number | null;
   posted: Record<string, PostedInfo>;
   reload: () => void;
+  // A re-run is queued or running: the comments on screen are about to be replaced.
+  locked: boolean;
 }
-const PostContext = createContext<PostContextValue>({ allowPosting: false, slug: null, iid: null, posted: {}, reload: () => {} });
+const PostContext = createContext<PostContextValue>({ allowPosting: false, slug: null, iid: null, posted: {}, reload: () => {}, locked: false });
 // The markdown a blockquote's `position.start.offset` refers to (one section body, not the whole review).
 const SourceContext = createContext('');
 
@@ -299,6 +333,13 @@ function Quote({ children, offset }: { children?: ReactNode; offset?: number }) 
   }, [source, offset]);
   // Focus lands here if the button that opened the dialog is gone (a posted comment replaces it).
   const rootRef = useRef<HTMLDivElement>(null);
+  // A re-run is about to replace this comment: close the editor and any open confirmation.
+  // An edit already typed stays saved locally under its key.
+  useEffect(() => {
+    if (!post.locked) return;
+    setEditing(false);
+    setConfirming(false);
+  }, [post.locked]);
 
   const startEdit = () => {
     const text = ref.current?.innerText.trim() ?? original;
@@ -335,17 +376,17 @@ function Quote({ children, offset }: { children?: ReactNode; offset?: number }) 
         </span>
         <span className="flex flex-wrap items-center justify-end gap-1.5 normal-case tracking-normal [&>button]:whitespace-nowrap">
           {edited !== null && (
-            <Button size="sm" variant="ghost" onClick={reset}>
+            <Button size="sm" variant="ghost" disabled={post.locked} onClick={reset}>
               <Undo2 className="size-3.5" />Reset
             </Button>
           )}
-          <Button size="sm" onClick={() => (editing ? setEditing(false) : startEdit())}>
+          <Button size="sm" disabled={post.locked} onClick={() => (editing ? setEditing(false) : startEdit())}>
             {editing ? <Check className="size-3.5" /> : <Pencil className="size-3.5" />}
             {editing ? 'Done' : 'Edit'}
           </Button>
-          <CopyButton label="Copy" getText={() => current} />
+          <CopyButton label="Copy" disabled={post.locked} getText={() => current} />
           {post.allowPosting && post.slug && post.iid && !postedInfo && (
-            <Button size="sm" variant="primary" onClick={() => setConfirming(true)}>
+            <Button size="sm" variant="primary" disabled={post.locked} title={post.locked ? 'A re-run is in progress: this comment is about to be replaced' : undefined} onClick={() => setConfirming(true)}>
               <Send className="size-3.5" />Add to review
             </Button>
           )}
@@ -448,6 +489,29 @@ function Md({ children, semantic }: { children: string; semantic: boolean }) {
   );
 }
 
+// "At a Glance": four one-line answers (What / Why / Risk / Blocking) as a definition list.
+// Falls back to plain markdown if the agent wrote something else.
+function GlanceBody({ body, semantic }: { body: string; semantic: boolean }) {
+  const rows = body.split('\n').flatMap((line) => {
+    const m = line.trim().match(GLANCE_LINE);
+    return m ? [{ label: m[1], text: m[2] }] : [];
+  });
+  if (rows.length === 0) return <Md semantic={semantic}>{body}</Md>;
+  return (
+    <dl className="grid grid-cols-[5.5rem_minmax(0,1fr)] gap-x-4 gap-y-2.5">
+      {rows.map((r) => {
+        const blocking = /^blocking$/i.test(r.label) && !NOTHING_BLOCKING.test(r.text);
+        return (
+          <div key={r.label} className="contents">
+            <dt className={cn('pt-0.5 text-xs font-medium uppercase tracking-wide text-fg-subtle', blocking && 'text-red-600 dark:text-red-400')}>{r.label}</dt>
+            <dd className="min-w-0 [&_.prose_p]:m-0"><Md semantic={semantic}>{r.text}</Md></dd>
+          </div>
+        );
+      })}
+    </dl>
+  );
+}
+
 // What the run is doing right now, for the MR on screen.
 function LiveRun({ live }: { live: NonNullable<BotStatus['current']> }) {
   const steps = live.progress ?? [];
@@ -469,14 +533,79 @@ function LiveRun({ live }: { live: NonNullable<BotStatus['current']> }) {
   );
 }
 
-export function ReviewReader({ item, markdown, projectUrl, allowPosting, live, posted, reload }: { item: ReviewItem | undefined; markdown: string | null; projectUrl: string | null; allowPosting: boolean; live: BotStatus['current']; posted: Record<string, PostedInfo>; reload: () => void }) {
+export function ReviewReader({ item, markdown: currentMarkdown, projectUrl, jiraBaseUrl, allowPosting, live, posted, reload }: { item: ReviewItem | undefined; markdown: string | null; projectUrl: string | null; jiraBaseUrl: string | null; allowPosting: boolean; live: BotStatus['current']; posted: Record<string, PostedInfo>; reload: () => void }) {
   const [submitting, setSubmitting] = useState(false);
+  // Earlier versions of this review, kept when a re-run replaces it. Viewing one is read-only.
+  const [versions, setVersions] = useState<ReviewVersion[]>([]);
+  const [versionId, setVersionId] = useState<string | null>(null);
+  const [oldMarkdown, setOldMarkdown] = useState<string | null>(null);
+  const reviewedAt = item?.reviewedAt;
+  useEffect(() => {
+    setVersionId(null);
+    setOldMarkdown(null);
+    if (!item?.slug) return setVersions([]);
+    let live = true;
+    fetchHistory(item.slug).then((v) => live && setVersions(v), () => live && setVersions([]));
+    return () => { live = false; };
+  }, [item?.slug, reviewedAt]);
+  useEffect(() => {
+    if (!item?.slug || !versionId) return setOldMarkdown(null);
+    let live = true;
+    fetchHistoryVersion(item.slug, versionId).then((m) => live && setOldMarkdown(m), (e) => { toast.error('Could not load that version', { description: (e as Error).message }); if (live) setVersionId(null); });
+    return () => { live = false; };
+  }, [item?.slug, versionId]);
+  const viewingOld = versionId !== null;
+  const markdown = viewingOld ? oldMarkdown : currentMarkdown;
+  // From the click until the run has started and finished, so there is no gap between
+  // the request and the first "running" status where the buttons would come back.
+  const [rerunning, setRerunning] = useState(false);
+  const sawLive = useRef(false);
+  const rerun = async () => {
+    if (!item) return;
+    setRerunning(true);
+    sawLive.current = false;
+    try {
+      await rerunReview(item.slug);
+      toast.success(`Review of !${item.iid} queued`, { description: 'It starts now; this page updates when it is done.' });
+    } catch (e) {
+      toast.error('Could not re-run the review', { description: (e as Error).message });
+      setRerunning(false);
+    }
+  };
+  useEffect(() => {
+    if (!rerunning) return;
+    if (live) {
+      sawLive.current = true;
+      return;
+    }
+    // The run came and went: unlock. If it never showed up (skipped, bot busy), give up after a minute.
+    if (sawLive.current) {
+      setRerunning(false);
+      return;
+    }
+    const t = setTimeout(() => setRerunning(false), 60_000);
+    return () => clearTimeout(t);
+  }, [rerunning, live]);
+  // Another review on screen: the lock belongs to the one that was re-run.
+  useEffect(() => {
+    setRerunning(false);
+    sawLive.current = false;
+  }, [item?.slug]);
   const draftCount = item ? Object.entries(posted).filter(([k, p]) => k.startsWith(`${item.slug}:`) && p.state === 'draft').length : 0;
-  const postCtx = useMemo(() => ({ allowPosting, slug: item?.slug ?? null, iid: item?.tracked ? item.iid : null, posted, reload }), [allowPosting, item?.slug, item?.tracked, item?.iid, posted, reload]);
+  const locked = rerunning || Boolean(live) || viewingOld;
+  const postCtx = useMemo(() => ({ allowPosting, slug: item?.slug ?? null, iid: item?.tracked ? item.iid : null, posted, reload, locked }), [allowPosting, item?.slug, item?.tracked, item?.iid, posted, reload, locked]);
   const linkCtx = useMemo(() => ({ projectUrl, branch: item?.branch ?? null, mrWebUrl: item?.webUrl ?? null }), [projectUrl, item?.branch, item?.webUrl]);
-  const { intro, sections } = useMemo(() => splitSections(markdown ?? ''), [markdown]);
+  const meta = useMemo(() => extractMeta(markdown ?? ''), [markdown]);
+  const { intro, sections } = useMemo(() => splitSections(meta.markdown), [meta]);
+  const ordered = useMemo(
+    () => sections.map((s, i) => ({ s, i })).sort((a, b) => rankOf(a.s.title) - rankOf(b.s.title) || a.i - b.i).map((x) => x.s),
+    [sections],
+  );
+  const firstSupporting = ordered.find((s) => rankOf(s.title) === SUPPORTING_RANK && ordered.some((o) => rankOf(o.title) < SUPPORTING_RANK))?.id;
   const [overrides, setOverrides] = useState<Record<string, boolean>>({});
-  const isOpen = (s: Section) => overrides[s.id] ?? OPEN_BY_DEFAULT.test(s.title);
+  // Once "At a Glance" carries the gist, the summary's Overview is a repeat: fold it.
+  const hasGlance = sections.some((s) => /at a glance/i.test(s.title));
+  const isOpen = (s: Section) => overrides[s.id] ?? (hasGlance && /summary/i.test(s.title) ? false : OPEN_BY_DEFAULT.test(s.title));
   const [semantic, setSemantic] = usePersistentState('mr-review-viewer:semantic-on', true);
   const [panelOpen, setPanelOpen] = usePersistentState('mr-review-viewer:panel-open', true);
   const allOpen = sections.every(isOpen);
@@ -510,6 +639,22 @@ export function ReviewReader({ item, markdown, projectUrl, allowPosting, live, p
               <Send className="size-3.5" />Submit review ({draftCount})
             </Button>
           )}
+          {versions.length > 0 && (
+            <select
+              value={versionId ?? ''}
+              onChange={(e) => setVersionId(e.target.value || null)}
+              aria-label="Review version"
+              className="touch-target rounded-lg border border-zinc-200 bg-white px-2 py-1.5 text-sm dark:border-zinc-800 dark:bg-zinc-900"
+            >
+              <option value="">Latest review</option>
+              {versions.map((v) => <option key={v.id} value={v.id}>{new Date(v.at).toLocaleString()}</option>)}
+            </select>
+          )}
+          {item?.tracked && item.kind !== 'retro' && (
+            <Button disabled={locked} onClick={rerun} title="Run the review again on the current head of the MR">
+              {locked ? <Loader2 className="size-3.5 animate-spin motion-reduce:animate-pulse" /> : <RefreshCw className="size-3.5" />}Re-run
+            </Button>
+          )}
           <button
             onClick={() => setSemantic((v) => !v)}
             aria-pressed={semantic}
@@ -540,10 +685,17 @@ export function ReviewReader({ item, markdown, projectUrl, allowPosting, live, p
       ) : (
         <div className="flex gap-8">
           <article className="mx-auto w-full min-w-0 max-w-[80ch] space-y-3">
+            {viewingOld && (
+              <p role="status" className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-800 dark:text-amber-200">
+                You are reading an earlier version of this review. Comments can't be posted from it.{' '}
+                <button className="underline" onClick={() => setVersionId(null)}>Back to the latest</button>
+              </p>
+            )}
             {intro.trim() && <Md semantic={semantic}>{intro}</Md>}
-            {sections.map((s) => (
+            {ordered.map((s) => (
+              <Fragment key={s.id}>
+              {s.id === firstSupporting && <p className="px-1 pt-3 text-xs font-medium uppercase tracking-wide text-fg-subtle">Supporting detail</p>}
               <Collapsible.Root
-                key={s.id}
                 id={s.id}
                 open={isOpen(s)}
                 onOpenChange={(o) => setOverrides((prev) => ({ ...prev, [s.id]: o }))}
@@ -557,10 +709,24 @@ export function ReviewReader({ item, markdown, projectUrl, allowPosting, live, p
                   </Collapsible.Trigger>
                 </h2>
                 <Collapsible.Content className="border-t border-zinc-100 px-4 py-4 dark:border-zinc-800">
-                  <Md semantic={semantic}>{s.body}</Md>
+                  {/at a glance/i.test(s.title) ? <GlanceBody body={s.body} semantic={semantic} /> : <Md semantic={semantic}>{s.body}</Md>}
                 </Collapsible.Content>
               </Collapsible.Root>
+              </Fragment>
             ))}
+            {item?.tracked && item.kind === 'review' && !viewingOld && (
+              <Collapsible.Root id="discussion" className="rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900" open={overrides.discussion ?? true} onOpenChange={(o) => setOverrides((prev) => ({ ...prev, discussion: o }))}>
+                <h2 className="text-base">
+                  <Collapsible.Trigger className="group flex w-full items-center gap-2 rounded-xl px-4 py-3 text-left font-medium">
+                    <ChevronRight className={cn('size-4 shrink-0 text-fg-subtle transition-transform motion-reduce:transition-none', (overrides.discussion ?? true) && 'rotate-90')} aria-hidden />
+                    Discussion on GitLab
+                  </Collapsible.Trigger>
+                </h2>
+                <Collapsible.Content className="border-t border-zinc-100 px-4 py-4 dark:border-zinc-800">
+                  <Discussion slug={item.slug} canReply={allowPosting && !locked} refreshKey={`${item.reviewedAt}:${draftCount}`} reload={reload} />
+                </Collapsible.Content>
+              </Collapsible.Root>
+            )}
           </article>
 
           {/* Side panel: context that stays visible while reading. Collapses to give the article the room. */}
@@ -576,7 +742,20 @@ export function ReviewReader({ item, markdown, projectUrl, allowPosting, live, p
                 <dl className="space-y-1.5">
                   {item?.iid && <Row label="Merge request">{item.webUrl ? <a className="text-blue-600 hover:underline dark:text-blue-400" href={item.webUrl} target="_blank" rel="noreferrer">!{item.iid}</a> : `!${item.iid}`}</Row>}
                   {item?.author && <Row label="Author">{item.author}</Row>}
-                  {item?.branch && <Row label="Branch"><span className="break-all font-mono text-xs">{item.branch}</span></Row>}
+                  {item?.branch && (
+                    <Row label="Branch">
+                      <span className="break-all font-mono text-xs">
+                        {projectUrl ? <a className="text-blue-600 hover:underline dark:text-blue-400" href={`${projectUrl}/-/tree/${encodeURIComponent(item.branch).replace(/%2F/g, '/')}`} target="_blank" rel="noreferrer">{item.branch}</a> : item.branch}
+                      </span>
+                    </Row>
+                  )}
+                  {(item?.jira?.key ?? meta.ticket?.key) && (
+                    <Row label="Ticket">
+                      <span title={meta.ticket?.note ?? undefined}>
+                        {jiraBaseUrl ? <a className="text-blue-600 hover:underline dark:text-blue-400" href={`${jiraBaseUrl}/browse/${encodeURIComponent((item?.jira?.key ?? meta.ticket?.key)!)}`} target="_blank" rel="noreferrer">{item?.jira?.key ?? meta.ticket?.key}</a> : (item?.jira?.key ?? meta.ticket?.key)}
+                      </span>
+                    </Row>
+                  )}
                   {item && <Row label="Reviewed">{timeAgo(item.reviewedAt)}</Row>}
                   {item && <Row label="Findings">{item.critical} critical · {item.important} important</Row>}
                 </dl>
@@ -587,7 +766,7 @@ export function ReviewReader({ item, markdown, projectUrl, allowPosting, live, p
                   <button className="normal-case hover:text-zinc-900 dark:hover:text-zinc-100" tabIndex={panelOpen ? 0 : -1} onClick={() => setAll(!allOpen)}>{allOpen ? 'Collapse all' : 'Expand all'}</button>
                 </div>
                 <ul className="space-y-0.5">
-                  {sections.map((s) => (
+                  {ordered.map((s) => (
                     <li key={s.id}>
                       <a
                         href={`#/${item?.slug}`}

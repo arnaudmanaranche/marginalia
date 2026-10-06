@@ -70,6 +70,7 @@ interface ReviewsPayload {
   items: ReviewItem[];
   stacks: Stack[];
   projectUrl: string | null;
+  jiraBaseUrl: string | null;
   settings: { pollIntervalMinutes: number };
   allowPosting: boolean;
   posted: Record<string, PostedInfo>;
@@ -169,6 +170,15 @@ export async function submitReview(slug: string, summary?: string): Promise<{ su
   return j;
 }
 
+export async function rerunReview(slug: string): Promise<void> {
+  const res = await fetch('/api/rerun', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ slug }),
+  });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? `HTTP ${res.status}`);
+}
+
 export interface DraftNote {
   id: number;
   body: string;
@@ -195,4 +205,60 @@ export async function updateDraft(slug: string, id: number, body: string): Promi
 export async function deleteDraft(slug: string, id: number): Promise<void> {
   const res = await fetch(`/api/drafts/${encodeURIComponent(slug)}/${id}`, { method: 'DELETE' });
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? `HTTP ${res.status}`);
+}
+
+export interface DiscussionNote {
+  id: number;
+  author: string | null;
+  authorName: string | null;
+  mine: boolean;
+  body: string;
+  at: string;
+  path: string | null;
+  line: number | null;
+}
+
+export interface Discussion {
+  id: string;
+  resolved: boolean;
+  resolvable: boolean;
+  path: string | null;
+  line: number | null;
+  notes: DiscussionNote[];
+}
+
+export async function fetchDiscussions(slug: string): Promise<Discussion[]> {
+  const res = await fetch(`/api/discussions/${encodeURIComponent(slug)}`);
+  const j = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(j.error ?? `HTTP ${res.status}`);
+  return j.discussions;
+}
+
+// Goes up as a draft of the pending review, like every other comment.
+export async function replyToDiscussion(slug: string, discussionId: string, body: string): Promise<void> {
+  const res = await fetch('/api/reply', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ slug, discussionId, body }),
+  });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? `HTTP ${res.status}`);
+}
+
+export interface ReviewVersion {
+  id: string;
+  at: string;
+}
+
+export async function fetchHistory(slug: string): Promise<ReviewVersion[]> {
+  const res = await fetch(`/api/history/${encodeURIComponent(slug)}`);
+  const j = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(j.error ?? `HTTP ${res.status}`);
+  return j.versions;
+}
+
+export async function fetchHistoryVersion(slug: string, id: string): Promise<string> {
+  const res = await fetch(`/api/history/${encodeURIComponent(slug)}/${encodeURIComponent(id)}`);
+  const j = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(j.error ?? `HTTP ${res.status}`);
+  return j.markdown;
 }

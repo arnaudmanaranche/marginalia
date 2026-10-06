@@ -1,18 +1,21 @@
 // Local review reader: JSON API over REVIEWS_DIR + status.json, live updates
 // over SSE, and the built React app (studio/dist) as static files. Bound to
 // 127.0.0.1 only; read-only apart from PUT /api/settings (poll interval) and,
-// when ALLOW_POSTING=true, POST /api/post (comment on the MR, after confirmation).
+// when ALLOW_POSTING=true, POST /api/post (comment on the MR, after confirmation),
+// and POST /api/rerun (queue a fresh review of one MR).
 import { createServer } from 'node:http';
 import { readFile, readdir, stat } from 'node:fs/promises';
 import { watch } from 'node:fs';
 import { join, dirname, extname, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { REVIEWS_DIR, STATUS_FILE, STUDIO_PORT, ALLOW_POSTING } from '../lib/config.mjs';
+import { REVIEWS_DIR, STATUS_FILE, STUDIO_PORT, ALLOW_POSTING, JIRA_BASE_URL } from '../lib/config.mjs';
 import { TRIAGE_FILE_PREFIX } from '../lib/paths.mjs';
 import { loadPosted, savePosted } from '../lib/posted.mjs';
-import { createDraftNote, createInlineDraftNote, listDraftNotes, updateDraftNote, deleteDraftNote, publishDraftNotes, draftNoteExists, findPublishedNoteId, mergeRequestNoteExists } from '../lib/gitlab.mjs';
+import { listHistory, readHistory } from '../lib/history.mjs';
+import { createDraftNote, createDraftReply, createInlineDraftNote, listDiscussions, listDraftNotes, updateDraftNote, deleteDraftNote, publishDraftNotes, draftNoteExists, findPublishedNoteId, mergeRequestNoteExists } from '../lib/gitlab.mjs';
 import { byPriorityThenDate } from '../lib/jira.mjs';
 import { loadSettings, saveSettings } from '../lib/settings.mjs';
+import { loadState, saveState } from '../lib/state.mjs';
 import { parseAcrossLayers } from '../lib/stack.mjs';
 
 const DIST = join(dirname(fileURLToPath(import.meta.url)), 'dist');
@@ -135,6 +138,12 @@ async function reconcilePosted() {
   await run.catch(() => {});
 }
 
+// The MR tracked in status.json for a review slug, or undefined.
+async function trackedMr(slug) {
+  const status = await readStatus();
+  return (status?.mrs ?? []).find((m) => m.reviewPath && m.reviewPath === join(REVIEWS_DIR, `${slug}.md`));
+}
+
 // Stacks of 2+ MRs from status.json, layers bottom to top. A layer without a
 // review file yet has slug null.
 function buildStacks(status) {
@@ -197,7 +206,7 @@ async function listReviews() {
   items.sort(byPriorityThenDate);
   // https://host/group/project, from any tracked MR url; used to link !123 and file paths.
   const projectUrl = (status?.mrs ?? []).map((mr) => mr.web_url?.match(/^(.*)\/-\/merge_requests\/\d+/)?.[1]).find(Boolean) ?? null;
-  return { status, items, stacks: buildStacks(status), projectUrl, settings: loadSettings(), allowPosting: ALLOW_POSTING === 'true', posted: await loadPosted() };
+  return { status, items, stacks: buildStacks(status), projectUrl, jiraBaseUrl: JIRA_BASE_URL ? JIRA_BASE_URL.replace(/\/+$/, '') : null, settings: loadSettings(), allowPosting: ALLOW_POSTING === 'true', posted: await loadPosted() };
 }
 
 const clients = new Set();
@@ -337,6 +346,39 @@ async function postComment(req, res) {
   return run;
 }
 
+// Replies { slug, discussionId, body } to a thread of the tracked MR, as a draft
+// of the pending review. The discussion must belong to that MR: GitLab rejects
+// an id from another one, and the MR itself comes from status.json.
+async function replyToDiscussion(req, res) {
+  if (ALLOW_POSTING !== 'true') return json(res, 403, { error: 'posting is disabled (ALLOW_POSTING=false)' });
+  const input = await readJsonBody(req, res);
+  if (input === null) return undefined;
+  const { slug, discussionId, body } = input;
+  if (typeof slug !== 'string' || !SLUG_RE.test(slug) || slug.includes('..') || typeof discussionId !== 'string' || !/^[0-9a-f]{8,64}$/.test(discussionId)) {
+    return json(res, 400, { error: 'bad slug or discussionId' });
+  }
+  if (typeof body !== 'string' || !body.trim() || body.length > 10_000) {
+    return json(res, 400, { error: 'body must be a non-empty string under 10000 characters' });
+  }
+  const run = postQueue.then(async () => {
+    const mr = await trackedMr(slug);
+    if (!mr) return json(res, 404, { error: 'no tracked merge request for this review' });
+    let draft;
+    try {
+      draft = await createDraftReply(mr.iid, discussionId, body.trim());
+    } catch (err) {
+      return json(res, 502, { error: String(err.message).slice(0, 300) });
+    }
+    const posted = await loadPosted();
+    posted[`${slug}:reply-${draft.id}`] = { at: new Date().toISOString(), iid: mr.iid, state: 'draft', draftId: draft.id, body: body.trim(), mrUrl: mr.web_url, url: mr.web_url };
+    await savePosted(posted);
+    broadcast();
+    return json(res, 200, { ok: true, draftId: draft.id });
+  });
+  postQueue = run.catch(() => {});
+  return run;
+}
+
 // Submits the drafts of one review as a real GitLab review, with an optional
 // summary note. Like postComment(), the MR comes from status.json.
 async function submitReview(req, res) {
@@ -425,15 +467,80 @@ async function mutateDraft(req, res, pathname) {
   return run;
 }
 
+// Re-runs the review (or the comment triage, for my own MRs) of one tracked MR. The
+// poller skips an MR whose recorded SHA matches its head, so the entry is set to
+// null (not deleted: an absent entry would let it trust an existing review file)
+// and the poller is nudged with SIGUSR1, the same signal as the menu bar's "Poll now".
+// state.json is only edited while the poller is idle: a running poll holds its own
+// copy of the state in memory and would overwrite the change when it saves.
+async function rerunReview(req, res) {
+  const input = await readJsonBody(req, res);
+  if (input === null) return undefined;
+  const { slug } = input;
+  if (typeof slug !== 'string' || !SLUG_RE.test(slug) || slug.includes('..')) return json(res, 400, { error: 'bad slug' });
+  const status = await readStatus();
+  const mr = (status?.mrs ?? []).find((m) => m.reviewPath && m.reviewPath === join(REVIEWS_DIR, `${slug}.md`));
+  if (!mr) return json(res, 404, { error: 'no tracked merge request for this review' });
+  let alive = false;
+  try {
+    alive = Boolean(status?.pid) && process.kill(status.pid, 0);
+  } catch {
+    /* no such process */
+  }
+  if (!alive || status.phase === 'stopped') return json(res, 409, { error: 'the bot is not running: start it with npm start' });
+  if (status.phase !== 'idle' && status.phase !== 'error') return json(res, 409, { error: 'a run is in progress, try again when it is done' });
+  const state = await loadState();
+  if (mr.kind === 'comments') (state.mineComments ??= {})[mr.iid] = null;
+  else state[mr.iid] = null;
+  await saveState(state);
+  process.kill(status.pid, 'SIGUSR1');
+  return json(res, 200, { ok: true, iid: mr.iid, kind: mr.kind });
+}
+
 async function handle(req, res) {
   const { pathname } = new URL(req.url, 'http://localhost');
   if (req.method === 'PUT' && pathname === '/api/settings') return putSettings(req, res);
   if (req.method === 'POST' && pathname === '/api/post') return postComment(req, res);
+  if (req.method === 'POST' && pathname === '/api/reply') return replyToDiscussion(req, res);
   if (req.method === 'POST' && pathname === '/api/submit-review') return submitReview(req, res);
+  if (req.method === 'POST' && pathname === '/api/rerun') return rerunReview(req, res);
   if ((req.method === 'PUT' || req.method === 'DELETE') && pathname.startsWith('/api/drafts/')) return mutateDraft(req, res, pathname);
   if (req.method !== 'GET') return json(res, 405, { error: 'read-only' });
 
   if (pathname === '/api/reviews') return json(res, 200, await listReviews());
+
+  // Previous versions of a review (/api/history/:slug) and one of them (/api/history/:slug/:id).
+  if (pathname.startsWith('/api/history/')) {
+    const [slugPart, idPart] = pathname.slice('/api/history/'.length).split('/');
+    let slug;
+    try {
+      slug = decodeURIComponent(slugPart ?? '');
+    } catch {
+      slug = '';
+    }
+    if (!SLUG_RE.test(slug) || slug.includes('..')) return json(res, 400, { error: 'bad slug' });
+    if (!idPart) return json(res, 200, { versions: await listHistory(slug) });
+    const markdown = await readHistory(slug, idPart);
+    return markdown === null ? json(res, 404, { error: 'not found' }) : json(res, 200, { slug, id: idPart, markdown });
+  }
+
+  // The MR's GitLab conversation, for the studio's discussion panel.
+  if (pathname.startsWith('/api/discussions/')) {
+    let slug;
+    try {
+      slug = decodeURIComponent(pathname.slice('/api/discussions/'.length));
+    } catch {
+      return json(res, 400, { error: 'bad slug' });
+    }
+    if (!SLUG_RE.test(slug) || slug.includes('..')) return json(res, 400, { error: 'bad slug' });
+    const mr = await trackedMr(slug);
+    if (!mr) return json(res, 404, { error: 'no tracked merge request for this review' });
+    try {
+      return json(res, 200, { discussions: await listDiscussions(mr.iid) });
+    } catch (err) {
+      return json(res, 502, { error: String(err.message).slice(0, 300) });
+    }
+  }
 
   if (pathname.startsWith('/api/drafts/')) {
     if (ALLOW_POSTING !== 'true') return json(res, 403, { error: 'posting is disabled (ALLOW_POSTING=false)' });
