@@ -1,23 +1,26 @@
-import { Children, Fragment, createElement, isValidElement, useContext, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
+import { Children, Fragment, useContext, useEffect, useEffectEvent, useMemo, useRef, useState, type ReactNode } from 'react';
 import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
-import * as Collapsible from '@radix-ui/react-collapsible';
 import { SemanticText } from 'semfont';
 import { toast } from 'sonner';
 import { useScrollLock } from '../lib/useScrollLock';
 import { usePersistentState } from '../lib/layout';
 import { useModalFocus } from '../lib/useModalFocus';
 import { createContext } from 'react';
-import { Check, ChevronRight, Copy, RefreshCw, Trash2, X, ExternalLink, Loader2, PanelRight, Pencil, Send, Sparkles, Undo2 } from 'lucide-react';
-import { deleteDraft, fetchDrafts, fetchHistory, fetchHistoryVersion, postComment, rerunReview, updateDraft, submitReview, type DraftNote, BotStatus, type PostedInfo, type ReviewContent, type ReviewItem, type ReviewVersion, type Finding } from '../lib/api';
+import { Check, Copy, Trash2, X, Loader2, Pencil, Send, Undo2 } from 'lucide-react';
+import { deleteDraft, fetchDrafts, postComment, updateDraft, submitReview, type DraftNote, BotStatus, type PostedInfo, type ReviewContent, type ReviewItem, type Finding } from '../lib/api';
 import { Discussion } from './Discussion';
+import { CollapsibleCard } from './CollapsibleCard';
+import { PostedBadge } from './PostedBadge';
+import { ReaderHeader } from './ReaderHeader';
+import { ReaderSidePanel } from './ReaderSidePanel';
+import { useRerun } from '../lib/useRerun';
+import { useReviewVersions } from '../lib/useReviewVersions';
 import { ConfirmPost } from './ConfirmPost';
 import { FindingsPanel } from './FindingsPanel';
-import { cn, timeAgo } from '../lib/utils';
-import { VerdictBadge } from './VerdictBadge';
+import { cn } from '../lib/utils';
 import { Button } from './ui/Button';
-import { Badge, badgeClass } from './ui/Badge';
 import { LinkContext, commentLocation, linkify, type LinkContextValue } from '../lib/links';
 import { HIGHLIGHT } from '../lib/highlight';
 import { codeComponents, textOf } from '../lib/markdown';
@@ -219,11 +222,11 @@ function ConfirmSubmit({ slug, iid, count, reload, onCancel, onConfirm }: { slug
   const dialogRef = useRef<HTMLDivElement>(null);
   useScrollLock(true);
   useModalFocus(true, dialogRef, { initial: '[data-autofocus]' });
+  const onKey = useEffectEvent((e: KeyboardEvent) => e.key === 'Escape' && !busy && onCancel());
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && !busy && onCancel();
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [busy, onCancel]);
+  }, []);
   return (
     <div role="presentation" className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4" onClick={busy ? undefined : onCancel}>
       <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="confirm-submit-title" className="w-full max-w-lg rounded-xl border border-zinc-200 bg-white p-5 shadow-2xl dark:border-zinc-800 dark:bg-zinc-900" onClick={(e) => e.stopPropagation()}>
@@ -263,6 +266,32 @@ function ConfirmSubmit({ slug, iid, count, reload, onCancel, onConfirm }: { slug
   );
 }
 
+// The comment as the skill wrote it: the lines of the blockquote that starts at `offset`.
+function writtenComment(source: string, offset: number | undefined): string | null {
+  if (offset === undefined) return null;
+  const out: string[] = [];
+  for (const line of source.slice(offset).split('\n')) {
+    if (!/^\s*>/.test(line)) break;
+    out.push(line.replace(/^\s*>\s?/, ''));
+  }
+  return out.join('\n').trim() || null;
+}
+
+// The file:line the review mentions just above the comment, since the last heading.
+function commentTargetAt(source: string, offset: number | undefined) {
+  if (offset === undefined) return null;
+  const above = source.slice(0, offset);
+  return commentLocation(above.slice(Math.max(above.lastIndexOf('\n#'), 0)));
+}
+
+// The id of the finding a comment belongs to, which survives a re-run that rewords it, and where
+// it stands on GitLab. Comments posted before findings existed were keyed by a hash of their text.
+function resolveComment(post: PostContextValue, original: string, legacyId: string) {
+  const commentId = post.findings.find((f) => f.comment && squash(f.comment) === squash(original))?.id ?? legacyId;
+  const postedInfo = post.slug ? post.posted[`${post.slug}:${commentId}`] ?? post.posted[`${post.slug}:${legacyId}`] : undefined;
+  return { commentId, postedInfo };
+}
+
 // The "**Comment to post:**" blockquotes are meant to be pasted into GitLab:
 // copy as is, or edit first in a textarea (the edit is kept locally).
 function Quote({ children, offset }: { children?: ReactNode; offset?: number }) {
@@ -275,28 +304,14 @@ function Quote({ children, offset }: { children?: ReactNode; offset?: number }) 
   const source = useContext(SourceContext);
   // The comment as the skill wrote it (fences and backticks intact, which GitLab renders), not
   // the rendered text: the code cards add their own labels to what the page shows.
-  const written = useMemo(() => {
-    if (offset === undefined) return null;
-    const out: string[] = [];
-    for (const line of source.slice(offset).split('\n')) {
-      if (!/^\s*>/.test(line)) break;
-      out.push(line.replace(/^\s*>\s?/, ''));
-    }
-    return out.join('\n').trim() || null;
-  }, [source, offset]);
+  const written = useMemo(() => writtenComment(source, offset), [source, offset]);
   const current = edited ?? written ?? ref.current?.innerText.trim() ?? original;
   // The id of the finding this comment belongs to, which survives a re-run that rewords it.
   // Comments posted before findings existed were keyed by a hash of their text.
-  const legacyId = key.split(':').pop() ?? '';
-  const commentId = post.findings.find((f) => f.comment && squash(f.comment) === squash(original))?.id ?? legacyId;
-  const postedInfo = post.slug ? post.posted[`${post.slug}:${commentId}`] ?? post.posted[`${post.slug}:${legacyId}`] : undefined;
+  const { commentId, postedInfo } = resolveComment(post, original, key.split(':').pop() ?? '');
   const [confirming, setConfirming] = useState(false);
   // The file:line the review mentions just above this comment, since the last heading.
-  const target = useMemo(() => {
-    if (offset === undefined) return null;
-    const above = source.slice(0, offset);
-    return commentLocation(above.slice(Math.max(above.lastIndexOf('\n#'), 0)));
-  }, [source, offset]);
+  const target = useMemo(() => commentTargetAt(source, offset), [source, offset]);
   // Focus lands here if the button that opened the dialog is gone (a posted comment replaces it).
   const rootRef = useRef<HTMLDivElement>(null);
   // A re-run is about to replace this comment: close the editor and any open confirmation.
@@ -329,16 +344,7 @@ function Quote({ children, offset }: { children?: ReactNode; offset?: number }) 
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2 text-xs font-medium uppercase tracking-wide text-blue-700 dark:text-blue-300">
         <span>
           Comment to post{edited !== null && !editing ? ' · edited' : ''}
-          {postedInfo?.state === 'draft' && (
-            <Badge tone="warning" ring className="ml-2 normal-case tracking-normal">
-              <Check className="size-3" />In pending review
-            </Badge>
-          )}
-          {postedInfo && postedInfo.state !== 'draft' && (
-            <a href={postedInfo.url} target="_blank" rel="noreferrer" className={cn(badgeClass({ tone: 'success', ring: true }), 'ml-2 normal-case tracking-normal')}>
-              <Check className="size-3" />Posted {timeAgo(postedInfo.at)}<ExternalLink className="size-3" />
-            </a>
-          )}
+          <PostedBadge info={postedInfo} className="ml-2 normal-case tracking-normal" />
         </span>
         <span className="flex flex-wrap items-center justify-end gap-1.5 normal-case tracking-normal [&>button]:whitespace-nowrap">
           {edited !== null && (
@@ -464,87 +470,50 @@ function GlanceBody({ body, semantic }: { body: string; semantic: boolean }) {
   );
 }
 
-// What the run is doing right now, for the MR on screen.
-function LiveRun({ live }: { live: NonNullable<BotStatus['current']> }) {
-  const steps = live.progress ?? [];
+// Which sections are open: what the person toggled, else a default by title.
+function useSectionState(sections: Section[]) {
+  const [overrides, setOverrides] = useState<Record<string, boolean>>({});
+  // Once "At a Glance" carries the gist, the summary's Overview is a repeat: fold it.
+  const hasGlance = sections.some((s) => /at a glance/i.test(s.title));
+  const isOpen = (s: Section) => overrides[s.id] ?? (hasGlance && /summary/i.test(s.title) ? false : OPEN_BY_DEFAULT.test(s.title));
+  const allOpen = sections.every(isOpen);
+  const setAll = (open: boolean) => setOverrides(Object.fromEntries(sections.map((s) => [s.id, open])));
+  const jump = (id: string) => {
+    setOverrides((o) => ({ ...o, [id]: true }));
+    const calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    requestAnimationFrame(() => document.getElementById(id)?.scrollIntoView({ behavior: calm ? 'auto' : 'smooth' }));
+  };
+  return { overrides, setOverrides, isOpen, allOpen, setAll, jump };
+}
+
+// Why a report reads the way it does: an old version on screen, or findings the studio could not read.
+function ReaderNotices({ viewingOld, onBackToLatest, shape }: { viewingOld: boolean; onBackToLatest: () => void; shape: ReviewContent["shape"] | null }) {
   return (
-    <section aria-live="polite">
-      <h2 className="mb-2 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-fg-muted">
-        <Loader2 className="size-3 animate-spin motion-reduce:animate-pulse" aria-hidden />Running now
-      </h2>
-      {steps.length ? (
-        <ol className="space-y-1 text-xs text-fg-muted">
-          {steps.map((s, i) => (
-            <li key={`${i}-${s}`} className={cn('break-words', i === steps.length - 1 && 'font-medium text-zinc-900 dark:text-zinc-100')}>{s}</li>
-          ))}
-        </ol>
-      ) : (
-        <p className="text-xs text-fg-muted">Starting…</p>
+    <>
+      {viewingOld && (
+        <p role="status" className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-800 dark:text-amber-200">
+          You are reading an earlier version of this review. Comments can't be posted from it.{' '}
+          <button className="underline" onClick={onBackToLatest}>Back to the latest</button>
+        </p>
       )}
-    </section>
+      {shape && shape.warnings.length > 0 && (
+        <div role="status" className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-800 dark:text-amber-200">
+          <p className="font-medium">{shape.source === 'none' ? 'This report has no findings the studio could read' : 'About how this report was read'}</p>
+          <ul className="mt-1 list-disc space-y-0.5 pl-5">{shape.warnings.map((w) => <li key={w}>{w}</li>)}</ul>
+        </div>
+      )}
+    </>
   );
 }
 
 export function ReviewReader({ item, review: currentReview, projectUrl, jiraBaseUrl, allowPosting, live, posted, reload }: { item: ReviewItem | undefined; review: ReviewContent | null; projectUrl: string | null; jiraBaseUrl: string | null; allowPosting: boolean; live: BotStatus['current']; posted: Record<string, PostedInfo>; reload: () => void }) {
   const [submitting, setSubmitting] = useState(false);
-  // Earlier versions of this review, kept when a re-run replaces it. Viewing one is read-only.
-  const [versions, setVersions] = useState<ReviewVersion[]>([]);
-  const [versionId, setVersionId] = useState<string | null>(null);
-  const [oldReview, setOldReview] = useState<ReviewContent | null>(null);
-  const reviewedAt = item?.reviewedAt;
-  useEffect(() => {
-    setVersionId(null);
-    setOldReview(null);
-    if (!item?.slug) return setVersions([]);
-    let live = true;
-    fetchHistory(item.slug).then((v) => live && setVersions(v), () => live && setVersions([]));
-    return () => { live = false; };
-  }, [item?.slug, reviewedAt]);
-  useEffect(() => {
-    if (!item?.slug || !versionId) return setOldReview(null);
-    let live = true;
-    fetchHistoryVersion(item.slug, versionId).then((r) => live && setOldReview(r), (e) => { toast.error('Could not load that version', { description: (e as Error).message }); if (live) setVersionId(null); });
-    return () => { live = false; };
-  }, [item?.slug, versionId]);
+  const { versions, versionId, setVersionId, oldReview } = useReviewVersions(item?.slug, item?.reviewedAt);
   const viewingOld = versionId !== null;
   const content = viewingOld ? oldReview : currentReview;
   const markdown = content?.markdown ?? null;
   const shape = content?.shape ?? null;
-  // From the click until the run has started and finished, so there is no gap between
-  // the request and the first "running" status where the buttons would come back.
-  const [rerunning, setRerunning] = useState(false);
-  const sawLive = useRef(false);
-  const rerun = async () => {
-    if (!item) return;
-    setRerunning(true);
-    sawLive.current = false;
-    try {
-      await rerunReview(item.slug);
-      toast.success(`Review of !${item.iid} queued`, { description: 'It starts now; this page updates when it is done.' });
-    } catch (e) {
-      toast.error('Could not re-run the review', { description: (e as Error).message });
-      setRerunning(false);
-    }
-  };
-  useEffect(() => {
-    if (!rerunning) return;
-    if (live) {
-      sawLive.current = true;
-      return;
-    }
-    // The run came and went: unlock. If it never showed up (skipped, bot busy), give up after a minute.
-    if (sawLive.current) {
-      setRerunning(false);
-      return;
-    }
-    const t = setTimeout(() => setRerunning(false), 60_000);
-    return () => clearTimeout(t);
-  }, [rerunning, live]);
-  // Another review on screen: the lock belongs to the one that was re-run.
-  useEffect(() => {
-    setRerunning(false);
-    sawLive.current = false;
-  }, [item?.slug]);
+  const { rerunning, rerun } = useRerun(item, live);
   const draftCount = item ? Object.entries(posted).filter(([k, p]) => k.startsWith(`${item.slug}:`) && p.state === 'draft').length : 0;
   const locked = rerunning || Boolean(live) || viewingOld;
   const postCtx = useMemo(() => ({ allowPosting, slug: item?.slug ?? null, iid: item?.tracked ? item.iid : null, posted, reload, locked, findings: shape?.findings ?? [] }), [allowPosting, item?.slug, item?.tracked, item?.iid, posted, reload, locked, shape]);
@@ -561,202 +530,58 @@ export function ReviewReader({ item, review: currentReview, projectUrl, jiraBase
     [sections],
   );
   const firstSupporting = ordered.find((s) => rankOf(s.title) === SUPPORTING_RANK && ordered.some((o) => rankOf(o.title) < SUPPORTING_RANK))?.id;
-  const [overrides, setOverrides] = useState<Record<string, boolean>>({});
-  // Once "At a Glance" carries the gist, the summary's Overview is a repeat: fold it.
-  const hasGlance = sections.some((s) => /at a glance/i.test(s.title));
-  const isOpen = (s: Section) => overrides[s.id] ?? (hasGlance && /summary/i.test(s.title) ? false : OPEN_BY_DEFAULT.test(s.title));
+  const { overrides, setOverrides, isOpen, allOpen, setAll, jump } = useSectionState(sections);
   const [semantic, setSemantic] = usePersistentState('mr-review-viewer:semantic-on', true);
   const [panelOpen, setPanelOpen] = usePersistentState('mr-review-viewer:panel-open', true);
-  const allOpen = sections.every(isOpen);
-  const setAll = (open: boolean) => setOverrides(Object.fromEntries(sections.map((s) => [s.id, open])));
-  const jump = (id: string) => {
-    setOverrides((o) => ({ ...o, [id]: true }));
-    const calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    requestAnimationFrame(() => document.getElementById(id)?.scrollIntoView({ behavior: calm ? 'auto' : 'smooth' }));
-  };
 
   return (
     <LinkContext.Provider value={linkCtx}>
     <PostContext.Provider value={postCtx}>
     <div className="px-6 py-6">
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="text-2xl font-semibold tracking-tight">{item?.title ?? 'Review'}</h1>
-          <div className="mt-2">
-            <VerdictBadge verdict={item?.verdict ?? null} />
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          {allowPosting && item?.tracked && draftCount > 0 && (
-            <Button variant="primary" onClick={() => setSubmitting(true)}>
-              <Send className="size-3.5" />Submit review ({draftCount})
-            </Button>
-          )}
-          {versions.length > 0 && (
-            <select
-              value={versionId ?? ''}
-              onChange={(e) => setVersionId(e.target.value || null)}
-              aria-label="Review version"
-              className="touch-target rounded-lg border border-zinc-200 bg-white px-2 py-1.5 text-sm dark:border-zinc-800 dark:bg-zinc-900"
-            >
-              <option value="">Latest review</option>
-              {versions.map((v) => <option key={v.id} value={v.id}>{new Date(v.at).toLocaleString()}</option>)}
-            </select>
-          )}
-          {item?.tracked && item.kind !== 'retro' && (
-            <Button disabled={locked} onClick={rerun} title="Run the review again on the current head of the MR">
-              {locked ? <Loader2 className="size-3.5 animate-spin motion-reduce:animate-pulse" /> : <RefreshCw className="size-3.5" />}Re-run review
-            </Button>
-          )}
-          <button
-            onClick={() => setSemantic((v) => !v)}
-            aria-pressed={semantic}
-            title="Typography that follows meaning (semfont): colour for sentiment, weight for importance, slant for hedges"
-            className={cn('touch-target inline-flex items-center justify-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm', semantic ? 'border-violet-500/40 bg-violet-500/10 text-violet-700 dark:text-violet-300' : 'border-zinc-200 bg-white text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400')}
-          >
-            <Sparkles className="size-3.5" />Semantic type
-          </button>
-          {item?.webUrl && (
-            <a href={item.webUrl} target="_blank" rel="noreferrer" className="touch-target inline-flex items-center justify-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-sm hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:bg-zinc-800">
-              Open in GitLab<ExternalLink className="size-3.5" />
-            </a>
-          )}
-          <button
-            onClick={() => setPanelOpen((v) => !v)}
-            aria-pressed={panelOpen}
-            aria-label="Toggle side panel"
-            title="Toggle side panel"
-            className={cn('hidden rounded-lg border p-1.5 lg:block', panelOpen ? 'border-zinc-300 bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-800' : 'border-zinc-200 bg-white text-fg-muted dark:border-zinc-800 dark:bg-zinc-900')}
-          >
-            <PanelRight className="size-4" />
-          </button>
-        </div>
-      </div>
+      <ReaderHeader
+        item={item}
+        showSubmit={allowPosting && Boolean(item?.tracked) && draftCount > 0}
+        draftCount={draftCount}
+        onSubmit={() => setSubmitting(true)}
+        versions={versions}
+        versionId={versionId}
+        onVersion={setVersionId}
+        locked={locked}
+        onRerun={rerun}
+        semantic={semantic}
+        onSemantic={() => setSemantic((v) => !v)}
+        panelOpen={panelOpen}
+        onPanel={() => setPanelOpen((v) => !v)}
+      />
 
       {markdown === null ? (
         <p className="text-fg-muted">Loading…</p>
       ) : (
         <div className="flex gap-8">
           <article className="mx-auto w-full min-w-0 max-w-[80ch] space-y-3">
-            {viewingOld && (
-              <p role="status" className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-800 dark:text-amber-200">
-                You are reading an earlier version of this review. Comments can't be posted from it.{' '}
-                <button className="underline" onClick={() => setVersionId(null)}>Back to the latest</button>
-              </p>
-            )}
-            {shape && shape.warnings.length > 0 && (
-              <div role="status" className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-800 dark:text-amber-200">
-                <p className="font-medium">{shape.source === 'none' ? 'This report has no findings the studio could read' : 'About how this report was read'}</p>
-                <ul className="mt-1 list-disc space-y-0.5 pl-5">{shape.warnings.map((w) => <li key={w}>{w}</li>)}</ul>
-              </div>
-            )}
+            <ReaderNotices viewingOld={viewingOld} onBackToLatest={() => setVersionId(null)} shape={shape} />
             {intro.trim() && <Md semantic={semantic}>{intro}</Md>}
             {ordered.map((s) => (
               <Fragment key={s.id}>
               {s.id === firstSupporting && <p className="px-1 pt-3 text-xs font-medium uppercase tracking-wide text-fg-subtle">Supporting detail</p>}
-              <Collapsible.Root
-                id={s.id}
-                open={isOpen(s)}
-                onOpenChange={(o) => setOverrides((prev) => ({ ...prev, [s.id]: o }))}
-                className="rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900"
-              >
-                {/* A real heading around the trigger, so screen-reader users can jump between sections. */}
-                <h2 className="text-base">
-                  <Collapsible.Trigger className="group flex w-full items-center gap-2 rounded-xl px-4 py-3 text-left font-medium">
-                    <ChevronRight className={cn('size-4 shrink-0 text-fg-subtle transition-transform motion-reduce:transition-none', isOpen(s) && 'rotate-90')} aria-hidden />
-                    {s.title}
-                  </Collapsible.Trigger>
-                </h2>
-                <Collapsible.Content className="border-t border-zinc-100 px-4 py-4 dark:border-zinc-800">
-                  {/at a glance/i.test(s.title) ? <GlanceBody body={s.body} semantic={semantic} /> : <Md semantic={semantic}>{s.body}</Md>}
-                </Collapsible.Content>
-              </Collapsible.Root>
+              <CollapsibleCard id={s.id} title={s.title} open={isOpen(s)} onOpenChange={(o) => setOverrides((prev) => ({ ...prev, [s.id]: o }))}>
+                {/at a glance/i.test(s.title) ? <GlanceBody body={s.body} semantic={semantic} /> : <Md semantic={semantic}>{s.body}</Md>}
+              </CollapsibleCard>
               </Fragment>
             ))}
             {item?.tracked && item.iid && !viewingOld && loose.length > 0 && (
-              <Collapsible.Root id="findings" className="rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900" open={overrides.findings ?? true} onOpenChange={(o) => setOverrides((prev) => ({ ...prev, findings: o }))}>
-                <h2 className="text-base">
-                  <Collapsible.Trigger className="group flex w-full items-center gap-2 rounded-xl px-4 py-3 text-left font-medium">
-                    <ChevronRight className={cn('size-4 shrink-0 text-fg-subtle transition-transform motion-reduce:transition-none', (overrides.findings ?? true) && 'rotate-90')} aria-hidden />
-                    Findings to comment on ({loose.length})
-                  </Collapsible.Trigger>
-                </h2>
-                <Collapsible.Content className="border-t border-zinc-100 px-4 py-4 dark:border-zinc-800">
-                  <FindingsPanel findings={loose} slug={item.slug} iid={item.iid} allowPosting={allowPosting} locked={locked} posted={posted} reload={reload} />
-                </Collapsible.Content>
-              </Collapsible.Root>
+              <CollapsibleCard id="findings" title={`Findings to comment on (${loose.length})`} open={overrides.findings ?? true} onOpenChange={(o) => setOverrides((prev) => ({ ...prev, findings: o }))}>
+                <FindingsPanel findings={loose} slug={item.slug} iid={item.iid} allowPosting={allowPosting} locked={locked} posted={posted} reload={reload} />
+              </CollapsibleCard>
             )}
             {item?.tracked && item.kind === 'review' && !viewingOld && (
-              <Collapsible.Root id="discussion" className="rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900" open={overrides.discussion ?? true} onOpenChange={(o) => setOverrides((prev) => ({ ...prev, discussion: o }))}>
-                <h2 className="text-base">
-                  <Collapsible.Trigger className="group flex w-full items-center gap-2 rounded-xl px-4 py-3 text-left font-medium">
-                    <ChevronRight className={cn('size-4 shrink-0 text-fg-subtle transition-transform motion-reduce:transition-none', (overrides.discussion ?? true) && 'rotate-90')} aria-hidden />
-                    Discussion on GitLab
-                  </Collapsible.Trigger>
-                </h2>
-                <Collapsible.Content className="border-t border-zinc-100 px-4 py-4 dark:border-zinc-800">
-                  <Discussion slug={item.slug} canReply={allowPosting && !locked} refreshKey={`${item.reviewedAt}:${draftCount}`} reload={reload} />
-                </Collapsible.Content>
-              </Collapsible.Root>
+              <CollapsibleCard id="discussion" title="Discussion on GitLab" open={overrides.discussion ?? true} onOpenChange={(o) => setOverrides((prev) => ({ ...prev, discussion: o }))}>
+                <Discussion slug={item.slug} canReply={allowPosting && !locked} refreshKey={`${item.reviewedAt}:${draftCount}`} reload={reload} />
+              </CollapsibleCard>
             )}
           </article>
 
-          {/* Side panel: context that stays visible while reading. Collapses to give the article the room. */}
-          <aside
-            aria-label="Review details"
-            aria-hidden={!panelOpen}
-            className={cn('sticky top-[calc(var(--chrome-h)+1rem)] hidden h-[calc(100vh-var(--chrome-h)-2rem)] shrink-0 self-start overflow-hidden transition-[width,opacity] duration-300 ease-out motion-reduce:transition-none lg:block', panelOpen ? 'w-64 opacity-100' : 'w-0 opacity-0')}
-          >
-            <div className="flex h-full w-64 flex-col gap-5 overflow-y-auto pr-1 text-sm">
-              {live && <LiveRun live={live} />}
-              <section>
-                <h2 className="mb-2 text-xs font-medium uppercase tracking-wide text-fg-muted">Details</h2>
-                <dl className="space-y-1.5">
-                  {item?.iid && <Row label="Merge request">{item.webUrl ? <a className="text-blue-600 hover:underline dark:text-blue-400" href={item.webUrl} target="_blank" rel="noreferrer">!{item.iid}</a> : `!${item.iid}`}</Row>}
-                  {item?.author && <Row label="Author">{item.author}</Row>}
-                  {item?.branch && (
-                    <Row label="Branch">
-                      <span className="break-all font-mono text-xs">
-                        {projectUrl ? <a className="text-blue-600 hover:underline dark:text-blue-400" href={`${projectUrl}/-/tree/${encodeURIComponent(item.branch).replace(/%2F/g, '/')}`} target="_blank" rel="noreferrer">{item.branch}</a> : item.branch}
-                      </span>
-                    </Row>
-                  )}
-                  {(item?.jira?.key ?? meta.ticket?.key) && (
-                    <Row label="Ticket">
-                      <span title={meta.ticket?.note ?? undefined}>
-                        {jiraBaseUrl ? <a className="text-blue-600 hover:underline dark:text-blue-400" href={`${jiraBaseUrl}/browse/${encodeURIComponent((item?.jira?.key ?? meta.ticket?.key)!)}`} target="_blank" rel="noreferrer">{item?.jira?.key ?? meta.ticket?.key}</a> : (item?.jira?.key ?? meta.ticket?.key)}
-                      </span>
-                    </Row>
-                  )}
-                  {item && <Row label="Reviewed">{timeAgo(item.reviewedAt)}</Row>}
-                  {item && <Row label="Findings">{item.critical} critical · {item.important} important</Row>}
-                </dl>
-              </section>
-              <section className="min-h-0">
-                <div className="mb-2 flex items-center justify-between text-xs uppercase tracking-wide text-fg-muted">
-                  <h2 className="font-medium">Contents</h2>
-                  <button className="normal-case hover:text-zinc-900 dark:hover:text-zinc-100" tabIndex={panelOpen ? 0 : -1} onClick={() => setAll(!allOpen)}>{allOpen ? 'Collapse all' : 'Expand all'}</button>
-                </div>
-                <ul className="space-y-0.5">
-                  {ordered.map((s) => (
-                    <li key={s.id}>
-                      <a
-                        href={`#/${item?.slug}`}
-                        tabIndex={panelOpen ? 0 : -1}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          jump(s.id);
-                        }}
-                        className="block truncate rounded px-2 py-1 text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
-                      >
-                        {s.title}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            </div>
-          </aside>
+          <ReaderSidePanel item={item} live={live} open={panelOpen} projectUrl={projectUrl} jiraBaseUrl={jiraBaseUrl} ticket={meta.ticket} sections={ordered} allOpen={allOpen} onToggleAll={() => setAll(!allOpen)} onJump={jump} />
         </div>
       )}
     </div>
@@ -777,14 +602,5 @@ export function ReviewReader({ item, review: currentReview, projectUrl, jiraBase
     )}
     </PostContext.Provider>
     </LinkContext.Provider>
-  );
-}
-
-function Row({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div className="flex justify-between gap-3">
-      <dt className="shrink-0 text-fg-muted">{label}</dt>
-      <dd className="min-w-0 text-right">{children}</dd>
-    </div>
   );
 }

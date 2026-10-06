@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type RefObject } from 'react';
+import { useEffect, useEffectEvent, useRef, useState, type RefObject } from 'react';
 import { toast } from 'sonner';
 import { Loader2, Send } from 'lucide-react';
 import { useScrollLock } from '../lib/useScrollLock';
@@ -12,11 +12,12 @@ export function ConfirmPost({ iid, text, target, onCancel, onConfirm, fallbackRe
   useScrollLock(true);
   // Focus moves to Cancel (the safe choice), stays inside, and returns to the opener on close.
   useModalFocus(true, dialogRef, { initial: '[data-autofocus]', fallback: fallbackRef });
+  // Always sees the latest busy and onCancel, without re-subscribing every time the parent redraws.
+  const onKey = useEffectEvent((e: KeyboardEvent) => e.key === 'Escape' && !busy && onCancel());
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && !busy && onCancel();
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [busy, onCancel]);
+  }, []);
   return (
     <div role="presentation" className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4" onClick={busy ? undefined : onCancel}>
       <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="confirm-post-title" aria-describedby="confirm-post-text" className="w-full max-w-lg rounded-xl border border-zinc-200 bg-white p-5 shadow-2xl dark:border-zinc-800 dark:bg-zinc-900" onClick={(e) => e.stopPropagation()}>

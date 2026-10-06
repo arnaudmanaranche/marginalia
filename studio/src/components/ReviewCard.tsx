@@ -1,4 +1,6 @@
-import { AnimatePresence, motion } from 'motion/react';
+import type { Ref } from 'react';
+import { AnimatePresence } from 'motion/react';
+import * as m from 'motion/react-m';
 import { ArrowUpRight, GitBranch, User } from 'lucide-react';
 import type { ReviewItem } from '../lib/api';
 import { cn, timeAgo } from '../lib/utils';
@@ -29,7 +31,7 @@ export function ReviewCard({ item, unread, size, resizing }: { item: ReviewItem;
   const small = size === 'small';
   const large = size === 'large';
   return (
-    <motion.a
+    <m.a
       layout={resizing ? true : 'position'}
       transition={LAYOUT}
       initial={{ opacity: 0, scale: 0.96 }}
@@ -48,52 +50,80 @@ export function ReviewCard({ item, unread, size, resizing }: { item: ReviewItem;
     >
       {unread && <span className={cn('absolute size-2 rounded-full bg-blue-500 ring-4 ring-blue-500/20', small ? 'right-2.5 top-2.5' : 'right-3 top-3')} aria-hidden />}
 
-      <motion.div layout="position" transition={LAYOUT} className="flex items-center gap-2 text-xs text-fg-muted">
-        {item.iid && <span className="font-mono">!{item.iid}</span>}
-        {item.kind === 'comments' && <span className="rounded bg-violet-500/10 px-1.5 py-0.5 text-violet-700 dark:text-violet-300">triage</span>}
-        <span>{timeAgo(item.reviewedAt)}</span>
-        {item.jira?.priority && <span className="rounded bg-zinc-500/10 px-1.5 py-0.5" title={`Jira priority of ${item.jira.key}`}>{item.jira.key} · {item.jira.priority}</span>}
-      </motion.div>
+      <CardMeta item={item} />
 
-      <motion.h2 layout="position" transition={LAYOUT} className={cn('leading-snug', unread ? 'font-semibold' : 'font-normal text-fg-muted', small ? 'line-clamp-2 text-xs' : large ? 'text-base' : 'line-clamp-2 text-sm')}>{item.title}{unread && <span className="sr-only"> (unread)</span>}</motion.h2>
+      <m.h2 layout="position" transition={LAYOUT} className={cn('leading-snug', unread ? 'font-semibold' : 'font-normal text-fg-muted', small ? 'line-clamp-2 text-xs' : large ? 'text-base' : 'line-clamp-2 text-sm')}>{item.title}{unread && <span className="sr-only"> (unread)</span>}</m.h2>
 
       <AnimatePresence initial={false} mode="popLayout">
         {large && (
-          <motion.div key="details" layout="position" {...reveal} className="space-y-3">
-            {item.branch && (
-              <div className="flex items-center gap-1.5 font-mono text-xs text-fg-muted">
-                <GitBranch className="size-3.5 shrink-0" /><span className="truncate">{item.branch}</span>
-              </div>
-            )}
-            {item.summary && <p className="line-clamp-4 text-sm leading-relaxed text-fg-muted">{item.summary}</p>}
-            {item.highlights.length > 0 && (
-              <ul className="space-y-1.5">
-                {item.highlights.map((h, i) => (
-                  <li key={i} className="flex gap-2 text-xs leading-snug text-fg-muted">
-                    <span className={cn('mt-1 size-1.5 shrink-0 rounded-full', SEVERITY_DOT[h.severity])} title={h.severity} />
-                    <span className="line-clamp-2">{h.text}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </motion.div>
+          <CardDetails key="details" item={item} />
         )}
       </AnimatePresence>
 
-      <motion.div layout="position" transition={LAYOUT} className="mt-auto flex flex-wrap items-center gap-1.5">
-        <VerdictBadge verdict={item.verdict} compact={small} />
-        {item.critical > 0 && <Badge tone="danger">{item.critical}{!small && ' critical'}</Badge>}
-        {item.important > 0 && <Badge tone="warning">{item.important}{!small && ' important'}</Badge>}
-      </motion.div>
+      <CardBadges item={item} small={small} />
 
       <AnimatePresence initial={false} mode="popLayout">
         {!small && (
-          <motion.div key="footer" layout="position" {...reveal} className="flex items-center justify-between text-xs text-fg-muted">
-            <span className="flex items-center gap-1 truncate">{item.author && <><User className="size-3" />{item.author}</>}</span>
-            <span className={cn('flex items-center gap-0.5 font-medium text-zinc-700 transition-opacity dark:text-zinc-300', large ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100')}>Open<ArrowUpRight className="size-3.5" /></span>
-          </motion.div>
+          <CardFooter key="footer" item={item} large={large} />
         )}
       </AnimatePresence>
-    </motion.a>
+    </m.a>
+  );
+}
+
+// The line above the title: number, kind, age and Jira priority.
+function CardMeta({ item }: { item: ReviewItem }) {
+  return (
+  <m.div layout="position" transition={LAYOUT} className="flex items-center gap-2 text-xs text-fg-muted">
+    {item.iid && <span className="font-mono">!{item.iid}</span>}
+    {item.kind === 'comments' && <span className="rounded bg-violet-500/10 px-1.5 py-0.5 text-violet-700 dark:text-violet-300">triage</span>}
+    <span>{timeAgo(item.reviewedAt)}</span>
+    {item.jira?.priority && <span className="rounded bg-zinc-500/10 px-1.5 py-0.5" title={`Jira priority of ${item.jira.key}`}>{item.jira.key} · {item.jira.priority}</span>}
+  </m.div>
+  );
+}
+
+// Large cards only: branch, summary and the top findings.
+// `ref` is forwarded because AnimatePresence (popLayout) measures the element it animates out.
+function CardDetails({ item, ref }: { item: ReviewItem; ref?: Ref<HTMLDivElement> }) {
+  return (
+  <m.div ref={ref} layout="position" {...reveal} className="space-y-3">
+    {item.branch && (
+      <div className="flex items-center gap-1.5 font-mono text-xs text-fg-muted">
+        <GitBranch className="size-3.5 shrink-0" /><span className="truncate">{item.branch}</span>
+      </div>
+    )}
+    {item.summary && <p className="line-clamp-4 text-sm leading-relaxed text-fg-muted">{item.summary}</p>}
+    {item.highlights.length > 0 && (
+      <ul className="space-y-1.5">
+        {item.highlights.map((h, i) => (
+          <li key={i} className="flex gap-2 text-xs leading-snug text-fg-muted">
+            <span className={cn('mt-1 size-1.5 shrink-0 rounded-full', SEVERITY_DOT[h.severity])} title={h.severity} />
+            <span className="line-clamp-2">{h.text}</span>
+          </li>
+        ))}
+      </ul>
+    )}
+  </m.div>
+  );
+}
+
+function CardBadges({ item, small }: { item: ReviewItem; small: boolean }) {
+  return (
+  <m.div layout="position" transition={LAYOUT} className="mt-auto flex flex-wrap items-center gap-1.5">
+    <VerdictBadge verdict={item.verdict} compact={small} />
+    {item.critical > 0 && <Badge tone="danger">{item.critical}{!small && ' critical'}</Badge>}
+    {item.important > 0 && <Badge tone="warning">{item.important}{!small && ' important'}</Badge>}
+  </m.div>
+  );
+}
+
+// Medium and large cards: who wrote it, and the open arrow.
+function CardFooter({ item, large, ref }: { item: ReviewItem; large: boolean; ref?: Ref<HTMLDivElement> }) {
+  return (
+  <m.div ref={ref} layout="position" {...reveal} className="flex items-center justify-between text-xs text-fg-muted">
+    <span className="flex items-center gap-1 truncate">{item.author && <><User className="size-3" />{item.author}</>}</span>
+    <span className={cn('flex items-center gap-0.5 font-medium text-zinc-700 transition-opacity dark:text-zinc-300', large ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100')}>Open<ArrowUpRight className="size-3.5" /></span>
+  </m.div>
   );
 }

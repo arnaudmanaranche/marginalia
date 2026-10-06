@@ -1,5 +1,6 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { MotionConfig, motion } from 'motion/react';
+import { LazyMotion, MotionConfig } from 'motion/react';
+import * as m from 'motion/react-m';
 import { Inbox, LayoutGrid, Grid3x3, List, Rows3 } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
 import { loadSeen, saveSeen, useReview, useReviews, type ReviewItem } from './lib/api';
@@ -43,6 +44,9 @@ function loadSize(): Layout {
   }
 }
 
+// The animation features load after the first paint; until then `m` components just render.
+const loadMotionFeatures = () => import('./lib/motionFeatures').then((mod) => mod.default);
+
 type Tab = 'review' | 'comments';
 
 function useHashSlug() {
@@ -63,22 +67,12 @@ function useHashSlug() {
   return slug;
 }
 
-export function App() {
-  const { data, error, reload } = useReviews();
-  const slug = useHashSlug();
-  const [palette, setPalette] = useState(false);
-  const [filter, setFilter] = useState<Filter>('all');
-  const [tab, setTab] = useState<Tab>('review');
-  const [seen, setSeen] = useState(loadSeen);
+// Card size, saved; `resizing` is true for the length of the resize animation, so only then do cards scale.
+function useCardSize() {
   const [size, setSizeState] = useState<Layout>(loadSize);
-  // Tucked away by default: the tabs are the working set, the sidebar is history.
-  const [sidebarPref, setSidebarOpen] = usePersistentState('mr-review-viewer:sidebar-open', false);
-
-  // True for the length of the resize animation, so only then do cards scale.
   const [resizing, setResizing] = useState(false);
   const resizeTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   useEffect(() => () => clearTimeout(resizeTimer.current), []);
-
   const setSize = (next: Layout) => {
     setResizing(true);
     clearTimeout(resizeTimer.current);
@@ -90,6 +84,106 @@ export function App() {
       /* ignore */
     }
   };
+  return { size, setSize, resizing };
+}
+
+// Which reviews were read, at which version. Opening a review marks it as read; saved here,
+// not inside a state updater.
+function useSeen(current: ReviewItem | undefined) {
+  const [seen, setSeen] = useState(loadSeen);
+  useEffect(() => {
+    if (!current || seen[current.slug] === current.reviewedAt) return;
+    const next = { ...seen, [current.slug]: current.reviewedAt };
+    saveSeen(next);
+    setSeen(next);
+  }, [current, seen]);
+  const isUnread = useCallback((i: ReviewItem) => seen[i.slug] !== i.reviewedAt, [seen]);
+  return { isUnread };
+}
+
+// ⌘B toggles the sidebar.
+function useSidebarShortcut(available: boolean, setOpen: (update: (open: boolean) => boolean) => void) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key.toLowerCase() === 'b' && (e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey) {
+        e.preventDefault();
+        if (available) setOpen((v) => !v);
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [setOpen, available]);
+}
+
+// Close the active review tab like a browser tab. ⌘W is reserved by the browser (a page never
+// receives it), so the working shortcuts are Ctrl+W, ⌥W and ⌘⌥W; plain ⌘W is handled too in case
+// it is ever delivered. The "W" is the character typed, not the physical position, so it also works
+// on AZERTY (where that key sits where QWERTY has Z). Ignored while typing.
+function useCloseTabShortcut(slug: string | null, palette: boolean, close: (slug: string) => void) {
+  // Physical key that types "w" on the current layout (AZERTY: KeyZ), used
+  // for Option combos where e.key is a symbol. Chromium only; else e.key alone.
+  const wCode = useRef<string | null>(null);
+  useEffect(() => {
+    const kb = (navigator as unknown as { keyboard?: { getLayoutMap?: () => Promise<Map<string, string>> } }).keyboard;
+    kb?.getLayoutMap?.().then((map) => {
+      for (const [code, ch] of map) if (ch === 'w') wCode.current = code;
+    }).catch(() => {});
+  }, []);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const isW = e.key.toLowerCase() === 'w' || e.key === '∑' || (wCode.current !== null && e.code === wCode.current);
+      if (!isW || e.shiftKey || !(e.ctrlKey || e.metaKey || e.altKey) || !slug) return;
+      const el = e.target as HTMLElement | null;
+      if (el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName))) return;
+      if (palette || document.querySelector('[role=dialog]')) return;
+      e.preventDefault();
+      close(slug);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  });
+}
+
+// What Home lists, from the reviews and the selected tab and filter.
+function useHomeLists(items: ReviewItem[], tab: Tab, filter: Filter, isUnread: (i: ReviewItem) => boolean) {
+  // Old MRs are noise on Home; they stay reachable from the sidebar, tabs and palette.
+  const fresh = useMemo(() => items.filter((i) => Date.now() - new Date(i.reviewedAt).getTime() < STALE_DAYS * 86_400_000), [items]);
+  const visible = useMemo(() => {
+    return fresh.filter((i) => {
+      if (i.kind !== tab) return false;
+      if (filter === 'changes') return i.verdict === 'REQUEST_CHANGES';
+      if (filter === 'unread') return isUnread(i);
+      return true;
+    });
+  }, [fresh, tab, filter, isUnread]);
+
+  // Unread first, then already-read, each under a heading so a long queue
+  // shows at a glance what still needs a look. Stable sort keeps the API order.
+  const ordered = useMemo(() => [...visible.filter(isUnread), ...visible.filter((i) => !isUnread(i))], [visible, isUnread]);
+  const unreadVisible = ordered.filter(isUnread).length;
+  const sectioned = unreadVisible > 0 && unreadVisible < ordered.length;
+
+  const unreadCount = fresh.filter((i) => i.kind !== 'retro' && isUnread(i)).length;
+
+  // Counters follow the selected tab (Reviews / Triage).
+  const scoped = fresh.filter((i) => i.kind === tab);
+  const counts = {
+    changes: scoped.filter((i) => i.verdict === 'REQUEST_CHANGES').length,
+    unread: scoped.filter(isUnread).length,
+  };
+  const tileKeys = tab === 'review' ? (['changes', 'unread'] as const) : (['unread'] as const);
+  return { visible, ordered, unreadVisible, sectioned, unreadCount, counts, tileKeys };
+}
+
+export function App() {
+  const { data, error, reload } = useReviews();
+  const slug = useHashSlug();
+  const [palette, setPalette] = useState(false);
+  const [filter, setFilter] = useState<Filter>('all');
+  const [tab, setTab] = useState<Tab>('review');
+  const { size, setSize, resizing } = useCardSize();
+  // Tucked away by default: the tabs are the working set, the sidebar is history.
+  const [sidebarPref, setSidebarOpen] = usePersistentState('mr-review-viewer:sidebar-open', false);
 
   // One persistent toast while the API is unreachable, dismissed once it's back.
   useEffect(() => {
@@ -126,27 +220,9 @@ export function App() {
   const stack = current?.stackId ? data?.stacks.find((s) => s.id === current.stackId) : undefined;
   const review = useReview(slug, current?.reviewedAt);
 
-  // Opening a review marks it as read; saved here, not inside a state updater.
-  useEffect(() => {
-    if (!current || seen[current.slug] === current.reviewedAt) return;
-    const next = { ...seen, [current.slug]: current.reviewedAt };
-    saveSeen(next);
-    setSeen(next);
-  }, [current, seen]);
+  const { isUnread } = useSeen(current);
 
-  const isUnread = useCallback((i: ReviewItem) => seen[i.slug] !== i.reviewedAt, [seen]);
-
-  // ⌘B toggles the sidebar.
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key.toLowerCase() === 'b' && (e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey) {
-        e.preventDefault();
-        if (sidebarAvailable) setSidebarOpen((v) => !v);
-      }
-    };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [setSidebarOpen, sidebarAvailable]);
+  useSidebarShortcut(sidebarAvailable, setSidebarOpen);
   const go = (s: string | null) => {
     location.hash = s ? `#/${s}` : '';
     window.scrollTo({ top: 0 });
@@ -156,66 +232,14 @@ export function App() {
     if (s === slug) go(next);
   };
 
-  // Physical key that types "w" on the current layout (AZERTY: KeyZ), used
-  // for Option combos where e.key is a symbol. Chromium only; else e.key alone.
-  const wCode = useRef<string | null>(null);
-  useEffect(() => {
-    const kb = (navigator as unknown as { keyboard?: { getLayoutMap?: () => Promise<Map<string, string>> } }).keyboard;
-    kb?.getLayoutMap?.().then((map) => {
-      for (const [code, ch] of map) if (ch === 'w') wCode.current = code;
-    }).catch(() => {});
-  }, []);
+  useCloseTabShortcut(slug, palette, close);
 
-  // Close the active review tab like a browser tab. ⌘W is reserved by the
-  // browser (a page never receives it), so the working shortcuts are Ctrl+W,
-  // ⌥W and ⌘⌥W; plain ⌘W is handled too in case it is ever delivered. The "W"
-  // is the character typed, not the physical position, so it also works on
-  // AZERTY (where that key sits where QWERTY has Z). Ignored while typing.
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      const isW = e.key.toLowerCase() === 'w' || e.key === '∑' || (wCode.current !== null && e.code === wCode.current);
-      if (!isW || e.shiftKey || !(e.ctrlKey || e.metaKey || e.altKey) || !slug) return;
-      const el = e.target as HTMLElement | null;
-      if (el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName))) return;
-      if (palette || document.querySelector('[role=dialog]')) return;
-      e.preventDefault();
-      close(slug);
-    };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  });
-
-  // Old MRs are noise on Home; they stay reachable from the sidebar, tabs and palette.
-  const fresh = useMemo(() => items.filter((i) => Date.now() - new Date(i.reviewedAt).getTime() < STALE_DAYS * 86_400_000), [items]);
-
-  const visible = useMemo(() => {
-    return fresh.filter((i) => {
-      if (i.kind !== tab) return false;
-      if (filter === 'changes') return i.verdict === 'REQUEST_CHANGES';
-      if (filter === 'unread') return isUnread(i);
-      return true;
-    });
-  }, [fresh, tab, filter, isUnread]);
-
-  // Unread first, then already-read, each under a heading so a long queue
-  // shows at a glance what still needs a look. Stable sort keeps the API order.
-  const ordered = useMemo(() => [...visible.filter(isUnread), ...visible.filter((i) => !isUnread(i))], [visible, isUnread]);
-  const unreadVisible = ordered.filter(isUnread).length;
-  const sectioned = unreadVisible > 0 && unreadVisible < ordered.length;
-
-  const unreadCount = fresh.filter((i) => i.kind !== 'retro' && isUnread(i)).length;
-
-  // Counters follow the selected tab (Reviews / Triage).
-  const scoped = fresh.filter((i) => i.kind === tab);
-  const counts = {
-    changes: scoped.filter((i) => i.verdict === 'REQUEST_CHANGES').length,
-    unread: scoped.filter(isUnread).length,
-  };
-  const tileKeys = tab === 'review' ? (['changes', 'unread'] as const) : (['unread'] as const);
+  const { visible, ordered, unreadVisible, sectioned, unreadCount, counts, tileKeys } = useHomeLists(items, tab, filter, isUnread);
 
   return (
     // reducedMotion="user": no layout animation if the OS asks for less motion.
     <MotionConfig reducedMotion="user">
+    <LazyMotion features={loadMotionFeatures} strict>
       <Toaster position="bottom-right" theme="system" richColors closeButton />
       <header className="sticky top-0 z-40 bg-zinc-50/90 backdrop-blur dark:bg-zinc-950/90">
         <StatusBar status={data?.status ?? null} pollMinutes={data?.settings.pollIntervalMinutes ?? null} onOpenPalette={() => setPalette(true)} onHome={() => go(null)} />
@@ -294,9 +318,9 @@ export function App() {
                 {ordered.flatMap((i, idx) => [
                   ...(sectioned && (idx === 0 || idx === unreadVisible)
                     ? [
-                        <motion.h2 key={idx === 0 ? 'h-unread' : 'h-read'} layout="position" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className={cn('col-span-full text-xs font-medium uppercase tracking-wide text-fg-muted', idx !== 0 && 'mt-4')}>
+                        <m.h2 key={idx === 0 ? 'h-unread' : 'h-read'} layout="position" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className={cn('col-span-full text-xs font-medium uppercase tracking-wide text-fg-muted', idx !== 0 && 'mt-4')}>
                           {idx === 0 ? `To review · ${unreadVisible}` : `Already read · ${ordered.length - unreadVisible}`}
-                        </motion.h2>,
+                        </m.h2>,
                       ]
                     : []),
                   <ReviewCard key={i.slug} item={i} unread={isUnread(i)} size={size} resizing={resizing} />,
@@ -307,6 +331,7 @@ export function App() {
       )}
         </main>
       </div>
+    </LazyMotion>
     </MotionConfig>
   );
 }

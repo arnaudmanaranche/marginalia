@@ -1,7 +1,8 @@
 import { CheckCircle2, AlertOctagon, HelpCircle } from 'lucide-react';
 import type { Verdict } from '../lib/api';
 import { cn } from '../lib/utils';
-import { Badge, TONE_TEXT } from './ui/Badge';
+import { Badge } from './ui/Badge';
+import { TONE_TEXT } from './ui/badgeStyles';
 
 const STYLES = {
   APPROVE: { label: 'Approve', tone: 'success', Icon: CheckCircle2 },

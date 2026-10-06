@@ -1,8 +1,10 @@
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { AnimatePresence, useReducedMotion } from 'motion/react';
+import * as m from 'motion/react-m';
 import { Check, LayoutGrid, PanelLeft, X } from 'lucide-react';
 import type { ReviewItem } from '../lib/api';
 import { cn } from '../lib/utils';
-import { TabIcon, VERDICT_ICON, type BotState } from './TabIcon';
+import { TabIcon, type BotState } from './TabIcon';
+import { VERDICT_ICON } from '../lib/verdictIcons';
 
 export type { BotState };
 
@@ -59,7 +61,7 @@ export function TabStrip({ tabs, activeSlug, botBySlug, isUnread, isPosted, home
           const unread = isUnread(item);
           const accent = VERDICT_ICON[item.verdict ?? 'OTHER'].accent;
           return (
-            <motion.li
+            <m.li
               key={item.slug}
               // A new tab grows in and a closed one shrinks away while its
               // siblings give up/take back the space, like a browser.
@@ -108,7 +110,7 @@ export function TabStrip({ tabs, activeSlug, botBySlug, isUnread, isPosted, home
                   <X className="size-3.5" />
                 </button>
               </span>
-            </motion.li>
+            </m.li>
           );
         })}
         </AnimatePresence>

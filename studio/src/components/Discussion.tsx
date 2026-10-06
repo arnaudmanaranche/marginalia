@@ -1,8 +1,9 @@
-import { useCallback, useContext, useEffect, useState } from 'react';
+import { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { MessageSquare, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import { fetchDiscussions, postComment, replyToDiscussion, type Discussion as Thread } from '../lib/api';
-import { FileRef, LinkContext, linkifyCode, parseFileRef } from '../lib/links';
+import { LinkContext, linkifyCode, parseFileRef } from '../lib/links';
+import { FileRef } from './FileRef';
 import { timeAgo } from '../lib/utils';
 import { NoteMarkdown } from './NoteMarkdown';
 import { Badge } from './ui/Badge';
@@ -84,19 +85,43 @@ function FreeComment({ slug, onPosted }: { slug: string; onPosted: () => void })
   );
 }
 
-function ThreadCard({ thread, slug, canReply, onReplied }: { thread: Thread; slug: string; canReply: boolean; onReplied: () => void }) {
+// Where a thread is: the file as a chip when it reads as a path, else plain text.
+function ThreadPlace({ thread }: { thread: Thread }) {
+  const linkCtx = useContext(LinkContext);
+  const text = thread.path ? `${thread.path}${thread.line ? `:${thread.line}` : ''}` : null;
+  if (text && parseFileRef(text)) return <FileRef text={text} href={linkifyCode(text, linkCtx)} />;
+  return <span className="text-xs text-fg-muted">{thread.path ?? 'General comment'}{thread.path && thread.line ? `:${thread.line}` : ''}</span>;
+}
+
+function ThreadNotes({ notes }: { notes: Thread['notes'] }) {
+  return (
+    <ol className="space-y-2">
+      {notes.map((n) => (
+        <li key={n.id} className="border-l-2 border-zinc-200 pl-3 dark:border-zinc-700">
+          <div className="text-xs text-fg-muted">
+            <span className="font-medium text-fg">{n.mine ? 'You' : n.authorName ?? n.author}</span> · {timeAgo(n.at)}
+          </div>
+          <NoteMarkdown>{n.body}</NoteMarkdown>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+// Answering a thread: it joins the pending review like every other comment.
+function ReplyBox({ slug, threadId, followUp, onReplied }: { slug: string; threadId: string; followUp: boolean; onReplied: () => void }) {
   const [replying, setReplying] = useState(false);
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
-  const last = thread.notes[thread.notes.length - 1];
-  const linkCtx = useContext(LinkContext);
-  // The file the thread is on, as a chip, when it reads as a path.
-  const placeText = thread.path ? `${thread.path}${thread.line ? `:${thread.line}` : ''}` : null;
-  const place = placeText && parseFileRef(placeText) ? placeText : null;
+  // The person just asked to reply: put the cursor in the box.
+  const field = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    if (replying) field.current?.focus();
+  }, [replying]);
   const send = async () => {
     setBusy(true);
     try {
-      await replyToDiscussion(slug, thread.id, text.trim());
+      await replyToDiscussion(slug, threadId, text.trim());
       toast.success('Reply added to your pending review', { description: 'It goes out with "Submit review".' });
       setText('');
       setReplying(false);
@@ -106,37 +131,36 @@ function ThreadCard({ thread, slug, canReply, onReplied }: { thread: Thread; slu
     }
     setBusy(false);
   };
+  if (!replying) {
+    return (
+      <Button size="sm" variant="ghost" onClick={() => setReplying(true)}>
+        <MessageSquare className="size-3.5" />{followUp ? 'Follow up' : 'Reply'}
+      </Button>
+    );
+  }
+  return (
+    <>
+      <textarea value={text} onChange={(e) => setText(e.target.value)} rows={3} aria-label="Your reply" ref={field} className="w-full resize-y rounded-md border border-zinc-300 bg-white p-2 text-sm outline-none focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/50 dark:border-zinc-700 dark:bg-zinc-900" />
+      <div className="mt-1 flex gap-1">
+        <Button size="sm" variant="primary" disabled={busy || !text.trim()} onClick={send}><Send className="size-3.5" />Add to review</Button>
+        <Button size="sm" variant="ghost" disabled={busy} onClick={() => { setReplying(false); setText(''); }}>Cancel</Button>
+      </div>
+    </>
+  );
+}
+
+function ThreadCard({ thread, slug, canReply, onReplied }: { thread: Thread; slug: string; canReply: boolean; onReplied: () => void }) {
+  const last = thread.notes[thread.notes.length - 1];
   return (
     <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3 text-sm dark:border-zinc-800 dark:bg-zinc-950">
       <div className="mb-2 flex flex-wrap items-center gap-2">
-        {place ? <FileRef text={place} href={linkifyCode(place, linkCtx)} /> : <span className="text-xs text-fg-muted">{thread.path ?? 'General comment'}{thread.path && thread.line ? `:${thread.line}` : ''}</span>}
+        <ThreadPlace thread={thread} />
         {thread.resolved && <Badge>Resolved</Badge>}
       </div>
-      <ol className="space-y-2">
-        {thread.notes.map((n) => (
-          <li key={n.id} className="border-l-2 border-zinc-200 pl-3 dark:border-zinc-700">
-            <div className="text-xs text-fg-muted">
-              <span className="font-medium text-fg">{n.mine ? 'You' : n.authorName ?? n.author}</span> · {timeAgo(n.at)}
-            </div>
-            <NoteMarkdown>{n.body}</NoteMarkdown>
-          </li>
-        ))}
-      </ol>
+      <ThreadNotes notes={thread.notes} />
       {canReply && (
         <div className="mt-2">
-          {replying ? (
-            <>
-              <textarea value={text} onChange={(e) => setText(e.target.value)} rows={3} aria-label="Your reply" autoFocus className="w-full resize-y rounded-md border border-zinc-300 bg-white p-2 text-sm outline-none focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/50 dark:border-zinc-700 dark:bg-zinc-900" />
-              <div className="mt-1 flex gap-1">
-                <Button size="sm" variant="primary" disabled={busy || !text.trim()} onClick={send}><Send className="size-3.5" />Add to review</Button>
-                <Button size="sm" variant="ghost" disabled={busy} onClick={() => { setReplying(false); setText(''); }}>Cancel</Button>
-              </div>
-            </>
-          ) : (
-            <Button size="sm" variant="ghost" onClick={() => setReplying(true)}>
-              <MessageSquare className="size-3.5" />{last?.mine ? 'Follow up' : 'Reply'}
-            </Button>
-          )}
+          <ReplyBox slug={slug} threadId={thread.id} followUp={Boolean(last?.mine)} onReplied={onReplied} />
         </div>
       )}
     </div>

@@ -1,7 +1,8 @@
 import { Children, createElement, isValidElement, type ReactNode } from 'react';
 import type { Components } from 'react-markdown';
 import { CodeBlock } from '../components/CodeBlock';
-import { FileRef, linkifyCode, parseFileRef, type LinkContextValue } from './links';
+import { FileRef } from '../components/FileRef';
+import { linkifyCode, parseFileRef, type LinkContextValue } from './links';
 
 export function textOf(node: ReactNode): string {
   if (typeof node === 'string' || typeof node === 'number') return String(node);
