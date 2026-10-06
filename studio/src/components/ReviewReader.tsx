@@ -352,7 +352,7 @@ function Quote({ children, offset }: { children?: ReactNode; offset?: number }) 
           </Button>
           <CopyButton label="Copy" disabled={post.locked} getText={() => current} />
           {post.allowPosting && post.slug && post.iid && !postedInfo && (
-            <Button size="sm" variant="primary" disabled={post.locked} title={post.locked ? 'A re-run is in progress: this comment is about to be replaced' : undefined} onClick={() => setConfirming(true)}>
+            <Button size="sm" variant="primary" disabled={post.locked} title={post.locked ? 'A review re-run is in progress: this comment is about to be replaced' : undefined} onClick={() => setConfirming(true)}>
               <Send className="size-3.5" />Add to review
             </Button>
           )}
@@ -625,7 +625,7 @@ export function ReviewReader({ item, review: currentReview, projectUrl, jiraBase
           )}
           {item?.tracked && item.kind !== 'retro' && (
             <Button disabled={locked} onClick={rerun} title="Run the review again on the current head of the MR">
-              {locked ? <Loader2 className="size-3.5 animate-spin motion-reduce:animate-pulse" /> : <RefreshCw className="size-3.5" />}Re-run
+              {locked ? <Loader2 className="size-3.5 animate-spin motion-reduce:animate-pulse" /> : <RefreshCw className="size-3.5" />}Re-run review
             </Button>
           )}
           <button
