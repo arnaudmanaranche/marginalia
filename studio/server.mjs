@@ -12,6 +12,7 @@ import { REVIEWS_DIR, STATUS_FILE, STUDIO_PORT, ALLOW_POSTING, JIRA_BASE_URL } f
 import { TRIAGE_FILE_PREFIX } from '../lib/paths.mjs';
 import { loadPosted, savePosted } from '../lib/posted.mjs';
 import { listHistory, readHistory } from '../lib/history.mjs';
+import { buildShape, listFields, loadShape } from '../lib/findings.mjs';
 import { createDraftNote, createDraftReply, createInlineDraftNote, listDiscussions, listDraftNotes, updateDraftNote, deleteDraftNote, publishDraftNotes, draftNoteExists, findPublishedNoteId, mergeRequestNoteExists } from '../lib/gitlab.mjs';
 import { byPriorityThenDate } from '../lib/jira.mjs';
 import { loadSettings, saveSettings } from '../lib/settings.mjs';
@@ -37,61 +38,6 @@ async function readStatus() {
   } catch {
     return null;
   }
-}
-
-// Tolerates "**Verdict:**" and "**Verdict :**" and trailing remarks.
-function parseVerdict(md) {
-  const m = md.match(/\*\*Verdict\s*:\s*\*\*\s*([^\n]+)/i);
-  if (!m) return null;
-  const v = m[1].toUpperCase();
-  if (v.startsWith('REQUEST CHANGES')) return 'REQUEST_CHANGES';
-  if (v.startsWith('APPROVE')) return 'APPROVE';
-  return 'OTHER';
-}
-
-// Number of bullet points under a "### <heading>" section of the review.
-function countBullets(md, headingRe) {
-  const lines = md.split('\n');
-  let inside = false;
-  let count = 0;
-  for (const line of lines) {
-    if (/^#{2,3}\s/.test(line)) inside = headingRe.test(line);
-    else if (inside && /^-\s/.test(line) && !/^-\s+(none|no\b|n\/a)/i.test(line)) count += 1;
-  }
-  return count;
-}
-
-const plain = (t) => t
-  .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
-  .replace(/[*`>]/g, '')
-  .replace(/\s+/g, ' ')
-  .trim();
-const clip = (t, n) => (t.length > n ? `${t.slice(0, n - 1).trimEnd()}…` : t);
-
-// Short text shown on large cards: the "Overview" line of a review, else the
-// first real paragraph.
-function extractSummary(md) {
-  const overview = md.match(/\*\*Overview\s*:\s*\*\*\s*([^\n]+)/i)?.[1];
-  if (overview) return clip(plain(overview), 400);
-  const para = md.split(/\n\s*\n/).map((p) => p.trim()).find((p) => p.length > 40 && !/^[#|>\-*`]/.test(p));
-  return para ? clip(plain(para), 400) : null;
-}
-
-// First few Critical / Important bullets, for large cards.
-function extractHighlights(md) {
-  const out = [];
-  let severity = null;
-  let fence = false;
-  for (const line of md.split('\n')) {
-    if (/^```/.test(line)) fence = !fence;
-    if (fence) continue;
-    if (/^#{2,3}\s/.test(line)) {
-      severity = /critical/i.test(line) ? 'critical' : /important/i.test(line) ? 'important' : null;
-    } else if (severity && /^-\s/.test(line) && !/^-\s+(none|no\b|n\/a)/i.test(line)) {
-      if (out.filter((h) => h.severity === severity).length < 2) out.push({ severity, text: clip(plain(line.slice(2)), 150) });
-    }
-  }
-  return out;
 }
 
 function kindOf(slug) {
@@ -178,6 +124,7 @@ async function listReviews() {
     const slug = name.slice(0, -3);
     const path = join(REVIEWS_DIR, name);
     const [md, st] = await Promise.all([readFile(path, 'utf8'), stat(path)]);
+    const shape = await loadShape(REVIEWS_DIR, slug, md);
     const mr = byPath.get(path);
     const title = md.match(/^#\s+(.+)$/m)?.[1] ?? null;
     return {
@@ -188,11 +135,7 @@ async function listReviews() {
       author: mr?.author ?? null,
       webUrl: mr?.web_url ?? null,
       branch: md.match(/\*\*Branch:\*\*\s*([^\s|]+)/)?.[1] ?? null,
-      verdict: parseVerdict(md),
-      critical: countBullets(md, /critical/i),
-      important: countBullets(md, /important/i),
-      summary: extractSummary(md),
-      highlights: extractHighlights(md),
+      ...listFields(shape),
       stackId: mr?.stack?.id ?? null,
       crossLayer: parseAcrossLayers(md),
       // Reviewed before, but the commit (or the layer below) moved since.
@@ -520,8 +463,9 @@ async function handle(req, res) {
     }
     if (!SLUG_RE.test(slug) || slug.includes('..')) return json(res, 400, { error: 'bad slug' });
     if (!idPart) return json(res, 200, { versions: await listHistory(slug) });
-    const markdown = await readHistory(slug, idPart);
-    return markdown === null ? json(res, 404, { error: 'not found' }) : json(res, 200, { slug, id: idPart, markdown });
+    const version = await readHistory(slug, idPart);
+    if (version === null) return json(res, 404, { error: 'not found' });
+    return json(res, 200, { slug, id: idPart, markdown: version.markdown, shape: version.shape ?? buildShape({ markdown: version.markdown }) });
   }
 
   // The MR's GitLab conversation, for the studio's discussion panel.
@@ -571,7 +515,7 @@ async function handle(req, res) {
     if (!SLUG_RE.test(slug) || slug.includes('..')) return json(res, 400, { error: 'bad slug' });
     try {
       const md = await readFile(join(REVIEWS_DIR, `${slug}.md`), 'utf8');
-      return json(res, 200, { slug, kind: kindOf(slug), markdown: md });
+      return json(res, 200, { slug, kind: kindOf(slug), markdown: md, shape: await loadShape(REVIEWS_DIR, slug, md) });
     } catch {
       return json(res, 404, { error: 'not found' });
     }
@@ -596,18 +540,24 @@ export function startStudio() {
   server.listen(Number(STUDIO_PORT), '127.0.0.1', () => {
     console.log(`[studio] http://localhost:${STUDIO_PORT}`);
   });
+  // Closed with the server, so it can be stopped cleanly (tests start and stop it).
+  const watchers = [];
   try {
-    watch(REVIEWS_DIR, broadcast);
+    watchers.push(watch(REVIEWS_DIR, broadcast));
   } catch {
     /* dir may not exist yet; the poller creates it, SSE just stays quiet */
   }
   // Watch the directory, not the files: status.json and settings.json are
   // written via tmp + rename, which leaves a file-level watcher on the old inode.
   try {
-    watch(dirname(STATUS_FILE), (_e, name) => (name === 'settings.json' || name === 'status.json') && broadcast());
+    watchers.push(watch(dirname(STATUS_FILE), (_e, name) => (name === 'settings.json' || name === 'status.json') && broadcast()));
   } catch {
     /* same */
   }
+  server.on('close', () => {
+    for (const w of watchers) w.close();
+    for (const res of clients) res.end();
+  });
   return server;
 }
 

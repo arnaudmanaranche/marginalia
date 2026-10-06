@@ -2,7 +2,7 @@ import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
 import { MotionConfig, motion } from 'motion/react';
 import { Inbox, LayoutGrid, Grid3x3, List, Rows3 } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
-import { loadSeen, saveSeen, useMarkdown, useReviews, type ReviewItem } from './lib/api';
+import { loadSeen, saveSeen, useReview, useReviews, type ReviewItem } from './lib/api';
 import { usePersistentState, useOpenTabs } from './lib/layout';
 import { cn } from './lib/utils';
 import { StatusBar } from './components/StatusBar';
@@ -117,7 +117,7 @@ export function App() {
   const isPosted = (i: ReviewItem) => Object.keys(data?.posted ?? {}).some((k) => k.startsWith(`${i.slug}:`));
   const current = items.find((i) => i.slug === slug);
   const stack = current?.stackId ? data?.stacks.find((s) => s.id === current.stackId) : undefined;
-  const markdown = useMarkdown(slug, current?.reviewedAt);
+  const review = useReview(slug, current?.reviewedAt);
 
   useEffect(() => {
     if (!current) return;
@@ -238,7 +238,7 @@ export function App() {
         <>
         {stack && current && <StackBoard stack={stack} items={items} current={current} isPosted={isPosted} onSelect={go} />}
         <Suspense fallback={<p className="px-6 py-6 text-fg-muted">Loading…</p>}>
-        <ReviewReader item={current} markdown={markdown} projectUrl={data?.projectUrl ?? null} jiraBaseUrl={data?.jiraBaseUrl ?? null} allowPosting={data?.allowPosting ?? false} live={current && data?.status?.current && String(data.status.current.iid) === String(current.iid) ? data.status.current : null} posted={data?.posted ?? EMPTY_POSTED} reload={reload} />
+        <ReviewReader item={current} review={review} projectUrl={data?.projectUrl ?? null} jiraBaseUrl={data?.jiraBaseUrl ?? null} allowPosting={data?.allowPosting ?? false} live={current && data?.status?.current && String(data.status.current.iid) === String(current.iid) ? data.status.current : null} posted={data?.posted ?? EMPTY_POSTED} reload={reload} />
         </Suspense>
         </>
       ) : (

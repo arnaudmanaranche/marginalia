@@ -45,11 +45,39 @@ collected in this order:
 A tool refused in headless mode fails the run with a message pointing at
 `CLAUDE_EXTRA_ALLOWED_TOOLS` in `.env`.
 
-**Studio format (optional).** The studio works with any markdown. It shows
-richer cards if the report has `**Verdict:** APPROVE|REQUEST CHANGES`,
-`### Critical` / `### Important` bullet sections, an `**Overview:**` line and
-`**Comment to post:**` blockquotes (see `examples/commands/review.md`). The first `path[:line]` of the bullet above a comment is where *Post to GitLab* anchors it in the diff. Without
-them, reviews are listed as "Unrated".
+**Studio format (optional).** The studio works with any markdown, and gives the
+same experience whatever command wrote it. The bot turns every report into one
+normalized shape (`lib/findings.mjs`), stored next to it as `<slug>.findings.json`:
+a verdict, a summary, and findings (`id`, `severity`, `title`, `path`, `line`,
+`body`, `comment`). The studio lists, counts and posts from that shape, never from
+the report's wording. It is read, in order of preference, from:
+
+1. `.marginalia-findings.json`, which the contract asks the command to write
+   (recommended; any extra field is ignored, and unknown severities such as
+   `blocker`/`major`/`nit` are mapped):
+
+   ```json
+   { "verdict": "REQUEST_CHANGES", "summary": "One or two sentences.",
+     "findings": [{ "id": "optional", "severity": "critical", "title": "Short title",
+                    "path": "src/app/page.tsx", "line": 42, "body": "What and why.",
+                    "comment": "The comment to post, ready as is." }] }
+   ```
+
+2. the markdown itself: a `**Verdict:** …` line (French labels work too),
+   `## Critical` / `## Important` / `## Suggestions` sections with one bullet per
+   finding, an optional `**Overview:**` line, and a blockquote under a bullet as its
+   comment. The first `path[:line]` of the bullet is where *Add to review* anchors
+   it in the diff (see `examples/commands/review.md`);
+3. nothing: the studio says so in a notice, and you can still comment on any file
+   or line from the Discussion section.
+
+A finding's `id` comes from its file and title, not from the wording of its
+comment, so it stays the same when a re-run rewords it. The bot warns (in its log
+and in the studio) when a report could only be read partially.
+
+To check that a new way of writing reviews works, add a folder to
+`test/fixtures/skills/` (`report.md`, optionally `findings.json` or `stdout.txt`,
+and an `expect.json`): `npm test` runs the whole contract against it.
 
 ## Requirements
 

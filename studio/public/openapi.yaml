@@ -56,13 +56,117 @@ paths:
             application/json:
               schema:
                 type: object
-                required: [slug, kind, markdown]
+                required: [slug, kind, markdown, shape]
                 properties:
                   slug: { type: string }
                   kind: { $ref: '#/components/schemas/ReviewKind' }
                   markdown: { type: string }
+                  shape: { $ref: '#/components/schemas/ReviewShape' }
         '400': { $ref: '#/components/responses/BadRequest' }
         '404': { $ref: '#/components/responses/NotFound' }
+  /api/history/{slug}:
+    get:
+      tags: [Reviews]
+      operationId: listReviewVersions
+      summary: Earlier versions of a review
+      description: A re-run replaces the review file; the one it replaced is kept under `.history`. Newest first.
+      parameters:
+        - $ref: '#/components/parameters/Slug'
+      responses:
+        '200':
+          description: The kept versions (empty when the review was never re-run).
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [versions]
+                properties:
+                  versions:
+                    type: array
+                    items:
+                      type: object
+                      required: [id, at]
+                      properties:
+                        id: { type: string }
+                        at: { type: string, format: date-time, description: When that version was written. }
+        '400': { $ref: '#/components/responses/BadRequest' }
+  /api/history/{slug}/{id}:
+    get:
+      tags: [Reviews]
+      operationId: getReviewVersion
+      summary: Read one earlier version of a review
+      parameters:
+        - $ref: '#/components/parameters/Slug'
+        - { name: id, in: path, required: true, schema: { type: string, pattern: '^[\w-]+$' } }
+      responses:
+        '200':
+          description: The version, with the shape the bot read from it.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [slug, id, markdown, shape]
+                properties:
+                  slug: { type: string }
+                  id: { type: string }
+                  markdown: { type: string }
+                  shape: { $ref: '#/components/schemas/ReviewShape' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/discussions/{slug}:
+    get:
+      tags: [Pending review]
+      operationId: listDiscussions
+      summary: The GitLab conversation of the review's merge request
+      description: Human notes only (system notes are dropped), oldest thread first. The merge request comes from `status.json`.
+      parameters:
+        - $ref: '#/components/parameters/Slug'
+      responses:
+        '200':
+          description: The threads.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [discussions]
+                properties:
+                  discussions: { type: array, items: { $ref: '#/components/schemas/Discussion' } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '502': { $ref: '#/components/responses/GitLabError' }
+  /api/reply:
+    post:
+      tags: [Pending review]
+      operationId: replyToDiscussion
+      summary: Reply to a GitLab thread, as part of the pending review
+      description: The reply is a draft note (`in_reply_to_discussion_id`); it goes out with `/api/submit-review`. Needs `ALLOW_POSTING=true`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [slug, discussionId, body]
+              properties:
+                slug: { type: string }
+                discussionId: { type: string, pattern: '^[0-9a-f]{8,64}$' }
+                body: { type: string, minLength: 1, maxLength: 10000 }
+      responses:
+        '200':
+          description: Added to the pending review.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, draftId]
+                properties:
+                  ok: { type: boolean }
+                  draftId: { type: integer }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '502': { $ref: '#/components/responses/GitLabError' }
   /api/settings:
     put:
       tags: [Settings]
@@ -317,9 +421,61 @@ components:
         key: { type: string, example: PAY-212 }
         priority: { type: [string, 'null'] }
         rank: { type: [integer, 'null'] }
+    ShapeSource:
+      type: string
+      enum: [json, markdown, none]
+      description: |
+        Where the findings came from. `json`: the command wrote `.marginalia-findings.json`.
+        `markdown`: read from the report's Critical / Important / Suggestion sections.
+        `none`: nothing could be read, and `warnings` says so.
+    Finding:
+      type: object
+      required: [id, severity, title, path, line, body, comment]
+      properties:
+        id: { type: string, pattern: '^[\w-]{1,64}$', description: Stable across re-runs (from the file and the point, not the wording). Also the `commentId` when posted. }
+        severity: { type: string, enum: [critical, important, suggestion, info] }
+        title: { type: string }
+        path: { type: [string, 'null'], description: Repo-relative file the finding is about. }
+        line: { type: [integer, 'null'], minimum: 1, description: Only set together with `path`. }
+        body: { type: string }
+        comment: { type: [string, 'null'], description: The comment to post on the merge request, ready as is. }
+    ReviewShape:
+      type: object
+      description: What the studio relies on, the same whatever skill or command wrote the review (`lib/findings.mjs`).
+      required: [version, source, verdict, summary, findings, warnings]
+      properties:
+        version: { type: integer, const: 1 }
+        source: { $ref: '#/components/schemas/ShapeSource' }
+        verdict: { $ref: '#/components/schemas/Verdict' }
+        summary: { type: [string, 'null'], maxLength: 400 }
+        findings: { type: array, items: { $ref: '#/components/schemas/Finding' } }
+        warnings: { type: array, items: { type: string } }
+        generatedAt: { type: string, format: date-time }
+    DiscussionNote:
+      type: object
+      required: [id, author, authorName, mine, body, at, path, line]
+      properties:
+        id: { type: integer }
+        author: { type: [string, 'null'] }
+        authorName: { type: [string, 'null'] }
+        mine: { type: boolean, description: Written by the token's owner. }
+        body: { type: string }
+        at: { type: string, format: date-time }
+        path: { type: [string, 'null'] }
+        line: { type: [integer, 'null'] }
+    Discussion:
+      type: object
+      required: [id, resolved, resolvable, path, line, notes]
+      properties:
+        id: { type: string }
+        resolved: { type: boolean }
+        resolvable: { type: boolean }
+        path: { type: [string, 'null'] }
+        line: { type: [integer, 'null'] }
+        notes: { type: array, items: { $ref: '#/components/schemas/DiscussionNote' } }
     ReviewItem:
       type: object
-      required: [slug, kind, title, iid, author, webUrl, branch, verdict, critical, important, summary, highlights, stackId, crossLayer, stale, mtime, reviewedAt, tracked, jira]
+      required: [slug, kind, title, iid, author, webUrl, branch, verdict, critical, important, summary, highlights, postable, contract, stackId, crossLayer, stale, mtime, reviewedAt, tracked, jira]
       properties:
         slug: { type: string }
         kind: { $ref: '#/components/schemas/ReviewKind' }
@@ -333,6 +489,14 @@ components:
         important: { type: integer, minimum: 0 }
         summary: { type: [string, 'null'] }
         highlights: { type: array, items: { $ref: '#/components/schemas/Highlight' } }
+        postable: { type: integer, minimum: 0, description: Findings that come with a comment ready to post. }
+        contract:
+          type: object
+          required: [source, warnings]
+          description: How the bot read this review, and what the studio should tell the person about it.
+          properties:
+            source: { $ref: '#/components/schemas/ShapeSource' }
+            warnings: { type: array, items: { type: string } }
         stackId: { type: [string, 'null'] }
         crossLayer: { type: array, items: { $ref: '#/components/schemas/CrossFinding' } }
         stale: { type: boolean, description: Reviewed before, but the commit (or the layer below) moved since. }

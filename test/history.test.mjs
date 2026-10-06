@@ -23,7 +23,7 @@ test('a re-run keeps the review it replaces, and only when the content changed',
   assert.equal(versions.length, 1);
   assert.equal(versions[0].id, id);
   assert.ok(!Number.isNaN(Date.parse(versions[0].at)));
-  assert.equal(await readHistory('feat-x', id), 'first review');
+  assert.deepEqual(await readHistory('feat-x', id), { markdown: 'first review', shape: null });
   assert.deepEqual((await readdir(REVIEWS_DIR)).filter((n) => n.endsWith('.md')), ['feat-x.md'], 'versions stay out of the review list');
 });
 

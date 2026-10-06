@@ -24,6 +24,8 @@ export const review: ReviewItem = {
   stackId: null,
   crossLayer: [],
   stale: false,
+  postable: 2,
+  contract: { source: 'markdown', warnings: [] },
   jira: { key: 'PAY-212', priority: 'High', rank: 2 },
 };
 

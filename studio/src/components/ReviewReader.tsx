@@ -18,8 +18,10 @@ import { usePersistentState } from '../lib/layout';
 import { useModalFocus } from '../lib/useModalFocus';
 import { createContext } from 'react';
 import { Check, ChevronRight, Copy, RefreshCw, Trash2, X, ExternalLink, Loader2, PanelRight, Pencil, Send, Sparkles, Undo2 } from 'lucide-react';
-import { deleteDraft, fetchDrafts, fetchHistory, fetchHistoryVersion, postComment, rerunReview, updateDraft, submitReview, type DraftNote, BotStatus, type PostedInfo, type ReviewItem, type ReviewVersion } from '../lib/api';
+import { deleteDraft, fetchDrafts, fetchHistory, fetchHistoryVersion, postComment, rerunReview, updateDraft, submitReview, type DraftNote, BotStatus, type PostedInfo, type ReviewContent, type ReviewItem, type ReviewVersion, type Finding } from '../lib/api';
 import { Discussion } from './Discussion';
+import { ConfirmPost } from './ConfirmPost';
+import { FindingsPanel } from './FindingsPanel';
 import { cn, timeAgo } from '../lib/utils';
 import { VerdictBadge } from './VerdictBadge';
 import { Button } from './ui/Button';
@@ -122,6 +124,9 @@ function CopyButton({ getText, label, disabled }: { getText: () => string; label
   );
 }
 
+// Comparable form of a comment: the rendered text drops the markdown the source has.
+const squash = (t: string) => t.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
+
 // Edits survive collapsing a section or reloading; keyed by the original text.
 const editKey = (original: string) => {
   let h = 0;
@@ -152,57 +157,15 @@ interface PostContextValue {
   reload: () => void;
   // A re-run is queued or running: the comments on screen are about to be replaced.
   locked: boolean;
+  // What the bot read out of this review, to give a comment the id of its finding.
+  findings: Finding[];
 }
-const PostContext = createContext<PostContextValue>({ allowPosting: false, slug: null, iid: null, posted: {}, reload: () => {}, locked: false });
+const PostContext = createContext<PostContextValue>({ allowPosting: false, slug: null, iid: null, posted: {}, reload: () => {}, locked: false, findings: [] });
 // The markdown a blockquote's `position.start.offset` refers to (one section body, not the whole review).
 const SourceContext = createContext('');
 
 // The "**Comment to post:**" line before a blockquote: the card already carries that label.
 const COMMENT_LABEL = /^comment to post\s*:?$/i;
-
-// Nothing is sent until "Add to review" is clicked here, with the final text.
-function ConfirmPost({ iid, text, target, onCancel, onConfirm, fallbackRef }: { iid: string | number; text: string; target: { path: string; line?: number } | null; onCancel: () => void; onConfirm: () => Promise<void>; fallbackRef: RefObject<HTMLElement | null> }) {
-  const [busy, setBusy] = useState(false);
-  const dialogRef = useRef<HTMLDivElement>(null);
-  useScrollLock(true);
-  // Focus moves to Cancel (the safe choice), stays inside, and returns to the opener on close.
-  useModalFocus(true, dialogRef, { initial: '[data-autofocus]', fallback: fallbackRef });
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && !busy && onCancel();
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [busy, onCancel]);
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4" onClick={busy ? undefined : onCancel}>
-      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="confirm-post-title" aria-describedby="confirm-post-text" className="w-full max-w-lg rounded-xl border border-zinc-200 bg-white p-5 shadow-2xl dark:border-zinc-800 dark:bg-zinc-900" onClick={(e) => e.stopPropagation()}>
-        <h2 id="confirm-post-title" className="text-base font-semibold">Add this comment to your review of !{iid}?</h2>
-        <p className="mt-1 text-sm text-fg-muted">It joins your pending GitLab review: nobody sees it until you submit the review.</p>
-        <p className="mt-1 text-sm text-fg-muted">
-          {target ? <>Anchored on <code className="rounded bg-zinc-100 px-1 py-0.5 text-[0.85em] dark:bg-zinc-800">{target.path}{target.line ? `:${target.line}` : ''}</code> in the diff{target.line ? '' : ' (whole file)'}.</> : 'No file found above it: it will be a general comment.'}
-        </p>
-        <pre id="confirm-post-text" tabIndex={0} aria-label="Comment text" className="mt-3 max-h-64 overflow-y-auto whitespace-pre-wrap rounded-lg border border-zinc-200 bg-zinc-50 p-3 text-sm dark:border-zinc-800 dark:bg-zinc-950">{text}</pre>
-        <div className="mt-4 flex justify-end gap-2">
-          <Button data-autofocus disabled={busy} onClick={onCancel}>Cancel</Button>
-          <Button
-            variant="primary"
-            disabled={busy}
-            onClick={async () => {
-              setBusy(true);
-              try {
-                await onConfirm();
-              } catch (e) {
-                toast.error('Could not add the comment', { description: (e as Error).message });
-                setBusy(false);
-              }
-            }}
-          >
-            {busy ? <Loader2 className="size-4 animate-spin motion-reduce:animate-pulse" /> : <Send className="size-4" />}Add to review
-          </Button>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // One pending draft: read, edit in place, or delete. Goes straight to GitLab's draft notes.
 function DraftRow({ slug, draft, disabled, onChanged }: { slug: string; draft: DraftNote; disabled: boolean; onChanged: (next: DraftNote | null) => void }) {
@@ -322,8 +285,11 @@ function Quote({ children, offset }: { children?: ReactNode; offset?: number }) 
   const current = edited ?? ref.current?.innerText.trim() ?? original;
   const post = useContext(PostContext);
   const source = useContext(SourceContext);
-  const commentId = key.split(':').pop() ?? '';
-  const postedInfo = post.slug ? post.posted[`${post.slug}:${commentId}`] : undefined;
+  // The id of the finding this comment belongs to, which survives a re-run that rewords it.
+  // Comments posted before findings existed were keyed by a hash of their text.
+  const legacyId = key.split(':').pop() ?? '';
+  const commentId = post.findings.find((f) => f.comment && squash(f.comment) === squash(original))?.id ?? legacyId;
+  const postedInfo = post.slug ? post.posted[`${post.slug}:${commentId}`] ?? post.posted[`${post.slug}:${legacyId}`] : undefined;
   const [confirming, setConfirming] = useState(false);
   // The file:line the review mentions just above this comment, since the last heading.
   const target = useMemo(() => {
@@ -533,29 +499,31 @@ function LiveRun({ live }: { live: NonNullable<BotStatus['current']> }) {
   );
 }
 
-export function ReviewReader({ item, markdown: currentMarkdown, projectUrl, jiraBaseUrl, allowPosting, live, posted, reload }: { item: ReviewItem | undefined; markdown: string | null; projectUrl: string | null; jiraBaseUrl: string | null; allowPosting: boolean; live: BotStatus['current']; posted: Record<string, PostedInfo>; reload: () => void }) {
+export function ReviewReader({ item, review: currentReview, projectUrl, jiraBaseUrl, allowPosting, live, posted, reload }: { item: ReviewItem | undefined; review: ReviewContent | null; projectUrl: string | null; jiraBaseUrl: string | null; allowPosting: boolean; live: BotStatus['current']; posted: Record<string, PostedInfo>; reload: () => void }) {
   const [submitting, setSubmitting] = useState(false);
   // Earlier versions of this review, kept when a re-run replaces it. Viewing one is read-only.
   const [versions, setVersions] = useState<ReviewVersion[]>([]);
   const [versionId, setVersionId] = useState<string | null>(null);
-  const [oldMarkdown, setOldMarkdown] = useState<string | null>(null);
+  const [oldReview, setOldReview] = useState<ReviewContent | null>(null);
   const reviewedAt = item?.reviewedAt;
   useEffect(() => {
     setVersionId(null);
-    setOldMarkdown(null);
+    setOldReview(null);
     if (!item?.slug) return setVersions([]);
     let live = true;
     fetchHistory(item.slug).then((v) => live && setVersions(v), () => live && setVersions([]));
     return () => { live = false; };
   }, [item?.slug, reviewedAt]);
   useEffect(() => {
-    if (!item?.slug || !versionId) return setOldMarkdown(null);
+    if (!item?.slug || !versionId) return setOldReview(null);
     let live = true;
-    fetchHistoryVersion(item.slug, versionId).then((m) => live && setOldMarkdown(m), (e) => { toast.error('Could not load that version', { description: (e as Error).message }); if (live) setVersionId(null); });
+    fetchHistoryVersion(item.slug, versionId).then((r) => live && setOldReview(r), (e) => { toast.error('Could not load that version', { description: (e as Error).message }); if (live) setVersionId(null); });
     return () => { live = false; };
   }, [item?.slug, versionId]);
   const viewingOld = versionId !== null;
-  const markdown = viewingOld ? oldMarkdown : currentMarkdown;
+  const content = viewingOld ? oldReview : currentReview;
+  const markdown = content?.markdown ?? null;
+  const shape = content?.shape ?? null;
   // From the click until the run has started and finished, so there is no gap between
   // the request and the first "running" status where the buttons would come back.
   const [rerunning, setRerunning] = useState(false);
@@ -593,9 +561,14 @@ export function ReviewReader({ item, markdown: currentMarkdown, projectUrl, jira
   }, [item?.slug]);
   const draftCount = item ? Object.entries(posted).filter(([k, p]) => k.startsWith(`${item.slug}:`) && p.state === 'draft').length : 0;
   const locked = rerunning || Boolean(live) || viewingOld;
-  const postCtx = useMemo(() => ({ allowPosting, slug: item?.slug ?? null, iid: item?.tracked ? item.iid : null, posted, reload, locked }), [allowPosting, item?.slug, item?.tracked, item?.iid, posted, reload, locked]);
+  const postCtx = useMemo(() => ({ allowPosting, slug: item?.slug ?? null, iid: item?.tracked ? item.iid : null, posted, reload, locked, findings: shape?.findings ?? [] }), [allowPosting, item?.slug, item?.tracked, item?.iid, posted, reload, locked, shape]);
   const linkCtx = useMemo(() => ({ projectUrl, branch: item?.branch ?? null, mrWebUrl: item?.webUrl ?? null }), [projectUrl, item?.branch, item?.webUrl]);
   const meta = useMemo(() => extractMeta(markdown ?? ''), [markdown]);
+  // Findings the person can't reach from the report's own text (no comment card for them there).
+  const loose = useMemo(() => {
+    const text = squash(markdown ?? '');
+    return (shape?.findings ?? []).filter((f) => !f.comment || !text.includes(squash(f.comment)));
+  }, [markdown, shape]);
   const { intro, sections } = useMemo(() => splitSections(meta.markdown), [meta]);
   const ordered = useMemo(
     () => sections.map((s, i) => ({ s, i })).sort((a, b) => rankOf(a.s.title) - rankOf(b.s.title) || a.i - b.i).map((x) => x.s),
@@ -691,6 +664,12 @@ export function ReviewReader({ item, markdown: currentMarkdown, projectUrl, jira
                 <button className="underline" onClick={() => setVersionId(null)}>Back to the latest</button>
               </p>
             )}
+            {shape && shape.warnings.length > 0 && (
+              <div role="status" className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-800 dark:text-amber-200">
+                <p className="font-medium">{shape.source === 'none' ? 'This report has no findings the studio could read' : 'About how this report was read'}</p>
+                <ul className="mt-1 list-disc space-y-0.5 pl-5">{shape.warnings.map((w) => <li key={w}>{w}</li>)}</ul>
+              </div>
+            )}
             {intro.trim() && <Md semantic={semantic}>{intro}</Md>}
             {ordered.map((s) => (
               <Fragment key={s.id}>
@@ -714,6 +693,19 @@ export function ReviewReader({ item, markdown: currentMarkdown, projectUrl, jira
               </Collapsible.Root>
               </Fragment>
             ))}
+            {item?.tracked && item.iid && !viewingOld && loose.length > 0 && (
+              <Collapsible.Root id="findings" className="rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900" open={overrides.findings ?? true} onOpenChange={(o) => setOverrides((prev) => ({ ...prev, findings: o }))}>
+                <h2 className="text-base">
+                  <Collapsible.Trigger className="group flex w-full items-center gap-2 rounded-xl px-4 py-3 text-left font-medium">
+                    <ChevronRight className={cn('size-4 shrink-0 text-fg-subtle transition-transform motion-reduce:transition-none', (overrides.findings ?? true) && 'rotate-90')} aria-hidden />
+                    Findings to comment on ({loose.length})
+                  </Collapsible.Trigger>
+                </h2>
+                <Collapsible.Content className="border-t border-zinc-100 px-4 py-4 dark:border-zinc-800">
+                  <FindingsPanel findings={loose} slug={item.slug} iid={item.iid} allowPosting={allowPosting} locked={locked} posted={posted} reload={reload} />
+                </Collapsible.Content>
+              </Collapsible.Root>
+            )}
             {item?.tracked && item.kind === 'review' && !viewingOld && (
               <Collapsible.Root id="discussion" className="rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900" open={overrides.discussion ?? true} onOpenChange={(o) => setOverrides((prev) => ({ ...prev, discussion: o }))}>
                 <h2 className="text-base">

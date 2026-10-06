@@ -21,7 +21,32 @@ export interface ReviewItem {
   stackId: string | null;
   crossLayer: CrossFinding[];
   stale: boolean;
+  // Findings with a ready-to-post comment, and how the bot read this review.
+  postable: number;
+  contract: { source: ShapeSource; warnings: string[] };
   jira: { key: string; priority: string | null; rank: number | null } | null;
+}
+
+type ShapeSource = 'json' | 'markdown' | 'none';
+type Severity = 'critical' | 'important' | 'suggestion' | 'info';
+
+// One point of a review, the same whatever skill wrote it (see lib/findings.mjs).
+export interface Finding {
+  id: string; // stable across re-runs; also the commentId when it is posted
+  severity: Severity;
+  title: string;
+  path: string | null;
+  line: number | null;
+  body: string;
+  comment: string | null;
+}
+
+interface ReviewShape {
+  source: ShapeSource;
+  verdict: Verdict;
+  summary: string | null;
+  findings: Finding[];
+  warnings: string[];
 }
 
 export interface CrossFinding {
@@ -106,20 +131,25 @@ export function useReviews() {
   return { data, error, reload: load };
 }
 
-export function useMarkdown(slug: string | null, refreshKey: string | undefined) {
-  const [md, setMd] = useState<string | null>(null);
+export interface ReviewContent {
+  markdown: string;
+  shape: ReviewShape;
+}
+
+export function useReview(slug: string | null, refreshKey: string | undefined) {
+  const [content, setContent] = useState<ReviewContent | null>(null);
   useEffect(() => {
     if (!slug) return;
     let cancelled = false;
     fetch(`/api/reviews/${encodeURIComponent(slug)}`)
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
-      .then((j) => !cancelled && setMd(j.markdown))
-      .catch(() => !cancelled && setMd(null));
+      .then((j) => !cancelled && setContent({ markdown: j.markdown, shape: j.shape }))
+      .catch(() => !cancelled && setContent(null));
     return () => {
       cancelled = true;
     };
   }, [slug, refreshKey]);
-  return md;
+  return content;
 }
 
 // "Read" tracking: slug -> reviewedAt seen. localStorage may be unavailable.
@@ -207,7 +237,7 @@ export async function deleteDraft(slug: string, id: number): Promise<void> {
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? `HTTP ${res.status}`);
 }
 
-export interface DiscussionNote {
+interface DiscussionNote {
   id: number;
   author: string | null;
   authorName: string | null;
@@ -256,9 +286,9 @@ export async function fetchHistory(slug: string): Promise<ReviewVersion[]> {
   return j.versions;
 }
 
-export async function fetchHistoryVersion(slug: string, id: string): Promise<string> {
+export async function fetchHistoryVersion(slug: string, id: string): Promise<ReviewContent> {
   const res = await fetch(`/api/history/${encodeURIComponent(slug)}/${encodeURIComponent(id)}`);
   const j = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(j.error ?? `HTTP ${res.status}`);
-  return j.markdown;
+  return { markdown: j.markdown, shape: j.shape };
 }
