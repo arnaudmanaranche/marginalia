@@ -374,7 +374,7 @@ the previous one *finishes*, so a long review just pushes it back.
   name(s) that server exposes for discussions aren't documented anywhere in
   the command files — if a triage run fails with a "tool not allowed" error,
   check the error for the tool name and add it to
-  `CLAUDE_MR_COMMENTS_ALLOWED_TOOLS` in `poll.mjs`.
+  `CLAUDE_MR_COMMENTS_ALLOWED_TOOLS` in `lib/allowed-tools.mjs`.
 - Fixes the triage command applies are committed locally in the bot worktree and
   never pushed by the bot — review them, then push them from the studio
   (`ALLOW_PUSH=true`) or yourself from the `marginalia/<branch-slug>` local

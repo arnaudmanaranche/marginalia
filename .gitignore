@@ -12,7 +12,8 @@ posted.json
 posted.json.tmp
 runs.jsonl
 .marginalia-report.md
-.claude/
+.claude/*
+!.claude/settings.json
 mr-review-bot.10s.sh
 .DS_Store
 worktree/
