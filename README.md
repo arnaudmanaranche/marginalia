@@ -228,7 +228,11 @@ a `⌘K` search. It refreshes live when a review file or `status.json` changes.
 npm run studio:install   # once
 npm run studio:build     # after any change under studio/src
 npm run studio:dev       # Vite dev server with hot reload (bot must be running)
+npm run dev              # bot + Vite dev server in one terminal; Ctrl+C stops both
 ```
+
+`npm run dev` starts its own bot: stop the background one first
+(`npm run autostart -- --uninstall`, or `pm2 stop marginalia`), or both will poll and the second can't bind the studio port.
 
 The poll interval can be changed from the studio's top bar ("Poll every…").
 It's saved to `settings.json` (gitignored) and overrides `POLL_INTERVAL_MINUTES`,
@@ -272,8 +276,26 @@ its cost, output tokens and turns are logged and appended to `runs.jsonl`
 
 ## Keeping the script running
 
-For it to survive a restart / a closed terminal, use a process manager, for
-example with `pm2`:
+On macOS, let it start at every login (a per-user LaunchAgent, no sudo, no
+extra tool). It runs `npm start`, so the studio is the built one on
+http://localhost:4477:
+
+```bash
+npm run autostart                  # install and start now; re-run after changing Node version
+npm run autostart -- --status      # running? pid?
+npm run autostart -- --uninstall   # stop and remove
+tail -f ~/Library/Logs/marginalia.log
+```
+
+The agent keeps the `PATH` of the shell you installed it from, so `claude`, `git`
+and `terminal-notifier` resolve the same way as in your terminal. It is restarted
+if it crashes. Stop it before `npm run dev`, or both will poll.
+
+If [SwiftBar](#menu-bar-icon-optional-macos) is installed, `npm run autostart` also
+opens it at login (a second agent, `com.marginalia.swiftbar`), so the menu bar icon
+comes up with the bot. Install SwiftBar first, or re-run `npm run autostart` after.
+
+Elsewhere, use a process manager, for example `pm2`:
 
 ```bash
 npm install -g pm2
@@ -296,6 +318,7 @@ icon, refreshed every 10 seconds:
 brew install --cask swiftbar
 # on first launch SwiftBar asks for a plugin folder, e.g. ~/SwiftBarPlugins
 ln -s ~/marginalia/swiftbar/marginalia.10s.sh ~/SwiftBarPlugins/
+npm run autostart   # optional: opens SwiftBar (and the bot) at every login
 ```
 
 | Icon | Meaning |
