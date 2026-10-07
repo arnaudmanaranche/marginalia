@@ -28,6 +28,8 @@ tags:
   - name: Settings
   - name: Pending review
     description: Draft notes on GitLab, published together as one review. Requires `ALLOW_POSTING=true`.
+  - name: Triage fixes
+    description: The fixes a triage committed locally, and pushing them to the merge request's branch.
   - name: Live
 paths:
   /api/reviews:
@@ -327,6 +329,64 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '502': { $ref: '#/components/responses/GitLabError' }
+  /api/fixes/{slug}:
+    get:
+      tags: [Triage fixes]
+      operationId: getFixes
+      summary: Where a triage's local fixes stand against the MR branch
+      description: |
+        Compares `marginalia/<branch-slug>` with the merge request's branch on origin (`git ls-remote`).
+        `ready`: the fixes sit on top of the current head and a push fast-forwards it. `pushed`: the
+        branch already contains them. `outdated`: the branch moved since the triage. `none`: no fix.
+      parameters:
+        - $ref: '#/components/parameters/Slug'
+      responses:
+        '200':
+          description: The fixes and the branch.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/FixesStatus' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '502': { description: git failed (origin unreachable, ...). }
+  /api/push:
+    post:
+      tags: [Triage fixes]
+      operationId: pushFixes
+      summary: Push a triage's fixes to the MR branch
+      description: |
+        Only with `ALLOW_PUSH=true`. Fast-forward only (never `--force`): `409` when the branch moved
+        since the triage or there is nothing to push, with the current status.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [slug]
+              properties:
+                slug: { type: string }
+      responses:
+        '200':
+          description: Pushed.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/FixesStatus' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: Not pushable (outdated, already pushed, no fix).
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [error, status]
+                properties:
+                  error: { type: string }
+                  status: { $ref: '#/components/schemas/FixesStatus' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '502': { description: git push failed. }
   /events:
     get:
       tags: [Live]
@@ -575,7 +635,7 @@ components:
           description: '`false` when GitLab refused the line anchor and the comment went up as a general note. Absent when no target was given.'
     ReviewsPayload:
       type: object
-      required: [status, items, stacks, projectUrl, settings, allowPosting, posted]
+      required: [status, items, stacks, projectUrl, settings, allowPosting, allowPush, posted]
       properties:
         status:
           oneOf:
@@ -586,10 +646,29 @@ components:
         projectUrl: { type: [string, 'null'], format: uri }
         settings: { $ref: '#/components/schemas/Settings' }
         allowPosting: { type: boolean }
+        allowPush: { type: boolean }
         posted:
           type: object
           description: Keyed by `<review slug>:<commentId>`.
           additionalProperties: { $ref: '#/components/schemas/PostedInfo' }
+    FixesStatus:
+      type: object
+      required: [ref, branch, state, fixesSha, remoteSha, commits]
+      properties:
+        ref: { type: string, example: marginalia/feat-col-838 }
+        branch: { type: string }
+        state: { type: string, enum: [none, ready, pushed, outdated] }
+        fixesSha: { type: [string, 'null'] }
+        remoteSha: { type: [string, 'null'] }
+        commits:
+          type: array
+          description: The commits a push adds, newest first (only when `ready`).
+          items:
+            type: object
+            required: [sha, subject]
+            properties:
+              sha: { type: string }
+              subject: { type: string }
     AddToReviewRequest:
       type: object
       required: [slug, commentId, body]

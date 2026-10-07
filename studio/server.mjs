@@ -2,13 +2,15 @@
 // over SSE, and the built React app (studio/dist) as static files. Bound to
 // 127.0.0.1 only; read-only apart from PUT /api/settings (poll interval) and,
 // when ALLOW_POSTING=true, POST /api/post (comment on the MR, after confirmation),
-// and POST /api/rerun (queue a fresh review of one MR).
+// POST /api/rerun (queue a fresh review of one MR) and, when ALLOW_PUSH=true,
+// POST /api/push (push a triage's local fixes to the MR branch).
 import { createServer } from 'node:http';
 import { readFile, readdir, stat } from 'node:fs/promises';
 import { watch } from 'node:fs';
 import { join, dirname, extname, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { REVIEWS_DIR, STATUS_FILE, STUDIO_PORT, ALLOW_POSTING, JIRA_BASE_URL } from '../lib/config.mjs';
+import { REVIEWS_DIR, STATUS_FILE, STUDIO_PORT, ALLOW_POSTING, ALLOW_PUSH, JIRA_BASE_URL } from '../lib/config.mjs';
+import { fixesStatus, pushFixes } from '../lib/fixes.mjs';
 import { TRIAGE_FILE_PREFIX } from '../lib/paths.mjs';
 import { loadPosted, savePosted } from '../lib/posted.mjs';
 import { listHistory, readHistory } from '../lib/history.mjs';
@@ -149,7 +151,7 @@ async function listReviews() {
   items.sort(byPriorityThenDate);
   // https://host/group/project, from any tracked MR url; used to link !123 and file paths.
   const projectUrl = (status?.mrs ?? []).map((mr) => mr.web_url?.match(/^(.*)\/-\/merge_requests\/\d+/)?.[1]).find(Boolean) ?? null;
-  return { status, items, stacks: buildStacks(status), projectUrl, jiraBaseUrl: JIRA_BASE_URL ? JIRA_BASE_URL.replace(/\/+$/, '') : null, settings: loadSettings(), allowPosting: ALLOW_POSTING === 'true', posted: await loadPosted() };
+  return { status, items, stacks: buildStacks(status), projectUrl, jiraBaseUrl: JIRA_BASE_URL ? JIRA_BASE_URL.replace(/\/+$/, '') : null, settings: loadSettings(), allowPosting: ALLOW_POSTING === 'true', allowPush: ALLOW_PUSH === 'true', posted: await loadPosted() };
 }
 
 const clients = new Set();
@@ -440,6 +442,36 @@ async function rerunReview(req, res) {
   return json(res, 200, { ok: true, iid: mr.iid, kind: mr.kind });
 }
 
+// The tracked MR of a triage, as fixesStatus() wants it, or null.
+async function triagedMr(slug) {
+  const mr = await trackedMr(slug);
+  return mr?.kind === 'comments' && mr.sourceBranch ? { iid: mr.iid, source_branch: mr.sourceBranch } : null;
+}
+
+// Pushes the local fixes of one triage to its MR branch, only if that branch hasn't
+// moved since (fast-forward). Serialized so two clicks can't race on the same push.
+let pushQueue = Promise.resolve();
+async function pushTriageFixes(req, res) {
+  if (ALLOW_PUSH !== 'true') return json(res, 403, { error: 'pushing is disabled (ALLOW_PUSH=false)' });
+  const input = await readJsonBody(req, res);
+  if (input === null) return undefined;
+  const { slug } = input;
+  if (typeof slug !== 'string' || !SLUG_RE.test(slug) || slug.includes('..')) return json(res, 400, { error: 'bad slug' });
+  const run = pushQueue.then(async () => {
+    const mr = await triagedMr(slug);
+    if (!mr) return json(res, 404, { error: 'no tracked triage for this slug' });
+    try {
+      const { pushed, status } = await pushFixes(mr);
+      if (!pushed) return json(res, 409, { error: status.state === 'outdated' ? 'the MR branch moved since the triage: re-run it' : `nothing to push (${status.state})`, status });
+      return json(res, 200, status);
+    } catch (err) {
+      return json(res, 502, { error: String(err.stderr || err.message).trim().slice(0, 300) });
+    }
+  });
+  pushQueue = run.catch(() => {});
+  return run;
+}
+
 async function handle(req, res) {
   const { pathname } = new URL(req.url, 'http://localhost');
   if (req.method === 'PUT' && pathname === '/api/settings') return putSettings(req, res);
@@ -447,6 +479,7 @@ async function handle(req, res) {
   if (req.method === 'POST' && pathname === '/api/reply') return replyToDiscussion(req, res);
   if (req.method === 'POST' && pathname === '/api/submit-review') return submitReview(req, res);
   if (req.method === 'POST' && pathname === '/api/rerun') return rerunReview(req, res);
+  if (req.method === 'POST' && pathname === '/api/push') return pushTriageFixes(req, res);
   if ((req.method === 'PUT' || req.method === 'DELETE') && pathname.startsWith('/api/drafts/')) return mutateDraft(req, res, pathname);
   if (req.method !== 'GET') return json(res, 405, { error: 'read-only' });
 
@@ -483,6 +516,24 @@ async function handle(req, res) {
       return json(res, 200, { discussions: await listDiscussions(mr.iid) });
     } catch (err) {
       return json(res, 502, { error: String(err.message).slice(0, 300) });
+    }
+  }
+
+  // Where the triage's local fixes stand against the MR branch on origin.
+  if (pathname.startsWith('/api/fixes/')) {
+    let slug;
+    try {
+      slug = decodeURIComponent(pathname.slice('/api/fixes/'.length));
+    } catch {
+      return json(res, 400, { error: 'bad slug' });
+    }
+    if (!SLUG_RE.test(slug) || slug.includes('..')) return json(res, 400, { error: 'bad slug' });
+    const mr = await triagedMr(slug);
+    if (!mr) return json(res, 404, { error: 'no tracked triage for this slug' });
+    try {
+      return json(res, 200, await fixesStatus(mr));
+    } catch (err) {
+      return json(res, 502, { error: String(err.stderr || err.message).trim().slice(0, 300) });
     }
   }
 

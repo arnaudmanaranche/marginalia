@@ -19,6 +19,7 @@ import { useRerun } from '../lib/useRerun';
 import { useReviewVersions } from '../lib/useReviewVersions';
 import { ConfirmPost } from './ConfirmPost';
 import { FindingsPanel } from './FindingsPanel';
+import { FixesPanel } from './FixesPanel';
 import { cn } from '../lib/utils';
 import { Button } from './ui/Button';
 import { LinkContext, commentLocation, linkify, type LinkContextValue } from '../lib/links';
@@ -506,7 +507,7 @@ function ReaderNotices({ viewingOld, onBackToLatest, shape }: { viewingOld: bool
   );
 }
 
-export function ReviewReader({ item, review: currentReview, projectUrl, jiraBaseUrl, allowPosting, live, posted, reload }: { item: ReviewItem | undefined; review: ReviewContent | null; projectUrl: string | null; jiraBaseUrl: string | null; allowPosting: boolean; live: BotStatus['current']; posted: Record<string, PostedInfo>; reload: () => void }) {
+export function ReviewReader({ item, review: currentReview, projectUrl, jiraBaseUrl, allowPosting, allowPush, live, posted, reload }: { item: ReviewItem | undefined; review: ReviewContent | null; projectUrl: string | null; jiraBaseUrl: string | null; allowPosting: boolean; allowPush: boolean; live: BotStatus['current']; posted: Record<string, PostedInfo>; reload: () => void }) {
   const [submitting, setSubmitting] = useState(false);
   const { versions, versionId, setVersionId, oldReview } = useReviewVersions(item?.slug, item?.reviewedAt);
   const viewingOld = versionId !== null;
@@ -572,6 +573,11 @@ export function ReviewReader({ item, review: currentReview, projectUrl, jiraBase
             {item?.tracked && item.iid && !viewingOld && loose.length > 0 && (
               <CollapsibleCard id="findings" title={`Findings to comment on (${loose.length})`} open={overrides.findings ?? true} onOpenChange={(o) => setOverrides((prev) => ({ ...prev, findings: o }))}>
                 <FindingsPanel findings={loose} slug={item.slug} iid={item.iid} allowPosting={allowPosting} locked={locked} posted={posted} reload={reload} />
+              </CollapsibleCard>
+            )}
+            {item?.tracked && item.iid && item.kind === 'comments' && !viewingOld && (
+              <CollapsibleCard id="fixes" title="Fixes to push" open={overrides.fixes ?? true} onOpenChange={(o) => setOverrides((prev) => ({ ...prev, fixes: o }))}>
+                <FixesPanel slug={item.slug} iid={item.iid} allowPush={allowPush} locked={locked} refreshKey={item.reviewedAt} />
               </CollapsibleCard>
             )}
             {item?.tracked && item.kind === 'review' && !viewingOld && (

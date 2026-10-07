@@ -18,6 +18,11 @@ test('the contract tells any command where to write both the report and the find
   }
 });
 
+test('a triage is told to write everything in English, a review is left alone', () => {
+  assert.match(contractPrompt('triage'), /Write everything in English/);
+  assert.doesNotMatch(contractPrompt('review'), /Write everything in English/);
+});
+
 test('the findings file stays optional: a command that ignores it still gets a report', async () => {
   const d = await mkdtemp(join(tmpdir(), 'marginalia-'));
   await writeFile(join(d, REPORT_FILE), '**Verdict:** APPROVE\n\n## Suggestions\n\n- A thing in `src/a.ts`.\n');

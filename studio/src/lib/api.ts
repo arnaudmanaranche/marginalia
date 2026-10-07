@@ -98,6 +98,7 @@ interface ReviewsPayload {
   jiraBaseUrl: string | null;
   settings: { pollIntervalMinutes: number };
   allowPosting: boolean;
+  allowPush: boolean;
   posted: Record<string, PostedInfo>;
 }
 
@@ -291,4 +292,32 @@ export async function fetchHistoryVersion(slug: string, id: string): Promise<Rev
   const j = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(j.error ?? `HTTP ${res.status}`);
   return { markdown: j.markdown, shape: j.shape };
+}
+
+// Where a triage's local fixes stand against the MR branch on origin (lib/fixes.mjs).
+export interface FixesStatus {
+  ref: string;
+  branch: string;
+  state: 'none' | 'ready' | 'pushed' | 'outdated';
+  fixesSha: string | null;
+  remoteSha: string | null;
+  commits: { sha: string; subject: string }[];
+}
+
+export async function fetchFixes(slug: string): Promise<FixesStatus> {
+  const res = await fetch(`/api/fixes/${encodeURIComponent(slug)}`);
+  const j = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(j.error ?? `HTTP ${res.status}`);
+  return j;
+}
+
+export async function pushFixes(slug: string): Promise<FixesStatus> {
+  const res = await fetch('/api/push', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ slug }),
+  });
+  const j = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(j.error ?? `HTTP ${res.status}`);
+  return j;
 }

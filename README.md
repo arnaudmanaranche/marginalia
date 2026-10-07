@@ -196,8 +196,16 @@ a stack (rebuilt from the open MR list on every poll). For these:
   `marginalia/<branch-slug>` (the bot worktree shares its git object
   database with `REPO_LOCAL_PATH`, so this branch is visible from your real
   checkout too, e.g. `git log marginalia/<branch-slug>` or
-  `git cherry-pick` from there — nothing is pushed to GitLab). Review the
-  commit before pushing it yourself.
+  `git cherry-pick` from there — nothing is pushed by the bot). The studio's
+  *Fixes to push* card checks them against the MR branch on origin: *ready*
+  (on top of the current head), *pushed*, or *outdated* (the branch moved
+  since the triage: re-run it). With `ALLOW_PUSH=true` it pushes them,
+  fast-forward only, after a confirmation. A triage that commits nothing
+  moves the previous fixes aside to `refs/marginalia/superseded/<branch-slug>`,
+  and a triage during which the branch moved logs a warning.
+- **Everything the triage writes is in English** (report, drafted replies,
+  findings, commit messages): the bot's injected contract says so, whatever
+  language the command or the comments are in.
 - State (last peer-comment timestamp triaged per MR) is kept in `state.json`
   under `mineComments`, separately from the SHA-based state above.
 
@@ -345,6 +353,7 @@ the previous one *finishes*, so a long review just pushes it back.
   check the error for the tool name and add it to
   `CLAUDE_MR_COMMENTS_ALLOWED_TOOLS` in `poll.mjs`.
 - Fixes the triage command applies are committed locally in the bot worktree and
-  never pushed — you're expected to review and push them yourself from the
-  `marginalia/<branch-slug>` local branch (see Behaviour above). Nothing
-  automatically lands on the real MR branch.
+  never pushed by the bot — review them, then push them from the studio
+  (`ALLOW_PUSH=true`) or yourself from the `marginalia/<branch-slug>` local
+  branch (see Behaviour above). Nothing lands on the real MR branch without
+  that click.
