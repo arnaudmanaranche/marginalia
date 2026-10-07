@@ -52,3 +52,11 @@ test('only a 404 means the note is gone', () => {
   assert.equal(isNotFound(new Error('GitLab API /x -> 404: Not found')), true);
   assert.equal(isNotFound(new Error('GitLab API /x -> 500: boom')), false);
 });
+
+test('review app links from access-token bots are not reviewer feedback', () => {
+  const discussions = [{ notes: [
+    note(1, 'alice', '2026-01-01T10:00:00Z'),
+    note(2, 'group_106_bot_cf0760ce4441ac4c3f902ef9597b9cb5', '2026-01-05T10:00:00Z'),
+  ] }];
+  assert.equal(latestPeerNoteAt(discussions, 'me'), Date.parse('2026-01-01T10:00:00Z'));
+});
