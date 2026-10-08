@@ -236,7 +236,11 @@ paths:
       summary: Submit the pending review
       description: |
         Publishes every pending draft of the merge request as one review
-        (`draft_notes/bulk_publish`), after adding the optional `summary` as a general note.
+        (`draft_notes/bulk_publish`), after adding the optional `summary` as a general note,
+        then applies the chosen `action`: `comment` (default) publishes only, `request_changes`
+        publishes with the `requested_changes` reviewer state, `approve` publishes then approves
+        the merge request at the SHA that was reviewed (GitLab refuses with 409 if it moved; the
+        comments are then already published). `approve` and `request_changes` need no comment.
         **This publishes all drafts of the token's owner on that merge request, including
         ones started in GitLab's own UI.**
       requestBody:
@@ -249,6 +253,7 @@ paths:
               properties:
                 slug: { type: string }
                 summary: { type: string, maxLength: 10000 }
+                action: { type: string, enum: [comment, approve, request_changes], default: comment }
       responses:
         '200':
           description: Published.
@@ -260,6 +265,7 @@ paths:
                 properties:
                   submitted: { type: integer, description: Drafts this studio had recorded for the review. }
                   summary: { type: boolean, description: Whether a summary note was added. }
+                  action: { type: string, enum: [comment, approve, request_changes] }
         '400': { $ref: '#/components/responses/BadRequest' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }

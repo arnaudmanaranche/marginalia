@@ -9,7 +9,7 @@ import { usePersistentState } from '../lib/layout';
 import { useModalFocus } from '../lib/useModalFocus';
 import { createContext } from 'react';
 import { Check, Copy, Trash2, X, Loader2, Pencil, Send, Undo2 } from 'lucide-react';
-import { deleteDraft, fetchDrafts, postComment, updateDraft, submitReview, type DraftNote, BotStatus, type PostedInfo, type ReviewContent, type ReviewItem, type Finding } from '../lib/api';
+import { deleteDraft, fetchDrafts, postComment, updateDraft, submitReview, type ReviewAction, type DraftNote, BotStatus, type PostedInfo, type ReviewContent, type ReviewItem, type Finding } from '../lib/api';
 import { Discussion } from './Discussion';
 import { CollapsibleCard } from './CollapsibleCard';
 import { PostedBadge } from './PostedBadge';
@@ -206,10 +206,19 @@ function DraftRow({ slug, draft, disabled, onChanged }: { slug: string; draft: D
   );
 }
 
-// Publishes the pending review: every draft comment of this MR, plus an optional summary.
-function ConfirmSubmit({ slug, iid, count, reload, onCancel, onConfirm }: { slug: string; reload: () => void; iid: string | number; count: number; onCancel: () => void; onConfirm: (summary: string) => Promise<void> }) {
+const ACTIONS: { value: ReviewAction; label: string; submit: string; hint: string }[] = [
+  { value: 'comment', label: 'Comment', submit: 'Submit comments', hint: 'Publish your comments without a verdict.' },
+  { value: 'approve', label: 'Approve', submit: 'Approve', hint: 'Publish, then approve the MR as you. Refused if the MR changed since this review.' },
+  { value: 'request_changes', label: 'Request changes', submit: 'Request changes', hint: 'Publish and mark the MR as needing changes.' },
+];
+
+// Publishes the pending review: every draft comment of this MR, plus an optional summary,
+// with the verdict the user picks (a triage of your own MR can only comment).
+function ConfirmSubmit({ slug, iid, count, canVerdict, reload, onCancel, onConfirm }: { slug: string; reload: () => void; iid: string | number; count: number; canVerdict: boolean; onCancel: () => void; onConfirm: (summary: string, action: ReviewAction) => Promise<void> }) {
   const [busy, setBusy] = useState(false);
   const [summary, setSummary] = useState('');
+  const [action, setAction] = useState<ReviewAction>('comment');
+  const chosen = ACTIONS.find((a) => a.value === action)!;
   // Read from GitLab itself, so drafts started in its own UI are listed too.
   const [drafts, setDrafts] = useState<DraftNote[] | null>(null);
   const [draftsError, setDraftsError] = useState<string | null>(null);
@@ -241,6 +250,22 @@ function ConfirmSubmit({ slug, iid, count, reload, onCancel, onConfirm }: { slug
             <DraftRow key={d.id} slug={slug} draft={d} disabled={busy} onChanged={(next) => { setDrafts((all) => (all ?? []).flatMap((x) => (x.id !== d.id ? [x] : next ? [next] : []))); reload(); }} />
           ))}
         </div>
+        {canVerdict && (
+          <fieldset className="mt-3" disabled={busy}>
+            <legend className="text-sm font-medium">Your review</legend>
+            <div className="mt-1 grid gap-2 sm:grid-cols-3">
+              {ACTIONS.map((a) => (
+                <label key={a.value} className="flex cursor-pointer flex-col rounded-md border border-zinc-300 p-2 text-sm has-[:checked]:border-blue-500 has-[:checked]:ring-2 has-[:checked]:ring-blue-500/50 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-blue-500/50 dark:border-zinc-700">
+                  <span className="flex items-center gap-2 font-medium">
+                    <input type="radio" name="review-action" value={a.value} checked={action === a.value} onChange={() => setAction(a.value)} className="accent-blue-600" />
+                    {a.label}
+                  </span>
+                  <span className="mt-1 text-xs text-fg-muted">{a.hint}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        )}
         <label htmlFor="review-summary" className="mt-3 block text-sm font-medium">Summary <span className="font-normal text-fg-muted">(optional)</span></label>
         <textarea id="review-summary" data-autofocus value={summary} onChange={(e) => setSummary(e.target.value)} rows={4} className="mt-1 w-full resize-y rounded-md border border-zinc-300 bg-white p-3 text-sm outline-none focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/50 dark:border-zinc-700 dark:bg-zinc-900" />
         <div className="mt-4 flex justify-end gap-2">
@@ -251,7 +276,7 @@ function ConfirmSubmit({ slug, iid, count, reload, onCancel, onConfirm }: { slug
             onClick={async () => {
               setBusy(true);
               try {
-                await onConfirm(summary);
+                await onConfirm(summary, canVerdict ? action : 'comment');
               } catch (e) {
                 toast.error('Could not submit the review', { description: (e as Error).message });
               } finally {
@@ -259,7 +284,7 @@ function ConfirmSubmit({ slug, iid, count, reload, onCancel, onConfirm }: { slug
               }
             }}
           >
-            {busy ? <Loader2 className="size-4 animate-spin motion-reduce:animate-pulse" /> : <Send className="size-4" />}Submit review
+            {busy ? <Loader2 className="size-4 animate-spin motion-reduce:animate-pulse" /> : <Send className="size-4" />}{canVerdict ? chosen.submit : 'Submit review'}
           </Button>
         </div>
       </div>
@@ -541,7 +566,7 @@ export function ReviewReader({ item, review: currentReview, projectUrl, jiraBase
     <div className="px-6 py-6">
       <ReaderHeader
         item={item}
-        showSubmit={allowPosting && Boolean(item?.tracked) && draftCount > 0}
+        showSubmit={allowPosting && Boolean(item?.tracked) && (draftCount > 0 || item?.kind === 'review')}
         draftCount={draftCount}
         onSubmit={() => setSubmitting(true)}
         versions={versions}
@@ -597,12 +622,14 @@ export function ReviewReader({ item, review: currentReview, projectUrl, jiraBase
         reload={reload}
         iid={item.iid}
         count={draftCount}
+        canVerdict={item.kind === 'review'}
         onCancel={() => setSubmitting(false)}
-        onConfirm={async (summary) => {
-          await submitReview(item.slug, summary.trim() || undefined);
+        onConfirm={async (summary, action) => {
+          await submitReview(item.slug, summary.trim() || undefined, action);
           setSubmitting(false);
           reload();
-          toast.success(`Review of !${item.iid} submitted`, item.webUrl ? { action: { label: 'Open', onClick: () => window.open(item.webUrl!, '_blank', 'noopener') } } : undefined);
+          const done = { comment: 'submitted', approve: 'approved', request_changes: 'submitted with changes requested' }[action];
+          toast.success(`Review of !${item.iid} ${done}`, item.webUrl ? { action: { label: 'Open', onClick: () => window.open(item.webUrl!, '_blank', 'noopener') } } : undefined);
         }}
       />
     )}

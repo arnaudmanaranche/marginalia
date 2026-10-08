@@ -31,7 +31,7 @@ export function ReaderHeader({ item, showSubmit, draftCount, onSubmit, versions,
       <div className="flex items-center gap-2">
         {showSubmit && (
           <Button variant="primary" onClick={onSubmit}>
-            <Send className="size-3.5" />Submit review ({draftCount})
+            <Send className="size-3.5" />Submit review{draftCount > 0 ? ` (${draftCount})` : ''}
           </Button>
         )}
         {versions.length > 0 && (

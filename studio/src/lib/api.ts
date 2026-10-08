@@ -190,11 +190,13 @@ export async function postComment(slug: string, commentId: string, body: string,
   return j;
 }
 
-export async function submitReview(slug: string, summary?: string): Promise<{ submitted: number; summary: boolean }> {
+export type ReviewAction = 'comment' | 'approve' | 'request_changes';
+
+export async function submitReview(slug: string, summary?: string, action: ReviewAction = 'comment'): Promise<{ submitted: number; summary: boolean; action: ReviewAction }> {
   const res = await fetch('/api/submit-review', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ slug, summary }),
+    body: JSON.stringify({ slug, summary, action }),
   });
   const j = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(j.error ?? `HTTP ${res.status}`);

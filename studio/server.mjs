@@ -15,7 +15,8 @@ import { TRIAGE_FILE_PREFIX } from '../lib/paths.mjs';
 import { loadPosted, savePosted } from '../lib/posted.mjs';
 import { listHistory, readHistory } from '../lib/history.mjs';
 import { buildShape, listFields, loadShape } from '../lib/findings.mjs';
-import { listDiscussions, findPublishedNoteId, mergeRequestNoteExists } from '../lib/gitlab.mjs';
+import { listDiscussions, findPublishedNoteId, mergeRequestNoteExists, approveMergeRequest } from '../lib/gitlab.mjs';
+import { parseReviewAction, reviewerStateFor } from '../lib/review-actions.mjs';
 import { createDraftNote, createDraftReply, createInlineDraftNote, listDraftNotes, updateDraftNote, deleteDraftNote, publishDraftNotes, draftNoteExists } from '../lib/gitlab-drafts.mjs';
 import { byPriorityThenDate } from '../lib/jira.mjs';
 import { loadSettings, saveSettings } from '../lib/settings.mjs';
@@ -326,13 +327,16 @@ async function replyToDiscussion(req, res) {
 }
 
 // Submits the drafts of one review as a real GitLab review, with an optional
-// summary note. Like postComment(), the MR comes from status.json.
+// summary note and an `action` (comment, approve, request_changes). Like
+// postComment(), the MR comes from status.json.
 async function submitReview(req, res) {
   if (ALLOW_POSTING !== 'true') return json(res, 403, { error: 'posting is disabled (ALLOW_POSTING=false)' });
   const input = await readJsonBody(req, res);
   if (input === null) return undefined;
   const { slug, summary } = input;
+  const action = parseReviewAction(input.action);
   if (typeof slug !== 'string' || !SLUG_RE.test(slug)) return json(res, 400, { error: 'bad slug' });
+  if (!action) return json(res, 400, { error: 'action must be comment, approve or request_changes' });
   if (summary !== undefined && (typeof summary !== 'string' || summary.length > 10_000)) return json(res, 400, { error: 'summary must be a string under 10000 characters' });
   const run = postQueue.then(async () => {
     const status = await readStatus();
@@ -341,12 +345,23 @@ async function submitReview(req, res) {
     const posted = await loadPosted();
     const drafts = Object.entries(posted).filter(([key, info]) => key.startsWith(`${slug}:`) && info.state === 'draft');
     const text = summary?.trim();
-    if (!drafts.length && !text) return json(res, 400, { error: 'nothing to submit' });
+    // Approving or requesting changes needs no comment: the verdict is the review.
+    if (!drafts.length && !text && action === 'comment') return json(res, 400, { error: 'nothing to submit' });
     try {
       if (text) await createDraftNote(mr.iid, text);
-      await publishDraftNotes(mr.iid);
+      // Drafts started in GitLab itself are not in posted.json: ask GitLab.
+      const pending = drafts.length > 0 || Boolean(text) || (await listDraftNotes(mr.iid)).length > 0;
+      if (pending || action === 'request_changes') await publishDraftNotes(mr.iid, reviewerStateFor(action));
     } catch (err) {
       return json(res, 502, { error: String(err.message).slice(0, 300) });
+    }
+    let approveError = null;
+    if (action === 'approve') {
+      try {
+        await approveMergeRequest(mr.iid, (await loadState())[mr.iid]);
+      } catch (err) {
+        approveError = String(err.message).slice(0, 300);
+      }
     }
     for (const [key, info] of drafts) {
       let noteId = null;
@@ -360,7 +375,9 @@ async function submitReview(req, res) {
     }
     await savePosted(posted);
     broadcast();
-    return json(res, 200, { submitted: drafts.length, summary: Boolean(text) });
+    // The comments are out either way: say so, so the user does not submit them twice.
+    if (approveError) return json(res, 502, { error: `Comments published, but the approval failed: ${approveError}` });
+    return json(res, 200, { submitted: drafts.length, summary: Boolean(text), action });
   });
   postQueue = run.catch(() => {});
   return run;
