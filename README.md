@@ -358,12 +358,22 @@ the previous one *finishes*, so a long review just pushes it back.
   with a webhook).
 - `GITLAB_TOKEN` lives in `.env`, never committed (already covered by
   `.gitignore`).
-- the review command isn't tool-restricted the way the old direct-prompt approach
-  was: it runs with `Agent`, `EnterWorktree`/`ExitWorktree`, `Write`, and the
-  GitLab/Atlassian connectors allowed, relying on the command and agent's own
-  prompt discipline ("never post to GitLab") rather than a hard sandbox. This
-  matches how you'd run it yourself interactively, but is a materially
-  different trust model than the previous read-only lockdown.
+- Runs are contained, not isolated in a VM. Each `claude -p` gets `--settings` built in
+  `lib/claude-sandbox.mjs`: the sandbox confines Bash (writes to the bot worktree, the
+  repo's `.git` and the reviews dir only; network to the GitLab host only; no read of
+  `~/.ssh`, `~/.aws`, the bot's `.env`), and deny rules keep the Read/Edit/Write tools
+  away from secrets, shell rc files and the trusted `.claude/{commands,agents,skills,hooks}`
+  of your checkout (the sandbox does not cover those tools). Git is allowed one
+  subcommand at a time (`lib/allowed-tools.mjs`), never `git config`, `git -c` or
+  `git push`, and credential-looking env vars are not passed (`CLAUDE_ENV_PASSTHROUGH`).
+  A command refused by the sandbox or the allow-list fails the run with its name in the
+  error. Git over SSH does not work *inside* the sandbox on macOS: the bot's own fetches
+  run outside it, so reviews are unaffected, but a command that runs `git fetch` itself
+  will fail. `CLAUDE_SANDBOX=false` turns the sandbox off; for stronger isolation, run
+  the whole bot in a container or VM.
+- The review command still runs with `Agent`, `EnterWorktree`/`ExitWorktree`, `Write`,
+  and the GitLab/Atlassian connectors allowed, relying on the command and agent's own
+  prompt discipline ("never post to GitLab") on top of the containment above.
 - No automatic retry if `claude -p` fails: check the server logs, the MR will
   be retried on the next poll as long as the SHA hasn't changed... except if
   the SHA hasn't changed, `state.json` won't have been updated either (the
