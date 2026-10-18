@@ -11,6 +11,11 @@ import { notify } from './lib/notify.mjs';
 import { listOpenMergeRequests, reviewFileCoversLastPush, latestPeerCommentAt } from './lib/gitlab.mjs';
 import { fetchReviewStates } from './lib/mr-state.mjs';
 import { jiraPriorityOf } from './lib/jira.mjs';
+import { ticketsEnabled, refreshTickets } from './lib/tickets.mjs';
+import { suggestEnabled, SUGGEST_EVERY_HOURS } from './lib/suggest-config.mjs';
+import { readSuggestions, findSuggestions } from './lib/suggest.mjs';
+import { autoDone } from './lib/jira-done.mjs';
+import { JIRA_POLL_MINUTES } from './lib/tickets-config.mjs';
 import { reviewOutputPath, mrCommentsOutputPath, mtimeOrNull } from './lib/paths.mjs';
 import { ensureBotWorktree } from './lib/worktree.mjs';
 import { runReview, runMrComments } from './lib/claude-runner.mjs';
@@ -281,6 +286,40 @@ function watchSettings() {
   }
 }
 
+// The Tickets tab has its own clock: Jira moves slower than MRs, and a
+// refresh must never wait for a review that holds the worktree.
+async function runTickets() {
+  try {
+    const data = await refreshTickets();
+    const moved = await autoDone(data);
+    if (moved.length) {
+      console.log(`${timestamp()} ${c.green}Moved to their final status: ${moved.join(', ')}.${c.reset}`);
+      notify('Jira', `Moved to done: ${moved.join(', ')}`);
+    }
+  } catch (err) {
+    console.error(`${timestamp()} Tickets refresh failed:`, err.message);
+  } finally {
+    setTimeout(runTickets, Number(JIRA_POLL_MINUTES) * 60_000);
+  }
+}
+
+// Suggested tickets on a schedule, when SUGGEST_EVERY_HOURS is set; checked
+// hourly so a restart does not wait a full period.
+async function runSuggestions() {
+  const every = Number(SUGGEST_EVERY_HOURS) * 3_600_000;
+  try {
+    const { lastRun } = await readSuggestions();
+    if (!lastRun || Date.now() - Date.parse(lastRun.at) >= every) {
+      const found = await findSuggestions();
+      if (found.length) notify('Tickets', `${found.length} suggested ticket(s) to read`);
+    }
+  } catch (err) {
+    console.error(`${timestamp()} Suggestion run failed:`, err.message);
+  } finally {
+    setTimeout(runSuggestions, 3_600_000);
+  }
+}
+
 async function shutdown() {
   clearTimeout(pollTimer);
   status.phase = 'stopped';
@@ -301,6 +340,8 @@ async function main() {
   await ensureBotWorktree();
   // `kill -USR1 <pid>` (the menu bar's "Poll now") triggers a poll right away.
   process.on('SIGUSR1', runPoll);
+  if (ticketsEnabled) runTickets();
+  if (suggestEnabled && Number(SUGGEST_EVERY_HOURS) > 0) runSuggestions();
   await runPoll();
 }
 

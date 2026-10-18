@@ -21,3 +21,10 @@ worktree/
 
 *storybook.log
 storybook-static
+tickets.json
+tickets.json.tmp
+ticket-classes.json
+jira-done.jsonl
+suggestions.json
+suggestions.json.tmp
+suggest-worktree/

@@ -163,6 +163,7 @@ interface ReviewsPayload {
   settingsDefaults: Settings;
   allowPosting: boolean;
   allowPush: boolean;
+  ticketsEnabled?: boolean;
   posted: Record<string, PostedInfo>;
 }
 
@@ -400,4 +401,111 @@ export async function fetchThreads(slug: string): Promise<Thread[]> {
   const j = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(j.error ?? `HTTP ${res.status}`);
   return j.threads;
+}
+
+export interface TicketMr {
+  project: string;
+  iid: number;
+  title: string;
+  state: 'opened' | 'merged' | 'closed' | 'locked';
+  author: string | null;
+  webUrl: string;
+  mergedAt: string | null;
+  direct: boolean;
+}
+
+export interface Ticket {
+  key: string;
+  url: string;
+  project: string;
+  type: string | null;
+  summary: string;
+  excerpt: string;
+  status: { name: string; category: 'new' | 'indeterminate' | 'done' | null };
+  priority: { id: string; name: string } | null;
+  assignee: { name: string; me: boolean } | null;
+  labels: string[];
+  updated: string;
+  mrs: TicketMr[];
+  front: { front: boolean; reason: string; by: string } | null;
+  mine: boolean;
+  takeable: boolean;
+  changes: string[];
+  stale?: boolean;
+}
+
+export interface DoneEntry {
+  at: string;
+  key: string;
+  from: string;
+  to: string;
+  done: boolean;
+  reason?: string;
+  proofs: { project: string; iid: number; sha: string; tag: string }[];
+}
+
+export interface Suggestion {
+  id: string;
+  at: string;
+  area: string;
+  sha: string;
+  title: string;
+  principle: string;
+  files: string[];
+  why: string;
+  body: string;
+  status: 'new' | 'posted';
+  check?: { ok: boolean; problems: string[] };
+  key?: string;
+  url?: string;
+}
+
+export type SuggestionsPayload =
+  | { enabled: false }
+  | {
+    enabled: true;
+    canPost: boolean;
+    project: string;
+    running: boolean;
+    lastRun: { at: string; area: string; sha?: string; costUsd?: number; found?: number; error?: string } | null;
+    items: Suggestion[];
+  };
+
+export interface TicketsPayload {
+  enabled: boolean;
+  autoDone: boolean;
+  data: { fetchedAt: string; projects: string[]; tickets: Ticket[] } | null;
+  done: DoneEntry[];
+  suggestions: SuggestionsPayload;
+}
+
+async function postJson(path: string, body: unknown) {
+  const res = await fetch(path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+  const out = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(out.error ?? `HTTP ${res.status}`);
+  return out;
+}
+
+export const runSuggestions = () => postJson('/api/suggestions/run', {});
+export const dismissSuggestion = (id: string) => postJson('/api/suggestions/dismiss', { id });
+export const postSuggestion = (id: string, title: string, body: string): Promise<{ key: string; url: string }> => postJson('/api/suggestions/post', { id, title, body });
+
+export function useTickets(active: boolean) {
+  const [data, setData] = useState<TicketsPayload | null>(null);
+  const load = useCallback(async () => {
+    try {
+      const res = await fetch('/api/tickets');
+      if (res.ok) setData(await res.json());
+    } catch {
+      /* the reviews hook already reports an unreachable API */
+    }
+  }, []);
+  useEffect(() => {
+    if (!active) return undefined;
+    load();
+    const es = new EventSource('/events');
+    es.onmessage = () => load();
+    return () => es.close();
+  }, [active, load]);
+  return data;
 }
