@@ -86,6 +86,29 @@ export async function runDoctor(argv = process.argv.slice(2)) {
     }
   }
 
+  console.log('\nTeam');
+  await step('team', async () => {
+    const { loadTeam, readMarker, teamRepoUrl } = await import('../lib/team-sync.mjs');
+    const { commitsBehind } = await import('../lib/team-git.mjs');
+    const { teamChecks } = await import('../lib/team-doctor.mjs');
+    const { mergeTeam } = await import('../lib/team-merge.mjs');
+    const { RUNNING_VERSION } = await import('../lib/config-team.mjs');
+    const loaded = await loadTeam(cfg.DATA_DIR, RUNNING_VERSION);
+    const dev = { projects: PROJECTS.map((p) => ({ gitlabProjectId: p.gitlabProjectId })) };
+    for (const c of teamChecks({
+      url: teamRepoUrl({ config: cfg.FILE_CONFIG }),
+      marker: await readMarker(cfg.DATA_DIR),
+      loaded,
+      behind: loaded.present ? await commitsBehind(join(cfg.DATA_DIR, 'team')) : null,
+      unmapped: loaded.ok ? mergeTeam(dev, loaded.team).unmapped : [],
+      now: Date.now(),
+    })) {
+      if (c.level === 'ok') ok(c.message);
+      else if (c.level === 'warn') warnMsg(`${c.message}${c.fix ? ` -> ${c.fix}` : ''}`);
+      else bad(c.message, c.fix);
+    }
+  });
+
   const notifier = notifierAdvice(process.platform);
   if (notifier) {
     console.log(`\nOptional (${process.platform})`);

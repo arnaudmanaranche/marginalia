@@ -1,6 +1,6 @@
 {
   "name": "@worldia/marginalia",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "type": "module",
   "description": "Poller that watches open GitLab MRs, triggers Claude Code headless review, and posts the result as an MR comment.",
   "main": "poll.mjs",

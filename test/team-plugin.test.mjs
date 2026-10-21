@@ -51,7 +51,7 @@ test('doctor: a recent clean sync with a valid team is all ok', () => {
 });
 
 test('doctor: never synced, stale, failed and behind each warn with a fix', () => {
-  assert.match(teamChecks({ ...base, marker: null })[0].fix, /team-sync/);
+  assert.match(teamChecks({ ...base, marker: null })[0].fix, /marginalia sync/);
   assert.match(teamChecks({ ...base, marker: { ok: true, syncedAt: '2026-10-01T00:00:00Z' } })[0].message, /over a week/);
   const failed = teamChecks({ ...base, marker: { ...marker, ok: false, kind: 'diverged', error: 'cannot fast-forward' } });
   assert.equal(failed[0].level, 'warn');
