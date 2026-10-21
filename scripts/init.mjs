@@ -1,145 +1,132 @@
-// Interactive first-time setup: `npm run init`. Asks the few things that can't
-// be guessed, checks each answer live, and writes .env from .env.example
-// (keeping its comments and any value already in an existing .env).
+// Interactive first-time setup: `marginalia init` (or `npm run init`). Asks the few
+// things that can't be guessed, checks each answer live, and writes config.json in the
+// data directory. An existing config.json or .env only supplies the defaults.
 import '../lib/node-check.mjs';
-import { createInterface } from 'node:readline/promises';
-import { Writable } from 'node:stream';
-import { existsSync, readFileSync, writeFileSync, readdirSync, mkdirSync, copyFileSync } from 'node:fs';
-import { execFileSync, spawnSync } from 'node:child_process';
-import { homedir } from 'node:os';
-import { join, dirname, basename } from 'node:path';
+import { existsSync, readFileSync, writeFileSync, mkdirSync, chmodSync, copyFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import * as p from '@clack/prompts';
+import { resolveDataDir } from '../lib/paths-home.mjs';
+import { readConfigFile, CONFIG_FILENAME } from '../lib/config-file.mjs';
+import { parseEnv, defaultsFromEnv, projectFromAnswers, buildConfig } from '../lib/init-config.mjs';
+import { checkToken, checkProject, checkRepo, findCommands, copyStarters, expandHome, findEnvFile } from './init-checks.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const ENV_FILE = join(ROOT, '.env');
-const EXAMPLE = join(ROOT, '.env.example');
 
-if (!process.stdin.isTTY) {
-  console.error('npm run init is interactive: run it in a terminal, or copy .env.example to .env by hand.');
-  process.exit(1);
-}
-
-const parseEnv = (text) => Object.fromEntries(
-  text.split('\n').map((l) => l.match(/^([A-Z_]+)=(.*)$/)).filter(Boolean).map((m) => [m[1], m[2]]),
-);
-const existing = existsSync(ENV_FILE) ? parseEnv(readFileSync(ENV_FILE, 'utf8')) : {};
-const example = readFileSync(EXAMPLE, 'utf8');
-const answers = {};
-
-// Output goes through a stream we can mute, so the token isn't echoed while
-// typed (readline's own _writeToOutput hook is not honoured on recent Node).
-let muted = false;
-const mutedOut = new Writable({
-  write(chunk, _enc, cb) {
-    if (!muted) process.stdout.write(chunk);
-    cb();
-  },
-});
-const rl = createInterface({ input: process.stdin, output: mutedOut, terminal: true });
-const ask = async (label, def = '', { secret = false } = {}) => {
-  const hint = def ? ` [${secret ? '\u2022\u2022\u2022\u2022 (keep)' : def}]` : '';
-  const answer = rl.question(`${label}${hint}: `);
-  muted = secret; // the prompt is already written, hide what gets typed
-  const v = (await answer).trim();
-  muted = false;
-  if (secret) console.log();
-  return v || def;
+// A prompt answer, or exit cleanly when the user cancels (Ctrl-C).
+const ask = async (promise) => {
+  const value = await promise;
+  if (p.isCancel(value)) { p.cancel('Aborted, nothing written.'); process.exit(1); }
+  return value;
 };
-const yes = async (label, def = true) => {
-  const v = (await rl.question(`${label} [${def ? 'Y/n' : 'y/N'}] `)).trim().toLowerCase();
-  return v ? v.startsWith('y') : def;
-};
-const pick = async (label, options, allowNone) => {
-  options.forEach((o, i) => console.log(`  ${i + 1}) ${o}`));
-  const v = (await rl.question(`${label}${allowNone ? ' (number, name, or empty for none)' : ' (number or name)'}: `)).trim();
-  if (!v) return '';
-  const n = Number(v);
-  if (Number.isInteger(n) && options[n - 1]) return options[n - 1];
-  return v.startsWith('/') ? v : `/${v}`;
-};
-
-console.log('\nMarginalia setup\n');
-
-// --- GitLab ---
-answers.GITLAB_BASE_URL = (await ask('GitLab URL', existing.GITLAB_BASE_URL || 'https://gitlab.com')).replace(/\/+$/, '');
-answers.GITLAB_PROJECT_ID = await ask('Project (numeric id or group/project path)', existing.GITLAB_PROJECT_ID);
-console.log('Token: personal access token with the "api" scope (GitLab > Preferences > Access tokens).');
-for (;;) {
-  answers.GITLAB_TOKEN = await ask('GitLab token', existing.GITLAB_TOKEN?.startsWith('glpat-x') ? '' : existing.GITLAB_TOKEN, { secret: true });
-  try {
-    const call = async (p) => {
-      const res = await fetch(`${answers.GITLAB_BASE_URL}/api/v4${p}`, { headers: { 'PRIVATE-TOKEN': answers.GITLAB_TOKEN } });
-      if (!res.ok) throw new Error(`${p} -> ${res.status}`);
-      return res.json();
-    };
-    const me = await call('/user');
-    const id = /^\d+$/.test(answers.GITLAB_PROJECT_ID) ? answers.GITLAB_PROJECT_ID : encodeURIComponent(answers.GITLAB_PROJECT_ID);
-    const project = await call(`/projects/${id}`);
-    answers.GITLAB_USERNAME = me.username;
-    console.log(`  ✓ Logged in as ${me.username}, project ${project.path_with_namespace} reachable\n`);
-    break;
-  } catch (err) {
-    console.log(`  ✗ ${err.message}`);
-    if (!(await yes('Retry?'))) { console.log('Aborted, nothing written.'); rl.close(); process.exit(1); }
-    answers.GITLAB_BASE_URL = (await ask('GitLab URL', answers.GITLAB_BASE_URL)).replace(/\/+$/, '');
-    answers.GITLAB_PROJECT_ID = await ask('Project', answers.GITLAB_PROJECT_ID);
-  }
-}
-
-// --- Repo ---
-for (;;) {
-  const p = (await ask('Path of your local checkout of that repo', existing.REPO_LOCAL_PATH || existing.WEBAPP_LOCAL_PATH)).replace(/^~/, homedir());
-  try {
-    execFileSync('git', ['remote', 'get-url', 'origin'], { cwd: p, stdio: 'ignore' });
-    answers.REPO_LOCAL_PATH = p;
-    console.log('  ✓ git repository with an origin remote\n');
-    break;
-  } catch {
-    console.log('  ✗ not a git repository with an "origin" remote');
-  }
-}
-
-// --- Commands ---
-const listCommands = (dir) => {
-  try { return readdirSync(join(dir, 'commands')).filter((f) => f.endsWith('.md')).map((f) => `/${basename(f, '.md')}`); } catch { return []; }
-};
-const repoClaude = join(answers.REPO_LOCAL_PATH, '.claude');
-let found = [...new Set([...listCommands(repoClaude), ...listCommands(join(homedir(), '.claude'))])].sort();
-if (!found.length) {
-  console.log('No slash commands found in the repo\'s .claude/ or ~/.claude/.');
-  if (await yes(`Copy the starter commands and agent from examples/ into ${repoClaude}?`)) {
-    for (const sub of ['commands', 'agents']) {
-      mkdirSync(join(repoClaude, sub), { recursive: true });
-      for (const f of readdirSync(join(ROOT, 'examples', sub))) copyFileSync(join(ROOT, 'examples', sub, f), join(repoClaude, sub, f));
+const text = (message, initialValue = '', validate) => ask(p.text({ message, initialValue, validate: validate ?? ((v) => (v.trim() ? undefined : 'required')) }));
+// Validates with `check` until it passes, or the user gives up.
+async function until(message, initial, check) {
+  for (;;) {
+    const value = await text(message, initial);
+    try { return { value, result: await check(value) }; } catch (err) {
+      p.log.error(err.message);
+      if (!(await ask(p.confirm({ message: 'Try again?', initialValue: true })))) { p.cancel('Aborted, nothing written.'); process.exit(1); }
+      initial = value;
     }
-    found = ['/review', '/triage'];
-    console.log('  ✓ copied (edit them to fit your team)\n');
   }
 }
-console.log('Which command should review other people\'s MRs?');
-answers.REVIEW_COMMAND = (await pick('Review command', found, false)) || existing.REVIEW_COMMAND || '/review';
-console.log('\nWhich command should triage reviewer comments on YOUR MRs? (none = your own MRs are ignored)');
-answers.TRIAGE_COMMAND = await pick('Triage command', found, true);
 
-// --- Behaviour ---
-answers.ALLOWED_TARGET_BRANCHES = await ask('\nOnly review MRs targeting these branches (comma-separated, empty = all)', existing.ALLOWED_TARGET_BRANCHES ?? '');
-answers.BOT_WORKTREE_DIR = existing.BOT_WORKTREE_DIR || join(ROOT, 'worktree');
-answers.CLAUDE_BIN = existing.CLAUDE_BIN || 'claude';
+const envDefaults = (dataDir) => {
+  const file = findEnvFile(dataDir, ROOT);
+  return file ? defaultsFromEnv(parseEnv(readFileSync(file, 'utf8'))) : { project: {} };
+};
 
-// --- Write .env ---
-const values = { ...existing, ...answers };
-delete values.WEBAPP_LOCAL_PATH;
-const out = example.split('\n').map((line) => {
-  const m = line.match(/^([A-Z_]+)=/);
-  return m && m[1] in values ? `${m[1]}=${values[m[1]]}` : line;
-}).join('\n');
-if (existsSync(ENV_FILE)) writeFileSync(`${ENV_FILE}.bak`, readFileSync(ENV_FILE));
-writeFileSync(ENV_FILE, out, { mode: 0o600 });
-console.log(`\n✓ ${ENV_FILE} written${existsSync(`${ENV_FILE}.bak`) ? ' (previous one saved as .env.bak)' : ''}\n`);
-
-const runDoctor = await yes('Run the checks now (npm run doctor)?');
-rl.close();
-if (runDoctor) {
-  const r = spawnSync(process.execPath, [join(ROOT, 'scripts', 'doctor.mjs')], { stdio: 'inherit' });
-  if (r.status === 0) console.log('\nReady: npm start (or `npm run doctor -- --dry-run <iid>` to try one MR first).');
+async function askCommands(repoPath, d) {
+  let found = findCommands(repoPath);
+  if (!found.length) {
+    p.log.warn('No slash commands found in the repo\'s .claude/ or ~/.claude/.');
+    if (await ask(p.confirm({ message: `Copy the starter commands and agent from examples/ into ${join(repoPath, '.claude')}?` }))) {
+      copyStarters(ROOT, repoPath);
+      found = ['/review', '/triage'];
+      p.log.success('Copied (edit them to fit your team).');
+    }
+  }
+  const options = found.map((c) => ({ value: c, label: c }));
+  const reviewCommand = found.length
+    ? await ask(p.select({ message: 'Command that reviews other people\'s MRs', options, initialValue: found.includes(d.reviewCommand) ? d.reviewCommand : found[0] }))
+    : await text('Command that reviews other people\'s MRs', d.reviewCommand || '/code-review');
+  const triageCommand = await ask(p.select({
+    message: 'Command that triages reviewer comments on YOUR MRs (none = your own MRs are ignored)',
+    options: [...options, { value: '', label: 'none' }],
+    initialValue: found.includes(d.triageCommand) ? d.triageCommand : '',
+  }));
+  return { reviewCommand, triageCommand };
 }
+
+async function askProject(shared, d = {}) {
+  const gitlabProjectId = await until('GitLab project (numeric id or group/project path)', d.gitlabProjectId, async (id) => {
+    const path = await checkProject(shared.gitlabBaseUrl, shared.gitlabToken, id.trim());
+    p.log.success(`${path} reachable`);
+    return path;
+  });
+  const repo = await until('Path of your local checkout of that repo', d.repoLocalPath, (v) => { checkRepo(expandHome(v)); return expandHome(v); });
+  p.log.success('git repository with an origin remote');
+  const kind = await ask(p.select({
+    message: 'What is it?',
+    options: [{ value: 'back', label: 'back-end' }, { value: 'front', label: 'front-end' }, { value: 'other', label: 'something else' }],
+    initialValue: d.kind ?? 'back',
+  }));
+  const commands = await askCommands(repo.result, d);
+  const allowedTargetBranches = await ask(p.text({ message: 'Only review MRs targeting these branches (comma-separated, empty = all)', initialValue: Array.isArray(d.allowedTargetBranches) ? d.allowedTargetBranches.join(',') : (d.allowedTargetBranches ?? '') }));
+  return projectFromAnswers({ gitlabProjectId: gitlabProjectId.value.trim(), repoLocalPath: repo.result, kind, ...commands, allowedTargetBranches, key: d.key, excludeAuthors: d.excludeAuthors });
+}
+
+async function askShared(d) {
+  p.log.info('Token: personal access token with the "api" scope (GitLab > Preferences > Access tokens).');
+  const gitlabBaseUrl = (await text('GitLab URL', d.gitlabBaseUrl || 'https://gitlab.com')).trim().replace(/\/+$/, '');
+  for (;;) {
+    const gitlabToken = (await ask(p.password({ message: d.gitlabToken ? 'GitLab token (Enter keeps the saved one)' : 'GitLab token', validate: (v) => (v || d.gitlabToken ? undefined : 'required') }))) || d.gitlabToken;
+    try {
+      const gitlabUsername = await checkToken(gitlabBaseUrl, gitlabToken);
+      p.log.success(`Logged in as ${gitlabUsername}`);
+      return { gitlabBaseUrl, gitlabToken, gitlabUsername, claudeBin: d.claudeBin };
+    } catch (err) {
+      p.log.error(err.message);
+      if (!(await ask(p.confirm({ message: 'Try again?', initialValue: true })))) { p.cancel('Aborted, nothing written.'); process.exit(1); }
+    }
+  }
+}
+
+export async function runInit() {
+  if (!process.stdin.isTTY) {
+    console.error('marginalia init is interactive: run it in a terminal, or write config.json by hand (see the README, "Several projects").');
+    return 1;
+  }
+  const dataDir = resolveDataDir({ root: ROOT });
+  let previous = null;
+  try { previous = readConfigFile(dataDir); } catch (err) { p.log.warn(`${err.message.split('\n')[0]}\nIgnoring it, the answers below replace it.`); }
+  const fromEnv = envDefaults(dataDir);
+  p.intro('Marginalia setup');
+  const shared = await askShared(previous ?? fromEnv);
+  const queue = previous ? [...previous.projects] : [fromEnv.project];
+  const projects = [];
+  for (;;) {
+    projects.push(await askProject(shared, queue.shift()));
+    if (queue.length) continue;
+    if (!(await ask(p.confirm({ message: 'Add another project? (a back and a front repo are two projects)', initialValue: false })))) break;
+  }
+  const built = buildConfig({ shared, projects, previous: previous ?? {} });
+  if (!built.ok) { p.log.error(`Invalid answers:\n  ${built.errors.join('\n  ')}`); return 1; }
+  const file = join(dataDir, CONFIG_FILENAME);
+  mkdirSync(dataDir, { recursive: true });
+  if (existsSync(file)) copyFileSync(file, `${file}.bak`);
+  writeFileSync(file, `${JSON.stringify(built.raw, null, 2)}\n`, { mode: 0o600 });
+  chmodSync(file, 0o600);
+  p.log.success(`${file} written${existsSync(`${file}.bak`) ? ' (previous one saved as config.json.bak)' : ''}`);
+  if (await ask(p.confirm({ message: 'Run the checks now (marginalia doctor)?' }))) {
+    const r = spawnSync(process.execPath, [join(ROOT, 'scripts', 'doctor.mjs')], { stdio: 'inherit', env: process.env });
+    if (r.status === 0) p.outro('Ready: marginalia start (or `marginalia doctor --dry-run <iid>` to try one MR first).');
+    return r.status ?? 1;
+  }
+  p.outro('Done. Next: marginalia doctor');
+  return 0;
+}
+
+if (process.argv[1] === fileURLToPath(import.meta.url)) process.exit(await runInit());
