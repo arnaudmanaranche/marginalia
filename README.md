@@ -293,11 +293,12 @@ exist and `POST /api/post` and `POST /api/submit-review` answer 403.
 follow the OS, as in the app. `npm --prefix studio run build-storybook` builds a static copy
 (`studio/storybook-static`, gitignored).
 
-**API contract.** `studio/public/openapi.yaml` (OpenAPI 3.1) describes every endpoint between
-the server and the app. With the studio running, read it at
-<http://localhost:4477/api-docs.html> (rendered read-only: "Try it out" is off, since the write
-endpoints post to GitLab as you). Keep it in step with `studio/server.mjs` and
-`studio/src/lib/api.ts` when an endpoint changes.
+**API contract.** The server is a Hono app (`studio/app.mjs`, routes in `studio/routes-*.mjs`).
+Every request body is validated with the zod schemas in `studio/schemas.mjs`, and the OpenAPI 3.1
+document is generated from those same schemas: with the studio running, read it at
+<http://localhost:4477/openapi.json>, rendered at <http://localhost:4477/api-docs.html> (read-only:
+"Try it out" is off, since the write endpoints post to GitLab as you). To change an endpoint, change
+its route and schema; keep `studio/src/lib/api.ts` in step with the schemas.
 
 The "Review ready" notification and the SwiftBar menu open the studio (the
 notification falls back to VS Code if the studio isn't listening).

@@ -1,7 +1,7 @@
 // The studio's API must give the same kind of answer for a review written by any
 // skill. Each fixture of test/fixtures/skills is run through the bot's report
 // pipeline, dropped into a temporary reviews folder, and read back over HTTP; the
-// answers are checked against the keys the OpenAPI document promises.
+// answers are checked against the keys the generated OpenAPI document promises.
 import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
@@ -27,14 +27,15 @@ const { startStudio } = await import('../studio/server.mjs');
 
 const here = dirname(fileURLToPath(import.meta.url));
 const FIXTURES = join(here, 'fixtures', 'skills');
-const openapi = await readFile(join(here, '..', 'studio', 'public', 'openapi.yaml'), 'utf8');
+// The contract is generated from the schemas the routes validate with.
+const { createApp } = await import('../studio/app.mjs');
+const doc = await (await createApp().request('/openapi.json')).json();
 
-// `required: [a, b]` of one schema in the OpenAPI document.
+// `required` keys of one schema of the generated OpenAPI document.
 function required(schema) {
-  const block = openapi.split(new RegExp(`^    ${schema}:\\n`, 'm'))[1]?.split(/^    \w/m)[0] ?? '';
-  const list = block.match(/required: \[([^\]]*)\]/)?.[1];
-  assert.ok(list, `required keys of ${schema} in openapi.yaml`);
-  return list.split(',').map((k) => k.trim());
+  const list = doc.components.schemas[schema]?.required;
+  assert.ok(list, `required keys of ${schema} in the OpenAPI document`);
+  return list;
 }
 
 const names = (await readdir(FIXTURES, { withFileTypes: true })).filter((d) => d.isDirectory()).map((d) => d.name);
