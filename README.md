@@ -27,6 +27,28 @@ No commands yet? Copy `examples/commands/*.md` and `examples/agents/*.md` into
 your repo's (or `~/.claude`'s) `commands/` and `agents/`, then set
 `REVIEW_COMMAND=/review` and `TRIAGE_COMMAND=/triage`.
 
+## Install for the team
+
+Packaged as an npm package, with the studio prebuilt, so a dev needs no clone:
+
+```bash
+npm i -g @worldia/marginalia   # needs the GitLab npm registry for the @worldia scope (below)
+marginalia init                # GitLab, repos, commands -> ~/.marginalia/config.json; add a second project (back/front) when asked
+marginalia doctor              # read-only checks
+marginalia service install     # start at login: launchd (macOS) or systemd --user (Linux)
+marginalia update              # later: install the latest version
+```
+
+It only works once the package has been published to the registry and each dev points the
+scope at it (`npm config set @worldia:registry <registry URL>` plus a token): the
+`.gitlab-ci.yml` publishes on a `vX.Y.Z` tag with `CI_JOB_TOKEN`, but that pipeline and the
+registry setup are yours to do and have not been run for you. Other commands: `marginalia start`
+(foreground), `marginalia service status|uninstall`, `marginalia migrate` (turns an existing
+`.env` into `config.json`, leaves the `.env`, refuses to overwrite a `config.json` without
+`--force`). `service install --dry-run` prints what it would write and run. `npm run init`,
+`doctor` and `autostart` in a clone call the same code. On other platforms than macOS and
+Linux, `service install` prints the `pm2` commands.
+
 ## Output contract (what your commands must know: nothing)
 
 The bot appends instructions to every run (`--append-system-prompt`, see
@@ -89,6 +111,13 @@ and an `expect.json`): `npm test` runs the whole contract against it.
   explicitly strips `ANTHROPIC_API_KEY` from the environment before spawning
   `claude`, so even if it's set elsewhere on your machine it won't force
   API-key billing mode for these runs.
+- **macOS for sandboxed runs.** The OS sandbox that confines a review's Bash commands to the
+  worktree (`CLAUDE_SANDBOX`, on by default) is macOS Seatbelt. On Linux the bot runs, but runs
+  are **not sandboxed**: only the Read/Edit deny rules apply, and `marginalia doctor` says so.
+  Run it in a container or a VM there if you review code you do not trust. Notifications use
+  `terminal-notifier`/`osascript` (macOS) or `notify-send` (Linux), else a log line. The Linux
+  paths (systemd unit, `notify-send`) are covered by tests that check generated text only: they
+  have not been run on a Linux machine.
 - A GitLab token with the `api` scope, only used to list open MRs (the review
   itself goes through the connectors, not this token).
 - A local checkout of the reviewed repo (`REPO_LOCAL_PATH`) with an `origin`

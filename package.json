@@ -1,11 +1,31 @@
 {
-  "name": "marginalia",
+  "name": "@worldia/marginalia",
   "version": "1.0.0",
-  "private": true,
   "type": "module",
   "description": "Poller that watches open GitLab MRs, triggers Claude Code headless review, and posts the result as an MR comment.",
   "main": "poll.mjs",
+  "bin": {
+    "marginalia": "bin/marginalia.mjs"
+  },
+  "files": [
+    "bin",
+    "lib",
+    "scripts/*.mjs",
+    "!scripts/check-file-size.mjs",
+    "poll.mjs",
+    "studio/*.mjs",
+    "studio/public/logo.png",
+    "studio/dist",
+    "skills",
+    "examples",
+    "swiftbar",
+    ".env.example"
+  ],
+  "publishConfig": {
+    "access": "restricted"
+  },
   "scripts": {
+    "prepack": "npm --prefix studio ci && npm --prefix studio run build",
     "start": "node poll.mjs",
     "dev": "concurrently -k -n api,studio -c blue,magenta \"npm start\" \"npm run studio:dev\"",
     "setup": "npm install && npm run studio:install && npm run studio:build && npm run init",
@@ -23,8 +43,10 @@
     "node": ">=22"
   },
   "dependencies": {
+    "@clack/prompts": "^1.8.1",
     "@hono/node-server": "^2.1.5",
     "@hono/zod-openapi": "^1.6.3",
+    "commander": "^15.0.0",
     "dotenv": "^16.4.5",
     "hono": "^4.13.13",
     "zod": "^4.6.7"
