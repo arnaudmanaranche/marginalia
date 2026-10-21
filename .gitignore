@@ -21,3 +21,4 @@ worktree/
 
 *storybook.log
 storybook-static
+marginalia.db*

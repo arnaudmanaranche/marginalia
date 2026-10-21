@@ -81,7 +81,7 @@ and an `expect.json`): `npm test` runs the whole contract against it.
 
 ## Requirements
 
-- Node.js 18+ (`nvm use` picks the tested one from `.nvmrc`)
+- Node.js 22+ (`nvm use` picks the tested one from `.nvmrc`)
 - The `claude` CLI installed, on `PATH` (or set `CLAUDE_BIN`), and **logged
   into your claude.ai account** (`claude login`) rather than only configured
   with `ANTHROPIC_API_KEY` — the review command needs the account's GitLab and
@@ -305,7 +305,7 @@ notification falls back to VS Code if the studio isn't listening).
 **Live progress and cost of each run.** Runs use `claude -p --output-format
 stream-json`. While a run is going, the studio shows its last steps above the
 review's details ("Opening …", "Reading …", the commands it runs). When it ends,
-its cost, output tokens and turns are logged and appended to `runs.jsonl`
+its cost, output tokens and turns are logged and recorded in the `run` table of `marginalia.db`
 (gitignored), so you can see what each pass really costs.
 
 ## Keeping the script running

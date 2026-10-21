@@ -20,7 +20,7 @@
     "studio:storybook": "npm --prefix studio run storybook"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=22"
   },
   "dependencies": {
     "dotenv": "^16.4.5",

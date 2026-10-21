@@ -12,6 +12,7 @@ import { fileURLToPath } from 'node:url';
 process.env.MR_REVIEW_BOT_SKIP_CONFIG_CHECK = '1';
 process.env.ALLOW_POSTING = 'false';
 process.env.STUDIO_PORT = '0';
+process.env.MARGINALIA_DB = ':memory:';
 const repo = await mkdtemp(join(tmpdir(), 'marginalia-api-'));
 process.env.REPO_LOCAL_PATH = repo;
 Object.assign(process.env, { GITLAB_BASE_URL: 'https://git.example.com', GITLAB_USERNAME: 'me', GITLAB_TOKEN: 't', GITLAB_PROJECT_ID: 'group/demo' });
