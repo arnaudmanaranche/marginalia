@@ -1,24 +1,18 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { Check, Pencil, Trash2, X } from 'lucide-react';
-import { deleteDraft, updateDraft, type DraftNote } from '../lib/api';
+import type { DraftNote } from '../lib/api';
+import { useDraftMutations } from '../lib/useDrafts';
 import { Button } from './ui/Button';
 import { NoteMarkdown } from './NoteMarkdown';
 
 // One pending draft: read, edit in place, or delete. Goes straight to GitLab's draft notes.
-export function DraftRow({ slug, draft, disabled, onChanged }: { slug: string; draft: DraftNote; disabled: boolean; onChanged: (next: DraftNote | null) => void }) {
+export function DraftRow({ slug, draft, disabled, onChanged }: { slug: string; draft: DraftNote; disabled: boolean; onChanged: () => void }) {
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState(draft.body);
-  const [busy, setBusy] = useState(false);
-  const run = async (action: () => Promise<void>, failure: string) => {
-    setBusy(true);
-    try {
-      await action();
-    } catch (e) {
-      toast.error(failure, { description: (e as Error).message });
-    }
-    setBusy(false);
-  };
+  const { update, remove } = useDraftMutations(slug, onChanged);
+  const busy = update.isPending || remove.isPending;
+  const fail = (failure: string) => (e: Error) => toast.error(failure, { description: e.message });
   return (
     <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-2.5 text-sm dark:border-zinc-800 dark:bg-zinc-950">
       <div className="flex items-center justify-between gap-2">
@@ -26,7 +20,7 @@ export function DraftRow({ slug, draft, disabled, onChanged }: { slug: string; d
         <span className="flex shrink-0 items-center gap-1">
           {editing ? (
             <>
-              <Button size="sm" variant="ghost" disabled={busy || disabled || !text.trim()} onClick={() => run(async () => { await updateDraft(slug, draft.id, text.trim()); onChanged({ ...draft, body: text.trim() }); setEditing(false); }, 'Could not update the draft')}>
+              <Button size="sm" variant="ghost" disabled={busy || disabled || !text.trim()} onClick={() => update.mutate({ draft, body: text.trim() }, { onSuccess: () => setEditing(false), onError: fail('Could not update the draft') })}>
                 <Check className="size-3.5" />Save
               </Button>
               <Button size="sm" variant="ghost" disabled={busy} onClick={() => { setText(draft.body); setEditing(false); }}>
@@ -36,7 +30,7 @@ export function DraftRow({ slug, draft, disabled, onChanged }: { slug: string; d
           ) : (
             <>
               <Button size="sm" variant="ghost" disabled={busy || disabled} onClick={() => setEditing(true)} aria-label="Edit this draft"><Pencil className="size-3.5" />Edit</Button>
-              <Button size="sm" variant="danger" disabled={busy || disabled} onClick={() => run(async () => { await deleteDraft(slug, draft.id); onChanged(null); }, 'Could not delete the draft')} aria-label="Delete this draft">
+              <Button size="sm" variant="danger" disabled={busy || disabled} onClick={() => remove.mutate(draft, { onError: fail('Could not delete the draft') })} aria-label="Delete this draft">
                 <Trash2 className="size-3.5" />Delete
               </Button>
             </>

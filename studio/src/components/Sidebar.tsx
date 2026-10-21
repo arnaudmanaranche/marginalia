@@ -10,11 +10,12 @@ const TONE = { success: 'text-emerald-700 dark:text-emerald-300', warning: 'text
 
 // Navigation / history: every review, in the same groups as Home (whose turn it is on GitLab), plus the
 // retros. Meant to be tucked away; the open reviews live in the tabs.
-export function Sidebar({ items, activeSlug, botBySlug, isUnread, open, onSelect, onClose }: {
+export function Sidebar({ items, activeSlug, botBySlug, isUnread, showProject = false, open, onSelect, onClose }: {
   items: ReviewItem[];
   activeSlug: string | null;
   botBySlug: Map<string, BotState>;
   isUnread: (i: ReviewItem) => boolean;
+  showProject?: boolean;
   open: boolean;
   onSelect: (slug: string) => void;
   onClose: () => void;
@@ -97,6 +98,7 @@ export function Sidebar({ items, activeSlug, botBySlug, isUnread, open, onSelect
                             <span className="min-w-0 flex-1">
                               <span className={cn('line-clamp-2 leading-snug', isUnread(item) && 'font-medium')}>{item.title}{isUnread(item) && <span className="sr-only"> (unread)</span>}</span>
                               <span className="mt-0.5 flex items-center gap-1.5 text-xs text-fg-muted">
+                                {showProject && <span className="max-w-[7rem] truncate rounded bg-zinc-500/10 px-1.5" title="Project">{item.project}</span>}
                                 {item.iid && <span className="font-mono">!{item.iid}</span>}
                                 <span>{timeAgo(item.reviewedAt)}</span>
                                 {standing(item) && <span className={TONE[standing(item)!.tone]}>{standing(item)!.label}</span>}

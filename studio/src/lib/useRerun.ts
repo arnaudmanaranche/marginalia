@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { rerunReview, type BotStatus, type ReviewItem } from './api';
 
@@ -8,17 +9,18 @@ import { rerunReview, type BotStatus, type ReviewItem } from './api';
 export function useRerun(item: ReviewItem | undefined, live: BotStatus['current']) {
   const [rerunning, setRerunning] = useState(false);
   const sawLive = useRef(false);
-  const rerun = async () => {
+  const request = useMutation({ mutationFn: rerunReview });
+  const rerun = () => {
     if (!item) return;
     setRerunning(true);
     sawLive.current = false;
-    try {
-      await rerunReview(item.slug);
-      toast.success(`Review of !${item.iid} queued`, { description: 'It starts now; this page updates when it is done.' });
-    } catch (e) {
-      toast.error('Could not re-run the review', { description: (e as Error).message });
-      setRerunning(false);
-    }
+    request.mutate(item.slug, {
+      onSuccess: () => toast.success(`Review of !${item.iid} queued`, { description: 'It starts now; this page updates when it is done.' }),
+      onError: (e) => {
+        toast.error('Could not re-run the review', { description: e.message });
+        setRerunning(false);
+      },
+    });
   };
   useEffect(() => {
     if (!rerunning) return;
