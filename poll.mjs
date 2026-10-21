@@ -14,7 +14,75 @@ import { jiraPriorityOf } from './lib/jira.mjs';
 import { reviewOutputPath, mrCommentsOutputPath, mtimeOrNull } from './lib/paths.mjs';
 import { ensureBotWorktree } from './lib/worktree.mjs';
 import { runReview, runMrComments } from './lib/claude-runner.mjs';
-import { analyzeStacks } from './lib/stack.mjs';
+import { planMergeRequests, needsTriage, recordBelow, pruneState } from './lib/poll-plan.mjs';
+import { reviewEntry, commentsEntry } from './lib/poll-status.mjs';
+
+// Marks the bot busy on one MR while `work` runs, then back to polling.
+async function whileReviewing(mr, work) {
+  status.phase = 'reviewing';
+  status.current = { iid: mr.iid, title: mr.title, web_url: mr.web_url, startedAt: new Date().toISOString() };
+  await setMrStatus(mr, { status: 'reviewing' });
+  try {
+    await work();
+  } finally {
+    status.phase = 'polling';
+    status.current = null;
+    await writeStatus();
+  }
+}
+
+// Not recorded in state on a skip: the next poll retries it, once the branch has
+// been switched away from in the other worktree.
+const skipped = (mr) => setMrStatus(mr, { status: 'skipped', error: `Branch "${mr.source_branch}" is checked out in another worktree.` });
+
+async function reviewOne(mr, plan, state) {
+  // First time the bot ever sees this MR: if a review file already sits there
+  // (written by hand via /code-review, or by a previous run of this bot before
+  // state.json existed) and is newer than the last push, trust it and don't
+  // redo the work. A file older than the last push predates some commits, so
+  // it falls through to a real review.
+  if (state[mr.iid] === undefined && (await reviewFileCoversLastPush(mr))) {
+    log(mr, `A review file newer than the last push already exists at ${reviewOutputPath(mr)}, assuming it covers this commit. Skipping.`);
+    state[mr.iid] = mr.sha;
+    recordBelow(state, mr, plan.parentOf(mr));
+    await saveState(state);
+    await setMrStatus(mr, { status: 'up_to_date' });
+    return;
+  }
+  await whileReviewing(mr, async () => {
+    try {
+      const info = plan.stackInfo(mr);
+      const outcome = await runReview(mr, reviewOutputPath(mr), info && { stacks: plan.stacks, info });
+      if (outcome !== 'reviewed') return skipped(mr);
+      state[mr.iid] = mr.sha;
+      recordBelow(state, mr, plan.parentOf(mr));
+      await saveState(state);
+      await setMrStatus(mr, { status: 'up_to_date', reviewedAt: new Date().toISOString() });
+      notify('Review ready', `!${mr.iid} ${mr.title}`, reviewOutputPath(mr));
+    } catch (err) {
+      console.error(`${timestamp()} ${c.red}${mrTag(mr)} Review failed:${c.reset}`, err);
+      await setMrStatus(mr, { status: 'failed', error: err.message });
+      notify('Review failed', `!${mr.iid} ${mr.title}`);
+    }
+  });
+}
+
+async function triageOne(mr, peerCommentAt, state) {
+  await whileReviewing(mr, async () => {
+    try {
+      const outcome = await runMrComments(mr);
+      if (outcome !== 'reviewed') return skipped(mr);
+      state.mineComments[mr.iid] = peerCommentAt;
+      await saveState(state);
+      await setMrStatus(mr, { status: 'up_to_date', reviewedAt: new Date().toISOString() });
+      notify('Comments triaged', `!${mr.iid} ${mr.title}`, mrCommentsOutputPath(mr));
+    } catch (err) {
+      console.error(`${timestamp()} ${c.red}${mrTag(mr)} Comment triage failed:${c.reset}`, err);
+      await setMrStatus(mr, { status: 'failed', error: err.message });
+      notify('Comment triage failed', `!${mr.iid} ${mr.title}`);
+    }
+  });
+}
 
 async function poll() {
   const ts = timestamp();
@@ -24,37 +92,19 @@ async function poll() {
   const state = await loadState();
   state.mineComments ??= {};
   state.stackBelow ??= {};
-  const openMrs = await listOpenMergeRequests();
-  // A stacked MR targets the branch of the MR below it, so the allowed-targets
-  // filter looks at the branch the whole stack is based on.
-  const stacks = analyzeStacks(openMrs);
-  const openByIid = new Map(openMrs.map((mr) => [mr.iid, mr]));
-  const targets = allowedTargets();
-  const allMrs = targets.length
-    ? openMrs.filter((mr) => targets.includes(stacks.get(mr.iid).baseBranch))
-    : openMrs;
-  const stackInfo = (mr) => {
-    const info = stacks.get(mr.iid);
-    return info && info.size > 1 ? info : null;
-  };
-  const parentOf = (mr) => openByIid.get(stacks.get(mr.iid)?.parentIid) ?? null;
-  // Reviewed at this commit, and the layer below hasn't moved since.
-  const isCurrent = (mr) => state[mr.iid] === mr.sha && (parentOf(mr) === null || state.stackBelow[mr.iid] === parentOf(mr).sha);
+  const plan = planMergeRequests({
+    openMrs: await listOpenMergeRequests(),
+    state,
+    allowedTargets: allowedTargets(),
+    username: GITLAB_USERNAME,
+    triageEnabled: Boolean(TRIAGE_COMMAND),
+  });
+  const { reviewMrs, myMrs } = plan;
 
-  // MRs authored by someone else go through /code-review as before; MRs I
-  // authored myself get their reviewer comments triaged via /mr-comments.
-  // Bottom layers first, so a layer is reviewed after the ones it builds on.
-  const reviewMrs = allMrs
-    .filter((mr) => mr.author.username !== GITLAB_USERNAME)
-    .sort((a, b) => stacks.get(a.iid).depth - stacks.get(b.iid).depth);
-  const myMrs = TRIAGE_COMMAND ? allMrs.filter((mr) => mr.author.username === GITLAB_USERNAME) : [];
-
-  const toReview = reviewMrs.filter((mr) => !isCurrent(mr));
+  const toReview = reviewMrs.filter((mr) => !plan.isCurrent(mr));
   const peerCommentAts = await Promise.all(myMrs.map((mr) => latestPeerCommentAt(mr)));
   const myMrsWithSignal = myMrs.map((mr, i) => ({ mr, peerCommentAt: peerCommentAts[i] }));
-  const toTriage = myMrsWithSignal.filter(
-    ({ mr, peerCommentAt }) => peerCommentAt !== null && state.mineComments[mr.iid] !== peerCommentAt,
-  );
+  const toTriage = myMrsWithSignal.filter(({ mr, peerCommentAt }) => needsTriage(state, mr, peerCommentAt));
 
   // The review/report file's mtime doubles as "last reviewed at", so files
   // written by hand or before this field existed get a date too.
@@ -66,35 +116,12 @@ async function poll() {
   const previous = new Map(status.mrs.map((m) => [m.iid, m.myState]));
   const stateOf = (mr) => states.get(mr.iid) ?? previous.get(mr.iid) ?? null;
   status.mrs = [
-    ...reviewMrs.map((mr, i) => ({
-      iid: mr.iid,
-      title: mr.title,
-      web_url: mr.web_url,
-      author: mr.author.username,
-      kind: 'review',
-      status: isCurrent(mr) ? 'up_to_date' : 'pending',
-      targetBranch: mr.target_branch,
-      sourceBranch: mr.source_branch,
-      stack: stackInfo(mr) && { id: stackInfo(mr).id, position: stackInfo(mr).position, size: stackInfo(mr).size, parentIid: stackInfo(mr).parentIid, baseBranch: stackInfo(mr).baseBranch },
-      reviewPath: reviewOutputPath(mr),
-      reviewedAt: reviewedAts[i] === null ? null : new Date(reviewedAts[i]).toISOString(),
-      error: null,
-      updatedAt: mr.updated_at,
-      jira: jiras[i],
-      myState: stateOf(mr),
-    })),
-    ...myMrsWithSignal.map(({ mr, peerCommentAt }, i) => ({
-      iid: mr.iid,
-      title: mr.title,
-      web_url: mr.web_url,
-      author: mr.author.username,
-      kind: 'comments',
+    ...reviewMrs.map((mr, i) => reviewEntry(mr, { plan, reviewPath: reviewOutputPath(mr), reviewedAtMs: reviewedAts[i], jira: jiras[i], myState: stateOf(mr) })),
+    ...myMrsWithSignal.map(({ mr, peerCommentAt }, i) => commentsEntry(mr, {
       // No peer comment at all counts as "up to date": there is nothing to triage yet.
-      status: peerCommentAt === null || state.mineComments[mr.iid] === peerCommentAt ? 'up_to_date' : 'pending',
+      pending: needsTriage(state, mr, peerCommentAt),
       reviewPath: mrCommentsOutputPath(mr),
-      reviewedAt: triagedAts[i] === null ? null : new Date(triagedAts[i]).toISOString(),
-      error: null,
-      updatedAt: mr.updated_at,
+      reviewedAtMs: triagedAts[i],
       myState: stateOf(mr),
     })),
   ];
@@ -106,103 +133,10 @@ async function poll() {
       `${needColor}${toReview.length} need a review, ${toTriage.length} need comment triage${c.reset}.`,
   );
 
-  // The lower layer's commit this review was made on top of; when it moves, this layer is stale.
-  const recordBelow = (mr) => {
-    const parent = parentOf(mr);
-    if (parent) state.stackBelow[mr.iid] = parent.sha;
-    else delete state.stackBelow[mr.iid];
-  };
+  for (const mr of toReview) await reviewOne(mr, plan, state);
+  for (const { mr, peerCommentAt } of toTriage) await triageOne(mr, peerCommentAt, state);
 
-  const seenReviewIids = new Set();
-  for (const mr of reviewMrs) {
-    seenReviewIids.add(String(mr.iid));
-    if (isCurrent(mr)) continue; // already reviewed at this commit, on top of the same lower layer
-
-    // First time the bot ever sees this MR: if a review file already sits there
-    // (written by hand via /code-review, or by a previous run of this bot before
-    // state.json existed) and is newer than the last push, trust it and don't
-    // redo the work. A file older than the last push predates some commits, so
-    // it falls through to a real review.
-    if (state[mr.iid] === undefined && (await reviewFileCoversLastPush(mr))) {
-      log(mr, `A review file newer than the last push already exists at ${reviewOutputPath(mr)}, assuming it covers this commit. Skipping.`);
-      state[mr.iid] = mr.sha;
-      recordBelow(mr);
-      await saveState(state);
-      await setMrStatus(mr, { status: 'up_to_date' });
-      continue;
-    }
-
-    status.phase = 'reviewing';
-    status.current = { iid: mr.iid, title: mr.title, web_url: mr.web_url, startedAt: new Date().toISOString() };
-    await setMrStatus(mr, { status: 'reviewing' });
-    try {
-      const info = stackInfo(mr);
-      const outcome = await runReview(mr, reviewOutputPath(mr), info && { stacks, info });
-      if (outcome === 'reviewed') {
-        state[mr.iid] = mr.sha;
-        recordBelow(mr);
-        await saveState(state);
-        await setMrStatus(mr, { status: 'up_to_date', reviewedAt: new Date().toISOString() });
-        notify('Review ready', `!${mr.iid} ${mr.title}`, reviewOutputPath(mr));
-      } else {
-        // Not recorded in state: the next poll retries it, once the branch has
-        // been switched away from in the other worktree.
-        await setMrStatus(mr, { status: 'skipped', error: `Branch "${mr.source_branch}" is checked out in another worktree.` });
-      }
-    } catch (err) {
-      console.error(`${timestamp()} ${c.red}${mrTag(mr)} Review failed:${c.reset}`, err);
-      await setMrStatus(mr, { status: 'failed', error: err.message });
-      notify('Review failed', `!${mr.iid} ${mr.title}`);
-    } finally {
-      status.phase = 'polling';
-      status.current = null;
-      await writeStatus();
-    }
-  }
-
-  const seenMineIids = new Set();
-  for (const { mr, peerCommentAt } of myMrsWithSignal) {
-    seenMineIids.add(String(mr.iid));
-    if (peerCommentAt === null) continue; // no peer comment yet, nothing to triage
-    if (state.mineComments[mr.iid] === peerCommentAt) continue; // already triaged up to this comment
-
-    status.phase = 'reviewing';
-    status.current = { iid: mr.iid, title: mr.title, web_url: mr.web_url, startedAt: new Date().toISOString() };
-    await setMrStatus(mr, { status: 'reviewing' });
-    try {
-      const outcome = await runMrComments(mr);
-      if (outcome === 'reviewed') {
-        state.mineComments[mr.iid] = peerCommentAt;
-        await saveState(state);
-        await setMrStatus(mr, { status: 'up_to_date', reviewedAt: new Date().toISOString() });
-        notify('Comments triaged', `!${mr.iid} ${mr.title}`, mrCommentsOutputPath(mr));
-      } else {
-        // Not recorded in state: the next poll retries it, once the branch has
-        // been switched away from in the other worktree.
-        await setMrStatus(mr, { status: 'skipped', error: `Branch "${mr.source_branch}" is checked out in another worktree.` });
-      }
-    } catch (err) {
-      console.error(`${timestamp()} ${c.red}${mrTag(mr)} Comment triage failed:${c.reset}`, err);
-      await setMrStatus(mr, { status: 'failed', error: err.message });
-      notify('Comment triage failed', `!${mr.iid} ${mr.title}`);
-    } finally {
-      status.phase = 'polling';
-      status.current = null;
-      await writeStatus();
-    }
-  }
-
-  // Drop state for MRs that are no longer open (merged/closed) or no longer eligible.
-  for (const iid of Object.keys(state)) {
-    if (iid === 'mineComments' || iid === 'stackBelow') continue;
-    if (!seenReviewIids.has(iid)) delete state[iid];
-  }
-  for (const iid of Object.keys(state.stackBelow)) {
-    if (!seenReviewIids.has(iid)) delete state.stackBelow[iid];
-  }
-  for (const iid of Object.keys(state.mineComments)) {
-    if (!seenMineIids.has(iid)) delete state.mineComments[iid];
-  }
+  pruneState(state, new Set(reviewMrs.map((mr) => String(mr.iid))), new Set(myMrs.map((mr) => String(mr.iid))));
   await saveState(state);
   console.log(`${timestamp()} ${c.dim}Poll done. Next one in ${loadSettings().pollIntervalMinutes} minute(s).${c.reset}`);
 }
