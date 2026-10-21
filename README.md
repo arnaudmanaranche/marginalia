@@ -433,6 +433,12 @@ Put your checkouts in `./repos` (or set `REPOS_DIR`). Then `docker compose run -
 - **Commands and skills** must be visible *inside* the container: in each checkout's `.claude/`
   (mounted), in the team repo (`marginalia sync`), or in the `claude` volume's `commands/` and `skills/`.
   Your host's `~/.claude` is not mounted.
+- **Trust.** Claude ignores a repo's own `.claude/settings*.json` until you accept its trust dialog, which nobody
+  can do in a container. At start the image records that you trust the repos listed in your `config.json`
+  (`docker/trust.mjs`, once you have logged in): the same decision as accepting the dialog in your own checkout.
+  `MARGINALIA_TRUST_REPOS=0` turns it off.
+- **Leftover worktree entry.** The bot makes its worktree (`/data/worktree`) through the mounted repo's `.git`, so
+  your host repo lists it, as `prunable`, once the container is gone. `git worktree prune` clears it.
 - **Git** reaches GitLab over HTTPS with the `GITLAB_TOKEN` from `config.json` or the environment: SSH
   remotes are rewritten at start and a credential helper hands over the token only to the GitLab host, so
   it is never written to a gitconfig or put in the environment of the Claude runs. `MARGINALIA_GIT_SSH=1`
@@ -444,6 +450,8 @@ Put your checkouts in `./repos` (or set `REPOS_DIR`). Then `docker compose run -
 - **The studio has no login.** It listens on `0.0.0.0` *inside* the container; `compose.yaml` publishes
   it on `127.0.0.1` only. Do not publish it on a network interface. If you map another host port, list its
   Host values in `STUDIO_ALLOWED_HOSTS` (compose does this for `STUDIO_HOST_PORT`).
+- **`config.json` and the environment.** For `CLAUDE_BIN`, `CLAUDE_SANDBOX`, `NOTIFICATIONS` and `STUDIO_PORT`, a real
+  environment variable beats `config.json` (which always has a value for them); everything else is `config.json`'s.
 - **`ANTHROPIC_API_KEY` is ignored on purpose** (the reviews need the claude.ai account's connectors), as
   outside the container.
 - To update: `docker compose build --pull && docker compose up -d`. State lives in the volumes, so it survives.

@@ -73,3 +73,13 @@ test('config.json: absent gives null, valid gives the config, invalid throws wit
   writeFileSync(join(dir, 'config.json'), '{nope');
   assert.throws(() => readConfigFile(dir), /not valid JSON/);
 });
+
+test('a container can still set the global settings: real environment variables beat config.json\'s defaults', async () => {
+  const { envOverrides } = await import('../lib/config-env.mjs');
+  const fromFile = envFromConfig(parseConfig(configFromEnv(ENV)).config);
+  assert.equal(fromFile.CLAUDE_SANDBOX, 'true', 'the file alone says true (the schema default)');
+  const env = { ...fromFile, ...envOverrides({ CLAUDE_SANDBOX: 'false', STUDIO_PORT: '', NOTIFICATIONS: undefined, GITLAB_TOKEN: 'ignored' }) };
+  assert.equal(env.CLAUDE_SANDBOX, 'false');
+  assert.equal(env.STUDIO_PORT, fromFile.STUDIO_PORT, 'an empty variable is not an override');
+  assert.equal(env.GITLAB_TOKEN, fromFile.GITLAB_TOKEN, 'only the four global settings can be overridden');
+});
