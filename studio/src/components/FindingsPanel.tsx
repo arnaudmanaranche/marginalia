@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { ChevronRight, Pencil, Send, X } from 'lucide-react';
-import { toast } from 'sonner';
-import { postComment, type Finding, type PostedInfo } from '../lib/api';
+import { ChevronRight, MessagesSquare, Pencil, Send, X } from 'lucide-react';
+import type { Finding, PostedInfo, Thread } from '../lib/api';
+import { addToReview } from '../lib/pendingPosts';
+import { raisedElsewhere, type RaisedBy } from '../lib/raisedElsewhere';
 import { cn } from '../lib/utils';
 import { scrollInPane, type Focus } from '../lib/tourFocus';
 import { Badge } from './ui/Badge';
@@ -26,11 +27,12 @@ interface PostProps {
 // What the review's report doesn't let you comment on from its own text: findings the
 // bot read from a structured file, or that came without a ready comment. Every finding
 // can be commented on here, so the experience doesn't depend on how the skill wrote it.
-export function FindingsPanel({ findings, compact = false, focus = null, onFocus, ...post }: { findings: Finding[]; compact?: boolean; focus?: Focus | null; onFocus?: (id: string) => void } & PostProps) {
+// A finding someone else already raised in a thread is folded up (see raisedElsewhere()).
+export function FindingsPanel({ findings, threads = [], compact = false, focus = null, onFocus, ...post }: { findings: Finding[]; threads?: Thread[]; compact?: boolean; focus?: Focus | null; onFocus?: (id: string) => void } & PostProps) {
   return (
     <ul className="space-y-3">
       {findings.map((f) => (
-        <li key={f.id}><FindingCard finding={f} compact={compact} focus={focus} onFocus={onFocus} {...post} /></li>
+        <li key={f.id}><FindingCard finding={f} raised={raisedElsewhere(f, threads)} compact={compact} focus={focus} onFocus={onFocus} {...post} /></li>
       ))}
     </ul>
   );
@@ -91,7 +93,28 @@ function CommentArea({ finding, text, onText, editing, onEditing, showActions, l
   );
 }
 
-function FindingCard({ finding, compact = false, focus = null, onFocus, slug, iid, allowPosting, locked, posted, reload }: { finding: Finding; compact?: boolean; focus?: Focus | null; onFocus?: (id: string) => void } & PostProps) {
+// Folded: who raised the point first and what they said, with a way to comment on it anyway.
+function RaisedCard({ finding, raised, onFocus, onUnfold }: { finding: Finding; raised: RaisedBy; onFocus?: (id: string) => void; onUnfold: () => void }) {
+  const { path, line, resolved } = raised.thread;
+  const where = `${path.split('/').pop()}${line ? `:${line}` : ''}`;
+  return (
+    <div className="flex gap-2 rounded-lg border border-dashed border-zinc-300 px-3 py-2 text-sm text-fg-muted dark:border-zinc-700">
+      <MessagesSquare className="mt-0.5 size-4 shrink-0 text-fg-subtle" aria-hidden />
+      <div className="min-w-0 flex-1">
+        <p className="font-medium leading-snug text-zinc-900 dark:text-zinc-100"><span className="sr-only">{finding.severity}: </span>{finding.title}</p>
+        <p className="mt-0.5 text-xs">
+          Already raised by {raised.author} in a {resolved ? 'resolved' : 'open'} thread on{' '}
+          <button type="button" onClick={() => onFocus?.(finding.id)} title={`${path}${line ? `:${line}` : ''} (show it in the diff)`} className="break-all font-mono text-blue-600 hover:underline dark:text-blue-400">{where}</button>
+        </p>
+        <NoteMarkdown className="mt-1.5 line-clamp-4 border-l-2 border-zinc-300 pl-2 text-xs text-fg-muted prose-p:my-0 dark:border-zinc-700">{raised.body}</NoteMarkdown>
+        <Button size="sm" variant="ghost" className="-ml-2 mt-2" onClick={onUnfold}>Comment anyway</Button>
+      </div>
+    </div>
+  );
+}
+
+function FindingCard({ finding, raised, compact = false, focus = null, onFocus, slug, iid, allowPosting, locked, posted, reload }: { finding: Finding; raised: RaisedBy | null; compact?: boolean; focus?: Focus | null; onFocus?: (id: string) => void } & PostProps) {
+  const [unfolded, setUnfolded] = useState(false);
   const [text, setText] = useState(finding.comment ?? '');
   // Beside a diff a finding is one line (its title and an Add); its explanation and comment open on click.
   const [expanded, setExpanded] = useState(!compact);
@@ -109,6 +132,8 @@ function FindingCard({ finding, compact = false, focus = null, onFocus, slug, ii
     return () => clearTimeout(t);
   }, [focus, finding.id]);
   const info = posted[`${slug}:${finding.id}`];
+  // Once posted it is mine whatever the thread says: it shows as posted, not as folded.
+  if (raised && !info && !unfolded) return <div ref={rootRef} tabIndex={-1} className={cn('rounded-lg transition-shadow focus:outline-none', flash && 'ring-2 ring-blue-500')}><RaisedCard finding={finding} raised={raised} onFocus={onFocus} onUnfold={() => { setUnfolded(true); setExpanded(true); }} /></div>;
   const target = findingTarget(finding);
   const canPost = allowPosting && !info && !locked && text.trim().length > 0;
   const confirm = confirming && (
@@ -118,12 +143,9 @@ function FindingCard({ finding, compact = false, focus = null, onFocus, slug, ii
       target={target}
       fallbackRef={rootRef}
       onCancel={() => setConfirming(false)}
-      onConfirm={async () => {
-        const result = await postComment(slug, finding.id, text.trim(), target ?? undefined);
+      onConfirm={() => {
         setConfirming(false);
-        reload();
-        if (target && result.inline === false) toast.warning('Could not anchor it to the diff, added as a general comment');
-        toast.success(`Added to your pending review of !${iid}`, { description: 'Submit the review to publish it.' });
+        addToReview({ slug, iid, commentId: finding.id, body: text.trim(), target: target ?? undefined, reload });
       }}
     />
   );

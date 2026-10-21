@@ -6,11 +6,14 @@ import { VerdictBadge } from './VerdictBadge';
 import { Button } from './ui/Button';
 
 // Title, verdict and the actions on a review.
-export function ReaderHeader({ item, risk, showSubmit, draftCount, onSubmit, versions, versionId, onVersion, locked, onRerun }: {
+export function ReaderHeader({ item, risk, showSubmit, draftCount, sending, reviewing, onSubmit, versions, versionId, onVersion, locked, onRerun }: {
   item: ReviewItem | undefined;
   risk: Risk | null;
   showSubmit: boolean;
   draftCount: number;
+  sending: boolean;
+  // The bot is reviewing the MR: the findings behind the drafts are about to be replaced.
+  reviewing: boolean;
   onSubmit: () => void;
   versions: ReviewVersion[];
   versionId: string | null;
@@ -31,8 +34,8 @@ export function ReaderHeader({ item, risk, showSubmit, draftCount, onSubmit, ver
       </div>
       <div className="flex shrink-0 items-center gap-2">
         {showSubmit && (
-          <Button variant="primary" onClick={onSubmit}>
-            <Send className="size-3.5" />Submit review{draftCount > 0 ? ` (${draftCount})` : ''}
+          <Button variant="primary" disabled={sending || reviewing} title={sending ? 'Waiting for GitLab to confirm the comments being added' : reviewing ? 'Wait for the review in progress to finish' : undefined} onClick={onSubmit}>
+            {sending ? <Loader2 className="size-3.5 animate-spin motion-reduce:animate-pulse" /> : <Send className="size-3.5" />}Submit review{draftCount > 0 ? ` (${draftCount})` : ''}
           </Button>
         )}
         {versions.length > 0 && (

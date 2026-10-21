@@ -21,7 +21,9 @@ test('after my review, a push or an answer by the author sends it back to me', (
   assert.equal(groupOf(review('a', state({ ...mine, authorActivityAt: DAY2 }))), 'returned', 'answered after me');
   assert.equal(groupOf(review('a', state({ ...mine, lastPushAt: '2026-10-08T00:00:00Z' }))), 'waiting', 'the push came before my review');
   assert.equal(groupOf(review('a', state({ ...mine, peerActivityAt: DAY2 }))), 'waiting', 'another reviewer writing is not the author');
-  assert.equal(groupOf(review('a', state({ reviewed: true, decision: 'approved', myActivityAt: DAY1, lastPushAt: DAY2 }))), 'returned', 'a push after my approval needs another look');
+  assert.equal(groupOf(review('a', state({ reviewed: true, decision: 'approved', myActivityAt: DAY1, lastPushAt: DAY2 }))), 'done', 'a push after my approval does not hand it back');
+  assert.equal(groupOf(review('a', state({ reviewed: true, decision: 'approved', myActivityAt: DAY1, authorActivityAt: DAY2 }))), 'done', 'nor does an answer');
+  assert.equal(groupOf(review('a', state({ reviewed: true, decision: 'approved', myActivityAt: DAY1, lastPushAt: DAY2, drafts: 1 }))), 'unsent', 'unless I still have drafts to send');
 });
 
 test('pending drafts, my approval and a plain comment each land where they belong', () => {

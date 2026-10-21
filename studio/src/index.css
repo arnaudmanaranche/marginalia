@@ -4,6 +4,14 @@
 @theme {
   --font-sans: ui-sans-serif, -apple-system, 'Inter', 'Segoe UI', system-ui, sans-serif;
   --font-mono: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, monospace;
+
+  /* The filled primary action (bg-primary). Hover is the same hue, a little darker. */
+  --color-primary: hsl(210 100% 50%);
+  --color-primary-hover: hsl(210 100% 44%);
+  --color-primary-foreground: hsl(210 20% 98%);
+  /* The light on the primary button's face, softer on hover. */
+  --button-face-inset-shadow: inset 0 3px 8px 0 #ffffff7a;
+  --button-face-inset-shadow-hover: inset 0 3px 8px 0 #ffffff4d;
 }
 
 :root {

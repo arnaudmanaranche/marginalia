@@ -14,16 +14,21 @@ function Heading({ group }: { group: Group }) {
   );
 }
 
-function List({ group, isUnread }: { group: Group; isUnread: (i: ReviewItem) => boolean }) {
+interface RowState {
+  isUnread: (i: ReviewItem) => boolean;
+  isReviewing: (i: ReviewItem) => boolean;
+}
+
+function List({ group, isUnread, isReviewing }: { group: Group } & RowState) {
   return (
     <ul className="divide-y divide-zinc-200 overflow-hidden rounded-xl border border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800">
-      {group.items.map((i) => <ReviewRow key={i.slug} item={i} unread={isUnread(i)} />)}
+      {group.items.map((i) => <ReviewRow key={i.slug} item={i} unread={isUnread(i)} reviewing={isReviewing(i)} />)}
     </ul>
   );
 }
 
 // The reviews grouped by whose turn it is. What waits on you comes first; what is done is folded.
-export function ReviewGroups({ groups, isUnread }: { groups: Group[]; isUnread: (i: ReviewItem) => boolean }) {
+export function ReviewGroups({ groups, ...row }: { groups: Group[] } & RowState) {
   return (
     <div className="mt-6 space-y-8">
       {groups.map((g) => (g.collapsed ? (
@@ -32,12 +37,12 @@ export function ReviewGroups({ groups, isUnread }: { groups: Group[]; isUnread: 
             <ChevronRight className="size-4 text-fg-subtle transition-transform group-open:rotate-90 motion-reduce:transition-none" aria-hidden />
             <Heading group={g} />
           </summary>
-          <List group={g} isUnread={isUnread} />
+          <List group={g} {...row} />
         </details>
       ) : (
         <section key={g.id} aria-label={g.title}>
           <h2 className="mb-3 flex items-center gap-2 text-sm"><Heading group={g} /></h2>
-          <List group={g} isUnread={isUnread} />
+          <List group={g} {...row} />
         </section>
       )))}
     </div>

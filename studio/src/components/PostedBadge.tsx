@@ -1,4 +1,4 @@
-import { Check, ExternalLink } from 'lucide-react';
+import { Check, ExternalLink, Loader2 } from 'lucide-react';
 import type { PostedInfo } from '../lib/api';
 import { cn, timeAgo } from '../lib/utils';
 import { Badge } from './ui/Badge';
@@ -7,6 +7,13 @@ import { badgeClass } from './ui/badgeStyles';
 // Where a comment stands on GitLab: in the pending review, or published (with a link to it).
 export function PostedBadge({ info, className }: { info: PostedInfo | undefined; className?: string }) {
   if (!info) return null;
+  if (info.pending) {
+    return (
+      <Badge tone="neutral" ring className={className}>
+        <Loader2 className="size-3 animate-spin motion-reduce:animate-pulse" />Adding to review…
+      </Badge>
+    );
+  }
   if (info.state === 'draft') {
     return (
       <Badge tone="warning" ring className={className}>

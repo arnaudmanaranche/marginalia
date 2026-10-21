@@ -9,7 +9,8 @@ import { readFile, readdir, stat } from 'node:fs/promises';
 import { watch } from 'node:fs';
 import { join, dirname, extname, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { REVIEWS_DIR, STATUS_FILE, STUDIO_PORT, ALLOW_POSTING, ALLOW_PUSH, JIRA_BASE_URL } from '../lib/config.mjs';
+import { REVIEWS_DIR, STATUS_FILE, STUDIO_PORT, ALLOW_POSTING, ALLOW_PUSH, JIRA_BASE_URL, GITLAB_BASE_URL, GITLAB_TOKEN, encodedProjectId } from '../lib/config.mjs';
+import { uploadFetchPath } from '../lib/gitlab-upload.mjs';
 import { fixesStatus, pushFixes } from '../lib/fixes.mjs';
 import { TRIAGE_FILE_PREFIX } from '../lib/paths.mjs';
 import { loadPosted, savePosted } from '../lib/posted.mjs';
@@ -516,6 +517,21 @@ async function pushTriageFixes(req, res) {
   return run;
 }
 
+// An image a GitLab note embeds, fetched with the token (the browser has no GitLab login).
+async function serveGitlabImage(res, src) {
+  const path = uploadFetchPath(src, GITLAB_BASE_URL, encodedProjectId);
+  if (!path) return json(res, 400, { error: 'not a GitLab upload' });
+  try {
+    const upstream = await fetch(`${GITLAB_BASE_URL}${path}`, { headers: { 'PRIVATE-TOKEN': GITLAB_TOKEN }, redirect: 'follow' });
+    const type = upstream.headers.get('content-type') ?? '';
+    if (!upstream.ok || !/^image\/(png|jpe?g|gif|webp|avif|bmp)/i.test(type)) return json(res, 404, { error: 'image unavailable' });
+    res.writeHead(200, { 'content-type': type, 'cache-control': 'private, max-age=3600', 'x-content-type-options': 'nosniff' });
+    res.end(Buffer.from(await upstream.arrayBuffer()));
+  } catch {
+    return json(res, 502, { error: 'image unavailable' });
+  }
+}
+
 async function handle(req, res) {
   const { pathname, searchParams } = new URL(req.url, 'http://localhost');
   if (req.method === 'PUT' && pathname === '/api/settings') return putSettings(req, res);
@@ -527,6 +543,7 @@ async function handle(req, res) {
   if ((req.method === 'PUT' || req.method === 'DELETE') && pathname.startsWith('/api/drafts/')) return mutateDraft(req, res, pathname);
   if (req.method !== 'GET') return json(res, 405, { error: 'read-only' });
 
+  if (pathname === '/api/gitlab-image') return serveGitlabImage(res, searchParams.get('src') ?? '');
   if (pathname === '/api/reviews') return json(res, 200, await listReviews());
 
   // Previous versions of a review (/api/history/:slug) and one of them (/api/history/:slug/:id).

@@ -3,6 +3,7 @@ import { LazyMotion, MotionConfig } from 'motion/react';
 import { Inbox } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
 import { loadSeen, saveSeen, useReview, useReviews, type ReviewItem } from './lib/api';
+import { useMergedPosted } from './lib/pendingPosts';
 import { groupReviews, waitingOnYou } from './lib/dashboard';
 import { usePersistentState, useOpenTabs } from './lib/layout';
 import { StatusBar } from './components/StatusBar';
@@ -111,6 +112,7 @@ function useHomeGroups(items: ReviewItem[]) {
 
 export function App() {
   const { data, error, reload } = useReviews();
+  const posted = useMergedPosted(data?.posted ?? EMPTY_POSTED);
   const slug = useHashSlug();
   const [palette, setPalette] = useState(false);
   // Tucked away by default: the tabs are the working set, the sidebar is history.
@@ -146,7 +148,9 @@ export function App() {
     }
     return m;
   }, [data]);
-  const isPosted = (i: ReviewItem) => Object.keys(data?.posted ?? {}).some((k) => k.startsWith(`${i.slug}:`));
+  // The bot is reviewing it right now: its row is disabled until the new report is written.
+  const isReviewing = (i: ReviewItem) => botBySlug.get(i.slug) === 'reviewing' || (i.iid != null && String(i.iid) === String(data?.status?.current?.iid));
+  const isPosted = (i: ReviewItem) => Object.keys(posted).some((k) => k.startsWith(`${i.slug}:`));
   const current = items.find((i) => i.slug === slug);
   const stack = current?.stackId ? data?.stacks.find((s) => s.id === current.stackId) : undefined;
   const { content: review, error: reviewError, retry: retryReview } = useReview(slug === SETTINGS_ROUTE ? null : slug, current?.reviewedAt);
@@ -200,7 +204,7 @@ export function App() {
         {stack && current && <StackBoard stack={stack} items={items} current={current} isPosted={isPosted} onSelect={go} />}
         {!data ? <ReviewSkeleton /> : !current ? <ReviewMissing /> : (
         <Suspense fallback={<ReviewSkeleton />}>
-        <ReviewReader item={current} review={review} reviewError={reviewError} onRetry={retryReview} projectUrl={data?.projectUrl ?? null} allowPosting={data?.allowPosting ?? false} allowPush={data?.allowPush ?? false} live={current && data?.status?.current && String(data.status.current.iid) === String(current.iid) ? data.status.current : null} posted={data?.posted ?? EMPTY_POSTED} reload={reload} />
+        <ReviewReader item={current} review={review} reviewError={reviewError} onRetry={retryReview} projectUrl={data?.projectUrl ?? null} allowPosting={data?.allowPosting ?? false} allowPush={data?.allowPush ?? false} showFullDiff={data?.settings.showFullDiff ?? true} live={current && data?.status?.current && String(data.status.current.iid) === String(current.iid) ? data.status.current : null} posted={posted} reload={reload} />
         </Suspense>
         )}
         </>
@@ -215,7 +219,7 @@ export function App() {
           {data && groups.length === 0 ? (
             <div className="mt-16 flex flex-col items-center gap-2 text-fg-muted"><Inbox className="size-8" />No recent reviews.</div>
           ) : (
-            <ReviewGroups groups={groups} isUnread={isUnread} />
+            <ReviewGroups groups={groups} isUnread={isUnread} isReviewing={isReviewing} />
           )}
         </div>
       )}

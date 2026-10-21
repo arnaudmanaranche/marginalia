@@ -4,7 +4,7 @@ import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
 import { LinkContext, linkify, type LinkContextValue } from '../lib/links';
 import { HIGHLIGHT } from '../lib/highlight';
-import { codeComponents, textOf } from '../lib/markdown';
+import { codeComponents, imageComponents, textOf } from '../lib/markdown';
 import { cn } from '../lib/utils';
 import { SourceContext } from '../lib/reviewContexts';
 import { Quote } from './ReviewComment';
@@ -27,6 +27,7 @@ function makeComponents(ctx: LinkContextValue): Components {
     strong: ({ children }) => <strong>{wrap(children)}</strong>,
     em: ({ children }) => <em>{wrap(children)}</em>,
     ...codeComponents(ctx),
+    ...imageComponents,
     blockquote: ({ node, children }) => <Quote offset={node?.position?.start.offset}>{children}</Quote>,
     a: ({ href, children }) => <a href={href} target="_blank" rel="noreferrer">{children}</a>,
     table: ({ children }) => <div className="overflow-x-auto"><table>{children}</table></div>,

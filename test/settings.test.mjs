@@ -40,3 +40,10 @@ test('invalid input is refused and nothing changes', async () => {
   await assert.rejects(saveSettings({ allowPosting: true }), /unknown setting/);
   assert.equal(staleAfterDays(), 3);
 });
+
+test('showFullDiff defaults to true, can be turned off and must be a boolean', async () => {
+  assert.equal(loadSettings().showFullDiff, true);
+  assert.equal((await saveSettings({ showFullDiff: false })).showFullDiff, false);
+  await assert.rejects(saveSettings({ showFullDiff: 'no' }), /true or false/);
+  assert.equal((await saveSettings({ showFullDiff: null })).showFullDiff, true);
+});

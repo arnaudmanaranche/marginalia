@@ -1,4 +1,4 @@
-import { Children, createElement, isValidElement, type ReactNode } from 'react';
+import { Children, createElement, isValidElement, useState, type ReactNode } from 'react';
 import type { Components } from 'react-markdown';
 import { CodeBlock } from '../components/CodeBlock';
 import { FileRef } from '../components/FileRef';
@@ -29,3 +29,19 @@ export function codeComponents(ctx: LinkContextValue): Pick<Components, 'code' |
     },
   };
 }
+
+// GitLab uploads sit behind the login, so they go through the studio's server. An image
+// that cannot be loaded (or has no usable address) is dropped, alt text included.
+function NoteImage({ src }: { src: string }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) return null;
+  return <img src={src} alt="" loading="lazy" onError={() => setFailed(true)} className="max-w-full rounded" />;
+}
+
+export const imageComponents: Pick<Components, 'img'> = {
+  img: ({ src }) => {
+    if (typeof src !== 'string' || !src) return null;
+    if (src.startsWith('/') || /\/uploads\/[0-9a-f]{16,}\//i.test(src)) return <NoteImage src={`/api/gitlab-image?src=${encodeURIComponent(src)}`} />;
+    return /^https?:\/\//i.test(src) ? <NoteImage src={src} /> : null;
+  },
+};

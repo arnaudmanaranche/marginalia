@@ -21,7 +21,7 @@ function ScopeToggle({ scope, onScope, old }: { scope: DiffScope; onScope: (mode
 }
 
 // The code of the current stop: its files from the MR diff, findings inline.
-export function DiffPane({ state, findings, focus, threads, scope, onScope, onSelectFinding, onRetry }: { state: DiffState; findings: Finding[]; threads: Thread[]; focus: Focus | null; scope: DiffScope; onScope: (mode: DiffScope['mode']) => void; onSelectFinding: (id: string) => void; onRetry: () => void }) {
+export function DiffPane({ showAll, state, findings, focus, threads, scope, onScope, onSelectFinding, onRetry }: { showAll: boolean; state: DiffState; findings: Finding[]; threads: Thread[]; focus: Focus | null; scope: DiffScope; onScope: (mode: DiffScope['mode']) => void; onSelectFinding: (id: string) => void; onRetry: () => void }) {
   const toggle = <ScopeToggle scope={scope} onScope={onScope} old={scope.version !== null} />;
   if (state.status === 'idle') return null;
   if (state.status === 'loading') return <>{toggle}<DiffSkeleton /></>;
@@ -36,19 +36,23 @@ export function DiffPane({ state, findings, focus, threads, scope, onScope, onSe
       </>
     );
   }
-  const files = state.files;
   const since = scope.mode === 'since';
+  // The agent reads every line: with the full diff off, a reader sees what it flagged and what people said.
+  const flagged = (path: string, oldPath?: string | null) => findings.some((f) => f.path === path) || threads.some((t) => t.path === path || t.path === oldPath);
+  const files = showAll || since ? state.files : state.files.filter((f) => flagged(f.path, f.oldPath));
+  const hidden = state.files.length - files.length;
   // What a review found sits on the code as it stood then: it only lines up with a diff of that code.
   const inline = since ? [] : findings;
   return (
     <>
       {toggle}
       {state.approximate && <p className="mb-3 text-xs text-fg-subtle">This review did not record its version: the code shown is the one pushed just before it was written.</p>}
-      {!files.length ? <p className="text-sm text-fg-muted">{since ? 'Nothing in this stop changed since that review.' : "None of this stop's files is in the MR diff."}</p> : (
+      {!files.length ? <p className="text-sm text-fg-muted">{hidden > 0 ? `Nothing flagged here: ${hidden} file${hidden === 1 ? '' : 's'} hidden by the Settings page's "Show the full diff" option.` : since ? 'Nothing in this stop changed since that review.' : "None of this stop's files is in the MR diff."}</p> : (
         <m.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }} className="space-y-3">
           {files.map((f, i) => <DiffFileView key={f.path} file={f} findings={inline} threads={since ? [] : threads} defaultOpen={i < 3} focus={focus} onSelectFinding={onSelectFinding} />)}
         </m.div>
       )}
+      {hidden > 0 && files.length > 0 && <p className="mt-3 text-xs text-fg-subtle">{hidden} file{hidden === 1 ? '' : 's'} with nothing flagged hidden (Settings, "Show the full diff").</p>}
     </>
   );
 }

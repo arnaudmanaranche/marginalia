@@ -103,7 +103,7 @@ export function StopChat({ slug, stopId }: { slug: string; stopId: string }) {
             type="submit"
             aria-label="Send"
             disabled={!text.trim() || pending !== null}
-            className="grid size-7 shrink-0 place-items-center rounded-lg bg-blue-600 text-white transition-opacity hover:bg-blue-700 disabled:bg-zinc-200 disabled:text-zinc-400 dark:disabled:bg-zinc-800 dark:disabled:text-zinc-500"
+            className="grid size-7 shrink-0 place-items-center rounded-lg bg-primary text-white transition-opacity hover:bg-primary-hover disabled:bg-zinc-200 disabled:text-zinc-400 dark:disabled:bg-zinc-800 dark:disabled:text-zinc-500"
           >
             <ArrowUp className="size-4" />
           </button>

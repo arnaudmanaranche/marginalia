@@ -38,10 +38,12 @@ function turnOf(kind: ReviewItem['kind'], s: MyState): GroupId {
     return s.unresolved > 0 || s.peerActivityAt === null ? 'waiting' : 'done';
   }
   if (!s.reviewed) return s.drafts > 0 ? 'unsent' : 'first';
+  // I approved: what they push or answer since does not hand it back to me.
+  if (s.decision === 'approved') return s.drafts > 0 ? 'unsent' : 'done';
   // I reviewed; they pushed or answered after me: it is back with me.
   if (after(latest(s.lastPushAt, s.authorActivityAt), at(s.myActivityAt))) return 'returned';
   if (s.drafts > 0) return 'unsent';
-  return s.decision === 'approved' ? 'done' : 'waiting';
+  return 'waiting';
 }
 
 // The group of one review, or null when Home does not list it (retros).

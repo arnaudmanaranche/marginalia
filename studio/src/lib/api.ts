@@ -151,6 +151,8 @@ export interface PostedInfo {
   state?: 'draft' | 'published';
   // false: GitLab refused the line anchor, so it went up as a general comment.
   inline?: boolean;
+  // Studio only: sent to GitLab, no answer yet (see pendingPosts.ts).
+  pending?: boolean;
 }
 
 interface ReviewsPayload {
@@ -250,6 +252,8 @@ export interface Settings {
   staleAfterDays: number;
   allowedTargetBranches: string[];
   excludeAuthors: string[];
+  // false: the tour's diff shows only the files with findings or conversation.
+  showFullDiff: boolean;
 }
 
 // Only the keys to change; null puts a key back on its .env default. The bot applies it without a restart.
@@ -379,6 +383,8 @@ export interface ThreadNote {
   author: string | null;
   authorName: string | null;
   mine: boolean;
+  // Written by a group or project access token (review app links, CI): not reviewer feedback.
+  bot: boolean;
   body: string;
   at: string;
 }

@@ -33,7 +33,7 @@ export interface DiffSource {
   startSince: boolean;
 }
 
-export function ReviewTour({ stops, findings, post, diff: source }: { stops: TourStop[]; findings: Finding[]; post: Post | null; diff: DiffSource | null }) {
+export function ReviewTour({ stops, findings, post, diff: source, showFullDiff }: { showFullDiff: boolean; stops: TourStop[]; findings: Finding[]; post: Post | null; diff: DiffSource | null }) {
   const [at, setIndex] = useState(0);
   // A new review can have fewer stops than the one that was open: never point past the last.
   const index = Math.min(at, stops.length - 1);
@@ -97,7 +97,7 @@ export function ReviewTour({ stops, findings, post, diff: source }: { stops: Tou
         <p className="mt-2 text-xs text-fg-subtle">{meta}</p>
         {here.length > 0 && (
           <div className="mt-4">
-            {post ? <FindingsPanel findings={here} compact focus={focus} onFocus={(id) => select(id, 'list')} {...post} /> : (
+            {post ? <FindingsPanel findings={here} threads={threads} compact focus={focus} onFocus={(id) => select(id, 'list')} {...post} /> : (
               <ul className="space-y-1 text-sm">
                 {here.map((f) => <li key={f.id}><Badge tone={f.severity === 'critical' ? 'danger' : f.severity === 'important' ? 'warning' : 'neutral'}>{f.severity}</Badge> {f.title}</li>)}
               </ul>
@@ -108,7 +108,7 @@ export function ReviewTour({ stops, findings, post, diff: source }: { stops: Tou
       {post && <StopChat key={post.slug} slug={post.slug} stopId={stops[index].id} />}
     </section>
     <div ref={diffPane} className="min-w-0 lg:h-full lg:overflow-y-auto lg:pr-1">
-      <DiffPane state={diff} findings={findings} threads={threads} focus={focus} scope={scope} onScope={setMode} onSelectFinding={(id) => select(id, 'diff')} onRetry={retryDiff} />
+      <DiffPane showAll={showFullDiff} state={diff} findings={findings} threads={threads} focus={focus} scope={scope} onScope={setMode} onSelectFinding={(id) => select(id, 'diff')} onRetry={retryDiff} />
     </div>
     </div>
   );

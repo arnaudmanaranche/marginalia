@@ -1,9 +1,9 @@
 import { Children, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
 import { Check, Copy, Pencil, Send, Undo2 } from 'lucide-react';
-import { postComment } from '../lib/api';
 import { textOf } from '../lib/markdown';
 import { editKey, readEdit, writeEdit } from '../lib/commentEdits';
+import { addToReview } from '../lib/pendingPosts';
 import { commentTargetAt, squash, writtenComment } from '../lib/reviewComments';
 import { PostContext, SourceContext, type PostContextValue } from '../lib/reviewContexts';
 import { Button } from './ui/Button';
@@ -134,12 +134,9 @@ export function Quote({ children, offset }: { children?: ReactNode; offset?: num
           target={target}
           fallbackRef={rootRef}
           onCancel={() => setConfirming(false)}
-          onConfirm={async () => {
-            const posted = await postComment(post.slug!, commentId, current, target ?? undefined);
+          onConfirm={() => {
             setConfirming(false);
-            post.reload();
-            if (target && posted.inline === false) toast.warning('Could not anchor it to the diff, added as a general comment');
-            toast.success(`Added to your pending review of !${post.iid}`, { description: 'Submit the review to publish it.' });
+            addToReview({ slug: post.slug!, iid: post.iid!, commentId, body: current, target: target ?? undefined, reload: post.reload });
           }}
         />
       )}

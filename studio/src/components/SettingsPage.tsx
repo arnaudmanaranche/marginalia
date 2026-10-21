@@ -4,17 +4,19 @@ import { RotateCcw } from 'lucide-react';
 import { saveSettings, type Settings } from '../lib/api';
 import { Button } from './ui/Button';
 
-type Draft = { pollIntervalMinutes: string; staleAfterDays: string; allowedTargetBranches: string; excludeAuthors: string };
+type Draft = { pollIntervalMinutes: string; staleAfterDays: string; allowedTargetBranches: string; excludeAuthors: string; showFullDiff: boolean };
+type TextKey = Exclude<keyof Draft, 'showFullDiff'>;
 
 const toDraft = (s: Settings): Draft => ({
   pollIntervalMinutes: String(s.pollIntervalMinutes),
   staleAfterDays: String(s.staleAfterDays),
   allowedTargetBranches: s.allowedTargetBranches.join(', '),
   excludeAuthors: s.excludeAuthors.join(', '),
+  showFullDiff: s.showFullDiff,
 });
 const toList = (v: string) => [...new Set(v.split(/[,\s]+/).filter(Boolean))];
 
-const FIELDS: { key: keyof Draft; label: string; hint: string; list?: boolean; placeholder?: string }[] = [
+const FIELDS: { key: TextKey; label: string; hint: string; list?: boolean; placeholder?: string }[] = [
   { key: 'pollIntervalMinutes', label: 'Poll every (minutes)', hint: 'How often the bot looks for new or updated MRs. 1 to 1440.' },
   { key: 'staleAfterDays', label: 'Skip MRs idle for (days)', hint: 'No push or comment for this long and the MR is assumed stale. 1 to 365.' },
   { key: 'allowedTargetBranches', label: 'Target branches', hint: 'Only MRs based on these branches are reviewed. Empty reviews all of them.', list: true, placeholder: 'develop, main' },
@@ -27,6 +29,7 @@ function patchOf(draft: Draft) {
     staleAfterDays: Number(draft.staleAfterDays),
     allowedTargetBranches: toList(draft.allowedTargetBranches),
     excludeAuthors: toList(draft.excludeAuthors),
+    showFullDiff: draft.showFullDiff,
   };
 }
 
@@ -97,6 +100,22 @@ export function SettingsPage({ settings, defaults }: { settings: Settings | null
             </div>
           );
         })}
+      </div>
+
+      <div className="mt-8 border-t border-zinc-200 pt-6 dark:border-zinc-800">
+        <label className="flex items-start gap-3 text-sm font-medium">
+          <input
+            type="checkbox"
+            checked={draft.showFullDiff}
+            onChange={(e) => setDraft({ ...draft, showFullDiff: e.target.checked })}
+            aria-describedby="setting-showFullDiff-hint"
+            className="mt-0.5 size-4 rounded border-zinc-300"
+          />
+          Show the full diff in reviews
+        </label>
+        <p id="setting-showFullDiff-hint" className="mt-1 pl-7 text-xs text-fg-muted">
+          Off: a stop shows only the files with a finding or a conversation, the main points. The agent reads every line, so you do not have to.
+        </p>
       </div>
 
       <div className="mt-8 flex items-center gap-3">
