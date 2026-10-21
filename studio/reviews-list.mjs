@@ -1,3 +1,4 @@
+// @ts-check
 import { readFile, readdir, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import { ALLOW_POSTING, ALLOW_PUSH, JIRA_BASE_URL } from '../lib/config.mjs';

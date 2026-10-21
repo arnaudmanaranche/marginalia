@@ -1,3 +1,4 @@
+// @ts-check
 import { createRoute } from '@hono/zod-openapi';
 import { ErrorBody } from './schemas.mjs';
 
@@ -15,6 +16,11 @@ const ERRORS = {
   502: 'GitLab (or Claude) refused or failed the call.',
 };
 
+/**
+ * A route as the OpenAPI document wants it, plus `errors`: the status codes (see ERRORS) that
+ * answer `{ error }`, so each route lists what it can refuse without repeating the shape.
+ * @param {import('@hono/zod-openapi').RouteConfig & { errors?: (keyof typeof ERRORS)[] }} config
+ */
 export function route({ errors = [], responses, ...rest }) {
   const failures = Object.fromEntries(errors.map((code) => [code, jsonOf(ErrorBody, ERRORS[code])]));
   return createRoute({ ...rest, responses: { ...responses, ...failures } });

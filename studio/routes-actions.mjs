@@ -1,3 +1,4 @@
+// @ts-check
 import { loadState, saveState } from '../lib/state.mjs';
 import { loadShape } from '../lib/findings.mjs';
 import { askAboutStop } from '../lib/chat.mjs';
@@ -97,7 +98,7 @@ export function actionRoutes(app) {
   }), (c) => pushQueue(async () => {
     const found = await locate(c.req.valid('json').slug);
     const mr = found?.mr;
-    if (mr?.kind !== 'comments' || !mr.sourceBranch) return c.json({ error: 'no tracked triage for this slug' }, 404);
+    if (!found || mr?.kind !== 'comments' || !mr.sourceBranch) return c.json({ error: 'no tracked triage for this slug' }, 404);
     try {
       const { pushed, status } = await pushFixes(found.project, { iid: mr.iid, source_branch: mr.sourceBranch });
       if (!pushed) return c.json({ error: status.state === 'outdated' ? 'the MR branch moved since the triage: re-run it' : `nothing to push (${status.state})`, status }, 409);

@@ -1,3 +1,4 @@
+// @ts-check
 import { z } from '@hono/zod-openapi';
 
 // The contract between the studio server and the React app, as zod schemas: the routes

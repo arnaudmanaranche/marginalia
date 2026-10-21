@@ -32,6 +32,21 @@ test:
     - npm test
     - npm run check:size
 
+# Modules opt in with `// @ts-check` (tsconfig.json: strict, but not noImplicitAny). New
+# modules should start with it; a module that cannot yet pass simply has no header.
+typecheck:
+  extends: .node
+  stage: test
+  script:
+    - npm run typecheck
+
+studio:test:
+  extends: .node
+  stage: test
+  script:
+    - npm --prefix studio ci --cache .npm --prefer-offline
+    - npm --prefix studio test
+
 studio:build:
   extends: .node
   stage: build
@@ -51,6 +66,8 @@ publish:
     - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+/
   needs:
     - test
+    - typecheck
+    - studio:test
   script:
     - test "v$(node -p "require('./package.json').version")" = "${CI_COMMIT_TAG%%-*}" || { echo "tag $CI_COMMIT_TAG does not match package.json version"; exit 1; }
     - echo "${NPM_SCOPE}:registry=${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/npm/" > .npmrc

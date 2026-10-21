@@ -1,3 +1,4 @@
+// @ts-check
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { STATUS_FILE } from '../lib/config.mjs';
@@ -36,9 +37,10 @@ export function subscribe(listener) {
   listeners.add(listener);
   return () => listeners.delete(listener);
 }
+/** @type {NodeJS.Timeout | null} */
 let debounce = null;
 export function broadcast() {
-  clearTimeout(debounce);
+  if (debounce) clearTimeout(debounce);
   debounce = setTimeout(() => {
     for (const listener of listeners) listener();
   }, 150);

@@ -1,3 +1,4 @@
+// @ts-check
 import { OpenAPIHono } from '@hono/zod-openapi';
 import { errorHandler, requirePosting, requirePush, validationHook, writeGuard } from './guards.mjs';
 import { readRoutes } from './routes-read.mjs';
@@ -16,6 +17,7 @@ const DESCRIPTION = `The contract between the studio server and the React app. G
 **Posting is opt-in.** Everything that touches GitLab drafts or posting answers \`403\` unless the server runs with \`ALLOW_POSTING=true\`; pushing needs \`ALLOW_PUSH=true\`. The merge request is always resolved server-side from \`status.json\` using the review id, never taken from a request.`;
 
 // `hosts` returns the Host values that count as the studio itself (default: from STUDIO_PORT).
+/** @param {{ hosts?: () => Set<string> }} [options] */
 export function createApp({ hosts } = {}) {
   const app = new OpenAPIHono({ defaultHook: validationHook });
   app.onError(errorHandler);

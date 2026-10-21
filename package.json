@@ -34,6 +34,7 @@
     "autostart": "node scripts/autostart.mjs",
     "test": "node --test test/*.test.mjs",
     "check:size": "node scripts/check-file-size.mjs",
+    "typecheck": "tsc -p .",
     "studio:install": "npm --prefix studio install",
     "studio:build": "npm --prefix studio run build",
     "studio:dev": "npm --prefix studio run dev",
@@ -52,6 +53,8 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
-    "concurrently": "^9.2.4"
+    "@types/node": "^26.6.5",
+    "concurrently": "^9.2.4",
+    "typescript": "^7.0.2"
   }
 }

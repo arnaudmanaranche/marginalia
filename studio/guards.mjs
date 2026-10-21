@@ -1,3 +1,4 @@
+// @ts-check
 import { HTTPException } from 'hono/http-exception';
 import { bodyLimit } from 'hono/body-limit';
 import { STUDIO_PORT, ALLOW_POSTING, ALLOW_PUSH } from '../lib/config.mjs';

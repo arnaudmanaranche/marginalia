@@ -1,3 +1,4 @@
+// @ts-check
 // Local review reader: the JSON API (see app.mjs and the routes-*.mjs files) over each
 // project's reviews dir + status.json, live updates over SSE, and the built React app
 // (studio/dist) as static files. Bound to 127.0.0.1 only; read-only apart from

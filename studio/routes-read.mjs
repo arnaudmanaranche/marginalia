@@ -1,3 +1,4 @@
+// @ts-check
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { z } from '@hono/zod-openapi';
@@ -21,7 +22,8 @@ const slug = z.object({ slug: ReviewId });
 const badSlug = (c) => c.json({ error: 'bad slug' }, 400);
 const notTracked = (c) => c.json({ error: 'no tracked merge request for this review' }, 404);
 
-// The tracked MR of a review id, or the answer to give instead.
+// The tracked MR of a review id ({ project, slug, mr }), or `{ reply }`: the answer to give instead.
+/** @returns {Promise<any>} */
 async function tracked(c, id) {
   const found = await locate(id);
   if (!found) return { reply: badSlug(c) };
@@ -140,6 +142,7 @@ export function readRoutes(app) {
     responses: { 200: { description: 'The image.', content: { 'image/*': { schema: z.string().openapi({ format: 'binary' }) } } } }, errors: [400, 404, 502],
   }), async (c) => {
     const { src } = c.req.valid('query');
+    /** @type {any} */
     let project = null;
     try {
       project = projectOfUpload(new URL(src, GITLAB_BASE_URL).pathname, PROJECTS);

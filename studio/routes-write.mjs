@@ -1,3 +1,4 @@
+// @ts-check
 import { z } from '@hono/zod-openapi';
 import { postedKey } from '../lib/state-shape.mjs';
 import { loadPosted, savePosted } from '../lib/posted.mjs';
@@ -84,6 +85,7 @@ export function writeRoutes(app) {
     } catch (err) {
       return c.json({ error: shortMessage(err) }, 502);
     }
+    /** @type {string | null} */
     let approveError = null;
     if (action === 'approve') {
       try {

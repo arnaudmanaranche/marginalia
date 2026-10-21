@@ -1,3 +1,4 @@
+// @ts-check
 import { readFile } from 'node:fs/promises';
 import { join, dirname, extname, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -49,7 +50,7 @@ export function liveRoutes(app) {
         const end = () => {
           open.delete(end);
           unsubscribe();
-          resolve();
+          resolve(undefined);
         };
         open.add(end);
         stream.onAbort(end);
