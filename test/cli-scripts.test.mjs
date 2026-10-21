@@ -48,7 +48,7 @@ test('migrate says what is missing instead of writing a broken file', () => {
 
 test('migrate with no .env at all fails with a hint', () => {
   const out = collect();
-  assert.equal(runMigrate({ dataDir: tmp(), envFile: undefined, log: out.log }), 1);
+  assert.equal(runMigrate({ dataDir: tmp(), envFile: null, log: out.log }), 1);
   assert.match(out.lines[0], /nothing to migrate/);
 });
 
