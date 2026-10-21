@@ -41,6 +41,13 @@ test('errors name the field that is wrong', () => {
   assert.match(result.errors.join('\n'), /projects\.0\.gitlabProjectId/);
 });
 
+test('teamRepo is optional, trimmed, and an empty one is refused', () => {
+  assert.equal(parseConfig(configFromEnv(ENV)).config.teamRepo, undefined);
+  const raw = configFromEnv(ENV);
+  assert.equal(parseConfig({ ...raw, teamRepo: ' git@git.example.com:acme/team.git ' }).config.teamRepo, 'git@git.example.com:acme/team.git');
+  assert.equal(parseConfig({ ...raw, teamRepo: '' }).ok, false);
+});
+
 test('the same GitLab project cannot be listed twice', () => {
   const raw = configFromEnv(ENV);
   raw.projects.push({ ...raw.projects[0] });
