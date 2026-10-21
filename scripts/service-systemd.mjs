@@ -14,7 +14,7 @@ export function installSystemd(ctx) {
   systemctl(ctx, 'daemon-reload');
   systemctl(ctx, 'enable', '--now', UNIT);
   ctx.log(`Service installed (${unitPath(ctx)}).
-The bot is running now and will start at every login.
+${ctx.dryRun ? 'Dry run: nothing was installed or started.' : 'The bot is running now and will start at every login.'}
   Studio: http://localhost:4477
   Logs:   journalctl --user -u marginalia -f
 To keep it running when you are logged out: loginctl enable-linger $USER

@@ -52,3 +52,9 @@ test('the service flavour follows the platform, and other platforms get pm2 inst
   const text = manualInstructions({ nodePath: '/n/node', script: '/m/poll.mjs' });
   assert.match(text, /pm2 start \/m\/poll\.mjs --name marginalia --interpreter \/n\/node/);
 });
+
+test('launchd gets MARGINALIA_HOME too, escaped, next to PATH', () => {
+  const keys = botPlistKeys({ ...bot, env: { MARGINALIA_HOME: '/data & co' } });
+  assert.match(keys, /<key>MARGINALIA_HOME<\/key><string>\/data &amp; co<\/string>/);
+  assert.match(keys, /<key>PATH<\/key>/);
+});

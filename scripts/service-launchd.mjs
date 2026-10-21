@@ -44,9 +44,9 @@ export function installLaunchd(ctx) {
   if (!ctx.exists(join(ctx.root, 'studio', 'dist'))) ctx.warn('! Studio not built (npm run studio:build), http://localhost:4477 will show 503.');
   const logFile = launchdLog(ctx);
   ctx.mkdir(join(ctx.home, 'Library', 'Logs'));
-  install(ctx, BOT, botPlistKeys({ nodePath: ctx.nodePath, script: join(ctx.root, 'poll.mjs'), workingDir: ctx.root, path: ctx.path, logFile }));
+  install(ctx, BOT, botPlistKeys({ nodePath: ctx.nodePath, script: join(ctx.root, 'poll.mjs'), workingDir: ctx.root, path: ctx.path, logFile, env: ctx.unitEnv }));
   ctx.log(`Autostart installed (${plistPath(ctx, BOT)}).
-The bot is running now and will start at every login.
+${ctx.dryRun ? 'Dry run: nothing was installed or started.' : 'The bot is running now and will start at every login.'}
   Studio: http://localhost:4477
   Logs:   tail -f ${logFile}
 Re-run \`marginalia service install\` after changing Node version (it pins ${ctx.nodePath}).`);
