@@ -1,7 +1,7 @@
 import './lib/node-check.mjs';
 import { mkdir } from 'node:fs/promises';
 import { watch } from 'node:fs';
-import { GITLAB_USERNAME, TRIAGE_COMMAND, REVIEWS_DIR, ROOT } from './lib/config.mjs';
+import { GITLAB_USERNAME, TRIAGE_COMMAND, REVIEWS_DIR, ROOT, ensureDataDir } from './lib/config.mjs';
 import { allowedTargets, loadSettings, pollIntervalMs } from './lib/settings.mjs';
 import { startStudio } from './studio/server.mjs';
 import { isFancyTerminal, c, timestamp, log, mrTag } from './lib/log.mjs';
@@ -295,6 +295,7 @@ async function main() {
   await writeStatus();
   process.on('SIGINT', shutdown);
   process.on('SIGTERM', shutdown);
+  ensureDataDir();
   await mkdir(REVIEWS_DIR, { recursive: true });
   startStudio();
   watchSettings();

@@ -5,9 +5,11 @@
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { resolveDataDir } from '../lib/paths-home.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const STATUS_FILE = join(ROOT, 'status.json');
+const DATA_DIR = resolveDataDir({ root: ROOT });
+const STATUS_FILE = join(DATA_DIR, 'status.json');
 // This plugin doesn't load dotenv: read STUDIO_PORT straight from .env (default 4477, as lib/config.mjs).
 function studioPort() {
   try {

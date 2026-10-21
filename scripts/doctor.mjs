@@ -22,9 +22,9 @@ console.log('marginalia doctor\n');
 
 console.log('Environment');
 Number(process.versions.node.split('.')[0]) >= 18 ? ok(`Node ${process.versions.node}`) : bad(`Node ${process.versions.node}`, 'Node 18+ required');
-if (!existsSync(join(cfg.ROOT, '.env'))) bad('.env missing', 'cp .env.example .env and fill it in');
+if (!existsSync(join(cfg.ROOT, '.env')) && !existsSync(join(cfg.DATA_DIR, 'config.json'))) bad('No .env or config.json', 'cp .env.example .env and fill it in');
 const missing = cfg.missingConfig();
-missing.length ? bad(`Missing in .env: ${missing.join(', ')}`) : ok('Required .env values present');
+missing.length ? bad(`Missing in the config: ${missing.join(', ')}`) : ok('Required config values present');
 existsSync(join(cfg.ROOT, 'studio', 'dist')) ? ok('Studio built') : warnMsg('Studio not built (http://localhost shows 503): npm run setup');
 
 console.log('\nClaude');
