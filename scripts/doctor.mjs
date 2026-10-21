@@ -80,6 +80,12 @@ export async function runDoctor(argv = process.argv.slice(2)) {
       const { stdout } = await run('git', ['remote', 'get-url', 'origin'], { cwd: project.repoPath });
       ok(`origin = ${stdout.trim()}`);
     });
+    await step(`${project.key} worktrees`, async () => {
+      // In the container image: a checkout that the host also uses has worktrees we cannot see (see lib/worktree-guard.mjs).
+      const { containerRepoProblem } = await import('../lib/worktree.mjs');
+      const problem = await containerRepoProblem(project.repoPath);
+      if (problem) bad(problem);
+    });
     for (const [label, cmd] of [['review command', project.reviewCommand], ['triage command', project.triageCommand]]) {
       if (!cmd) { label === 'triage command' ? warnMsg('triage command empty: your own MRs are ignored') : bad('review command is empty'); continue; }
       findCommand(project, cmd) ? ok(`${label} ${cmd} found`) : bad(`${label} ${cmd} not found in <repo>/.claude or ~/.claude`, 'copy one from examples/commands or fix the name (plugin commands are not detected here: use --dry-run)');

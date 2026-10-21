@@ -417,7 +417,7 @@ with `--build-arg CLAUDE_CODE_VERSION=...`). Nothing personal is baked in; it is
 | --- | --- | --- |
 | `/data` | `config.json`, `marginalia.db`, `status.json`, the team copy, the bot worktrees | volume |
 | `/home/node/.claude` | the `claude` login | volume |
-| `/repos` | your checkouts of the repos to review (the bot makes its worktree inside each one's `.git`) | bind mount |
+| `/repos` | **dedicated** clones of the repos to review, used by nothing else (the bot makes its worktree inside each one's `.git`) | bind mount |
 
 ```bash
 docker compose build
@@ -427,7 +427,7 @@ docker compose up -d                              # studio on http://localhost:4
 docker compose run --rm marginalia doctor         # checks it all from inside
 ```
 
-Put your checkouts in `./repos` (or set `REPOS_DIR`). Then `docker compose run --rm marginalia <command>` is
+Put the clones in `./repos` (or set `REPOS_DIR`). Then `docker compose run --rm marginalia <command>` is
 `marginalia <command>` (`start` is the default); `claude`, `git`, `sh` and `node` run as themselves.
 
 - **Commands and skills** must be visible *inside* the container: in each checkout's `.claude/`
@@ -437,8 +437,13 @@ Put your checkouts in `./repos` (or set `REPOS_DIR`). Then `docker compose run -
   can do in a container. At start the image records that you trust the repos listed in your `config.json`
   (`docker/trust.mjs`, once you have logged in): the same decision as accepting the dialog in your own checkout.
   `MARGINALIA_TRUST_REPOS=0` turns it off.
-- **Leftover worktree entry.** The bot makes its worktree (`/data/worktree`) through the mounted repo's `.git`, so
-  your host repo lists it, as `prunable`, once the container is gone. `git worktree prune` clears it.
+- **Mount a dedicated clone, never the checkout you work in.** Git registers worktrees as absolute paths inside the
+  repo's `.git`, and the container sees different paths from your host. A checkout used by both gets entries that
+  point inside the container, and (before the bot stopped pruning) `git worktree prune` from the container deleted the
+  registration of every host worktree. So the container refuses a repo that has worktrees it cannot see, `doctor`
+  says so, and the bot never prunes. Clone the repo for the container only, e.g.
+  `git clone <url> repos/webapp`, and give it the commands: put them in the team repo (`marginalia sync`), or copy
+  your `.claude/commands`, `skills` and `agents` into `repos/webapp/.claude/`.
 - **Git** reaches GitLab over HTTPS with the `GITLAB_TOKEN` from `config.json` or the environment: SSH
   remotes are rewritten at start and a credential helper hands over the token only to the GitLab host, so
   it is never written to a gitconfig or put in the environment of the Claude runs. `MARGINALIA_GIT_SSH=1`

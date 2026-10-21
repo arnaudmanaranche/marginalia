@@ -1,9 +1,10 @@
 # Marginalia in a container. First time:
 #   docker compose build
 #   docker compose run --rm marginalia claude login     # once; kept in the `claude` volume
+#   git clone <url> repos/<name>                        # a clone used ONLY by the container, never the one you work in
 #   docker compose run --rm marginalia init             # writes /data/config.json (repos are under /repos)
 #   docker compose up -d
-# The studio is then at http://localhost:4477. Put your checkouts in ./repos (or set REPOS_DIR).
+# The studio is then at http://localhost:4477. The clones live in ./repos (or set REPOS_DIR).
 services:
   marginalia:
     build: .
