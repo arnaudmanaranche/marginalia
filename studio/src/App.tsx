@@ -2,7 +2,10 @@ import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } fro
 import { LazyMotion, MotionConfig } from 'motion/react';
 import { Inbox } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
-import { loadSeen, saveSeen, useReview, useReviews, type ReviewItem } from './lib/api';
+import { loadSeen, saveSeen, type ReviewItem } from './lib/api';
+import { useReview, useReviews } from './lib/useReviews';
+import { useLiveEvents } from './lib/useLiveEvents';
+import { ALL_PROJECTS, activeFilter, filterByProject, filterOptions, hasSeveralProjects } from './lib/projects';
 import { useMergedPosted } from './lib/pendingPosts';
 import { groupReviews, waitingOnYou } from './lib/dashboard';
 import { usePersistentState, useOpenTabs } from './lib/layout';
@@ -10,6 +13,7 @@ import { StatusBar } from './components/StatusBar';
 import { TabStrip, type BotState } from './components/TabStrip';
 import { Sidebar } from './components/Sidebar';
 import { ReviewGroups } from './components/ReviewGroups';
+import { ProjectFilter } from './components/ProjectFilter';
 // Not needed on Home, and the heaviest part of the bundle (markdown, highlighting).
 const loadReader = () => import('./components/ReviewReader');
 const ReviewReader = lazy(() => loadReader().then((m) => ({ default: m.ReviewReader })));
@@ -111,7 +115,9 @@ function useHomeGroups(items: ReviewItem[]) {
 }
 
 export function App() {
+  useLiveEvents();
   const { data, error, reload } = useReviews();
+  const [projectFilter, setProjectFilter] = usePersistentState('mr-review-viewer:project-filter', ALL_PROJECTS);
   const posted = useMergedPosted(data?.posted ?? EMPTY_POSTED);
   const slug = useHashSlug();
   const [palette, setPalette] = useState(false);
@@ -156,7 +162,13 @@ export function App() {
   const { content: review, error: reviewError, retry: retryReview } = useReview(slug === SETTINGS_ROUTE ? null : slug, current?.reviewedAt);
 
   const { isUnread } = useSeen(current);
-  const groups = useHomeGroups(items);
+  const projects = data?.projects;
+  const several = hasSeveralProjects(projects);
+  const filter = activeFilter(projectFilter, projects);
+  const shown = useMemo(() => filterByProject(items, filter, projects), [items, filter, projects]);
+  const groups = useHomeGroups(shown);
+  // The Home tab counts what waits on you in every project, whatever the filter hides.
+  const waitingAll = waitingOnYou(useHomeGroups(items));
   const waiting = waitingOnYou(groups);
 
   useSidebarShortcut(sidebarAvailable, setSidebarOpen);
@@ -184,7 +196,7 @@ export function App() {
           botBySlug={botBySlug}
           isUnread={isUnread}
           isPosted={isPosted}
-          homeUnread={waiting}
+          homeUnread={waitingAll}
           sidebarOpen={sidebarOpen}
           sidebarAvailable={sidebarAvailable}
           onToggleSidebar={() => setSidebarOpen((v) => !v)}
@@ -195,10 +207,10 @@ export function App() {
       <CommandPalette open={palette} setOpen={setPalette} items={items} onSelect={go} />
 
       <div className="flex">
-        <Sidebar items={items} activeSlug={slug} botBySlug={botBySlug} isUnread={isUnread} open={sidebarOpen} onSelect={go} onClose={() => setSidebarOpen(false)} />
+        <Sidebar showProject={several} items={items} activeSlug={slug} botBySlug={botBySlug} isUnread={isUnread} open={sidebarOpen} onSelect={go} onClose={() => setSidebarOpen(false)} />
         <main className="min-w-0 flex-1">
       {slug === SETTINGS_ROUTE ? (
-        <SettingsPage settings={data?.settings ?? null} defaults={data?.settingsDefaults ?? null} />
+        <SettingsPage settings={data?.settings ?? null} defaults={data?.settingsDefaults ?? null} projects={projects?.length ?? 1} />
       ) : slug ? (
         <>
         {stack && current && <StackBoard stack={stack} items={items} current={current} isPosted={isPosted} onSelect={go} />}
@@ -216,10 +228,12 @@ export function App() {
             {data && !data.allowPosting && ' Read-only: nothing is posted to GitLab.'}
           </p>
 
+          {several && <ProjectFilter options={filterOptions(projects)} value={filter} onChange={setProjectFilter} />}
+
           {data && groups.length === 0 ? (
             <div className="mt-16 flex flex-col items-center gap-2 text-fg-muted"><Inbox className="size-8" />No recent reviews.</div>
           ) : (
-            <ReviewGroups groups={groups} isUnread={isUnread} isReviewing={isReviewing} />
+            <ReviewGroups groups={groups} isUnread={isUnread} isReviewing={isReviewing} showProject={several} />
           )}
         </div>
       )}

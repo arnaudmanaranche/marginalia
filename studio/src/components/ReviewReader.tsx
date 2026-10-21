@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { submitReview, type BotStatus, type PostedInfo, type ReviewContent, type ReviewItem } from '../lib/api';
+import { useMutation } from '@tanstack/react-query';
+import { submitReview, type BotStatus, type PostedInfo, type ReviewAction, type ReviewContent, type ReviewItem } from '../lib/api';
 import { LinkContext } from '../lib/links';
 import { cn } from '../lib/utils';
 import { useRerun } from '../lib/useRerun';
@@ -30,6 +31,7 @@ export function ReviewReader({ item, review: currentReview, reviewError, onRetry
   const markdown = content?.markdown ?? null;
   const shape = content?.shape ?? null;
   const { rerunning, rerun } = useRerun(item, live);
+  const submit = useMutation({ mutationFn: (v: { slug: string; summary?: string; action: ReviewAction }) => submitReview(v.slug, v.summary, v.action) });
   const draftCount = item ? Object.entries(posted).filter(([k, p]) => k.startsWith(`${item.slug}:`) && p.state === 'draft').length : 0;
   // A comment still on its way would land after the submit, as a new pending one: wait for it.
   const sending = item ? Object.entries(posted).some(([k, p]) => k.startsWith(`${item.slug}:`) && p.pending) : false;
@@ -117,7 +119,7 @@ export function ReviewReader({ item, review: currentReview, reviewError, onRetry
         canVerdict={item.kind === 'review'}
         onCancel={() => setSubmitting(false)}
         onConfirm={async (summary, action) => {
-          await submitReview(item.slug, summary.trim() || undefined, action);
+          await submit.mutateAsync({ slug: item.slug, summary: summary.trim() || undefined, action });
           setSubmitting(false);
           reload();
           const done = { comment: 'submitted', approve: 'approved', request_changes: 'submitted with changes requested' }[action];

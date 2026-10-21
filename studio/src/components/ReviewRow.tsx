@@ -14,7 +14,7 @@ function StandingBadge({ item }: { item: ReviewItem }) {
 
 // One review per line: the title opens it; author, findings and age say how urgent it is.
 // While the bot is reviewing the MR the row is disabled: the report on disk is about to be replaced.
-export function ReviewRow({ item, unread, reviewing = false }: { item: ReviewItem; unread: boolean; reviewing?: boolean }) {
+export function ReviewRow({ item, unread, reviewing = false, showProject = false }: { item: ReviewItem; unread: boolean; reviewing?: boolean; showProject?: boolean }) {
   const title = (
     <>
       {item.iid && <span className="mr-2 font-mono text-xs text-fg-muted">!{item.iid}</span>}
@@ -31,6 +31,7 @@ export function ReviewRow({ item, unread, reviewing = false }: { item: ReviewIte
         <a href={`#/${item.slug}`} className="min-w-0 flex-1 basis-64 truncate font-medium hover:underline">{title}</a>
       )}
       {reviewing && <Badge tone="info"><Loader2 className="size-3 animate-spin motion-reduce:animate-none" aria-hidden />Reviewing…</Badge>}
+      {showProject && <Badge tone="neutral" title="Project">{item.project}</Badge>}
       {item.author && <span className="max-w-[9rem] truncate text-xs text-fg-muted">{item.author}</span>}
       {item.branch && (
         <span className="hidden min-w-0 max-w-[14rem] items-center gap-1 truncate font-mono text-xs text-fg-muted 2xl:inline-flex">

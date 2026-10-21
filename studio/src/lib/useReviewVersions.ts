@@ -1,26 +1,31 @@
 import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { fetchHistory, fetchHistoryVersion, type ReviewContent, type ReviewVersion } from './api';
+import { fetchHistory, fetchHistoryVersion, type ReviewVersion } from './api';
+import { keys } from './queryKeys';
+
+const NONE: ReviewVersion[] = [];
 
 // Earlier versions of a review, kept when a re-run replaces it. Viewing one is read-only;
 // `versionId` is null while the latest is on screen.
 export function useReviewVersions(slug: string | undefined, reviewedAt: string | undefined) {
-  const [versions, setVersions] = useState<ReviewVersion[]>([]);
   const [versionId, setVersionId] = useState<string | null>(null);
-  const [oldReview, setOldReview] = useState<ReviewContent | null>(null);
+  // Another review, or a new version of this one: back to the latest.
+  useEffect(() => setVersionId(null), [slug, reviewedAt]);
+  const list = useQuery({
+    queryKey: keys.historyList(slug ?? '', reviewedAt),
+    enabled: Boolean(slug),
+    queryFn: () => fetchHistory(slug!),
+  });
+  const version = useQuery({
+    queryKey: keys.historyVersion(slug ?? '', versionId ?? ''),
+    enabled: Boolean(slug && versionId),
+    queryFn: () => fetchHistoryVersion(slug!, versionId!),
+  });
   useEffect(() => {
+    if (!version.isError || version.isFetching) return;
+    toast.error('Could not load that version', { description: version.error.message });
     setVersionId(null);
-    setOldReview(null);
-    if (!slug) return setVersions([]);
-    let live = true;
-    fetchHistory(slug).then((v) => live && setVersions(v), () => live && setVersions([]));
-    return () => { live = false; };
-  }, [slug, reviewedAt]);
-  useEffect(() => {
-    if (!slug || !versionId) return setOldReview(null);
-    let live = true;
-    fetchHistoryVersion(slug, versionId).then((r) => live && setOldReview(r), (e) => { toast.error('Could not load that version', { description: (e as Error).message }); if (live) setVersionId(null); });
-    return () => { live = false; };
-  }, [slug, versionId]);
-  return { versions, versionId, setVersionId, oldReview };
+  }, [version.isError, version.isFetching, version.error, version.errorUpdatedAt]);
+  return { versions: slug ? list.data ?? NONE : NONE, versionId, setVersionId, oldReview: versionId ? version.data ?? null : null };
 }

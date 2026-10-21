@@ -17,12 +17,14 @@ function Heading({ group }: { group: Group }) {
 interface RowState {
   isUnread: (i: ReviewItem) => boolean;
   isReviewing: (i: ReviewItem) => boolean;
+  // Several projects are watched: each row says which one it is from.
+  showProject?: boolean;
 }
 
-function List({ group, isUnread, isReviewing }: { group: Group } & RowState) {
+function List({ group, isUnread, isReviewing, showProject }: { group: Group } & RowState) {
   return (
     <ul className="divide-y divide-zinc-200 overflow-hidden rounded-xl border border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800">
-      {group.items.map((i) => <ReviewRow key={i.slug} item={i} unread={isUnread(i)} reviewing={isReviewing(i)} />)}
+      {group.items.map((i) => <ReviewRow key={i.slug} item={i} unread={isUnread(i)} reviewing={isReviewing(i)} showProject={showProject} />)}
     </ul>
   );
 }

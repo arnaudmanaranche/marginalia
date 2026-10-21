@@ -3,7 +3,8 @@ import { toast } from 'sonner';
 import { m } from 'motion/react';
 import { Check, Loader2, MessageSquare, Send, X, type LucideIcon } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { fetchDrafts, type DraftNote, type ReviewAction } from '../lib/api';
+import type { ReviewAction } from '../lib/api';
+import { useDrafts } from '../lib/useDrafts';
 import { useScrollLock } from '../lib/useScrollLock';
 import { useModalFocus } from '../lib/useModalFocus';
 import { Button } from './ui/Button';
@@ -23,15 +24,9 @@ export function ConfirmSubmit({ slug, iid, count, canVerdict, reload, onCancel, 
   const [action, setAction] = useState<ReviewAction>('comment');
   const chosen = ACTIONS.find((a) => a.value === action)!;
   // Read from GitLab itself, so drafts started in its own UI are listed too.
-  const [drafts, setDrafts] = useState<DraftNote[] | null>(null);
-  const [draftsError, setDraftsError] = useState<string | null>(null);
-  useEffect(() => {
-    let live = true;
-    fetchDrafts(slug).then((d) => live && setDrafts(d), (e) => live && setDraftsError((e as Error).message));
-    return () => {
-      live = false;
-    };
-  }, [slug]);
+  const draftsQuery = useDrafts(slug);
+  const drafts = draftsQuery.data ?? null;
+  const draftsError = draftsQuery.error?.message ?? null;
   const dialogRef = useRef<HTMLDivElement>(null);
   useScrollLock(true);
   useModalFocus(true, dialogRef, { initial: '[data-autofocus]' });
@@ -71,7 +66,7 @@ export function ConfirmSubmit({ slug, iid, count, canVerdict, reload, onCancel, 
             )}
             {drafts?.length === 0 && <p className="rounded-lg border border-dashed border-zinc-300 px-3 py-4 text-center text-sm text-fg-muted dark:border-zinc-700">No pending comment on GitLab.</p>}
             {drafts?.map((d) => (
-              <DraftRow key={d.id} slug={slug} draft={d} disabled={busy} onChanged={(next) => { setDrafts((all) => (all ?? []).flatMap((x) => (x.id !== d.id ? [x] : next ? [next] : []))); reload(); }} />
+              <DraftRow key={d.id} slug={slug} draft={d} disabled={busy} onChanged={reload} />
             ))}
           </div>
           {canVerdict && (

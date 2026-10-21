@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useSyncExternalStore } from 'react';
 import { toast } from 'sonner';
+import { MutationObserver } from '@tanstack/react-query';
 import { postComment, type PostedInfo } from './api';
+import { queryClient } from './queryClient';
 
 // Comments being added to a pending review, shown as already there while GitLab answers.
 // An entry stays until the server's own record has it (then that one wins), or goes on failure.
@@ -38,7 +40,9 @@ export function addToReview(req: AddToReview) {
   if (entries[key]) return;
   set({ ...entries, [key]: { at: new Date().toISOString(), iid: Number(req.iid), url: '', state: 'draft', pending: true } });
   const toastId = toast.loading(`Adding to your pending review of !${req.iid}…`);
-  postComment(req.slug, req.commentId, req.body, req.target).then(
+  // A mutation outside any component: the comment keeps going if the one that asked unmounts.
+  const send = new MutationObserver(queryClient, { mutationFn: () => postComment(req.slug, req.commentId, req.body, req.target) });
+  send.mutate().then(
     (posted) => {
       set({ ...entries, [key]: { ...posted, state: posted.state ?? 'draft' } });
       req.reload();

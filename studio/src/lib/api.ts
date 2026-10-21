@@ -1,6 +1,3 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { fetchJson } from './fetchRetry';
-
 export type Verdict = 'APPROVE' | 'REQUEST_CHANGES' | 'OTHER' | null;
 type Kind = 'review' | 'comments' | 'retro';
 
@@ -157,7 +154,7 @@ export interface PostedInfo {
   pending?: boolean;
 }
 
-interface ReviewsPayload {
+export interface ReviewsPayload {
   status: BotStatus | null;
   items: ReviewItem[];
   stacks: Stack[];
@@ -171,66 +168,9 @@ interface ReviewsPayload {
   posted: Record<string, PostedInfo>;
 }
 
-// Reloads on every SSE "changed" event (fs.watch on the server). Until the first answer arrives it keeps
-// trying: a server that is slow or restarting must not leave the page empty.
-export function useReviews() {
-  const [data, setData] = useState<ReviewsPayload | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const loaded = useRef(false);
-
-  const load = useCallback(async () => {
-    try {
-      setData(await fetchJson<ReviewsPayload>('/api/reviews', { retries: loaded.current ? 0 : 6 }));
-      loaded.current = true;
-      setError(null);
-    } catch (e) {
-      setError(String((e as Error).message));
-    }
-  }, []);
-
-  // Nothing yet and the last try failed: try again soon, the 30 s poll is too slow for a first load.
-  useEffect(() => {
-    if (!error || data) return undefined;
-    const t = setTimeout(load, 3000);
-    return () => clearTimeout(t);
-  }, [error, data, load]);
-
-  useEffect(() => {
-    load();
-    const es = new EventSource('/events');
-    es.onmessage = () => load();
-    const tick = setInterval(load, 30_000);
-    return () => {
-      es.close();
-      clearInterval(tick);
-    };
-  }, [load]);
-
-  return { data, error, reload: load };
-}
-
 export interface ReviewContent {
   markdown: string;
   shape: ReviewShape;
-}
-
-// The content of one review. What is shown always belongs to `slug`: it is never the previous review's while the
-// next loads. A new version of the same review (`refreshKey`) is fetched quietly, the old one stays meanwhile.
-export function useReview(slug: string | null, refreshKey: string | undefined) {
-  const [result, setResult] = useState<{ slug: string; content: ReviewContent | null; error: string | null } | null>(null);
-  const [attempt, setAttempt] = useState(0);
-  useEffect(() => {
-    if (!slug) return undefined;
-    const controller = new AbortController();
-    fetchJson<{ markdown: string; shape: ReviewShape }>(`/api/reviews/${encodeURIComponent(slug)}`, { signal: controller.signal })
-      .then((j) => setResult({ slug, content: { markdown: j.markdown, shape: j.shape }, error: null }))
-      .catch((e: Error) => {
-        if (!controller.signal.aborted) setResult((prev) => ({ slug, content: prev?.slug === slug ? prev.content : null, error: e.message }));
-      });
-    return () => controller.abort();
-  }, [slug, refreshKey, attempt]);
-  const mine = result?.slug === slug ? result : null;
-  return { content: mine?.content ?? null, error: mine?.content ? null : mine?.error ?? null, retry: () => setAttempt((n) => n + 1) };
 }
 
 // "Read" tracking: slug -> reviewedAt seen. localStorage may be unavailable.

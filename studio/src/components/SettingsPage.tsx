@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { RotateCcw } from 'lucide-react';
 import { saveSettings, type Settings } from '../lib/api';
+import { keys } from '../lib/queryKeys';
 import { Button } from './ui/Button';
 
 type Draft = { pollIntervalMinutes: string; staleAfterDays: string; allowedTargetBranches: string; excludeAuthors: string; showFullDiff: boolean };
@@ -35,9 +37,14 @@ function patchOf(draft: Draft) {
 
 // Everything here is read fresh by the bot on its next poll: no restart. Secrets, paths and the
 // ALLOW_POSTING / ALLOW_PUSH gates stay in .env on purpose.
-export function SettingsPage({ settings, defaults }: { settings: Settings | null; defaults: Settings | null }) {
+export function SettingsPage({ settings, defaults, projects = 1 }: { settings: Settings | null; defaults: Settings | null; projects?: number }) {
   const [draft, setDraft] = useState<Draft | null>(settings && toDraft(settings));
-  const [saving, setSaving] = useState(false);
+  const client = useQueryClient();
+  const saveMutation = useMutation({
+    mutationFn: saveSettings,
+    onSuccess: () => client.invalidateQueries({ queryKey: keys.reviews }),
+  });
+  const saving = saveMutation.isPending;
   // The server's values arrive after the first paint, and change when saved from elsewhere.
   const saved = settings ? JSON.stringify(toDraft(settings)) : null;
   useEffect(() => {
@@ -49,14 +56,11 @@ export function SettingsPage({ settings, defaults }: { settings: Settings | null
   const dirty = JSON.stringify(draft) !== saved;
   const defaultDraft = toDraft(defaults);
   const save = async (patch: Parameters<typeof saveSettings>[0], message: string) => {
-    setSaving(true);
     try {
-      await saveSettings(patch);
+      await saveMutation.mutateAsync(patch);
       toast.success(message, { description: 'Applied by the bot on its next poll.' });
     } catch (err) {
       toast.error('Could not save the settings', { description: (err as Error).message });
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -72,6 +76,7 @@ export function SettingsPage({ settings, defaults }: { settings: Settings | null
       <p className="mt-1 text-fg-muted">
         Saved to <code>settings.json</code> and applied without a restart. Each value overrides <code>.env</code>, which stays the default.
       </p>
+      {projects > 1 && <p className="mt-1 text-fg-muted">These settings apply to all {projects} projects this install watches.</p>}
 
       <div className="mt-8 space-y-6">
         {FIELDS.map((f) => {
