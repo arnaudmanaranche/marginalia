@@ -144,12 +144,12 @@ export function App() {
     const m = new Map<string, BotState>();
     for (const mr of data?.status?.mrs ?? []) {
       const file = mr.reviewPath?.split('/').pop();
-      if (file) m.set(file.replace(/\.md$/, ''), mr.status as BotState);
+      if (file) m.set(`${mr.project}/${file.replace(/\.md$/, '')}`, mr.status as BotState);
     }
     return m;
   }, [data]);
   // The bot is reviewing it right now: its row is disabled until the new report is written.
-  const isReviewing = (i: ReviewItem) => botBySlug.get(i.slug) === 'reviewing' || (i.iid != null && String(i.iid) === String(data?.status?.current?.iid));
+  const isReviewing = (i: ReviewItem) => botBySlug.get(i.slug) === 'reviewing' || (i.iid != null && String(i.iid) === String(data?.status?.current?.iid) && i.project === data?.status?.current?.project);
   const isPosted = (i: ReviewItem) => Object.keys(posted).some((k) => k.startsWith(`${i.slug}:`));
   const current = items.find((i) => i.slug === slug);
   const stack = current?.stackId ? data?.stacks.find((s) => s.id === current.stackId) : undefined;
@@ -204,7 +204,7 @@ export function App() {
         {stack && current && <StackBoard stack={stack} items={items} current={current} isPosted={isPosted} onSelect={go} />}
         {!data ? <ReviewSkeleton /> : !current ? <ReviewMissing /> : (
         <Suspense fallback={<ReviewSkeleton />}>
-        <ReviewReader item={current} review={review} reviewError={reviewError} onRetry={retryReview} projectUrl={data?.projectUrl ?? null} allowPosting={data?.allowPosting ?? false} allowPush={data?.allowPush ?? false} showFullDiff={data?.settings.showFullDiff ?? true} live={current && data?.status?.current && String(data.status.current.iid) === String(current.iid) ? data.status.current : null} posted={posted} reload={reload} />
+        <ReviewReader item={current} review={review} reviewError={reviewError} onRetry={retryReview} projectUrl={data?.projects?.find((p) => p.key === current?.project)?.url ?? data?.projectUrl ?? null} allowPosting={data?.allowPosting ?? false} allowPush={data?.allowPush ?? false} showFullDiff={data?.settings.showFullDiff ?? true} live={current && data?.status?.current && String(data.status.current.iid) === String(current.iid) && data.status.current.project === current.project ? data.status.current : null} posted={posted} reload={reload} />
         </Suspense>
         )}
         </>

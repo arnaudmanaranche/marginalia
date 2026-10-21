@@ -4,7 +4,8 @@ const HOUR = 3_600_000;
 const ago = (ms: number) => new Date(Date.now() - ms).toISOString();
 
 export const review: ReviewItem = {
-  slug: 'mr-4821',
+  slug: 'webapp/mr-4821',
+  project: 'webapp',
   kind: 'review',
   title: 'feat(booking): retry payment capture on transient gateway errors',
   iid: 4821,
@@ -29,5 +30,5 @@ export const review: ReviewItem = {
   jira: { key: 'PAY-212', priority: 'High', rank: 2 },
 };
 
-export const approved: ReviewItem = { ...review, slug: 'mr-4790', iid: 4790, title: 'chore(deps): bump date-fns to 4.1', verdict: 'APPROVE', critical: 0, important: 0, highlights: [], summary: 'Patch-level bump, lockfile only.', jira: null, reviewedAt: ago(30 * HOUR) };
-export const other: ReviewItem = { ...review, slug: 'mr-4755', iid: 4755, title: 'docs: explain the release process', verdict: 'OTHER', critical: 0, important: 1, highlights: [], jira: null };
+export const approved: ReviewItem = { ...review, slug: 'webapp/mr-4790', iid: 4790, title: 'chore(deps): bump date-fns to 4.1', verdict: 'APPROVE', critical: 0, important: 0, highlights: [], summary: 'Patch-level bump, lockfile only.', jira: null, reviewedAt: ago(30 * HOUR) };
+export const other: ReviewItem = { ...review, slug: 'webapp/mr-4755', iid: 4755, title: 'docs: explain the release process', verdict: 'OTHER', critical: 0, important: 1, highlights: [], jira: null };

@@ -1,4 +1,4 @@
-// Local review reader: JSON API over REVIEWS_DIR + status.json, live updates
+// Local review reader: JSON API over each project's reviews dir + status.json, live updates
 // over SSE, and the built React app (studio/dist) as static files. Bound to
 // 127.0.0.1 only; read-only apart from PUT /api/settings (the Settings page) and,
 // when ALLOW_POSTING=true, POST /api/post (comment on the MR, after confirmation),
@@ -9,7 +9,9 @@ import { readFile, readdir, stat } from 'node:fs/promises';
 import { watch } from 'node:fs';
 import { join, dirname, extname, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { REVIEWS_DIR, STATUS_FILE, STUDIO_PORT, ALLOW_POSTING, ALLOW_PUSH, JIRA_BASE_URL, GITLAB_BASE_URL, GITLAB_TOKEN, encodedProjectId } from '../lib/config.mjs';
+import { STATUS_FILE, STUDIO_PORT, ALLOW_POSTING, ALLOW_PUSH, JIRA_BASE_URL, GITLAB_BASE_URL, GITLAB_TOKEN } from '../lib/config.mjs';
+import { PROJECTS, projectByKey } from '../lib/projects.mjs';
+import { parseReviewId, projectOfUpload, reviewId } from '../lib/review-id.mjs';
 import { uploadFetchPath } from '../lib/gitlab-upload.mjs';
 import { fixesStatus, pushFixes } from '../lib/fixes.mjs';
 import { TRIAGE_FILE_PREFIX } from '../lib/paths.mjs';
@@ -31,7 +33,6 @@ import { loadState, saveState } from '../lib/state.mjs';
 import { parseAcrossLayers } from '../lib/stack.mjs';
 
 const DIST = join(dirname(fileURLToPath(import.meta.url)), 'dist');
-const SLUG_RE = /^[\w.-]+$/;
 const MIME = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
@@ -67,12 +68,14 @@ async function reconcilePosted() {
     const posted = await loadPosted();
     let changed = false;
     for (const [key, info] of Object.entries(posted)) {
-      if (!info.iid) continue;
+      // Keys are `<project>/<slug>:<comment>`; a project that left the config is left alone.
+      const project = projectByKey(key.split('/')[0]);
+      if (!info.iid || !project) continue;
       try {
         if (info.state === 'draft') {
-          if (await draftNoteExists(info.iid, info.draftId)) continue;
+          if (await draftNoteExists(project, info.iid, info.draftId)) continue;
           // Gone from the drafts: published from GitLab itself, or deleted there.
-          const noteId = info.body ? await findPublishedNoteId(info.iid, info.body) : null;
+          const noteId = info.body ? await findPublishedNoteId(project, info.iid, info.body) : null;
           if (noteId) {
             posted[key] = { ...info, state: 'published', url: `${info.mrUrl}#note_${noteId}` };
             delete posted[key].draftId;
@@ -81,7 +84,7 @@ async function reconcilePosted() {
           continue;
         }
         const noteId = info.url?.match(/#note_(\d+)$/)?.[1];
-        if (noteId && !(await mergeRequestNoteExists(info.iid, noteId))) {
+        if (noteId && !(await mergeRequestNoteExists(project, info.iid, noteId))) {
           delete posted[key];
           changed = true;
         }
@@ -98,10 +101,14 @@ async function reconcilePosted() {
   await run.catch(() => {});
 }
 
-// The MR tracked in status.json for a review slug, or undefined.
-async function trackedMr(slug) {
+// Resolves a review id (`<project>/<slug>`): { project, slug, mr }, where mr is the MR
+// tracked in status.json for it (undefined when none), or null for an id that is not valid.
+async function locate(id) {
+  const parsed = parseReviewId(id, PROJECTS);
+  if (!parsed) return null;
   const status = await readStatus();
-  return (status?.mrs ?? []).find((m) => m.reviewPath && m.reviewPath === join(REVIEWS_DIR, `${slug}.md`));
+  const mr = (status?.mrs ?? []).find((m) => m.project === parsed.project.key && m.reviewPath === join(parsed.project.reviewsDir, `${parsed.slug}.md`));
+  return { ...parsed, mr, status };
 }
 
 // Stacks of 2+ MRs from status.json, layers bottom to top. A layer without a
@@ -110,12 +117,13 @@ function buildStacks(status) {
   const byId = new Map();
   for (const mr of status?.mrs ?? []) {
     if (mr.kind !== 'review' || !mr.stack) continue;
-    if (!byId.has(mr.stack.id)) byId.set(mr.stack.id, { id: mr.stack.id, baseBranch: mr.stack.baseBranch, layers: [] });
-    byId.get(mr.stack.id).layers.push({
+    const id = `${mr.project}/${mr.stack.id}`;
+    if (!byId.has(id)) byId.set(id, { id, baseBranch: mr.stack.baseBranch, layers: [] });
+    byId.get(id).layers.push({
       iid: mr.iid,
       title: mr.title,
       webUrl: mr.web_url,
-      slug: mr.reviewPath ? mr.reviewPath.split('/').pop().replace(/\.md$/, '') : null,
+      slug: mr.reviewPath ? `${mr.project}/${mr.reviewPath.split('/').pop().replace(/\.md$/, '')}` : null,
       status: mr.status,
       parentIid: mr.stack.parentIid,
       position: mr.stack.position,
@@ -129,44 +137,41 @@ function buildStacks(status) {
 // waiting for the next poll. The newer of the two readings is the one shown.
 const stateOverrides = new Map();
 const newerState = (a, b) => (a && b ? (Date.parse(a.computedAt) >= Date.parse(b.computedAt) ? a : b) : a ?? b ?? null);
-function refreshState(mr) {
-  fetchReviewState(mr)
+function refreshState(project, mr) {
+  fetchReviewState(project, mr)
     .then((state) => {
-      stateOverrides.set(mr.iid, state);
+      stateOverrides.set(`${project.key}:${mr.iid}`, state);
       broadcast();
     })
     .catch((err) => console.warn(`[studio] could not refresh where !${mr.iid} stands: ${String(err.message).slice(0, 120)}`));
 }
 
-async function listReviews() {
-  // Checked against GitLab in the background (a round trip per posted comment): the list must not wait
-  // for it. When it changes something, the page is told and loads the list again.
-  void reconcilePosted();
-  const status = await readStatus();
-  const byPath = new Map((status?.mrs ?? []).map((mr) => [mr.reviewPath, mr]));
+async function listProjectReviews(project, status) {
+  const byPath = new Map((status?.mrs ?? []).filter((m) => m.project === project.key).map((mr) => [mr.reviewPath, mr]));
   let names = [];
   try {
-    names = (await readdir(REVIEWS_DIR)).filter((n) => n.endsWith('.md'));
+    names = (await readdir(project.reviewsDir)).filter((n) => n.endsWith('.md'));
   } catch {
     /* reviews dir not created yet */
   }
-  const items = await Promise.all(names.map(async (name) => {
-    const slug = name.slice(0, -3);
-    const path = join(REVIEWS_DIR, name);
+  return Promise.all(names.map(async (name) => {
+    const fileSlug = name.slice(0, -3);
+    const path = join(project.reviewsDir, name);
     const [md, st] = await Promise.all([readFile(path, 'utf8'), stat(path)]);
-    const shape = await loadShape(REVIEWS_DIR, slug, md);
+    const shape = await loadShape(project.reviewsDir, fileSlug, md);
     const mr = byPath.get(path);
     const title = md.match(/^#\s+(.+)$/m)?.[1] ?? null;
     return {
-      slug,
-      kind: kindOf(slug),
-      title: mr?.title ?? title ?? slug,
+      slug: reviewId(project, fileSlug),
+      project: project.key,
+      kind: kindOf(fileSlug),
+      title: mr?.title ?? title ?? fileSlug,
       iid: mr?.iid ?? md.match(/\bMR:?\s*!(\d+)/i)?.[1] ?? md.match(/\bMR !(\d+)/)?.[1] ?? null,
       author: mr?.author ?? null,
       webUrl: mr?.web_url ?? null,
       branch: md.match(/\*\*Branch:\*\*\s*([^\s|]+)/)?.[1] ?? null,
       ...listFields(shape),
-      stackId: mr?.stack?.id ?? null,
+      stackId: mr?.stack?.id ? `${project.key}/${mr.stack.id}` : null,
       crossLayer: parseAcrossLayers(md),
       // Reviewed before, but the commit (or the layer below) moved since.
       stale: mr?.status === 'pending' && Boolean(mr?.reviewedAt),
@@ -174,13 +179,24 @@ async function listReviews() {
       reviewedAt: mr?.reviewedAt ?? st.mtime.toISOString(),
       tracked: Boolean(mr),
       jira: mr?.jira ?? null,
-      myState: newerState(mr?.myState ?? null, mr ? stateOverrides.get(mr.iid) ?? null : null),
+      myState: newerState(mr?.myState ?? null, mr ? stateOverrides.get(`${project.key}:${mr.iid}`) ?? null : null),
     };
   }));
+}
+
+async function listReviews() {
+  // Checked against GitLab in the background (a round trip per posted comment): the list must not wait
+  // for it. When it changes something, the page is told and loads the list again.
+  void reconcilePosted();
+  const status = await readStatus();
+  const items = (await Promise.all(PROJECTS.map((project) => listProjectReviews(project, status)))).flat();
   items.sort(byPriorityThenDate);
-  // https://host/group/project, from any tracked MR url; used to link !123 and file paths.
-  const projectUrl = (status?.mrs ?? []).map((mr) => mr.web_url?.match(/^(.*)\/-\/merge_requests\/\d+/)?.[1]).find(Boolean) ?? null;
-  return { status, items, stacks: buildStacks(status), projectUrl, jiraBaseUrl: JIRA_BASE_URL ? JIRA_BASE_URL.replace(/\/+$/, '') : null, settings: loadSettings(), settingsDefaults: envDefaults(), allowPosting: ALLOW_POSTING === 'true', allowPush: ALLOW_PUSH === 'true', posted: await loadPosted() };
+  // https://host/group/project of each project, from any tracked MR url; used to link !123 and file paths.
+  const projectUrls = {};
+  for (const mr of status?.mrs ?? []) projectUrls[mr.project] ??= mr.web_url?.match(/^(.*)\/-\/merge_requests\/\d+/)?.[1];
+  const projectUrl = Object.values(projectUrls).find(Boolean) ?? null;
+  const projects = PROJECTS.map((p) => ({ key: p.key, kind: p.kind, gitlabProjectId: p.gitlabProjectId, url: projectUrls[p.key] ?? null }));
+  return { status, items, stacks: buildStacks(status), projectUrl, projects, jiraBaseUrl: JIRA_BASE_URL ? JIRA_BASE_URL.replace(/\/+$/, '') : null, settings: loadSettings(), settingsDefaults: envDefaults(), allowPosting: ALLOW_POSTING === 'true', allowPush: ALLOW_PUSH === 'true', posted: await loadPosted() };
 }
 
 const clients = new Set();
@@ -274,7 +290,7 @@ async function postComment(req, res) {
   const input = await readJsonBody(req, res);
   if (input === null) return undefined;
   const { slug, commentId, body, path, line } = input;
-  if (typeof slug !== 'string' || !SLUG_RE.test(slug) || typeof commentId !== 'string' || !/^[\w-]{1,64}$/.test(commentId)) {
+  if (!parseReviewId(slug, PROJECTS) || typeof commentId !== 'string' || !/^[\w-]{1,64}$/.test(commentId)) {
     return json(res, 400, { error: 'bad slug or commentId' });
   }
   if (typeof body !== 'string' || !body.trim() || body.length > 10_000) {
@@ -285,11 +301,10 @@ async function postComment(req, res) {
     return json(res, 400, { error: 'bad path or line' });
   }
   const run = postQueue.then(async () => {
-    const status = await readStatus();
-    const mr = (status?.mrs ?? []).find((m) => m.reviewPath && m.reviewPath === join(REVIEWS_DIR, `${slug}.md`));
+    const { project, mr } = await locate(slug);
     if (!mr) return json(res, 404, { error: 'no tracked merge request for this review' });
     const posted = await loadPosted();
-    const key = `${slug}:${commentId}`;
+    const key = postedKey(project.key, parseReviewId(slug, PROJECTS).slug, commentId);
     if (posted[key]) return json(res, 409, { error: 'already posted', posted: posted[key] });
     let draft;
     let text = body.trim();
@@ -297,7 +312,7 @@ async function postComment(req, res) {
     try {
       if (hasTarget) {
         try {
-          draft = await createInlineDraftNote(mr.iid, text, path, line);
+          draft = await createInlineDraftNote(project, mr.iid, text, path, line);
           inline = true;
         } catch (err) {
           // Typically a line outside the diff (400): keep the comment, drop the anchor.
@@ -306,14 +321,14 @@ async function postComment(req, res) {
       }
       if (!inline) {
         if (hasTarget) text = `\`${path}${line ? `:${line}` : ''}\`\n\n${text}`;
-        draft = await createDraftNote(mr.iid, text);
+        draft = await createDraftNote(project, mr.iid, text);
       }
     } catch (err) {
       return json(res, 502, { error: String(err.message).slice(0, 300) });
     }
     posted[key] = { at: new Date().toISOString(), iid: mr.iid, state: 'draft', draftId: draft.id, body: text, mrUrl: mr.web_url, url: mr.web_url, inline: hasTarget ? inline : undefined };
     await savePosted(posted);
-    refreshState(mr);
+    refreshState(project, mr);
     broadcast();
     return json(res, 200, posted[key]);
   });
@@ -333,12 +348,11 @@ async function submitReview(req, res) {
   if (input === null) return undefined;
   const { slug, summary } = input;
   const action = parseReviewAction(input.action);
-  if (typeof slug !== 'string' || !SLUG_RE.test(slug)) return json(res, 400, { error: 'bad slug' });
+  if (!parseReviewId(slug, PROJECTS)) return json(res, 400, { error: 'bad slug' });
   if (!action) return json(res, 400, { error: 'action must be comment, approve or request_changes' });
   if (summary !== undefined && (typeof summary !== 'string' || summary.length > 10_000)) return json(res, 400, { error: 'summary must be a string under 10000 characters' });
   const run = postQueue.then(async () => {
-    const status = await readStatus();
-    const mr = (status?.mrs ?? []).find((m) => m.reviewPath && m.reviewPath === join(REVIEWS_DIR, `${slug}.md`));
+    const { project, mr } = await locate(slug);
     if (!mr) return json(res, 404, { error: 'no tracked merge request for this review' });
     const posted = await loadPosted();
     const drafts = Object.entries(posted).filter(([key, info]) => key.startsWith(`${slug}:`) && info.state === 'draft');
@@ -346,17 +360,17 @@ async function submitReview(req, res) {
     // Approving or requesting changes needs no comment: the verdict is the review.
     if (!drafts.length && !text && action === 'comment') return json(res, 400, { error: 'nothing to submit' });
     try {
-      if (text) await createDraftNote(mr.iid, text);
+      if (text) await createDraftNote(project, mr.iid, text);
       // Drafts started in GitLab itself are not in posted.json: ask GitLab.
-      const pending = drafts.length > 0 || Boolean(text) || (await listDraftNotes(mr.iid)).length > 0;
-      if (pending || action === 'request_changes') await publishDraftNotes(mr.iid, reviewerStateFor(action));
+      const pending = drafts.length > 0 || Boolean(text) || (await listDraftNotes(project, mr.iid)).length > 0;
+      if (pending || action === 'request_changes') await publishDraftNotes(project, mr.iid, reviewerStateFor(action));
     } catch (err) {
       return json(res, 502, { error: String(err.message).slice(0, 300) });
     }
     let approveError = null;
     if (action === 'approve') {
       try {
-        await approveMergeRequest(mr.iid, (await loadState())[mr.iid]);
+        await approveMergeRequest(project, mr.iid, (await loadState(project))[mr.iid]);
       } catch (err) {
         approveError = String(err.message).slice(0, 300);
       }
@@ -364,7 +378,7 @@ async function submitReview(req, res) {
     for (const [key, info] of drafts) {
       let noteId = null;
       try {
-        noteId = await findPublishedNoteId(info.iid, info.body);
+        noteId = await findPublishedNoteId(project, info.iid, info.body);
       } catch {
         /* the review is out; only the deep link is missing */
       }
@@ -372,7 +386,7 @@ async function submitReview(req, res) {
       posted[key] = { ...rest, state: 'published', at: new Date().toISOString(), url: noteId ? `${info.mrUrl}#note_${noteId}` : info.mrUrl };
     }
     await savePosted(posted);
-    refreshState(mr);
+    refreshState(project, mr);
     broadcast();
     // The comments are out either way: say so, so the user does not submit them twice.
     if (approveError) return json(res, 502, { error: `Comments published, but the approval failed: ${approveError}` });
@@ -395,7 +409,7 @@ async function mutateDraft(req, res, pathname) {
   } catch {
     slug = '';
   }
-  if (!SLUG_RE.test(slug) || slug.includes('..') || !idPart) return json(res, 400, { error: 'bad slug or draft id' });
+  if (!parseReviewId(slug, PROJECTS) || !idPart) return json(res, 400, { error: 'bad slug or draft id' });
   const draftId = Number(idPart);
   let text;
   if (req.method === 'PUT') {
@@ -405,24 +419,23 @@ async function mutateDraft(req, res, pathname) {
     if (!text || text.length > 10_000) return json(res, 400, { error: 'body must be a non-empty string under 10000 characters' });
   }
   const run = postQueue.then(async () => {
-    const status = await readStatus();
-    const mr = (status?.mrs ?? []).find((m) => m.reviewPath && m.reviewPath === join(REVIEWS_DIR, `${slug}.md`));
+    const { project, mr } = await locate(slug);
     if (!mr) return json(res, 404, { error: 'no tracked merge request for this review' });
     try {
-      if (req.method === 'PUT') await updateDraftNote(mr.iid, draftId, text);
-      else await deleteDraftNote(mr.iid, draftId);
+      if (req.method === 'PUT') await updateDraftNote(project, mr.iid, draftId, text);
+      else await deleteDraftNote(project, mr.iid, draftId);
     } catch (err) {
       return json(res, / -> 404:/.test(String(err.message)) ? 404 : 502, { error: String(err.message).slice(0, 300) });
     }
     // Keep the local record in step: a deleted draft can be added again, an edited one keeps its new text for matching.
     const posted = await loadPosted();
-    const entry = Object.entries(posted).find(([, info]) => info.state === 'draft' && info.draftId === draftId && info.iid === mr.iid);
+    const entry = Object.entries(posted).find(([key, info]) => key.startsWith(`${project.key}/`) && info.state === 'draft' && info.draftId === draftId && info.iid === mr.iid);
     if (entry) {
       if (req.method === 'DELETE') delete posted[entry[0]];
       else posted[entry[0]] = { ...entry[1], body: text };
       await savePosted(posted);
     }
-    refreshState(mr);
+    refreshState(project, mr);
     broadcast();
     return json(res, 200, { ok: true });
   });
@@ -438,18 +451,19 @@ async function chatAboutStop(req, res) {
   const parsed = parseChatInput(input);
   if (parsed.error) return json(res, 400, { error: parsed.error });
   const { slug, stopId, question, history } = parsed;
-  if (!SLUG_RE.test(slug) || slug.includes('..')) return json(res, 400, { error: 'bad slug' });
-  const mr = await trackedMr(slug);
+  const found = await locate(slug);
+  if (!found) return json(res, 400, { error: 'bad slug' });
+  const { project, mr } = found;
   if (!mr) return json(res, 404, { error: 'no tracked merge request for this review' });
-  const shape = await loadShape(REVIEWS_DIR, slug, '');
+  const shape = await loadShape(project.reviewsDir, found.slug, '');
   const stop = (shape.tour ?? []).find((s) => s.id === stopId);
   if (!stop) return json(res, 404, { error: 'no such stop in this review' });
   if (chatBusy) return json(res, 429, { error: 'another question is being answered, try again in a moment' });
   chatBusy = true;
   try {
-    const files = filesForPatterns((await listMergeRequestDiffs(mr.iid)).map(toDiffFile), stop.files);
+    const files = filesForPatterns((await listMergeRequestDiffs(project, mr.iid)).map(toDiffFile), stop.files);
     const prompt = buildChatPrompt({ title: mr.title, shape, stop, files, history, question });
-    return json(res, 200, { answer: await askAboutStop({ iid: mr.iid, prompt }) });
+    return json(res, 200, { answer: await askAboutStop({ project, iid: mr.iid, prompt }) });
   } catch (err) {
     return json(res, 502, { error: String(err.message).slice(0, 300) });
   } finally {
@@ -467,9 +481,9 @@ async function rerunReview(req, res) {
   const input = await readJsonBody(req, res);
   if (input === null) return undefined;
   const { slug } = input;
-  if (typeof slug !== 'string' || !SLUG_RE.test(slug) || slug.includes('..')) return json(res, 400, { error: 'bad slug' });
-  const status = await readStatus();
-  const mr = (status?.mrs ?? []).find((m) => m.reviewPath && m.reviewPath === join(REVIEWS_DIR, `${slug}.md`));
+  const found = await locate(slug);
+  if (!found) return json(res, 400, { error: 'bad slug' });
+  const { project, mr, status } = found;
   if (!mr) return json(res, 404, { error: 'no tracked merge request for this review' });
   let alive = false;
   try {
@@ -479,18 +493,19 @@ async function rerunReview(req, res) {
   }
   if (!alive || status.phase === 'stopped') return json(res, 409, { error: 'the bot is not running: start it with npm start' });
   if (status.phase !== 'idle' && status.phase !== 'error') return json(res, 409, { error: 'a run is in progress, try again when it is done' });
-  const state = await loadState();
-  if (mr.kind === 'comments') (state.mineComments ??= {})[mr.iid] = null;
+  const state = await loadState(project);
+  if (mr.kind === 'comments') state.mineComments[mr.iid] = null;
   else state[mr.iid] = null;
-  await saveState(state);
+  await saveState(project, state);
   process.kill(status.pid, 'SIGUSR1');
   return json(res, 200, { ok: true, iid: mr.iid, kind: mr.kind });
 }
 
 // The tracked MR of a triage, as fixesStatus() wants it, or null.
 async function triagedMr(slug) {
-  const mr = await trackedMr(slug);
-  return mr?.kind === 'comments' && mr.sourceBranch ? { iid: mr.iid, source_branch: mr.sourceBranch } : null;
+  const found = await locate(slug);
+  const mr = found?.mr;
+  return mr?.kind === 'comments' && mr.sourceBranch ? { project: found.project, mr: { iid: mr.iid, source_branch: mr.sourceBranch } } : null;
 }
 
 // Pushes the local fixes of one triage to its MR branch, only if that branch hasn't
@@ -501,12 +516,12 @@ async function pushTriageFixes(req, res) {
   const input = await readJsonBody(req, res);
   if (input === null) return undefined;
   const { slug } = input;
-  if (typeof slug !== 'string' || !SLUG_RE.test(slug) || slug.includes('..')) return json(res, 400, { error: 'bad slug' });
+  if (!parseReviewId(slug, PROJECTS)) return json(res, 400, { error: 'bad slug' });
   const run = pushQueue.then(async () => {
-    const mr = await triagedMr(slug);
-    if (!mr) return json(res, 404, { error: 'no tracked triage for this slug' });
+    const triaged = await triagedMr(slug);
+    if (!triaged) return json(res, 404, { error: 'no tracked triage for this slug' });
     try {
-      const { pushed, status } = await pushFixes(mr);
+      const { pushed, status } = await pushFixes(triaged.project, triaged.mr);
       if (!pushed) return json(res, 409, { error: status.state === 'outdated' ? 'the MR branch moved since the triage: re-run it' : `nothing to push (${status.state})`, status });
       return json(res, 200, status);
     } catch (err) {
@@ -519,7 +534,11 @@ async function pushTriageFixes(req, res) {
 
 // An image a GitLab note embeds, fetched with the token (the browser has no GitLab login).
 async function serveGitlabImage(res, src) {
-  const path = uploadFetchPath(src, GITLAB_BASE_URL, encodedProjectId);
+  let project = null;
+  try {
+    project = projectOfUpload(new URL(src, GITLAB_BASE_URL).pathname, PROJECTS);
+  } catch { /* not a URL: uploadFetchPath refuses it below */ }
+  const path = project && uploadFetchPath(src, GITLAB_BASE_URL, project.encodedId);
   if (!path) return json(res, 400, { error: 'not a GitLab upload' });
   try {
     const upstream = await fetch(`${GITLAB_BASE_URL}${path}`, { headers: { 'PRIVATE-TOKEN': GITLAB_TOKEN }, redirect: 'follow' });
@@ -555,9 +574,10 @@ async function handle(req, res) {
     } catch {
       slug = '';
     }
-    if (!SLUG_RE.test(slug) || slug.includes('..')) return json(res, 400, { error: 'bad slug' });
-    if (!idPart) return json(res, 200, { versions: await listHistory(slug) });
-    const version = await readHistory(slug, idPart);
+    const where = parseReviewId(slug, PROJECTS);
+    if (!where) return json(res, 400, { error: 'bad slug' });
+    if (!idPart) return json(res, 200, { versions: await listHistory(where.project.reviewsDir, where.slug) });
+    const version = await readHistory(where.project.reviewsDir, where.slug, idPart);
     if (version === null) return json(res, 404, { error: 'not found' });
     return json(res, 200, { slug, id: idPart, markdown: version.markdown, shape: version.shape ?? buildShape({ markdown: version.markdown }) });
   }
@@ -571,12 +591,11 @@ async function handle(req, res) {
     } catch {
       return json(res, 400, { error: 'bad slug' });
     }
-    if (!SLUG_RE.test(slug) || slug.includes('..')) return json(res, 400, { error: 'bad slug' });
-    const status = await readStatus();
-    const mr = (status?.mrs ?? []).find((m) => m.reviewPath && m.reviewPath === join(REVIEWS_DIR, `${slug}.md`));
-    if (!mr) return json(res, 404, { error: 'no tracked merge request for this review' });
+    const found = await locate(slug);
+    if (!found) return json(res, 400, { error: 'bad slug' });
+    if (!found.mr) return json(res, 404, { error: 'no tracked merge request for this review' });
     try {
-      return json(res, 200, { drafts: await listDraftNotes(mr.iid) });
+      return json(res, 200, { drafts: await listDraftNotes(found.project, found.mr.iid) });
     } catch (err) {
       return json(res, 502, { error: String(err.message).slice(0, 300) });
     }
@@ -585,11 +604,11 @@ async function handle(req, res) {
   const threadsMatch = /^\/api\/reviews\/([^/]+)\/threads$/.exec(pathname);
   if (threadsMatch) {
     const slug = decodeURIComponent(threadsMatch[1]);
-    if (!SLUG_RE.test(slug) || slug.includes('..')) return json(res, 400, { error: 'bad slug' });
-    const mr = await trackedMr(slug);
-    if (!mr) return json(res, 404, { error: 'no tracked merge request for this review' });
+    const found = await locate(slug);
+    if (!found) return json(res, 400, { error: 'bad slug' });
+    if (!found.mr) return json(res, 404, { error: 'no tracked merge request for this review' });
     try {
-      return json(res, 200, { threads: await reviewThreads(mr) });
+      return json(res, 200, { threads: await reviewThreads(found.project, found.mr) });
     } catch (err) {
       return json(res, 502, { error: String(err.message).slice(0, 300) });
     }
@@ -598,8 +617,9 @@ async function handle(req, res) {
   const diffMatch = /^\/api\/reviews\/([^/]+)\/diff$/.exec(pathname);
   if (diffMatch) {
     const slug = decodeURIComponent(diffMatch[1]);
-    if (!SLUG_RE.test(slug) || slug.includes('..')) return json(res, 400, { error: 'bad slug' });
-    const mr = await trackedMr(slug);
+    const found = await locate(slug);
+    if (!found) return json(res, 400, { error: 'bad slug' });
+    const { project, mr } = found;
     if (!mr) return json(res, 404, { error: 'no tracked merge request for this review' });
     const versionId = searchParams.get('version');
     const mode = searchParams.get('mode') === 'since' ? 'since' : 'full';
@@ -607,13 +627,13 @@ async function handle(req, res) {
     try {
       // The live diff, unless it is about what an earlier review saw or what changed since it.
       if (versionId || mode === 'since') {
-        const { status, ...body } = await reviewDiff(mr, slug, { versionId, mode, stopId: searchParams.get('stop') });
+        const { status, ...body } = await reviewDiff(project, mr, found.slug, { versionId, mode, stopId: searchParams.get('stop') });
         return json(res, status, body);
       }
-      let files = (await listMergeRequestDiffs(mr.iid)).map(toDiffFile);
+      let files = (await listMergeRequestDiffs(project, mr.iid)).map(toDiffFile);
       const stopId = searchParams.get('stop');
       if (stopId) {
-        const shape = await loadShape(REVIEWS_DIR, slug, '');
+        const shape = await loadShape(project.reviewsDir, found.slug, '');
         const stop = (shape.tour ?? []).find((s) => s.id === stopId);
         files = stop ? filesForPatterns(files, stop.files) : [];
       }
@@ -630,10 +650,11 @@ async function handle(req, res) {
     } catch {
       return json(res, 400, { error: 'bad slug' });
     }
-    if (!SLUG_RE.test(slug) || slug.includes('..')) return json(res, 400, { error: 'bad slug' });
+    const where = parseReviewId(slug, PROJECTS);
+    if (!where) return json(res, 400, { error: 'bad slug' });
     try {
-      const md = await readFile(join(REVIEWS_DIR, `${slug}.md`), 'utf8');
-      return json(res, 200, { slug, kind: kindOf(slug), markdown: md, shape: await loadShape(REVIEWS_DIR, slug, md) });
+      const md = await readFile(join(where.project.reviewsDir, `${where.slug}.md`), 'utf8');
+      return json(res, 200, { slug, kind: kindOf(where.slug), markdown: md, shape: await loadShape(where.project.reviewsDir, where.slug, md) });
     } catch {
       return json(res, 404, { error: 'not found' });
     }
@@ -660,10 +681,12 @@ export function startStudio() {
   });
   // Closed with the server, so it can be stopped cleanly (tests start and stop it).
   const watchers = [];
-  try {
-    watchers.push(watch(REVIEWS_DIR, broadcast));
-  } catch {
-    /* dir may not exist yet; the poller creates it, SSE just stays quiet */
+  for (const project of PROJECTS) {
+    try {
+      watchers.push(watch(project.reviewsDir, broadcast));
+    } catch {
+      /* dir may not exist yet; the poller creates it, SSE just stays quiet */
+    }
   }
   // Watch the directory, not the files: status.json and settings.json are
   // written via tmp + rename, which leaves a file-level watcher on the old inode.

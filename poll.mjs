@@ -1,12 +1,13 @@
 import './lib/node-check.mjs';
 import { mkdir } from 'node:fs/promises';
 import { watch } from 'node:fs';
-import { GITLAB_USERNAME, TRIAGE_COMMAND, REVIEWS_DIR, ROOT, ensureDataDir } from './lib/config.mjs';
+import { GITLAB_USERNAME, ROOT, ensureDataDir } from './lib/config.mjs';
+import { PROJECTS } from './lib/projects.mjs';
 import { allowedTargets, loadSettings, pollIntervalMs } from './lib/settings.mjs';
 import { startStudio } from './studio/server.mjs';
 import { isFancyTerminal, c, timestamp, log, mrTag } from './lib/log.mjs';
 import { loadState, saveState } from './lib/state.mjs';
-import { status, writeStatus, setMrStatus } from './lib/status.mjs';
+import { status, writeStatus, setMrStatus, sameMr } from './lib/status.mjs';
 import { notify } from './lib/notify.mjs';
 import { listOpenMergeRequests, reviewFileCoversLastPush, latestPeerCommentAt } from './lib/gitlab.mjs';
 import { fetchReviewStates } from './lib/mr-state.mjs';
@@ -20,7 +21,7 @@ import { reviewEntry, commentsEntry } from './lib/poll-status.mjs';
 // Marks the bot busy on one MR while `work` runs, then back to polling.
 async function whileReviewing(mr, work) {
   status.phase = 'reviewing';
-  status.current = { iid: mr.iid, title: mr.title, web_url: mr.web_url, startedAt: new Date().toISOString() };
+  status.current = { project: mr.project.key, iid: mr.iid, title: mr.title, web_url: mr.web_url, startedAt: new Date().toISOString() };
   await setMrStatus(mr, { status: 'reviewing' });
   try {
     await work();
@@ -45,7 +46,7 @@ async function reviewOne(mr, plan, state) {
     log(mr, `A review file newer than the last push already exists at ${reviewOutputPath(mr)}, assuming it covers this commit. Skipping.`);
     state[mr.iid] = mr.sha;
     recordBelow(state, mr, plan.parentOf(mr));
-    await saveState(state);
+    await saveState(mr.project, state);
     await setMrStatus(mr, { status: 'up_to_date' });
     return;
   }
@@ -56,7 +57,7 @@ async function reviewOne(mr, plan, state) {
       if (outcome !== 'reviewed') return skipped(mr);
       state[mr.iid] = mr.sha;
       recordBelow(state, mr, plan.parentOf(mr));
-      await saveState(state);
+      await saveState(mr.project, state);
       await setMrStatus(mr, { status: 'up_to_date', reviewedAt: new Date().toISOString() });
       notify('Review ready', `!${mr.iid} ${mr.title}`, reviewOutputPath(mr));
     } catch (err) {
@@ -73,7 +74,7 @@ async function triageOne(mr, peerCommentAt, state) {
       const outcome = await runMrComments(mr);
       if (outcome !== 'reviewed') return skipped(mr);
       state.mineComments[mr.iid] = peerCommentAt;
-      await saveState(state);
+      await saveState(mr.project, state);
       await setMrStatus(mr, { status: 'up_to_date', reviewedAt: new Date().toISOString() });
       notify('Comments triaged', `!${mr.iid} ${mr.title}`, mrCommentsOutputPath(mr));
     } catch (err) {
@@ -84,20 +85,33 @@ async function triageOne(mr, peerCommentAt, state) {
   });
 }
 
+// One project after the other: a project's bot worktree is never shared by two runs.
 async function poll() {
-  const ts = timestamp();
-  console.log(`${ts} ${c.bold}${c.cyan}Polling open MRs...${c.reset}`);
+  console.log(`${timestamp()} ${c.bold}${c.cyan}Polling open MRs...${c.reset}`);
   status.phase = 'polling';
   await writeStatus();
-  const state = await loadState();
-  state.mineComments ??= {};
-  state.stackBelow ??= {};
+  const failures = [];
+  for (const project of PROJECTS) {
+    try {
+      await pollProject(project);
+    } catch (err) {
+      console.error(`${timestamp()} ${c.red}[${project.key}] Poll failed:${c.reset}`, err);
+      failures.push(`${project.key}: ${err.message}`);
+    }
+  }
+  if (failures.length) throw new Error(failures.join('; '));
+  console.log(`${timestamp()} ${c.dim}Poll done. Next one in ${loadSettings().pollIntervalMinutes} minute(s).${c.reset}`);
+}
+
+async function pollProject(project) {
+  const ts = timestamp();
+  const state = await loadState(project);
   const plan = planMergeRequests({
-    openMrs: await listOpenMergeRequests(),
+    openMrs: await listOpenMergeRequests(project),
     state,
-    allowedTargets: allowedTargets(),
+    allowedTargets: allowedTargets(project),
     username: GITLAB_USERNAME,
-    triageEnabled: Boolean(TRIAGE_COMMAND),
+    triageEnabled: Boolean(project.triageCommand),
   });
   const { reviewMrs, myMrs } = plan;
 
@@ -112,10 +126,10 @@ async function poll() {
   const triagedAts = await Promise.all(myMrs.map((mr) => mtimeOrNull(mrCommentsOutputPath(mr))));
   const jiras = await Promise.all(reviewMrs.map((mr) => jiraPriorityOf(mr)));
   // Where each MR really stands for me, read from GitLab. One that cannot be read keeps what it had.
-  const states = await fetchReviewStates([...reviewMrs, ...myMrs]);
-  const previous = new Map(status.mrs.map((m) => [m.iid, m.myState]));
-  const stateOf = (mr) => states.get(mr.iid) ?? previous.get(mr.iid) ?? null;
-  status.mrs = [
+  const states = await fetchReviewStates(project, [...reviewMrs, ...myMrs]);
+  const previous = status.mrs.filter((m) => m.project === project.key);
+  const stateOf = (mr) => states.get(mr.iid) ?? previous.find((m) => sameMr(m, mr))?.myState ?? null;
+  const entries = [
     ...reviewMrs.map((mr, i) => reviewEntry(mr, { plan, reviewPath: reviewOutputPath(mr), reviewedAtMs: reviewedAts[i], jira: jiras[i], myState: stateOf(mr) })),
     ...myMrsWithSignal.map(({ mr, peerCommentAt }, i) => commentsEntry(mr, {
       // No peer comment at all counts as "up to date": there is nothing to triage yet.
@@ -125,11 +139,12 @@ async function poll() {
       myState: stateOf(mr),
     })),
   ];
+  status.mrs = [...status.mrs.filter((m) => m.project !== project.key), ...entries];
   await writeStatus();
   const needCount = toReview.length + toTriage.length;
   const needColor = needCount > 0 ? c.green : c.dim;
   console.log(
-    `${ts} ${c.bold}${reviewMrs.length}${c.reset} MR(s) to review, ${c.bold}${myMrs.length}${c.reset} of my own — ` +
+    `${ts} [${project.key}] ${c.bold}${reviewMrs.length}${c.reset} MR(s) to review, ${c.bold}${myMrs.length}${c.reset} of my own — ` +
       `${needColor}${toReview.length} need a review, ${toTriage.length} need comment triage${c.reset}.`,
   );
 
@@ -137,8 +152,7 @@ async function poll() {
   for (const { mr, peerCommentAt } of toTriage) await triageOne(mr, peerCommentAt, state);
 
   pruneState(state, new Set(reviewMrs.map((mr) => String(mr.iid))), new Set(myMrs.map((mr) => String(mr.iid))));
-  await saveState(state);
-  console.log(`${timestamp()} ${c.dim}Poll done. Next one in ${loadSettings().pollIntervalMinutes} minute(s).${c.reset}`);
+  await saveState(project, state);
 }
 
 const BANNER = [
@@ -230,10 +244,10 @@ async function main() {
   process.on('SIGINT', shutdown);
   process.on('SIGTERM', shutdown);
   ensureDataDir();
-  await mkdir(REVIEWS_DIR, { recursive: true });
+  for (const project of PROJECTS) await mkdir(project.reviewsDir, { recursive: true });
   startStudio();
   watchSettings();
-  await ensureBotWorktree();
+  for (const project of PROJECTS) await ensureBotWorktree(project);
   // `kill -USR1 <pid>` (the menu bar's "Poll now") triggers a poll right away.
   process.on('SIGUSR1', runPoll);
   await runPoll();

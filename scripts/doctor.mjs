@@ -9,6 +9,7 @@ import { promisify } from 'node:util';
 
 process.env.MR_REVIEW_BOT_SKIP_CONFIG_CHECK = '1';
 const cfg = await import('../lib/config.mjs');
+const { PROJECTS, projectByKey } = await import('../lib/projects.mjs');
 const run = promisify(execFile);
 let failures = 0;
 const ok = (m) => console.log(`  ✓ ${m}`);
@@ -41,25 +42,27 @@ if (!missing.length) {
     const me = await gitlabRequest('/user');
     me.username === cfg.GITLAB_USERNAME ? ok(`Token belongs to ${me.username}`) : bad(`Token belongs to "${me.username}" but GITLAB_USERNAME is "${cfg.GITLAB_USERNAME}"`);
   });
-  await step('GitLab project', async () => {
-    const p = await gitlabRequest(`/projects/${cfg.encodedProjectId}`);
-    ok(`Project ${p.path_with_namespace} reachable`);
-  });
+  for (const project of PROJECTS) {
+    await step(`GitLab project ${project.key}`, async () => {
+      const p = await gitlabRequest(`/projects/${project.encodedId}`);
+      ok(`[${project.key}] ${p.path_with_namespace} reachable`);
+    });
+  }
 }
 
-console.log('\nRepository and commands');
-if (cfg.REPO_LOCAL_PATH) {
-  await step('REPO_LOCAL_PATH', async () => {
-    await run('git', ['rev-parse', '--git-dir'], { cwd: cfg.REPO_LOCAL_PATH });
-    ok(`${cfg.REPO_LOCAL_PATH} is a git repository`);
-    const { stdout } = await run('git', ['remote', 'get-url', 'origin'], { cwd: cfg.REPO_LOCAL_PATH });
+const dirsOf = (project) => [join(project.repoPath, '.claude'), join(homedir(), '.claude')];
+const findCommand = (project, cmd) => dirsOf(project).some((d) => existsSync(join(d, 'commands', `${cmd.replace(/^\//, '')}.md`)) || existsSync(join(d, 'skills', cmd.replace(/^\//, ''), 'SKILL.md')));
+for (const project of PROJECTS) {
+  console.log(`\nRepository and commands [${project.key}]`);
+  await step(`${project.key} repository`, async () => {
+    await run('git', ['rev-parse', '--git-dir'], { cwd: project.repoPath });
+    ok(`${project.repoPath} is a git repository`);
+    const { stdout } = await run('git', ['remote', 'get-url', 'origin'], { cwd: project.repoPath });
     ok(`origin = ${stdout.trim()}`);
   });
-  const dirs = [join(cfg.REPO_LOCAL_PATH, '.claude'), join(homedir(), '.claude')];
-  const findCommand = (cmd) => dirs.some((d) => existsSync(join(d, 'commands', `${cmd.replace(/^\//, '')}.md`)) || existsSync(join(d, 'skills', cmd.replace(/^\//, ''), 'SKILL.md')));
-  for (const [label, cmd] of [['REVIEW_COMMAND', cfg.REVIEW_COMMAND], ['TRIAGE_COMMAND', cfg.TRIAGE_COMMAND]]) {
-    if (!cmd) { label === 'TRIAGE_COMMAND' ? warnMsg('TRIAGE_COMMAND empty: your own MRs are ignored') : bad('REVIEW_COMMAND is empty'); continue; }
-    findCommand(cmd) ? ok(`${label} ${cmd} found`) : bad(`${label} ${cmd} not found in <repo>/.claude or ~/.claude`, 'copy one from examples/commands or fix the name (plugin commands are not detected here: use --dry-run)');
+  for (const [label, cmd] of [['review command', project.reviewCommand], ['triage command', project.triageCommand]]) {
+    if (!cmd) { label === 'triage command' ? warnMsg('triage command empty: your own MRs are ignored') : bad('review command is empty'); continue; }
+    findCommand(project, cmd) ? ok(`${label} ${cmd} found`) : bad(`${label} ${cmd} not found in <repo>/.claude or ~/.claude`, 'copy one from examples/commands or fix the name (plugin commands are not detected here: use --dry-run)');
   }
 }
 
@@ -68,16 +71,20 @@ for (const bin of ['terminal-notifier']) {
   await run('which', [bin]).then(() => ok(bin), () => warnMsg(`${bin} missing: notifications are not clickable (brew install ${bin})`));
 }
 
+// `--dry-run <iid> [--project <key>]`: the real chain on one MR, into a temp file.
 const dryIdx = process.argv.indexOf('--dry-run');
 if (dryIdx !== -1 && !failures) {
   const iid = process.argv[dryIdx + 1];
-  console.log(`\nDry run on MR !${iid}`);
+  const keyIdx = process.argv.indexOf('--project');
+  const project = keyIdx === -1 ? PROJECTS[0] : projectByKey(process.argv[keyIdx + 1]);
+  if (!project) bad(`No project "${process.argv[keyIdx + 1]}"`, `known: ${PROJECTS.map((p) => p.key).join(', ')}`);
+  console.log(`\nDry run on MR !${iid} [${project?.key}]`);
   const { gitlabRequest } = await import('../lib/gitlab.mjs');
   const { ensureBotWorktree } = await import('../lib/worktree.mjs');
   const { runReview } = await import('../lib/claude-runner.mjs');
   await step('dry run', async () => {
-    const mr = await gitlabRequest(`/projects/${cfg.encodedProjectId}/merge_requests/${iid}`);
-    await ensureBotWorktree();
+    const mr = { ...(await gitlabRequest(`/projects/${project.encodedId}/merge_requests/${iid}`)), project };
+    await ensureBotWorktree(project);
     const out = join(tmpdir(), `marginalia-dry-run-${iid}.md`);
     const outcome = await runReview(mr, out);
     outcome === 'reviewed' ? ok(`Report written to ${out} (see the log line above for which source was used)`) : bad(`Skipped: ${outcome}`);

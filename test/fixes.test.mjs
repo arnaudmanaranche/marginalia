@@ -22,22 +22,23 @@ git(repo, 'push', '--quiet', 'origin', 'HEAD:refs/heads/feat/x');
 git(root, 'clone', '--quiet', '-b', 'feat/x', origin, other);
 
 const { fixesStatus, pushFixes } = await import('../lib/fixes.mjs');
-const mr = { iid: 7, source_branch: 'feat/x' };
+const project = { key: 'demo', repoPath: repo, worktreeDir: repo };
+const mr = { iid: 7, source_branch: 'feat/x', project };
 const fix = (msg) => {
   git(repo, 'commit', '--quiet', '--allow-empty', '-m', msg);
   git(repo, 'update-ref', 'refs/heads/marginalia/feat-x', 'HEAD');
 };
 
 test('no fixes ref: nothing to push', async () => {
-  assert.equal((await fixesStatus(mr)).state, 'none');
+  assert.equal((await fixesStatus(project, mr)).state, 'none');
 });
 
 test('fixes on top of the MR head are ready, listed, then pushed fast-forward', async () => {
   fix('fix: one');
-  const s = await fixesStatus(mr);
+  const s = await fixesStatus(project, mr);
   assert.equal(s.state, 'ready');
   assert.deepEqual(s.commits.map((c) => c.subject), ['fix: one']);
-  const { pushed, status } = await pushFixes(mr);
+  const { pushed, status } = await pushFixes(project, mr);
   assert.equal(pushed, true);
   assert.equal(status.state, 'pushed');
   assert.equal(git(repo, 'ls-remote', 'origin', 'refs/heads/feat/x').split(/\s/)[0], s.fixesSha);
@@ -49,8 +50,8 @@ test('fixes made before the MR branch moved are outdated and never pushed', asyn
   git(other, 'commit', '--quiet', '--allow-empty', '-m', 'someone else');
   git(other, 'push', '--quiet', 'origin', 'feat/x');
   const remote = git(other, 'rev-parse', 'HEAD');
-  assert.equal((await fixesStatus(mr)).state, 'outdated');
-  const { pushed } = await pushFixes(mr);
+  assert.equal((await fixesStatus(project, mr)).state, 'outdated');
+  const { pushed } = await pushFixes(project, mr);
   assert.equal(pushed, false);
   assert.equal(git(repo, 'ls-remote', 'origin', 'refs/heads/feat/x').split(/\s/)[0], remote);
 });

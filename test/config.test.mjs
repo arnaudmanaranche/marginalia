@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { parseConfig } from '../lib/config-schema.mjs';
 import { configFromEnv, envFromConfig } from '../lib/config-env.mjs';
-import { envFromConfigFile } from '../lib/config-file.mjs';
+import { readConfigFile } from '../lib/config-file.mjs';
 
 const ENV = {
   GITLAB_BASE_URL: 'https://git.example.com/', GITLAB_USERNAME: 'me', GITLAB_TOKEN: 'glpat-x',
@@ -55,14 +55,14 @@ test('envFromConfig round-trips what the rest of the code reads', () => {
   assert.equal(env.CLAUDE_SANDBOX, 'true');
 });
 
-test('config.json: absent gives {}, valid gives env, invalid throws with the path', () => {
+test('config.json: absent gives null, valid gives the config, invalid throws with the path', () => {
   const dir = mkdtempSync(join(tmpdir(), 'marginalia-cfg-'));
-  assert.deepEqual(envFromConfigFile(dir), {});
+  assert.equal(readConfigFile(dir), null);
   const raw = configFromEnv(ENV);
   writeFileSync(join(dir, 'config.json'), JSON.stringify(raw));
-  assert.equal(envFromConfigFile(dir).GITLAB_PROJECT_ID, 'group/back');
+  assert.equal(readConfigFile(dir).projects[0].gitlabProjectId, 'group/back');
   writeFileSync(join(dir, 'config.json'), JSON.stringify({ ...raw, projects: [] }));
-  assert.throws(() => envFromConfigFile(dir), /config\.json is invalid/);
+  assert.throws(() => readConfigFile(dir), /config\.json is invalid/);
   writeFileSync(join(dir, 'config.json'), '{nope');
-  assert.throws(() => envFromConfigFile(dir), /not valid JSON/);
+  assert.throws(() => readConfigFile(dir), /not valid JSON/);
 });

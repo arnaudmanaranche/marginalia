@@ -14,8 +14,12 @@ process.env.ALLOW_POSTING = 'false';
 process.env.STUDIO_PORT = '0';
 const repo = await mkdtemp(join(tmpdir(), 'marginalia-api-'));
 process.env.REPO_LOCAL_PATH = repo;
+Object.assign(process.env, { GITLAB_BASE_URL: 'https://git.example.com', GITLAB_USERNAME: 'me', GITLAB_TOKEN: 't', GITLAB_PROJECT_ID: 'group/demo' });
 
-const { REVIEWS_DIR } = await import('../lib/config.mjs');
+const { PROJECTS } = await import('../lib/projects.mjs');
+const REVIEWS_DIR = PROJECTS[0].reviewsDir;
+// A review is addressed as <project key>/<slug>.
+const idOf = (name) => `${PROJECTS[0].key}/${name}`;
 const { FINDINGS_FILE } = await import('../lib/findings.mjs');
 const { REPORT_FILE, buildReport, writeReportFiles } = await import('../lib/report.mjs');
 const { startStudio } = await import('../studio/server.mjs');
@@ -52,7 +56,7 @@ const get = (path) => fetch(`${base}${path}`).then(async (r) => ({ status: r.sta
 test('every review is listed with the keys the API promises, whichever skill wrote it', async () => {
   const { status, body } = await get('/api/reviews');
   assert.equal(status, 200);
-  const items = body.items.filter((i) => names.includes(i.slug));
+  const items = body.items.filter((i) => names.map(idOf).includes(i.slug));
   assert.equal(items.length, names.length, 'no review is dropped from the list');
   for (const item of items) {
     for (const key of required('ReviewItem')) {
@@ -69,7 +73,7 @@ test('every review is listed with the keys the API promises, whichever skill wro
 
 test('every review can be read with its shape', async () => {
   for (const name of names) {
-    const { status, body } = await get(`/api/reviews/${name}`);
+    const { status, body } = await get(`/api/reviews/${encodeURIComponent(idOf(name))}`);
     assert.equal(status, 200, name);
     for (const key of required('ReviewShape')) assert.ok(key in body.shape, `${name} shape has ${key}`);
     assert.equal(typeof body.markdown, 'string');
@@ -79,7 +83,7 @@ test('every review can be read with its shape', async () => {
 
 test('a review written before shapes were stored is still listed and readable', async () => {
   await writeFile(join(REVIEWS_DIR, 'legacy.md'), '**Verdict:** APPROVE\n\n## Suggestions\n\n- Tidy `src/a.ts:1`.\n');
-  const { body } = await get('/api/reviews/legacy');
+  const { body } = await get(`/api/reviews/${encodeURIComponent(idOf('legacy'))}`);
   assert.equal(body.shape.source, 'markdown');
   assert.equal(body.shape.verdict, 'APPROVE');
 });

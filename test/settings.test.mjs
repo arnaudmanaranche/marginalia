@@ -15,17 +15,20 @@ process.env.SETTINGS_FILE = join(dir, 'settings.json');
 const { SETTINGS_FILE } = await import('../lib/config.mjs');
 const { loadSettings, saveSettings, allowedTargets, excludedAuthors, staleAfterDays } = await import('../lib/settings.mjs');
 
-test('without settings.json, .env gives the values', () => {
-  assert.deepEqual(allowedTargets(), ['develop', 'main']);
-  assert.ok(excludedAuthors().has('alice'));
+// What a project says in the config: the default of the lists until the studio overrides them.
+const project = { allowedTargetBranches: ['develop', 'main'], excludeAuthors: ['Alice'] };
+
+test('without settings.json, the project gives the values', () => {
+  assert.deepEqual(allowedTargets(project), ['develop', 'main']);
+  assert.ok(excludedAuthors(project).has('alice'));
   assert.equal(staleAfterDays(), 10);
 });
 
 test('a saved value wins at once and only the changed keys are written', async () => {
   await saveSettings({ staleAfterDays: 3, allowedTargetBranches: [] });
   assert.equal(staleAfterDays(), 3);
-  assert.deepEqual(allowedTargets(), []);
-  assert.ok(excludedAuthors().has('alice'));
+  assert.deepEqual(allowedTargets(project), []);
+  assert.ok(excludedAuthors(project).has('alice'));
   assert.deepEqual(JSON.parse(await readFile(SETTINGS_FILE, 'utf8')), { staleAfterDays: 3, allowedTargetBranches: [] });
 });
 

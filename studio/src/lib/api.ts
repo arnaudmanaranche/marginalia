@@ -19,7 +19,9 @@ export interface MyState {
 }
 
 export interface ReviewItem {
+  // `<project key>/<review file name>`: the file name alone can repeat from one project to another.
   slug: string;
+  project: string;
   kind: Kind;
   title: string;
   iid: string | number | null;
@@ -137,10 +139,10 @@ export interface Stack {
 export interface BotStatus {
   pid: number;
   phase: 'idle' | 'polling' | 'reviewing' | 'error' | 'stopped';
-  current: { iid: number; title: string; startedAt: string; progress?: string[] } | null;
+  current: { project?: string; iid: number; title: string; startedAt: string; progress?: string[] } | null;
   lastPoll: { at: string; ok: boolean; error: string | null } | null;
   nextPollAt: string | null;
-  mrs?: { iid: number; status: string; reviewPath?: string | null }[];
+  mrs?: { project?: string; iid: number; status: string; reviewPath?: string | null }[];
 }
 
 export interface PostedInfo {
@@ -160,6 +162,7 @@ interface ReviewsPayload {
   items: ReviewItem[];
   stacks: Stack[];
   projectUrl: string | null;
+  projects: { key: string; kind: 'back' | 'front' | null; gitlabProjectId: string; url: string | null }[];
   jiraBaseUrl: string | null;
   settings: Settings;
   settingsDefaults: Settings;

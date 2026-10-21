@@ -7,7 +7,7 @@ import { join } from 'node:path';
 process.env.MR_REVIEW_BOT_SKIP_CONFIG_CHECK = '1';
 const dir = await mkdtemp(join(tmpdir(), 'marginalia-history-'));
 process.env.REPO_LOCAL_PATH = dir;
-const { REVIEWS_DIR } = await import('../lib/config.mjs');
+const REVIEWS_DIR = join(dir, '.claude', 'reviews');
 const { archiveReview, listHistory, readHistory, discussionPrompt } = await import('../lib/history.mjs');
 const { mkdir } = await import('node:fs/promises');
 await mkdir(REVIEWS_DIR, { recursive: true });
@@ -19,16 +19,16 @@ test('a re-run keeps the review it replaces, and only when the content changed',
   assert.equal(await archiveReview(path, 'first review'), null, 'identical content is not a new version');
   const id = await archiveReview(path, 'second review');
   assert.ok(id);
-  const versions = await listHistory('feat-x');
+  const versions = await listHistory(REVIEWS_DIR, 'feat-x');
   assert.equal(versions.length, 1);
   assert.equal(versions[0].id, id);
   assert.ok(!Number.isNaN(Date.parse(versions[0].at)));
-  assert.deepEqual(await readHistory('feat-x', id), { markdown: 'first review', shape: null });
+  assert.deepEqual(await readHistory(REVIEWS_DIR, 'feat-x', id), { markdown: 'first review', shape: null });
   assert.deepEqual((await readdir(REVIEWS_DIR)).filter((n) => n.endsWith('.md')), ['feat-x.md'], 'versions stay out of the review list');
 });
 
 test('history ids cannot escape the history directory', async () => {
-  assert.equal(await readHistory('feat-x', '../feat-x'), null);
+  assert.equal(await readHistory(REVIEWS_DIR, 'feat-x', '../feat-x'), null);
 });
 
 test('the conversation prompt carries replies and says who spoke', () => {
@@ -52,7 +52,7 @@ test('the commit a review was run on is stored with it and kept when the review 
   await writeReportFiles(path, report, 'abc123');
   assert.equal((await loadShape(REVIEWS_DIR, 'feat-sha', '')).reviewedSha, 'abc123');
   const id = await archiveReview(path, 'the next review');
-  assert.equal((await readHistory('feat-sha', id)).shape.reviewedSha, 'abc123');
+  assert.equal((await readHistory(REVIEWS_DIR, 'feat-sha', id)).shape.reviewedSha, 'abc123');
   await writeReportFiles(path, report);
   assert.equal((await loadShape(REVIEWS_DIR, 'feat-sha', '')).reviewedSha, undefined, 'no sha, no field');
 });
