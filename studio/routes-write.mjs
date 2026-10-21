@@ -6,6 +6,7 @@ import { loadState } from '../lib/state.mjs';
 import { reviewerStateFor } from '../lib/review-actions.mjs';
 import { findPublishedNoteId, approveMergeRequest } from '../lib/gitlab.mjs';
 import { createDraftNote, createInlineDraftNote, listDraftNotes, updateDraftNote, deleteDraftNote, publishDraftNotes } from '../lib/gitlab-drafts.mjs';
+import { warn } from '../lib/log.mjs';
 import { AddToReviewRequest, DraftEdit, Ok, PostedInfo, ReviewId, SubmitRequest, Submitted } from './schemas.mjs';
 import { jsonBody, jsonOf, route } from './route-kit.mjs';
 import { broadcast, locate, postQueue, refreshState, shortMessage } from './context.mjs';
@@ -42,7 +43,7 @@ export function writeRoutes(app) {
           inline = true;
         } catch (err) {
           // Typically a line outside the diff (400): keep the comment, drop the anchor.
-          console.warn(`[studio] inline draft on ${path}${line ? `:${line}` : ''} failed, adding a general note: ${shortMessage(err).slice(0, 200)}`);
+          warn({ ...mr, project }, `Inline draft on ${path}${line ? `:${line}` : ''} failed, adding a general note: ${shortMessage(err).slice(0, 200)}`);
         }
       }
       if (!inline) {

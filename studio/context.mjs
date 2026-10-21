@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { STATUS_FILE } from '../lib/config.mjs';
 import { PROJECTS } from '../lib/projects.mjs';
 import { parseReviewId } from '../lib/review-id.mjs';
+import { warn } from '../lib/log.mjs';
 import { fetchReviewState } from '../lib/mr-state.mjs';
 
 // What the route modules share: the bot's status, review-id resolution, the live-update
@@ -69,5 +70,5 @@ export function refreshState(project, mr) {
       stateOverrides.set(`${project.key}:${mr.iid}`, state);
       broadcast();
     })
-    .catch((err) => console.warn(`[studio] could not refresh where !${mr.iid} stands: ${shortMessage(err).slice(0, 120)}`));
+    .catch((err) => warn({ ...mr, project }, `Could not refresh where it stands: ${shortMessage(err).slice(0, 120)}`));
 }

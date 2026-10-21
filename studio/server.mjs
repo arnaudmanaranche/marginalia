@@ -9,15 +9,16 @@ import { dirname } from 'node:path';
 import { serve } from '@hono/node-server';
 import { STATUS_FILE, STUDIO_PORT } from '../lib/config.mjs';
 import { PROJECTS } from '../lib/projects.mjs';
+import { logger } from '../lib/logger.mjs';
 import { createApp } from './app.mjs';
 import { broadcast } from './context.mjs';
 import { endLiveStreams } from './routes-live.mjs';
 
 export function startStudio() {
   const server = serve({ fetch: createApp().fetch, port: Number(STUDIO_PORT), hostname: '127.0.0.1' }, () => {
-    console.log(`[studio] http://localhost:${STUDIO_PORT}`);
+    logger.info(`Studio: http://localhost:${STUDIO_PORT}`);
   });
-  server.on('error', (err) => console.error(`[studio] ${err.code === 'EADDRINUSE' ? `port ${STUDIO_PORT} already in use` : err.message}`));
+  server.on('error', (err) => logger.error(err.code === 'EADDRINUSE' ? `Studio: port ${STUDIO_PORT} already in use` : `Studio: ${err.message}`));
   const watchers = [];
   for (const project of PROJECTS) {
     try {

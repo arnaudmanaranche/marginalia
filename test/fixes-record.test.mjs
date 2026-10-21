@@ -26,11 +26,12 @@ const project = { key: 'demo', repoPath: worktree, worktreeDir: worktree };
 const mr = { iid: 7, source_branch: 'feat/x', title: 't', project };
 const baseSha = git(worktree, 'rev-parse', 'HEAD');
 
+// The logger writes to process.stdout: what it says is whatever lands there meanwhile.
 function captureWarnings() {
   const lines = [];
-  const original = console.warn;
-  console.warn = (...args) => lines.push(args.join(' '));
-  return { lines, restore: () => { console.warn = original; } };
+  const original = process.stdout.write;
+  process.stdout.write = (chunk) => { lines.push(String(chunk)); return true; };
+  return { lines, restore: () => { process.stdout.write = original; } };
 }
 
 test('fixes committed during the triage are kept under the fixes ref, without a warning when the branch did not move', async () => {
@@ -43,7 +44,7 @@ test('fixes committed during the triage are kept under the fixes ref, without a 
     warnings.restore();
   }
   assert.equal(git(worktree, 'rev-parse', 'refs/heads/marginalia/feat-x'), fixesSha);
-  assert.deepEqual(warnings.lines, []);
+  assert.ok(!warnings.lines.some((l) => /branch moved|Could not check/.test(l)));
 });
 
 test('a branch that moved during the triage is reported, not silently ignored', async () => {
@@ -55,7 +56,8 @@ test('a branch that moved during the triage is reported, not silently ignored', 
   } finally {
     warnings.restore();
   }
-  assert.equal(warnings.lines.length, 1);
-  assert.match(warnings.lines[0], /branch moved during the triage/);
-  assert.doesNotMatch(warnings.lines[0], /not defined/);
+  const moved = warnings.lines.filter((l) => /branch moved during the triage/.test(l));
+  assert.equal(moved.length, 1);
+  assert.match(moved[0], /\[MR !7\]/, 'the line says which MR');
+  assert.ok(!warnings.lines.some((l) => /not defined/.test(l)));
 });

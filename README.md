@@ -477,6 +477,20 @@ them off.
 Polls never overlap: the next one is scheduled one poll interval after
 the previous one *finishes*, so a long review just pushes it back.
 
+## Logs and type checking
+
+The bot logs through [pino](https://getpino.io): one human line per event, with the project and MR
+when there is one (`[2026-10-21T15:17:14.285Z] INFO: [webapp] [MR !3987] Starting review`),
+coloured only in a terminal so `tail -f ~/Library/Logs/marginalia.log` stays readable. Set
+`MARGINALIA_LOG=json` for one JSON object per line (with `project` and `iid` as keys), and
+`MARGINALIA_LOG_LEVEL` (`debug`, `info`, `warn`, `error`; default `info`) to change the verbosity.
+The `npm run doctor` / `init` / `marginalia` command output is plain console text, not the log.
+
+`npm run typecheck` runs `tsc` over `lib/` and the studio server (`tsconfig.json`: strict, but
+without `noImplicitAny`, so parameters need no annotation). A module opts in with `// @ts-check`
+on its first line, and CI fails if one stops passing; start every new module with it. `poll.mjs`,
+`bin/` and `scripts/` are not opted in yet.
+
 ## Troubleshooting
 
 - **`did not produce a report`**: run `npm run doctor -- --dry-run <iid>` and read the command's raw output in the error.

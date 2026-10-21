@@ -5,7 +5,8 @@ import { GITLAB_USERNAME, ROOT, ensureDataDir } from './lib/config.mjs';
 import { PROJECTS } from './lib/projects.mjs';
 import { allowedTargets, loadSettings, pollIntervalMs } from './lib/settings.mjs';
 import { startStudio } from './studio/server.mjs';
-import { isFancyTerminal, c, timestamp, log, mrTag } from './lib/log.mjs';
+import { isFancyTerminal, c, log, logError } from './lib/log.mjs';
+import { logger } from './lib/logger.mjs';
 import { loadState, saveState } from './lib/state.mjs';
 import { status, writeStatus, setMrStatus, sameMr } from './lib/status.mjs';
 import { notify } from './lib/notify.mjs';
@@ -61,7 +62,7 @@ async function reviewOne(mr, plan, state) {
       await setMrStatus(mr, { status: 'up_to_date', reviewedAt: new Date().toISOString() });
       notify('Review ready', `!${mr.iid} ${mr.title}`, reviewOutputPath(mr));
     } catch (err) {
-      console.error(`${timestamp()} ${c.red}${mrTag(mr)} Review failed:${c.reset}`, err);
+      logError(mr, 'Review failed', err);
       await setMrStatus(mr, { status: 'failed', error: err.message });
       notify('Review failed', `!${mr.iid} ${mr.title}`);
     }
@@ -78,7 +79,7 @@ async function triageOne(mr, peerCommentAt, state) {
       await setMrStatus(mr, { status: 'up_to_date', reviewedAt: new Date().toISOString() });
       notify('Comments triaged', `!${mr.iid} ${mr.title}`, mrCommentsOutputPath(mr));
     } catch (err) {
-      console.error(`${timestamp()} ${c.red}${mrTag(mr)} Comment triage failed:${c.reset}`, err);
+      logError(mr, 'Comment triage failed', err);
       await setMrStatus(mr, { status: 'failed', error: err.message });
       notify('Comment triage failed', `!${mr.iid} ${mr.title}`);
     }
@@ -87,7 +88,7 @@ async function triageOne(mr, peerCommentAt, state) {
 
 // One project after the other: a project's bot worktree is never shared by two runs.
 async function poll() {
-  console.log(`${timestamp()} ${c.bold}${c.cyan}Polling open MRs...${c.reset}`);
+  logger.info('Polling open MRs...');
   status.phase = 'polling';
   await writeStatus();
   const failures = [];
@@ -95,16 +96,15 @@ async function poll() {
     try {
       await pollProject(project);
     } catch (err) {
-      console.error(`${timestamp()} ${c.red}[${project.key}] Poll failed:${c.reset}`, err);
+      logger.error({ project: project.key, err }, 'Poll failed');
       failures.push(`${project.key}: ${err.message}`);
     }
   }
   if (failures.length) throw new Error(failures.join('; '));
-  console.log(`${timestamp()} ${c.dim}Poll done. Next one in ${loadSettings().pollIntervalMinutes} minute(s).${c.reset}`);
+  logger.info(`Poll done. Next one in ${loadSettings().pollIntervalMinutes} minute(s).`);
 }
 
 async function pollProject(project) {
-  const ts = timestamp();
   const state = await loadState(project);
   const plan = planMergeRequests({
     openMrs: await listOpenMergeRequests(project),
@@ -141,12 +141,7 @@ async function pollProject(project) {
   ];
   status.mrs = [...status.mrs.filter((m) => m.project !== project.key), ...entries];
   await writeStatus();
-  const needCount = toReview.length + toTriage.length;
-  const needColor = needCount > 0 ? c.green : c.dim;
-  console.log(
-    `${ts} [${project.key}] ${c.bold}${reviewMrs.length}${c.reset} MR(s) to review, ${c.bold}${myMrs.length}${c.reset} of my own — ` +
-      `${needColor}${toReview.length} need a review, ${toTriage.length} need comment triage${c.reset}.`,
-  );
+  logger.info({ project: project.key }, `${reviewMrs.length} MR(s) to review, ${myMrs.length} of my own — ${toReview.length} need a review, ${toTriage.length} need comment triage.`);
 
   for (const mr of toReview) await reviewOne(mr, plan, state);
   for (const { mr, peerCommentAt } of toTriage) await triageOne(mr, peerCommentAt, state);
@@ -177,7 +172,7 @@ let isPolling = false;
 // worktree at the same time.
 async function runPoll() {
   if (isPolling) {
-    console.log(`${timestamp()} ${c.dim}A poll is already running, ignoring this request.${c.reset}`);
+    logger.info('A poll is already running, ignoring this request.');
     return;
   }
   clearTimeout(pollTimer);
@@ -187,7 +182,7 @@ async function runPoll() {
     status.phase = 'idle';
     status.lastPoll = { at: new Date().toISOString(), ok: true, error: null };
   } catch (err) {
-    console.error(`${timestamp()} ${c.red}Poll failed:${c.reset}`, err);
+    logger.error({ err }, 'Poll failed');
     // Only notify on the ok -> error transition, not on every failed poll.
     if (status.lastPoll?.ok !== false) notify('Marginalia error', err.message);
     status.phase = 'error';
@@ -220,12 +215,12 @@ function watchSettings() {
       settingsDebounce = setTimeout(() => {
         if (isPolling || !status.lastPoll) return;
         scheduleNextPoll(new Date(status.lastPoll.at).getTime());
-        console.log(`${timestamp()} ${c.dim}Poll interval is now ${loadSettings().pollIntervalMinutes} minute(s).${c.reset}`);
+        logger.info(`Poll interval is now ${loadSettings().pollIntervalMinutes} minute(s).`);
         writeStatus();
       }, 200);
     });
   } catch (err) {
-    console.error(`${timestamp()} Could not watch settings.json:`, err.message);
+    logger.error({ err }, 'Could not watch settings.json');
   }
 }
 
