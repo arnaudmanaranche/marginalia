@@ -45,7 +45,7 @@ export async function runDoctor(argv = process.argv.slice(2)) {
   const missing = cfg.missingConfig();
   missing.length ? bad(`Missing in the config: ${missing.join(', ')}`, 'marginalia init') : ok('Required config values present');
   existsSync(join(cfg.ROOT, 'studio', 'dist')) ? ok('Studio built') : warnMsg('Studio not built (http://localhost shows 503): npm run setup');
-  const sandbox = sandboxStatus({ platform: process.platform, sandboxEnabled: cfg.CLAUDE_SANDBOX !== 'false' });
+  const sandbox = sandboxStatus({ platform: process.platform, sandboxEnabled: cfg.CLAUDE_SANDBOX !== 'false', container: process.env.MARGINALIA_CONTAINER === '1' });
   sandbox.level === 'ok' ? ok(sandbox.message) : warnMsg(sandbox.message);
 
   console.log('\nClaude');
@@ -109,7 +109,7 @@ export async function runDoctor(argv = process.argv.slice(2)) {
     }
   });
 
-  const notifier = notifierAdvice(process.platform);
+  const notifier = process.env.MARGINALIA_CONTAINER === '1' ? null : notifierAdvice(process.platform);
   if (notifier) {
     console.log(`\nOptional (${process.platform})`);
     await run('which', [notifier.bin]).then(() => ok(notifier.bin), () => warnMsg(`${notifier.bin} missing: ${notifier.hint}`));

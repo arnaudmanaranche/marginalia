@@ -1,7 +1,7 @@
 // @ts-check
 import { HTTPException } from 'hono/http-exception';
 import { bodyLimit } from 'hono/body-limit';
-import { STUDIO_PORT, ALLOW_POSTING, ALLOW_PUSH } from '../lib/config.mjs';
+import { STUDIO_PORT, STUDIO_ALLOWED_HOSTS, ALLOW_POSTING, ALLOW_PUSH } from '../lib/config.mjs';
 
 // Write endpoints are guarded against other web pages hitting localhost: Host must be us
 // (DNS rebinding), Origin must be us when present, and a body must be JSON (a cross-origin
@@ -9,8 +9,9 @@ import { STUDIO_PORT, ALLOW_POSTING, ALLOW_PUSH } from '../lib/config.mjs';
 const forbidden = (c) => c.json({ error: 'forbidden' }, 403);
 
 // Resolved per request: the port is only known once a test binds port 0.
-export function ownHosts(port = STUDIO_PORT) {
-  return new Set([`localhost:${port}`, `127.0.0.1:${port}`]);
+export function ownHosts(port = STUDIO_PORT, extra = STUDIO_ALLOWED_HOSTS) {
+  const more = String(extra).split(',').map((h) => h.trim()).filter(Boolean);
+  return new Set([`localhost:${port}`, `127.0.0.1:${port}`, ...more]);
 }
 
 export function writeGuard(hosts = ownHosts) {

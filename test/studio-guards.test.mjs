@@ -76,3 +76,10 @@ test('the generated OpenAPI document covers every API route', async () => {
     assert.ok(paths.includes(p), p);
   }
 });
+
+test('extra Host values (a container published on another port) are accepted only when listed', async () => {
+  const { ownHosts } = await import('../studio/guards.mjs');
+  assert.deepEqual([...ownHosts('4477', '')].sort(), ['127.0.0.1:4477', 'localhost:4477']);
+  const more = ownHosts('4477', ' localhost:8080 , ,studio.internal:4477');
+  assert.ok(more.has('localhost:8080') && more.has('studio.internal:4477') && more.has('localhost:4477'));
+});

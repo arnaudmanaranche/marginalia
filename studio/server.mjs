@@ -7,7 +7,7 @@
 import { watch } from 'node:fs';
 import { dirname } from 'node:path';
 import { serve } from '@hono/node-server';
-import { STATUS_FILE, STUDIO_PORT } from '../lib/config.mjs';
+import { STATUS_FILE, STUDIO_HOST, STUDIO_PORT } from '../lib/config.mjs';
 import { PROJECTS } from '../lib/projects.mjs';
 import { logger } from '../lib/logger.mjs';
 import { createApp } from './app.mjs';
@@ -15,8 +15,10 @@ import { broadcast } from './context.mjs';
 import { endLiveStreams } from './routes-live.mjs';
 
 export function startStudio() {
-  const server = serve({ fetch: createApp().fetch, port: Number(STUDIO_PORT), hostname: '127.0.0.1' }, () => {
+  const server = serve({ fetch: createApp().fetch, port: Number(STUDIO_PORT), hostname: STUDIO_HOST }, () => {
     logger.info(`Studio: http://localhost:${STUDIO_PORT}`);
+    // There is no login: anyone who can reach the port can read the reviews and, when posting is on, post as you.
+    if (!['127.0.0.1', 'localhost', '::1'].includes(STUDIO_HOST)) logger.warn(`Studio listens on ${STUDIO_HOST} with no login: publish the port on 127.0.0.1 only, or keep it on a private network.`);
   });
   server.on('error', (err) => logger.error(err.code === 'EADDRINUSE' ? `Studio: port ${STUDIO_PORT} already in use` : `Studio: ${err.message}`));
   const watchers = [];

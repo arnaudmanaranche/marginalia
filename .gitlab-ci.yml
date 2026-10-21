@@ -58,6 +58,23 @@ studio:build:
       - studio/dist
     expire_in: 1 week
 
+# The container image (see "Run in a container" in the README), built with kaniko so the runner
+# needs no privileged mode. Pushed to this project's registry as the tag and as `latest`.
+image:
+  stage: publish
+  image:
+    name: gcr.io/kaniko-project/executor:debug
+    entrypoint: ['']
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+/
+  needs:
+    - test
+    - typecheck
+  script:
+    - mkdir -p /kaniko/.docker
+    - echo "{\"auths\":{\"${CI_REGISTRY}\":{\"auth\":\"$(printf '%s:%s' "${CI_REGISTRY_USER}" "${CI_REGISTRY_PASSWORD}" | base64 | tr -d '\n')\"}}}" > /kaniko/.docker/config.json
+    - /kaniko/executor --context "${CI_PROJECT_DIR}" --dockerfile Dockerfile --destination "${CI_REGISTRY_IMAGE}:${CI_COMMIT_TAG}" --destination "${CI_REGISTRY_IMAGE}:latest"
+
 # The studio is built by `prepack`, so the tarball ships studio/dist.
 publish:
   extends: .node
