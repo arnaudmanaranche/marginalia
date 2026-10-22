@@ -8,7 +8,7 @@ process.env.MR_REVIEW_BOT_SKIP_CONFIG_CHECK = '1';
 const dir = await mkdtemp(join(tmpdir(), 'marginalia-history-'));
 process.env.REPO_LOCAL_PATH = dir;
 const REVIEWS_DIR = join(dir, '.claude', 'reviews');
-const { archiveReview, listHistory, readHistory, discussionPrompt } = await import('../lib/history.mjs');
+const { archiveReview, listHistory, readHistory, discussionPrompt, triageDiscussionPrompt } = await import('../lib/history.mjs');
 const { mkdir } = await import('node:fs/promises');
 await mkdir(REVIEWS_DIR, { recursive: true });
 
@@ -37,6 +37,18 @@ test('the conversation prompt carries replies and says who spoke', () => {
   assert.match(text, /a\.ts:3/);
   assert.match(text, /me \(the reviewer\): Check this/);
   assert.match(text, /dev: Fixed in abc/);
+});
+
+test('a triage gets only the unresolved threads, with me as the MR author', () => {
+  const text = triageDiscussionPrompt([
+    { path: 'a.ts', line: 3, resolved: false, notes: [{ mine: false, author: 'rev', body: 'Rename this' }, { mine: true, author: 'me', body: 'Why?' }] },
+    { path: 'b.ts', line: 9, resolved: true, notes: [{ mine: false, author: 'rev', body: 'Done already' }] },
+  ]);
+  assert.match(text, /a\.ts:3/);
+  assert.match(text, /rev: Rename this/);
+  assert.match(text, /me \(the MR author\): Why\?/);
+  assert.doesNotMatch(text, /Done already/);
+  assert.match(triageDiscussionPrompt([]), /no unresolved thread/);
 });
 
 test('a version id says when it was written', async () => {
