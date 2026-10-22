@@ -1,5 +1,7 @@
-// SwiftBar plugin body: reads the status.json written by poll.mjs and prints
-// the menu bar item + a small dropdown (bot state, open the studio, poll now).
+// SwiftBar plugin body: reads the bot's status and prints the menu bar item + a
+// small dropdown (bot state, open the studio, poll now). The status comes from the
+// studio when it answers (it runs next to the poller, in a container too), else
+// from the status.json written by poll.mjs on this machine.
 // Reviews themselves are listed in the studio (studio/server.mjs), not here. Invoked by
 // marginalia.10s.sh (the file you symlink into SwiftBar's plugin folder).
 import { readFileSync } from 'node:fs';
@@ -77,8 +79,24 @@ function openInChrome(url) {
   return `bash=/usr/bin/open param1=-a param2="Google Chrome" param3="${url}" terminal=false`;
 }
 
-const status = readStatus();
-const alive = status && status.phase !== 'stopped' && isAlive(status.pid);
+// The studio's view, or null when it does not answer (not started, or not on this port).
+async function studioStatus() {
+  try {
+    const res = await fetch(`${STUDIO_URL}/api/status`, { signal: AbortSignal.timeout(1500) });
+    return res.ok ? await res.json() : null;
+  } catch {
+    return null;
+  }
+}
+
+const remote = await studioStatus();
+const status = remote ? remote.status : readStatus();
+const alive = remote ? remote.alive : Boolean(status && status.phase !== 'stopped' && isAlive(status.pid));
+// Poll now: through the studio when it reports the status (the poller's pid may be a container's),
+// else straight to the local poller.
+const pollAction = remote
+  ? `bash=/usr/bin/curl param1=-s param2=-X param3=POST param4=-H param5="content-type: application/json" param6=-d param7={} param8=${STUDIO_URL}/api/poll terminal=false refresh=true`
+  : `bash=/bin/kill param1=-USR1 param2=${status?.pid} terminal=false refresh=true`;
 const lines = [];
 
 // --- Menu bar item ---
@@ -136,11 +154,11 @@ if (alive) {
   lines.push(
     busy
       ? 'Poll now | color=gray sfimage=arrow.clockwise'
-      : `Poll now | bash=/bin/kill param1=-USR1 param2=${status.pid} terminal=false refresh=true sfimage=arrow.clockwise`,
+      : `Poll now | ${pollAction} sfimage=arrow.clockwise`,
   );
 }
 lines.push(`Open reviews | ${openInChrome(STUDIO_URL)} sfimage=rectangle.grid.2x2`);
-if (status) {
+if (status && !remote) {
   lines.push(`Open status.json | bash=/usr/bin/open param1="${STATUS_FILE}" terminal=false sfimage=curlybraces`);
 }
 lines.push('Refresh | refresh=true');

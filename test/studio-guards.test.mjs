@@ -71,7 +71,7 @@ test('an unknown write is refused as read-only, an unknown read falls through to
 test('the generated OpenAPI document covers every API route', async () => {
   const doc = await (await send('GET', '/openapi.json')).json();
   const paths = Object.keys(doc.paths);
-  for (const p of ['/api/reviews', '/api/reviews/{slug}', '/api/post', '/api/submit-review', '/api/drafts/{slug}/{id}', '/api/chat', '/api/rerun', '/api/push', '/api/fixes/{slug}', '/api/replies', '/api/settings']) {
+  for (const p of ['/api/reviews', '/api/reviews/{slug}', '/api/post', '/api/submit-review', '/api/drafts/{slug}/{id}', '/api/chat', '/api/rerun', '/api/status', '/api/poll', '/api/push', '/api/fixes/{slug}', '/api/replies', '/api/settings']) {
     assert.ok(paths.includes(p), p);
   }
 });

@@ -104,6 +104,8 @@ export const BotStatus = z.object({
   mrs: z.array(z.object({ project: z.string().optional(), iid: z.number().int(), status: z.string(), reviewPath: nullable(z.string()).optional() }).passthrough()).optional(),
 }).describe('Content of `status.json`, written by the poller.').meta({ id: 'BotStatus' });
 
+export const BotState = z.object({ status: nullable(BotStatus), alive: z.boolean() }).meta({ id: 'BotState' });
+
 export const PostedInfo = z.object({
   at: z.string(),
   iid: z.number().int(),

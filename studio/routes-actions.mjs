@@ -7,12 +7,22 @@ import { filesForPatterns, toDiffFile } from '../lib/mr-diff.mjs';
 import { listMergeRequestDiffs } from '../lib/gitlab.mjs';
 import { fixesStatus, pushFixes } from '../lib/fixes.mjs';
 import { envDefaults, saveSettings } from '../lib/settings.mjs';
-import { ChatAnswer, ChatRequest, FixesStatus, Rerun, ReviewId, SettingsAnswer, SettingsPatch, SlugBody } from './schemas.mjs';
+import { BotState, ChatAnswer, ChatRequest, FixesStatus, Ok, Rerun, ReviewId, SettingsAnswer, SettingsPatch, SlugBody } from './schemas.mjs';
 import { z } from '@hono/zod-openapi';
 import { jsonBody, jsonOf, route } from './route-kit.mjs';
-import { locate, serialQueue, shortMessage } from './context.mjs';
+import { locate, readStatus, serialQueue, shortMessage } from './context.mjs';
 
 const notTracked = (c) => c.json({ error: 'no tracked merge request for this review' }, 404);
+
+// Whether the poller that wrote status.json is still running. The studio runs next to it (same
+// machine or same container), so its pid means something here, unlike from outside a container.
+function pollerAlive(status) {
+  try {
+    return Boolean(status?.pid) && status.phase !== 'stopped' && process.kill(status.pid, 0);
+  } catch {
+    return false;
+  }
+}
 
 // One chat question at a time: each is a Claude run with a cost.
 let chatBusy = false;
@@ -60,6 +70,28 @@ export function actionRoutes(app) {
     }
   });
 
+  // The bot's status for the menu bar, which may not see the poller's process (a container).
+  app.openapi(route({
+    method: 'get', path: '/api/status', tags: ['Reviews'], operationId: 'getStatus',
+    summary: 'The bot\'s status and whether it is running', description: 'Light: `status.json` as is, plus `alive`. For the menu bar.',
+    responses: { 200: jsonOf(BotState, 'The status.') },
+  }), async (c) => {
+    const status = await readStatus();
+    return c.json({ status, alive: pollerAlive(status) }, 200);
+  });
+
+  // "Poll now": nudges the poller with SIGUSR1, from wherever the menu bar runs.
+  app.openapi(route({
+    method: 'post', path: '/api/poll', tags: ['Reviews'], operationId: 'pollNow',
+    summary: 'Poll now', responses: { 200: jsonOf(Ok, 'The poller was nudged.') }, errors: [403, 409],
+  }), async (c) => {
+    const status = await readStatus();
+    if (!pollerAlive(status)) return c.json({ error: 'the bot is not running' }, 409);
+    if (status.phase === 'polling' || status.phase === 'reviewing') return c.json({ error: 'a poll is already running' }, 409);
+    process.kill(status.pid, 'SIGUSR1');
+    return c.json({ ok: true }, 200);
+  });
+
   // Re-runs the review (or the comment triage, for my own MRs) of one tracked MR. The poller skips
   // an MR whose recorded SHA matches its head, so the entry is set to null (not deleted: an absent
   // entry would let it trust an existing review file) and the poller is nudged with SIGUSR1, the
@@ -73,13 +105,7 @@ export function actionRoutes(app) {
     const found = await locate(c.req.valid('json').slug);
     if (!found?.mr) return notTracked(c);
     const { project, mr, status } = found;
-    let alive = false;
-    try {
-      alive = Boolean(status?.pid) && process.kill(status.pid, 0);
-    } catch {
-      /* no such process */
-    }
-    if (!alive || status.phase === 'stopped') return c.json({ error: 'the bot is not running: start it with npm start' }, 409);
+    if (!pollerAlive(status)) return c.json({ error: 'the bot is not running: start it with npm start' }, 409);
     if (status.phase !== 'idle' && status.phase !== 'error') return c.json({ error: 'a run is in progress, try again when it is done' }, 409);
     const state = await loadState(project);
     if (mr.kind === 'comments') state.mineComments[mr.iid] = null;
