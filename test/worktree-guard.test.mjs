@@ -99,3 +99,35 @@ test('in the container a checkout with worktrees it cannot see is refused, and l
   assert.equal(git(repo, 'worktree', 'list'), before, 'nothing was added or removed');
   assert.ok(!existsSync(project.worktreeDir));
 });
+
+test('what a run left uncommitted, staged or not, does not block the next checkout', async () => {
+  const { repo, project } = await repoWithWorktree();
+  await writeFile(join(repo, 'a.ts'), 'base\n');
+  git(repo, 'add', 'a.ts');
+  git(repo, 'commit', '--quiet', '-m', 'a');
+  git(repo, 'checkout', '--quiet', '-b', 'mr');
+  await writeFile(join(repo, 'a.ts'), 'mr\n');
+  git(repo, 'commit', '--quiet', '-am', 'mr');
+  git(repo, 'update-ref', 'refs/merge-requests/1/head', 'mr');
+  git(repo, 'checkout', '--quiet', 'main');
+  git(repo, 'remote', 'set-url', 'origin', repo);
+  git(repo, 'worktree', 'add', '--quiet', '--detach', project.worktreeDir, 'main');
+  await writeFile(join(project.worktreeDir, 'a.ts'), 'a triage fix\n');
+  await writeFile(join(project.worktreeDir, 'new.ts'), 'added\n');
+  git(project.worktreeDir, 'add', '-A');
+  await checkoutMergeRequest({ iid: 1, source_branch: 'feat/mr', target_branch: 'main', project });
+  assert.equal(git(project.worktreeDir, 'status', '--porcelain'), '');
+  assert.equal(git(project.worktreeDir, 'show', 'HEAD:a.ts'), 'mr');
+  assert.ok(!existsSync(join(project.worktreeDir, 'new.ts')));
+});
+
+test('a target branch that was rebased since the last fetch is still fetched', async () => {
+  const { repo, project } = await repoWithWorktree();
+  git(repo, 'update-ref', 'refs/merge-requests/1/head', 'main');
+  git(repo, 'remote', 'set-url', 'origin', repo);
+  git(repo, 'worktree', 'add', '--quiet', '--detach', project.worktreeDir, 'main');
+  git(repo, 'branch', 'base');
+  git(repo, 'update-ref', 'refs/remotes/origin/base', git(repo, 'commit-tree', '-m', 'old', 'main^{tree}'));
+  await checkoutMergeRequest({ iid: 1, source_branch: 'feat/mr', target_branch: 'base', project });
+  assert.equal(git(repo, 'rev-parse', 'refs/remotes/origin/base'), git(repo, 'rev-parse', 'base'));
+});
