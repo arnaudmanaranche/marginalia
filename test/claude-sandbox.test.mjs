@@ -54,6 +54,10 @@ test('no blanket git permission: only named subcommands, and commits only for th
   assert.ok(CLAUDE_ALLOWED_TOOLS.includes('Bash(git diff:*)'));
   assert.ok(!CLAUDE_ALLOWED_TOOLS.includes('Bash(git commit:*)'));
   assert.ok(CLAUDE_MR_COMMENTS_ALLOWED_TOOLS.includes('Bash(git commit:*)'));
+  for (const tools of [CLAUDE_ALLOWED_TOOLS, CLAUDE_MR_COMMENTS_ALLOWED_TOOLS]) {
+    assert.ok(tools.includes('mcp__claude_ai_Atlassian__atlassianUserInfo'));
+    assert.ok(tools.includes('mcp__claude_ai_Gitlab__who_am_i'));
+  }
 });
 
 test('the run gets no credential-looking variable unless passed through, but keeps its Claude login', () => {
