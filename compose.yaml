@@ -18,6 +18,8 @@ services:
       ALLOW_POSTING: '${ALLOW_POSTING:-false}'
       ALLOW_PUSH: '${ALLOW_PUSH:-false}'
       MARGINALIA_TEAM_REPO: '${MARGINALIA_TEAM_REPO:-}'
+      MARGINALIA_GIT_NAME: '${MARGINALIA_GIT_NAME:-Marginalia}'
+      MARGINALIA_GIT_EMAIL: '${MARGINALIA_GIT_EMAIL:-marginalia@localhost}'
     volumes:
       - data:/data
       - claude:/home/node/.claude

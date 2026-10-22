@@ -447,7 +447,9 @@ Put the clones in `./repos` (or set `REPOS_DIR`). Then `docker compose run --rm 
 - **Git** reaches GitLab over HTTPS with the `GITLAB_TOKEN` from `config.json` or the environment: SSH
   remotes are rewritten at start and a credential helper hands over the token only to the GitLab host, so
   it is never written to a gitconfig or put in the environment of the Claude runs. `MARGINALIA_GIT_SSH=1`
-  keeps SSH if you mount your own keys.
+  keeps SSH if you mount your own keys. The triage's local commits are authored as
+  `Marginalia <marginalia@localhost>` unless `/data/gitconfig` already has an identity or
+  `MARGINALIA_GIT_NAME` / `MARGINALIA_GIT_EMAIL` say otherwise.
 - **Sandbox.** The OS sandbox is macOS-only; in the image `CLAUDE_SANDBOX=false` and **the container is the
   boundary**: a non-root user, `cap_drop: ALL`, no host access beyond the mounted folders. Reviews run
   Bash over code from other people's MRs, so also limit the container's network (an egress rule that
