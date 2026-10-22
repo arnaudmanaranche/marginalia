@@ -1,7 +1,7 @@
 // @ts-check
 import { readFile, readdir, stat } from 'node:fs/promises';
 import { join } from 'node:path';
-import { ALLOW_POSTING, ALLOW_PUSH, JIRA_BASE_URL } from '../lib/config.mjs';
+import { ALLOW_POSTING, JIRA_BASE_URL } from '../lib/config.mjs';
 import { PROJECTS, projectByKey } from '../lib/projects.mjs';
 import { reviewId } from '../lib/review-id.mjs';
 import { TRIAGE_FILE_PREFIX } from '../lib/paths.mjs';
@@ -23,7 +23,7 @@ export function kindOf(slug) {
 // serialized with posting, and a failed check never drops anything.
 let lastReconcile = 0;
 async function reconcilePosted() {
-  if (ALLOW_POSTING !== 'true' || Date.now() - lastReconcile < 15_000) return;
+  if (Date.now() - lastReconcile < 15_000) return;
   lastReconcile = Date.now();
   await postQueue(async () => {
     const posted = await loadPosted();
@@ -31,7 +31,8 @@ async function reconcilePosted() {
     for (const [key, info] of Object.entries(posted)) {
       // Keys are `<project>/<slug>:<comment>`; a project that left the config is left alone.
       const project = projectByKey(key.split('/')[0]);
-      if (!info.iid || !project) continue;
+      // With posting off, only the replies on my own MRs (which carry their thread) can exist.
+      if (!info.iid || !project || (ALLOW_POSTING !== 'true' && !info.threadId)) continue;
       try {
         if (info.state === 'draft') {
           if (await draftNoteExists(project, info.iid, info.draftId)) continue;
@@ -135,7 +136,7 @@ export async function listReviews() {
     status, items, stacks: buildStacks(status), projectUrl, projects,
     jiraBaseUrl: JIRA_BASE_URL ? JIRA_BASE_URL.replace(/\/+$/, '') : null,
     settings: loadSettings(), settingsDefaults: envDefaults(),
-    allowPosting: ALLOW_POSTING === 'true', allowPush: ALLOW_PUSH === 'true',
+    allowPosting: ALLOW_POSTING === 'true',
     posted: await loadPosted(),
   };
 }

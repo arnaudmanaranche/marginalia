@@ -34,6 +34,15 @@ export const Finding = z.object({
   comment: nullable(z.string()).describe('The comment to post on the merge request, ready as is.'),
 }).meta({ id: 'Finding' });
 
+export const DiscussionId = z.string().regex(/^[0-9a-f]{8,64}$/i).describe('GitLab discussion (thread) id.').meta({ id: 'DiscussionId' });
+
+export const Reply = z.object({
+  thread: DiscussionId,
+  verdict: z.enum(['fixed', 'already_fixed', 'not_relevant', 'wrong', 'answered']).describe('`fixed`: fixed by this triage, sent once the fix is pushed.'),
+  reply: z.string().describe('The drafted answer to the reviewer, first person.'),
+  resolve: z.boolean().describe('Whether sending it also resolves the thread.'),
+}).meta({ id: 'Reply' });
+
 export const ReviewShape = z.object({
   version: z.literal(1),
   source: ShapeSource,
@@ -43,6 +52,7 @@ export const ReviewShape = z.object({
   overview: z.object({ before: z.string(), after: z.string() }).nullable().optional(),
   tour: z.array(z.object({ id: z.string(), title: z.string(), summary: z.string(), files: z.array(z.string()) }).passthrough()).optional(),
   findings: z.array(Finding),
+  replies: z.array(Reply).optional().describe('A triage of my own MR: the drafted reply to each reviewer thread.'),
   warnings: z.array(z.string()),
   generatedAt: z.string().optional(),
 }).describe('What the studio relies on, the same whatever skill or command wrote the review.').meta({ id: 'ReviewShape' });
@@ -111,8 +121,7 @@ export const ReviewsPayload = z.object({
   jiraBaseUrl: nullable(z.string()),
   settings: Settings,
   settingsDefaults: Settings,
-  allowPosting: z.boolean(),
-  allowPush: z.boolean(),
+  allowPosting: z.boolean().describe('Posting on other people\'s merge requests. Your own are always open to replies and pushes.'),
   posted: z.record(z.string(), PostedInfo).describe('Keyed by `<project>/<review slug>:<commentId>`.'),
 }).meta({ id: 'ReviewsPayload' });
 
@@ -156,6 +165,13 @@ export const SubmitRequest = z.object({
   action: z.enum(['comment', 'approve', 'request_changes']).default('comment'),
 }).meta({ id: 'SubmitRequest' });
 export const Submitted = z.object({ submitted: z.number().int(), summary: z.boolean(), action: z.enum(['comment', 'approve', 'request_changes']) }).meta({ id: 'Submitted' });
+
+export const ReplyRequest = z.object({
+  slug: ReviewId,
+  threadId: DiscussionId,
+  body: z.string().trim().min(1).max(10_000),
+  resolve: z.boolean().default(false).describe('Resolve the thread when the replies are submitted.'),
+}).meta({ id: 'ReplyRequest' });
 
 export const DraftEdit = z.object({ body: z.string().trim().min(1).max(10_000) }).meta({ id: 'DraftEdit' });
 export const SlugBody = z.object({ slug: ReviewId }).meta({ id: 'SlugBody' });

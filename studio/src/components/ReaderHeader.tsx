@@ -5,7 +5,8 @@ import { RiskBadge } from './RiskBadge';
 import { VerdictBadge } from './VerdictBadge';
 import { Button } from './ui/Button';
 
-// Title, verdict and the actions on a review.
+// Title, verdict and the actions on a review. On my own MR there is no verdict to give: the
+// action is sending my replies to the reviewers.
 export function ReaderHeader({ item, risk, showSubmit, draftCount, sending, reviewing, onSubmit, versions, versionId, onVersion, locked, onRerun }: {
   item: ReviewItem | undefined;
   risk: Risk | null;
@@ -27,7 +28,7 @@ export function ReaderHeader({ item, risk, showSubmit, draftCount, sending, revi
         <div className="flex min-w-0 items-center gap-x-3">
           <h1 title={item?.title} className="min-w-0 truncate text-2xl font-semibold tracking-tight">{item?.title ?? 'Review'}</h1>
           <span className="flex shrink-0 items-center gap-2">
-            <VerdictBadge verdict={item?.verdict ?? null} />
+            {item?.kind !== 'comments' && <VerdictBadge verdict={item?.verdict ?? null} />}
             <RiskBadge level={risk?.level ?? null} why={risk?.rationale} />
           </span>
         </div>
@@ -35,7 +36,7 @@ export function ReaderHeader({ item, risk, showSubmit, draftCount, sending, revi
       <div className="flex shrink-0 items-center gap-2">
         {showSubmit && (
           <Button variant="primary" disabled={sending || reviewing} title={sending ? 'Waiting for GitLab to confirm the comments being added' : reviewing ? 'Wait for the review in progress to finish' : undefined} onClick={onSubmit}>
-            {sending ? <Loader2 className="size-3.5 animate-spin motion-reduce:animate-pulse" /> : <Send className="size-3.5" />}Submit review{draftCount > 0 ? ` (${draftCount})` : ''}
+            {sending ? <Loader2 className="size-3.5 animate-spin motion-reduce:animate-pulse" /> : <Send className="size-3.5" />}{item?.kind === 'comments' ? 'Send replies' : 'Submit review'}{draftCount > 0 ? ` (${draftCount})` : ''}
           </Button>
         )}
         {versions.length > 0 && (
@@ -50,7 +51,7 @@ export function ReaderHeader({ item, risk, showSubmit, draftCount, sending, revi
           </select>
         )}
         {item?.tracked && item.kind !== 'retro' && (
-          <Button disabled={locked} onClick={onRerun} aria-label="Re-run review" title="Run the review again on the current head of the MR" className="px-2.5">
+          <Button disabled={locked} onClick={onRerun} aria-label={item.kind === 'comments' ? 'Re-run triage' : 'Re-run review'} title={item.kind === 'comments' ? 'Triage the reviewer comments again on the current head of the MR' : 'Run the review again on the current head of the MR'} className="px-2.5">
             {locked ? <Loader2 className="size-4 animate-spin motion-reduce:animate-pulse" /> : <RefreshCw className="size-4" />}
           </Button>
         )}

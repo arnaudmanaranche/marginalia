@@ -1,7 +1,8 @@
 import { useEffect, useEffectEvent, useRef, useState, type RefObject } from 'react';
 import { toast } from 'sonner';
 import { GitCommitHorizontal, Loader2, RefreshCw, Upload } from 'lucide-react';
-import { fetchFixes, pushFixes, type FixesStatus } from '../lib/api';
+import { pushFixes, type FixesStatus } from '../lib/api';
+import type { FixesState } from '../lib/useFixes';
 import { useScrollLock } from '../lib/useScrollLock';
 import { useModalFocus } from '../lib/useModalFocus';
 import { Button } from './ui/Button';
@@ -9,32 +10,22 @@ import { Button } from './ui/Button';
 const short = (sha: string | null) => sha?.slice(0, 8) ?? '';
 
 // The fixes a triage committed locally, checked against the MR branch on origin, and
-// pushed from here when they still sit on top of it.
-export function FixesPanel({ slug, iid, allowPush, locked, refreshKey }: { slug: string; iid: string | number; allowPush: boolean; locked: boolean; refreshKey: string }) {
-  const [fixes, setFixes] = useState<FixesStatus | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [checking, setChecking] = useState(false);
+// pushed from here when they still sit on top of it. The MR is mine, so no switch is needed.
+export function FixesPanel({ slug, iid, locked, state }: { slug: string; iid: string | number; locked: boolean; state: FixesState }) {
+  const { fixes, setFixes, error, checking, check } = state;
   const [confirming, setConfirming] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
-  const check = async () => {
-    setChecking(true);
-    try {
-      setFixes(await fetchFixes(slug));
-      setError(null);
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setChecking(false);
-    }
-  };
-  const onRefresh = useEffectEvent(check);
-  useEffect(() => {
-    setFixes(null);
-    onRefresh();
-  }, [slug, refreshKey]);
-
-  if (error) return <p className="text-sm text-red-600 dark:text-red-400">Could not check the fixes: {error}</p>;
+  if (error) {
+    return (
+      <div className="flex flex-wrap items-center gap-3 text-sm">
+        <p className="text-red-600 dark:text-red-400">Could not check the fixes: {error}</p>
+        <Button size="sm" disabled={checking} onClick={check}>
+          {checking ? <Loader2 className="size-3.5 animate-spin motion-reduce:animate-pulse" /> : <RefreshCw className="size-3.5" />}Try again
+        </Button>
+      </div>
+    );
+  }
   if (!fixes) return <p className="text-sm text-fg-muted">Checking the MR branch…</p>;
 
   return (
@@ -66,11 +57,10 @@ export function FixesPanel({ slug, iid, allowPush, locked, refreshKey }: { slug:
               </li>
             ))}
           </ul>
-          {!allowPush && <p className="text-xs text-fg-muted">Set <code>ALLOW_PUSH=true</code> in .env to push them from here, or run <code>git push origin {fixes.ref}:{fixes.branch}</code>.</p>}
         </>
       )}
       <div className="flex gap-2">
-        {fixes.state === 'ready' && allowPush && (
+        {fixes.state === 'ready' && (
           <Button ref={buttonRef} variant="primary" disabled={locked || checking} onClick={() => setConfirming(true)}>
             <Upload className="size-4" />Push to {fixes.branch}
           </Button>

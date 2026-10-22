@@ -216,7 +216,7 @@ export function App() {
         {stack && current && <StackBoard stack={stack} items={items} current={current} isPosted={isPosted} onSelect={go} />}
         {!data ? <ReviewSkeleton /> : !current ? <ReviewMissing /> : (
         <Suspense fallback={<ReviewSkeleton />}>
-        <ReviewReader item={current} review={review} reviewError={reviewError} onRetry={retryReview} projectUrl={data?.projects?.find((p) => p.key === current?.project)?.url ?? data?.projectUrl ?? null} allowPosting={data?.allowPosting ?? false} allowPush={data?.allowPush ?? false} showFullDiff={data?.settings.showFullDiff ?? true} live={current && data?.status?.current && String(data.status.current.iid) === String(current.iid) && data.status.current.project === current.project ? data.status.current : null} posted={posted} reload={reload} />
+        <ReviewReader item={current} review={review} reviewError={reviewError} onRetry={retryReview} projectUrl={data?.projects?.find((p) => p.key === current?.project)?.url ?? data?.projectUrl ?? null} allowPosting={data?.allowPosting ?? false} showFullDiff={data?.settings.showFullDiff ?? true} live={current && data?.status?.current && String(data.status.current.iid) === String(current.iid) && data.status.current.project === current.project ? data.status.current : null} posted={posted} reload={reload} />
         </Suspense>
         )}
         </>
@@ -225,7 +225,7 @@ export function App() {
           <h1 className="text-3xl font-semibold tracking-tight">Review queue</h1>
           <p className="mt-1 text-fg-muted">
             {data && (waiting > 0 ? `${waiting} waiting on you.` : 'Nothing is waiting on you.')}
-            {data && !data.allowPosting && ' Read-only: nothing is posted to GitLab.'}
+            {data && !data.allowPosting && ' Reviews are read-only; on your own MRs you can still reply and push.'}
           </p>
 
           {several && <ProjectFilter options={filterOptions(projects)} value={filter} onChange={setProjectFilter} />}

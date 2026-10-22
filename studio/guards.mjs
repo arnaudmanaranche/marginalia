@@ -1,7 +1,8 @@
 // @ts-check
 import { HTTPException } from 'hono/http-exception';
 import { bodyLimit } from 'hono/body-limit';
-import { STUDIO_PORT, STUDIO_ALLOWED_HOSTS, ALLOW_POSTING, ALLOW_PUSH } from '../lib/config.mjs';
+import { STUDIO_PORT, STUDIO_ALLOWED_HOSTS, ALLOW_POSTING } from '../lib/config.mjs';
+import { locate } from './context.mjs';
 
 // Write endpoints are guarded against other web pages hitting localhost: Host must be us
 // (DNS rebinding), Origin must be us when present, and a body must be JSON (a cross-origin
@@ -28,8 +29,24 @@ export function writeGuard(hosts = ownHosts) {
   };
 }
 
-export const requirePosting = async (c, next) => (ALLOW_POSTING === 'true' ? next() : c.json({ error: 'posting is disabled (ALLOW_POSTING=false)' }, 403));
-export const requirePush = async (c, next) => (ALLOW_PUSH === 'true' ? next() : c.json({ error: 'pushing is disabled (ALLOW_PUSH=false)' }, 403));
+// The review id a request is about: in the path (/api/drafts/<id>[/<draft>]) or the JSON body.
+async function reviewIdOf(c) {
+  const inPath = c.req.path.match(/^\/api\/drafts\/([^/]+)/)?.[1];
+  if (inPath) return decodeURIComponent(inPath);
+  const body = await c.req.json().catch(() => null);
+  return typeof body?.slug === 'string' ? body.slug : null;
+}
+
+// My own MR (a triage of the reviewers' comments): answering them is mine to do, no switch needed.
+export async function isOwnMr(id) {
+  const found = id ? await locate(id).catch(() => null) : null;
+  return found?.mr?.kind === 'comments';
+}
+
+// Posting on someone else's MR needs ALLOW_POSTING=true; on my own MR it is always allowed.
+export const requirePosting = async (c, next) => (ALLOW_POSTING === 'true' || (await isOwnMr(await reviewIdOf(c)))
+  ? next()
+  : c.json({ error: 'posting on other people\'s merge requests is disabled (ALLOW_POSTING=false)' }, 403));
 
 // Bad input answers { error } (400), whatever library found it.
 export const validationHook = (result, c) => {

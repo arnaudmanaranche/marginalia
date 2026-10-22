@@ -327,10 +327,21 @@ a stack (rebuilt from the open MR list on every poll). For these:
   `git cherry-pick` from there — nothing is pushed by the bot). The studio's
   *Fixes to push* card checks them against the MR branch on origin: *ready*
   (on top of the current head), *pushed*, or *outdated* (the branch moved
-  since the triage: re-run it). With `ALLOW_PUSH=true` it pushes them,
-  fast-forward only, after a confirmation. A triage that commits nothing
+  since the triage: re-run it), and pushes them, fast-forward only, after a
+  confirmation (no switch: the MR is yours). A triage that commits nothing
   moves the previous fixes aside to `refs/marginalia/superseded/<branch-slug>`,
   and a triage during which the branch moved logs a warning.
+- **You answer the reviewers from the studio.** The triage drafts one reply per
+  unresolved thread in its findings JSON (`replies`: thread id, verdict, text,
+  whether to resolve), from the threads the bot reads with your token and hands
+  to the run. On your own MR the studio shows, under *Reply to the reviewers*,
+  each open thread with that drafted reply, editable, and a *Resolve the thread*
+  box (ticked when the comment was fixed). *Add reply* creates a GitLab draft
+  note in the thread (`in_reply_to_discussion_id`); *Send replies (N)* publishes
+  them all at once, resolving the threads you ticked. A comment the triage fixed
+  can only be answered once the fix is pushed, and the reply ends with
+  `Fixed in <sha>.`. None of this needs `ALLOW_POSTING`, which is about other
+  people's MRs.
 - **Everything the triage writes is in English** (report, drafted replies,
   findings, commit messages): the bot's injected contract says so, whatever
   language the command or the comments are in.
@@ -373,7 +384,7 @@ which stays the default. No restart: the bot re-arms its pending timer right
 away. This is the studio's only write endpoint (`PUT /api/settings`); it
 refuses requests whose `Host` or `Origin` isn't the studio itself.
 
-**Posting (opt-in).** With `ALLOW_POSTING=true` in `.env`, each "Comment to post"
+**Posting on other people's MRs (opt-in).** With `ALLOW_POSTING=true` in `.env`, each "Comment to post"
 block gets an *Add to review* button. It opens a confirmation showing the final
 (possibly edited) text and the target MR, then creates a GitLab **draft note**
 (inline on the file/line when it can, else general) through the API with your
@@ -384,7 +395,8 @@ started in GitLab's own UI are published too). The MR is resolved server-side fr
 `status.json`, never from the request. Comments are remembered in `posted.json`
 (gitignored) so the same one can't be added twice, and shown with an "In pending
 review" then "Posted" badge. Off by default: without the flag the buttons don't
-exist and `POST /api/post` and `POST /api/submit-review` answer 403.
+exist and `POST /api/post` and `POST /api/submit-review` answer 403 for a review.
+Your own MRs are not behind the flag: there you reply and push (see the triage above).
 
 **Design system (Scholia).** The studio's UI is documented in Storybook:
 `npm run studio:storybook` (port 6006). It holds the foundations from `DESIGN.md`
@@ -592,6 +604,6 @@ on its first line, and CI fails if one stops passing; start every new module wit
   `CLAUDE_MR_COMMENTS_ALLOWED_TOOLS` in `lib/allowed-tools.mjs`.
 - Fixes the triage command applies are committed locally in the bot worktree and
   never pushed by the bot — review them, then push them from the studio
-  (`ALLOW_PUSH=true`) or yourself from the `marginalia/<branch-slug>` local
+  or yourself from the `marginalia/<branch-slug>` local
   branch (see Behaviour above). Nothing lands on the real MR branch without
   that click.

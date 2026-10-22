@@ -41,10 +41,10 @@ test('the conversation prompt carries replies and says who spoke', () => {
 
 test('a triage gets only the unresolved threads, with me as the MR author', () => {
   const text = triageDiscussionPrompt([
-    { path: 'a.ts', line: 3, resolved: false, notes: [{ mine: false, author: 'rev', body: 'Rename this' }, { mine: true, author: 'me', body: 'Why?' }] },
+    { id: 'abc123def456', path: 'a.ts', line: 3, resolved: false, notes: [{ mine: false, author: 'rev', body: 'Rename this' }, { mine: true, author: 'me', body: 'Why?' }] },
     { path: 'b.ts', line: 9, resolved: true, notes: [{ mine: false, author: 'rev', body: 'Done already' }] },
   ]);
-  assert.match(text, /a\.ts:3/);
+  assert.match(text, /Thread abc123def456 on a\.ts:3/, 'each thread carries its id for the reply');
   assert.match(text, /rev: Rename this/);
   assert.match(text, /me \(the MR author\): Why\?/);
   assert.doesNotMatch(text, /Done already/);

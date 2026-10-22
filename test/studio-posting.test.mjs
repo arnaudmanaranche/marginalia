@@ -8,7 +8,7 @@ import { join } from 'node:path';
 
 const dir = await mkdtemp(join(tmpdir(), 'marginalia-posting-'));
 Object.assign(process.env, {
-  MR_REVIEW_BOT_SKIP_CONFIG_CHECK: '1', MARGINALIA_DB: ':memory:', STUDIO_PORT: '4477', ALLOW_POSTING: 'true', ALLOW_PUSH: 'true',
+  MR_REVIEW_BOT_SKIP_CONFIG_CHECK: '1', MARGINALIA_DB: ':memory:', STUDIO_PORT: '4477', ALLOW_POSTING: 'true',
   GITLAB_BASE_URL: 'https://git.example.com', GITLAB_USERNAME: 'me', GITLAB_TOKEN: 't', GITLAB_PROJECT_ID: 'group/demo',
   REPO_LOCAL_PATH: dir, MARGINALIA_HOME: dir,
 });

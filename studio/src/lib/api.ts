@@ -108,7 +108,19 @@ interface ReviewShape {
   overview?: Overview | null;
   tour?: TourStop[];
   findings: Finding[];
+  // A triage of my own MR: the drafted answer to each reviewer thread.
+  replies?: Reply[];
   warnings: string[];
+}
+
+// 'fixed': fixed by the triage, so the reply goes out once the fix is pushed.
+export type ReplyVerdict = 'fixed' | 'already_fixed' | 'not_relevant' | 'wrong' | 'answered';
+
+export interface Reply {
+  thread: string;
+  verdict: ReplyVerdict;
+  reply: string;
+  resolve: boolean;
 }
 
 export interface CrossFinding {
@@ -152,6 +164,11 @@ export interface PostedInfo {
   inline?: boolean;
   // Studio only: sent to GitLab, no answer yet (see pendingPosts.ts).
   pending?: boolean;
+  // A reply in a thread of my own MR, and whether submitting it resolves the thread.
+  threadId?: string;
+  resolve?: boolean;
+  draftId?: number;
+  body?: string;
 }
 
 export interface ReviewsPayload {
@@ -163,8 +180,8 @@ export interface ReviewsPayload {
   jiraBaseUrl: string | null;
   settings: Settings;
   settingsDefaults: Settings;
+  // Posting on other people's MRs. My own are always open to replies and pushes.
   allowPosting: boolean;
-  allowPush: boolean;
   posted: Record<string, PostedInfo>;
 }
 
@@ -217,6 +234,18 @@ export async function postComment(slug: string, commentId: string, body: string,
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ slug, commentId, body, ...target }),
+  });
+  const j = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(j.error ?? `HTTP ${res.status}`);
+  return j;
+}
+
+// A reply in a reviewer thread of my own MR, as a draft until the replies are submitted.
+export async function postReply(slug: string, threadId: string, body: string, resolve: boolean): Promise<PostedInfo> {
+  const res = await fetch('/api/replies', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ slug, threadId, body, resolve }),
   });
   const j = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(j.error ?? `HTTP ${res.status}`);
@@ -306,6 +335,7 @@ export async function fetchFixes(slug: string): Promise<FixesStatus> {
   const res = await fetch(`/api/fixes/${encodeURIComponent(slug)}`);
   const j = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(j.error ?? `HTTP ${res.status}`);
+  if (!j.state) throw new Error('unexpected answer from the studio server');
   return j;
 }
 
@@ -336,7 +366,8 @@ export interface Thread {
   id: string;
   resolved: boolean;
   resolvable: boolean;
-  path: string;
+  // Null for a general comment on the MR (only with scope 'all').
+  path: string | null;
   line: number | null;
   side: 'new' | 'old' | null;
   // Opened on an earlier version of the MR than its head: the line may have moved.
@@ -344,8 +375,8 @@ export interface Thread {
   notes: ThreadNote[];
 }
 
-export async function fetchThreads(slug: string): Promise<Thread[]> {
-  const res = await fetch(`/api/reviews/${encodeURIComponent(slug)}/threads`);
+export async function fetchThreads(slug: string, scope: 'lines' | 'all' = 'lines'): Promise<Thread[]> {
+  const res = await fetch(`/api/reviews/${encodeURIComponent(slug)}/threads${scope === 'all' ? '?scope=all' : ''}`);
   const j = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(j.error ?? `HTTP ${res.status}`);
   return j.threads;

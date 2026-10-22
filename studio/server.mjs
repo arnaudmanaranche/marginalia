@@ -2,8 +2,8 @@
 // Local review reader: the JSON API (see app.mjs and the routes-*.mjs files) over each
 // project's reviews dir + status.json, live updates over SSE, and the built React app
 // (studio/dist) as static files. Bound to 127.0.0.1 only; read-only apart from
-// PUT /api/settings and, when ALLOW_POSTING=true, the posting routes (comment on the MR,
-// after confirmation), POST /api/rerun and, when ALLOW_PUSH=true, POST /api/push.
+// PUT /api/settings, POST /api/rerun, the posting routes (on other people's MRs only when
+// ALLOW_POSTING=true), and on my own MRs the replies to reviewers and POST /api/push.
 import { watch } from 'node:fs';
 import { dirname } from 'node:path';
 import { serve } from '@hono/node-server';

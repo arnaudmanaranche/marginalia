@@ -8,6 +8,8 @@ import { useRerun } from '../lib/useRerun';
 import { useReviewVersions } from '../lib/useReviewVersions';
 import { useSectionState } from '../lib/useSectionState';
 import { useThreads } from '../lib/useThreads';
+import { useFixes } from '../lib/useFixes';
+import { reviewerThreads } from '../lib/replies';
 import { squash } from '../lib/reviewComments';
 import { PostContext } from '../lib/reviewContexts';
 import { extractMeta, rankOf, SUPPORTING_RANK, splitSections } from '../lib/reviewSections';
@@ -15,6 +17,7 @@ import { CollapsibleCard } from './CollapsibleCard';
 import { ConfirmSubmit } from './ConfirmSubmit';
 import { FindingsPanel } from './FindingsPanel';
 import { FixesPanel } from './FixesPanel';
+import { RepliesPanel } from './RepliesPanel';
 import { ReaderHeader } from './ReaderHeader';
 import { ReportSections } from './ReportSections';
 import { ReaderNotices } from './ReaderNotices';
@@ -23,7 +26,7 @@ import { ReviewTour } from './ReviewTour';
 import { TourSkeleton } from './ReviewSkeleton';
 import { Button } from './ui/Button';
 
-export function ReviewReader({ item, review: currentReview, reviewError, onRetry, projectUrl, allowPosting, allowPush, showFullDiff, live, posted, reload }: { showFullDiff: boolean; item: ReviewItem | undefined; review: ReviewContent | null; reviewError: string | null; onRetry: () => void; projectUrl: string | null; allowPosting: boolean; allowPush: boolean; live: BotStatus['current']; posted: Record<string, PostedInfo>; reload: () => void }) {
+export function ReviewReader({ item, review: currentReview, reviewError, onRetry, projectUrl, allowPosting, showFullDiff, live, posted, reload }: { showFullDiff: boolean; item: ReviewItem | undefined; review: ReviewContent | null; reviewError: string | null; onRetry: () => void; projectUrl: string | null; allowPosting: boolean; live: BotStatus['current']; posted: Record<string, PostedInfo>; reload: () => void }) {
   const [submitting, setSubmitting] = useState(false);
   const { versions, versionId, setVersionId, oldReview } = useReviewVersions(item?.slug, item?.reviewedAt);
   const viewingOld = versionId !== null;
@@ -36,6 +39,12 @@ export function ReviewReader({ item, review: currentReview, reviewError, onRetry
   // A comment still on its way would land after the submit, as a new pending one: wait for it.
   const sending = item ? Object.entries(posted).some(([k, p]) => k.startsWith(`${item.slug}:`) && p.pending) : false;
   const locked = rerunning || Boolean(live) || viewingOld;
+  // My own MR: I answer the reviewers and push the triage's fixes, I do not review it.
+  const author = item?.kind === 'comments';
+  const onLatest = Boolean(item?.tracked && item.iid && !viewingOld);
+  const fixes = useFixes(author && onLatest && item ? item.slug : null, item?.reviewedAt);
+  const allThreads = useThreads(author && onLatest && item ? item.slug : null, item?.reviewedAt, 'all');
+  const openThreads = useMemo(() => reviewerThreads(allThreads), [allThreads]);
   const postCtx = useMemo(() => ({ allowPosting, slug: item?.slug ?? null, iid: item?.tracked ? item.iid : null, posted, reload, locked, findings: shape?.findings ?? [] }), [allowPosting, item?.slug, item?.tracked, item?.iid, posted, reload, locked, shape]);
   const linkCtx = useMemo(() => ({ projectUrl, branch: item?.branch ?? null, mrWebUrl: item?.webUrl ?? null }), [projectUrl, item?.branch, item?.webUrl]);
   const meta = useMemo(() => extractMeta(markdown ?? ''), [markdown]);
@@ -49,7 +58,7 @@ export function ReviewReader({ item, review: currentReview, reviewError, onRetry
     return findings.filter((f) => !f.comment || !text.includes(squash(f.comment)));
   }, [markdown, shape]);
   // What others already raised folds those findings up; read only when there are some to post.
-  const threads = useThreads(item?.tracked && item.iid && !viewingOld && loose.length ? item.slug : null, item?.reviewedAt);
+  const threads = useThreads(!author && item?.tracked && item.iid && !viewingOld && loose.length ? item.slug : null, item?.reviewedAt);
   const { intro, sections } = useMemo(() => splitSections(meta.markdown), [meta]);
   const ordered = useMemo(
     () => sections.map((s, i) => ({ s, i })).sort((a, b) => rankOf(a.s.title) - rankOf(b.s.title) || a.i - b.i).map((x) => x.s),
@@ -70,7 +79,7 @@ export function ReviewReader({ item, review: currentReview, reviewError, onRetry
       <ReaderHeader
         item={item}
         risk={shape?.risk ?? null}
-        showSubmit={allowPosting && Boolean(item?.tracked) && (draftCount > 0 || item?.kind === 'review')}
+        showSubmit={(allowPosting || author) && Boolean(item?.tracked) && (draftCount > 0 || item?.kind === 'review')}
         draftCount={draftCount}
         sending={sending}
         reviewing={rerunning || Boolean(live)}
@@ -89,22 +98,27 @@ export function ReviewReader({ item, review: currentReview, reviewError, onRetry
       ) : <TourSkeleton />)}
       {markdown !== null && shape?.overview && <ReviewOverview overview={shape.overview} />}
       {markdown !== null && hasTour && (
-          <ReviewTour showFullDiff={showFullDiff} stops={shape!.tour!} findings={shape!.findings} diff={item?.tracked && item.iid ? { slug: item.slug, version: versionId, key: item.reviewedAt, startSince: item.stale } : null} post={item?.tracked && item.iid && !viewingOld ? { slug: item.slug, iid: item.iid, allowPosting, locked, posted, reload } : null} />
+          <ReviewTour showFullDiff={showFullDiff} stops={shape!.tour!} findings={shape!.findings} diff={item?.tracked && item.iid ? { slug: item.slug, version: versionId, key: item.reviewedAt, startSince: item.stale } : null} post={!author && item?.tracked && item.iid && !viewingOld ? { slug: item.slug, iid: item.iid, allowPosting, locked, posted, reload } : null} />
       )}
       </div>
 
       {markdown !== null && (
         <article className="mx-auto w-full min-w-0 max-w-[80ch] space-y-3">
             <ReaderNotices viewingOld={viewingOld} onBackToLatest={() => setVersionId(null)} />
+            {author && onLatest && item?.iid && (
+              <>
+                <CollapsibleCard id="fixes" title="Fixes to push" open={overrides.fixes ?? true} onOpenChange={(o) => setOverrides((prev) => ({ ...prev, fixes: o }))}>
+                  <FixesPanel slug={item.slug} iid={item.iid} locked={locked} state={fixes} />
+                </CollapsibleCard>
+                <CollapsibleCard id="replies" title={`Reply to the reviewers (${openThreads.length})`} open={overrides.replies ?? true} onOpenChange={(o) => setOverrides((prev) => ({ ...prev, replies: o }))}>
+                  <RepliesPanel slug={item.slug} threads={openThreads} replies={shape?.replies ?? []} posted={posted} fixes={fixes.fixes} locked={locked} reload={reload} />
+                </CollapsibleCard>
+              </>
+            )}
             {!hasTour && <ReportSections intro={intro} sections={ordered} firstSupporting={firstSupporting} isOpen={isOpen} setOverrides={setOverrides} />}
-            {item?.tracked && item.iid && !viewingOld && loose.length > 0 && (
+            {!author && item?.tracked && item.iid && !viewingOld && loose.length > 0 && (
               <CollapsibleCard id="findings" title={`${hasTour ? 'Other findings' : 'Findings to comment on'} (${loose.length})`} open={overrides.findings ?? true} onOpenChange={(o) => setOverrides((prev) => ({ ...prev, findings: o }))}>
                 <FindingsPanel findings={loose} threads={threads} slug={item.slug} iid={item.iid} allowPosting={allowPosting} locked={locked} posted={posted} reload={reload} />
-              </CollapsibleCard>
-            )}
-            {item?.tracked && item.iid && item.kind === 'comments' && !viewingOld && (
-              <CollapsibleCard id="fixes" title="Fixes to push" open={overrides.fixes ?? true} onOpenChange={(o) => setOverrides((prev) => ({ ...prev, fixes: o }))}>
-                <FixesPanel slug={item.slug} iid={item.iid} allowPush={allowPush} locked={locked} refreshKey={item.reviewedAt} />
               </CollapsibleCard>
             )}
           </article>
@@ -123,7 +137,7 @@ export function ReviewReader({ item, review: currentReview, reviewError, onRetry
           setSubmitting(false);
           reload();
           const done = { comment: 'submitted', approve: 'approved', request_changes: 'submitted with changes requested' }[action];
-          toast.success(`Review of !${item.iid} ${done}`, item.webUrl ? { action: { label: 'Open', onClick: () => window.open(item.webUrl!, '_blank', 'noopener') } } : undefined);
+          toast.success(author ? `Replies on !${item.iid} sent` : `Review of !${item.iid} ${done}`, item.webUrl ? { action: { label: 'Open', onClick: () => window.open(item.webUrl!, '_blank', 'noopener') } } : undefined);
         }}
       />
     )}

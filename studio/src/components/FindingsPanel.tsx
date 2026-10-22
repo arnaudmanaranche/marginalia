@@ -96,7 +96,7 @@ function CommentArea({ finding, text, onText, editing, onEditing, showActions, l
 // Folded: who raised the point first and what they said, with a way to comment on it anyway.
 function RaisedCard({ finding, raised, onFocus, onUnfold }: { finding: Finding; raised: RaisedBy; onFocus?: (id: string) => void; onUnfold: () => void }) {
   const { path, line, resolved } = raised.thread;
-  const where = `${path.split('/').pop()}${line ? `:${line}` : ''}`;
+  const where = path ? `${path.split('/').pop()}${line ? `:${line}` : ''}` : 'the MR';
   return (
     <div className="flex gap-2 rounded-lg border border-dashed border-zinc-300 px-3 py-2 text-sm text-fg-muted dark:border-zinc-700">
       <MessagesSquare className="mt-0.5 size-4 shrink-0 text-fg-subtle" aria-hidden />

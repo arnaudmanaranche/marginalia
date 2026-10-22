@@ -5,9 +5,10 @@ import { askAboutStop } from '../lib/chat.mjs';
 import { buildChatPrompt, parseChatInput } from '../lib/chat-prompt.mjs';
 import { filesForPatterns, toDiffFile } from '../lib/mr-diff.mjs';
 import { listMergeRequestDiffs } from '../lib/gitlab.mjs';
-import { pushFixes } from '../lib/fixes.mjs';
+import { fixesStatus, pushFixes } from '../lib/fixes.mjs';
 import { envDefaults, saveSettings } from '../lib/settings.mjs';
-import { ChatAnswer, ChatRequest, FixesStatus, Rerun, SettingsAnswer, SettingsPatch, SlugBody } from './schemas.mjs';
+import { ChatAnswer, ChatRequest, FixesStatus, Rerun, ReviewId, SettingsAnswer, SettingsPatch, SlugBody } from './schemas.mjs';
+import { z } from '@hono/zod-openapi';
 import { jsonBody, jsonOf, route } from './route-kit.mjs';
 import { locate, serialQueue, shortMessage } from './context.mjs';
 
@@ -88,11 +89,28 @@ export function actionRoutes(app) {
     return c.json({ ok: true, iid: mr.iid, kind: mr.kind }, 200);
   });
 
+  // Where the local fixes of one triage stand against its MR branch on origin.
+  app.openapi(route({
+    method: 'get', path: '/api/fixes/{slug}', tags: ['Triage fixes'], operationId: 'getFixes',
+    summary: 'Where a triage\'s fixes stand', description: '`ready` (on top of the MR head, can be pushed), `pushed`, `outdated` (the branch moved since) or `none`.',
+    request: { params: z.object({ slug: ReviewId }) },
+    responses: { 200: jsonOf(FixesStatus, 'The fixes against the MR branch.') }, errors: [400, 404, 502],
+  }), async (c) => {
+    const found = await locate(c.req.valid('param').slug);
+    const mr = found?.mr;
+    if (!found || mr?.kind !== 'comments' || !mr.sourceBranch) return c.json({ error: 'no tracked triage for this slug' }, 404);
+    try {
+      return c.json(await fixesStatus(found.project, { iid: mr.iid, source_branch: mr.sourceBranch }), 200);
+    } catch (err) {
+      return c.json({ error: shortMessage(err) }, 502);
+    }
+  });
+
   // Pushes the local fixes of one triage to its MR branch, only if that branch hasn't moved since
   // (fast-forward).
   app.openapi(route({
     method: 'post', path: '/api/push', tags: ['Triage fixes'], operationId: 'pushFixes',
-    summary: 'Push a triage\'s fixes to the MR branch', description: 'Requires `ALLOW_PUSH=true`. Fast-forward only.',
+    summary: 'Push a triage\'s fixes to the MR branch', description: 'Only on your own merge request (a `comments` triage). Fast-forward only.',
     request: { body: jsonBody(SlugBody) },
     responses: { 200: jsonOf(FixesStatus, 'Pushed; the status after the push.') }, errors: [400, 403, 404, 409, 415, 502],
   }), (c) => pushQueue(async () => {

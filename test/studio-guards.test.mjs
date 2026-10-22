@@ -8,7 +8,7 @@ import { join } from 'node:path';
 
 const dir = await mkdtemp(join(tmpdir(), 'marginalia-guards-'));
 Object.assign(process.env, {
-  MR_REVIEW_BOT_SKIP_CONFIG_CHECK: '1', MARGINALIA_DB: ':memory:', STUDIO_PORT: '4477', ALLOW_POSTING: 'false', ALLOW_PUSH: 'false',
+  MR_REVIEW_BOT_SKIP_CONFIG_CHECK: '1', MARGINALIA_DB: ':memory:', STUDIO_PORT: '4477', ALLOW_POSTING: 'false',
   GITLAB_BASE_URL: 'https://git.example.com', GITLAB_USERNAME: 'me', GITLAB_TOKEN: 't', GITLAB_PROJECT_ID: 'group/demo',
   REPO_LOCAL_PATH: dir, SETTINGS_FILE: join(dir, 'settings.json'),
 });
@@ -45,15 +45,14 @@ test('invalid settings answer 400 with a message, and change nothing', async () 
   assert.match(await errorOf(res), /staleAfterDays/);
 });
 
-test('posting and pushing are off by default, before the body is even looked at', async () => {
+test('posting on other people\'s MRs is off by default, before the body is even looked at', async () => {
   for (const [method, path] of [['POST', '/api/post'], ['POST', '/api/submit-review'], ['PUT', '/api/drafts/demo%2Ffeat-x/1'], ['DELETE', '/api/drafts/demo%2Ffeat-x/1'], ['GET', '/api/drafts/demo%2Ffeat-x']]) {
     const res = await send(method, path, { body: method === 'GET' || method === 'DELETE' ? undefined : {} });
     assert.equal(res.status, 403, `${method} ${path}`);
     assert.match(await errorOf(res), /ALLOW_POSTING/);
   }
-  const push = await send('POST', '/api/push', { body: {} });
-  assert.equal(push.status, 403);
-  assert.match(await errorOf(push), /ALLOW_PUSH/);
+  // Pushing only ever concerns my own MR, so no switch: the route itself refuses anything else.
+  assert.equal((await send('POST', '/api/push', { body: { slug: 'demo/feat-x' } })).status, 404);
 });
 
 test('a review id of an unknown project, or without a project, is a bad slug', async () => {
@@ -72,7 +71,7 @@ test('an unknown write is refused as read-only, an unknown read falls through to
 test('the generated OpenAPI document covers every API route', async () => {
   const doc = await (await send('GET', '/openapi.json')).json();
   const paths = Object.keys(doc.paths);
-  for (const p of ['/api/reviews', '/api/reviews/{slug}', '/api/post', '/api/submit-review', '/api/drafts/{slug}/{id}', '/api/chat', '/api/rerun', '/api/push', '/api/settings']) {
+  for (const p of ['/api/reviews', '/api/reviews/{slug}', '/api/post', '/api/submit-review', '/api/drafts/{slug}/{id}', '/api/chat', '/api/rerun', '/api/push', '/api/fixes/{slug}', '/api/replies', '/api/settings']) {
     assert.ok(paths.includes(p), p);
   }
 });

@@ -57,13 +57,13 @@ export function readRoutes(app) {
 
   app.openapi(route({
     method: 'get', path: '/api/reviews/{slug}/threads', tags: ['Reviews'], operationId: 'getThreads',
-    summary: 'Threads on lines of code', description: 'The MR\'s discussion threads that sit on a line, for the diff. `outdated` is a thread opened on an earlier version of the MR.',
-    request: { params: slug }, responses: { 200: jsonOf(Threads, 'The threads.') }, errors: [400, 404, 502],
+    summary: 'Threads on lines of code', description: 'The MR\'s discussion threads that sit on a line, for the diff, or with `scope=all` every thread (general comments too). `outdated` is a thread opened on an earlier version of the MR.',
+    request: { params: slug, query: z.object({ scope: z.enum(['lines', 'all']).optional() }) }, responses: { 200: jsonOf(Threads, 'The threads.') }, errors: [400, 404, 502],
   }), async (c) => {
     const found = await tracked(c, c.req.valid('param').slug);
     if (found.reply) return found.reply;
     try {
-      return c.json({ threads: await reviewThreads(found.project, found.mr) }, 200);
+      return c.json({ threads: await reviewThreads(found.project, found.mr, { all: c.req.valid('query').scope === 'all' }) }, 200);
     } catch (err) {
       return c.json({ error: shortMessage(err) }, 502);
     }

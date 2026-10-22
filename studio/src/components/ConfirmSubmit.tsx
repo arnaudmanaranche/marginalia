@@ -17,7 +17,8 @@ const ACTIONS: { value: ReviewAction; label: string; submit: string; hint: strin
 ];
 
 // Publishes the pending review: every draft comment of this MR, plus an optional summary,
-// with the verdict the user picks (a triage of your own MR can only comment).
+// with the verdict the user picks. On my own MR (no verdict) it sends my replies to the
+// reviewers, each in its thread, resolving the ones I ticked.
 export function ConfirmSubmit({ slug, iid, count, canVerdict, reload, onCancel, onConfirm }: { slug: string; reload: () => void; iid: string | number; count: number; canVerdict: boolean; onCancel: () => void; onConfirm: (summary: string, action: ReviewAction) => Promise<void> }) {
   const [busy, setBusy] = useState(false);
   const [summary, setSummary] = useState('');
@@ -52,8 +53,12 @@ export function ConfirmSubmit({ slug, iid, count, canVerdict, reload, onCancel, 
         onClick={(e) => e.stopPropagation()}
       >
         <header className="px-6 pb-3 pt-5">
-          <h2 id="confirm-submit-title" className="text-lg font-semibold tracking-tight">Submit your review <span className="font-normal text-fg-subtle">!{iid}</span></h2>
-          <p className="mt-1 text-sm text-fg-muted">{count} pending comment{count === 1 ? '' : 's'}, published as one review under your account. The MR author will see it.</p>
+          <h2 id="confirm-submit-title" className="text-lg font-semibold tracking-tight">{canVerdict ? 'Submit your review' : 'Send your replies'} <span className="font-normal text-fg-subtle">!{iid}</span></h2>
+          <p className="mt-1 text-sm text-fg-muted">
+            {canVerdict
+              ? <>{count} pending comment{count === 1 ? '' : 's'}, published as one review under your account. The MR author will see it.</>
+              : <>{count} pending repl{count === 1 ? 'y' : 'ies'}, each published in its thread under your account. The reviewers will see them, and the threads you chose to resolve are resolved.</>}
+          </p>
         </header>
         <fieldset disabled={locked} className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 pb-2 disabled:[&_textarea]:opacity-60">
           <legend className="sr-only">Review to submit</legend>
@@ -84,7 +89,7 @@ export function ConfirmSubmit({ slug, iid, count, canVerdict, reload, onCancel, 
           )}
           <div>
             <label htmlFor="review-summary" className="block text-sm font-medium">Summary <span className="font-normal text-fg-muted">(optional)</span></label>
-            <textarea id="review-summary" data-autofocus value={summary} onChange={(e) => setSummary(e.target.value)} rows={3} placeholder="One or two lines for the author" className="mt-1.5 w-full resize-y rounded-lg border border-zinc-300 bg-zinc-50 p-3 text-sm outline-none placeholder:text-fg-subtle focus-visible:border-blue-500 focus-visible:bg-white focus-visible:ring-2 focus-visible:ring-blue-500/50 dark:border-zinc-700 dark:bg-zinc-950" />
+            <textarea id="review-summary" data-autofocus value={summary} onChange={(e) => setSummary(e.target.value)} rows={3} placeholder={canVerdict ? 'One or two lines for the author' : 'One or two lines for the reviewers'} className="mt-1.5 w-full resize-y rounded-lg border border-zinc-300 bg-zinc-50 p-3 text-sm outline-none placeholder:text-fg-subtle focus-visible:border-blue-500 focus-visible:bg-white focus-visible:ring-2 focus-visible:ring-blue-500/50 dark:border-zinc-700 dark:bg-zinc-950" />
           </div>
         </fieldset>
         <footer className="flex items-center justify-end gap-2 border-t border-zinc-200 px-6 py-3 dark:border-zinc-800">
@@ -103,7 +108,7 @@ export function ConfirmSubmit({ slug, iid, count, canVerdict, reload, onCancel, 
               }
             }}
           >
-            {busy ? <Loader2 className="size-4 animate-spin motion-reduce:animate-pulse" /> : <Send className="size-4" />}{busy ? 'Submitting…' : canVerdict ? chosen.submit : 'Submit review'}
+            {busy ? <Loader2 className="size-4 animate-spin motion-reduce:animate-pulse" /> : <Send className="size-4" />}{busy ? 'Submitting…' : canVerdict ? chosen.submit : 'Send replies'}
           </Button>
         </footer>
       </m.div>
