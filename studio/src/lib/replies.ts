@@ -1,4 +1,4 @@
-import type { FixesStatus, Thread, TourStop } from './api';
+import type { FixesStatus, Thread } from './api';
 
 // The threads I answer on my own MR: opened by a reviewer (not me, not a bot) and still open.
 export function reviewerThreads(threads: Thread[]): Thread[] {
@@ -14,15 +14,7 @@ export function replyBody(text: string, fixed: boolean, fixes: FixesStatus | nul
   return `${answer}\n\nFixed in ${fixes.fixesSha.slice(0, 8)}.`;
 }
 
-// Where each thread is answered in the tour: in the stop that names it, else in the first stop
-// holding its file. `loose` are the ones no stop takes (general comments, files outside the tour).
-export function threadsByStop(stops: TourStop[], threads: Thread[]): { byStop: Record<string, Thread[]>; loose: Thread[] } {
-  const byStop: Record<string, Thread[]> = Object.fromEntries(stops.map((s) => [s.id, []]));
-  const loose: Thread[] = [];
-  for (const t of threads) {
-    const stop = stops.find((s) => s.threadIds?.includes(t.id)) ?? (t.path ? stops.find((s) => s.files.includes(t.path!)) : undefined);
-    if (stop) byStop[stop.id].push(t);
-    else loose.push(t);
-  }
-  return { byStop, loose };
+// The order I answer them in on my own MR: file by file, down each file, general comments last.
+export function byPlace(threads: Thread[]): Thread[] {
+  return [...threads].sort((a, b) => (a.path === null ? 1 : 0) - (b.path === null ? 1 : 0) || (a.path ?? '').localeCompare(b.path ?? '') || (a.line ?? 0) - (b.line ?? 0));
 }

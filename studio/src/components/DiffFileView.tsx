@@ -24,12 +24,14 @@ export function DiffFileView({ file, findings, threads, defaultOpen, focus, onSe
   const { byLine, loose } = useMemo(() => threadsForFile(file, threads), [file, threads]);
   const threadCount = threads.filter((t) => t.path === file.path || t.path === file.oldPath).length;
 
-  // A click on a finding in the list brings its place here: the file opens, the line is shown, it scrolls there and
-  // lights up for a moment. A finding with no line in this diff lands on its file.
+  // A click on a finding (or, on my own MR, a reviewer thread) in the list brings its place here: the file opens,
+  // the line is shown, it scrolls there and lights up for a moment. One with no line in this diff lands on its file.
   const target = focus?.source === 'list' ? mine.find((f) => f.id === focus.id) : undefined;
-  const targetIndex = target?.line ? file.lines.findIndex((l) => l.new === target.line) : -1;
+  const targetThread = focus?.source === 'list' && !target ? threads.find((t) => t.id === focus.id && (t.path === file.path || t.path === file.oldPath)) : undefined;
+  const targetId = target?.id ?? targetThread?.id;
+  const targetIndex = target?.line ? file.lines.findIndex((l) => l.new === target.line) : targetThread ? ([...byLine].find(([, ts]) => ts.includes(targetThread))?.[0] ?? -1) : -1;
   useEffect(() => {
-    if (!focus || !target || handled.current === focus.nonce) return undefined;
+    if (!focus || !targetId || handled.current === focus.nonce) return undefined;
     if (!open) {
       setOpen(true);
       return undefined;
@@ -39,12 +41,12 @@ export function DiffFileView({ file, findings, threads, defaultOpen, focus, onSe
       return undefined;
     }
     handled.current = focus.nonce;
-    const el = root.current?.querySelector<HTMLElement>(`[data-finding="${target.id}"]`) ?? root.current;
+    const el = root.current?.querySelector<HTMLElement>(`[data-finding="${targetId}"], [data-thread="${targetId}"]`) ?? root.current;
     if (el) scrollInPane(el);
-    setFlash(target.id);
+    setFlash(targetId);
     const t = setTimeout(() => setFlash(null), 1800);
     return () => clearTimeout(t);
-  }, [focus, target, open, all, targetIndex]);
+  }, [focus, targetId, open, all, targetIndex]);
 
   return (
     <section ref={root} aria-label={file.path} className="overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-800">
@@ -64,7 +66,7 @@ export function DiffFileView({ file, findings, threads, defaultOpen, focus, onSe
             <tbody>
               {shown.map((l, i) => (
                 <Fragment key={i}>
-                  <tr className={cn(ROW[l.t], l.new != null && mine.some((f) => f.id === flash && f.line === l.new) && 'bg-blue-500/25')}>
+                  <tr className={cn(ROW[l.t], ((l.new != null && mine.some((f) => f.id === flash && f.line === l.new)) || byLine.get(i)?.some((t) => t.id === flash)) && 'bg-blue-500/25')}>
                     <td className="w-10 select-none px-2 text-right text-fg-subtle">{l.old ?? ''}</td>
                     <td className="w-10 select-none px-2 text-right text-fg-subtle">{l.new ?? ''}</td>
                     <td className="whitespace-pre pr-3"><span aria-hidden className="select-none pr-1">{SIGN[l.t]}</span>{l.t === 'hunk' ? l.text : l.text || ' '}</td>
@@ -85,7 +87,7 @@ export function DiffFileView({ file, findings, threads, defaultOpen, focus, onSe
                       </td>
                     </tr>
                   ))}
-                  {(byLine.get(i) ?? []).map((t) => <ThreadRow key={t.id} thread={t} />)}
+                  {(byLine.get(i) ?? []).map((t) => <ThreadRow key={t.id} thread={t} flash={flash === t.id} />)}
                 </Fragment>
               ))}
             </tbody>
@@ -93,7 +95,7 @@ export function DiffFileView({ file, findings, threads, defaultOpen, focus, onSe
           {loose.length > 0 && (
             <div className="space-y-2 border-t border-zinc-200 p-3 dark:border-zinc-800">
               <p className="text-xs text-fg-muted">Threads on this file whose line is not in this diff</p>
-              {loose.map((t) => <ThreadCard key={t.id} thread={t} showPlace />)}
+              {loose.map((t) => <ThreadCard key={t.id} thread={t} showPlace flash={flash === t.id} />)}
             </div>
           )}
           {!all && file.lines.length > PREVIEW_LINES && (

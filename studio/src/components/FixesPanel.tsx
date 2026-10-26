@@ -59,7 +59,7 @@ export function FixesPanel({ slug, iid, locked, state }: { slug: string; iid: st
           </ul>
         </>
       )}
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         {fixes.state === 'ready' && (
           <Button ref={buttonRef} variant="primary" disabled={locked || checking} onClick={() => setConfirming(true)}>
             <Upload className="size-4" />Push to {fixes.branch}

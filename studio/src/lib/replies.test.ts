@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { FixesStatus, Thread, TourStop } from './api';
-import { replyBody, reviewerThreads, threadsByStop } from './replies';
+import type { FixesStatus, Thread } from './api';
+import { byPlace, replyBody, reviewerThreads } from './replies';
 
 const note = (over: Partial<Thread['notes'][number]> = {}) => ({ id: 1, author: 'rev', authorName: 'Rev', mine: false, bot: false, body: 'x', at: '2026-01-01', ...over });
 const thread = (over: Partial<Thread> = {}): Thread => ({ id: 'abc12345', resolved: false, resolvable: true, path: null, line: null, side: null, outdated: false, notes: [note()], ...over });
@@ -26,15 +26,12 @@ describe('replyBody', () => {
   });
 });
 
-describe('threadsByStop', () => {
-  const stop = (id: string, files: string[], threadIds?: string[]): TourStop => ({ id, title: id, summary: null, files, findingIds: [], threadIds });
-  it('puts a thread in the stop that names it, else in the first stop holding its file, else aside', () => {
-    const named = thread({ id: 'named1', path: 'b.ts' });
-    const onFile = thread({ id: 'onfile1', path: 'b.ts' });
-    const general = thread({ id: 'general1', path: null });
-    const { byStop, loose } = threadsByStop([stop('s1', ['b.ts']), stop('s2', ['c.ts'], ['named1'])], [named, onFile, general]);
-    expect(byStop.s1).toEqual([onFile]);
-    expect(byStop.s2).toEqual([named]);
-    expect(loose).toEqual([general]);
+describe('byPlace', () => {
+  it('orders the threads by file, then line, with general comments last', () => {
+    const general = thread({ id: 'g', path: null, line: null });
+    const b9 = thread({ id: 'b9', path: 'b.ts', line: 9 });
+    const a3 = thread({ id: 'a3', path: 'a.ts', line: 3 });
+    const a12 = thread({ id: 'a12', path: 'a.ts', line: 12 });
+    expect(byPlace([general, b9, a12, a3]).map((t) => t.id)).toEqual(['a3', 'a12', 'b9', 'g']);
   });
 });

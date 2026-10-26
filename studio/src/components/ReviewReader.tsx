@@ -9,19 +9,18 @@ import { useReviewVersions } from '../lib/useReviewVersions';
 import { useSectionState } from '../lib/useSectionState';
 import { useThreads } from '../lib/useThreads';
 import { useFixes } from '../lib/useFixes';
-import { reviewerThreads, threadsByStop } from '../lib/replies';
+import { reviewerThreads } from '../lib/replies';
 import { squash } from '../lib/reviewComments';
 import { PostContext } from '../lib/reviewContexts';
 import { extractMeta, rankOf, SUPPORTING_RANK, splitSections } from '../lib/reviewSections';
 import { CollapsibleCard } from './CollapsibleCard';
 import { ConfirmSubmit } from './ConfirmSubmit';
 import { FindingsPanel } from './FindingsPanel';
-import { FixesPanel } from './FixesPanel';
-import { RepliesPanel } from './RepliesPanel';
 import { ReaderHeader } from './ReaderHeader';
 import { ReportSections } from './ReportSections';
 import { ReaderNotices } from './ReaderNotices';
 import { ReviewOverview } from './ReviewOverview';
+import { ReplyBoard } from './ReplyBoard';
 import { ReportDelta } from './ReportDelta';
 import { ReviewTour } from './ReviewTour';
 import { TourSkeleton } from './ReviewSkeleton';
@@ -67,11 +66,10 @@ export function ReviewReader({ item, review: currentReview, reviewError, onRetry
   );
   const firstSupporting = ordered.find((s) => rankOf(s.title) === SUPPORTING_RANK && ordered.some((o) => rankOf(o.title) < SUPPORTING_RANK))?.id;
   const { overrides, setOverrides, isOpen } = useSectionState(sections);
+  // My own MR is not reviewed but answered: the reviewer threads and the fixes take the place of a tour.
+  const answering = Boolean(author && onLatest && item?.iid);
   // A review with a tour is read through its tour; the written report only stands in for one without.
-  const hasTour = (shape?.tour?.length ?? 0) > 0;
-  // On my own MR the tour carries the threads to answer; the ones no stop takes are listed below it.
-  const placed = useMemo(() => threadsByStop(hasTour ? shape!.tour! : [], openThreads), [hasTour, shape, openThreads]);
-  const answers = author && onLatest && item ? { slug: item.slug, byStop: placed.byStop, replies: shape?.replies ?? [], posted, fixes: fixes.fixes, locked, reload } : null;
+  const hasTour = !author && (shape?.tour?.length ?? 0) > 0;
 
   return (
     <LinkContext.Provider value={linkCtx}>
@@ -79,7 +77,7 @@ export function ReviewReader({ item, review: currentReview, reviewError, onRetry
     <div className="px-6 py-6">
       {/* A review with a tour fits the window: header and overview on top, the tour taking the rest
           with each pane scrolling inside it. What comes after is below, on the page. */}
-      <div className={cn((hasTour || markdown === null) && 'lg:flex lg:h-[calc(100vh-var(--chrome-h)-3rem)] lg:flex-col')}>
+      <div className={cn((hasTour || answering || markdown === null) && 'lg:flex lg:h-[calc(100vh-var(--chrome-h)-3rem)] lg:flex-col')}>
       <ReaderHeader
         item={item}
         risk={shape?.risk ?? null}
@@ -103,25 +101,16 @@ export function ReviewReader({ item, review: currentReview, reviewError, onRetry
         <ReportDelta previous={previous.review.shape?.findings ?? []} at={previous.at} current={shape?.findings ?? []} onRead={() => setVersionId(previous.id)} />
       )}
       {markdown !== null && hasTour && (
-          <ReviewTour showFullDiff={showFullDiff} stops={shape!.tour!} findings={shape!.findings} diff={item?.tracked && item.iid ? { slug: item.slug, version: versionId, key: item.reviewedAt } : null} post={!author && item?.tracked && item.iid && !viewingOld ? { slug: item.slug, iid: item.iid, allowPosting, locked, posted, reload } : null} answers={answers} onReport={setVersionId} />
+          <ReviewTour showFullDiff={showFullDiff} stops={shape!.tour!} findings={shape!.findings} diff={item?.tracked && item.iid ? { slug: item.slug, version: versionId, key: item.reviewedAt } : null} post={item?.tracked && item.iid && !viewingOld ? { slug: item.slug, iid: item.iid, allowPosting, locked, posted, reload } : null} onReport={setVersionId} />
+      )}
+      {markdown !== null && answering && item?.iid && (
+        <ReplyBoard slug={item.slug} iid={item.iid} threads={allThreads} open={openThreads} replies={shape?.replies ?? []} posted={posted} fixes={fixes} locked={locked} reload={reload} refreshKey={item.reviewedAt} showFullDiff={showFullDiff} onReport={setVersionId} />
       )}
       </div>
 
       {markdown !== null && (
         <article className="mx-auto w-full min-w-0 max-w-[80ch] space-y-3">
-            {!hasTour && <ReportSections intro={intro} sections={ordered} firstSupporting={firstSupporting} isOpen={isOpen} setOverrides={setOverrides} />}
-            {author && onLatest && item?.iid && (
-              <>
-                {placed.loose.length > 0 && (
-                  <CollapsibleCard id="replies" title={`${hasTour ? 'Other reviewer threads' : 'Reply to the reviewers'} (${placed.loose.length})`} open={overrides.replies ?? true} onOpenChange={(o) => setOverrides((prev) => ({ ...prev, replies: o }))}>
-                    <RepliesPanel slug={item.slug} threads={placed.loose} replies={shape?.replies ?? []} posted={posted} fixes={fixes.fixes} locked={locked} reload={reload} />
-                  </CollapsibleCard>
-                )}
-                <CollapsibleCard id="fixes" title="Fixes to push" open={overrides.fixes ?? true} onOpenChange={(o) => setOverrides((prev) => ({ ...prev, fixes: o }))}>
-                  <FixesPanel slug={item.slug} iid={item.iid} locked={locked} state={fixes} />
-                </CollapsibleCard>
-              </>
-            )}
+            {!hasTour && !answering && <ReportSections intro={intro} sections={ordered} firstSupporting={firstSupporting} isOpen={isOpen} setOverrides={setOverrides} />}
             {!author && item?.tracked && item.iid && !viewingOld && loose.length > 0 && (
               <CollapsibleCard id="findings" title={`${hasTour ? 'Other findings' : 'Findings to comment on'} (${loose.length})`} open={overrides.findings ?? true} onOpenChange={(o) => setOverrides((prev) => ({ ...prev, findings: o }))}>
                 <FindingsPanel findings={loose} threads={threads} slug={item.slug} iid={item.iid} allowPosting={allowPosting} locked={locked} posted={posted} reload={reload} />

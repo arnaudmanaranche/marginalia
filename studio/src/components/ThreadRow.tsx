@@ -5,10 +5,10 @@ import { Badge } from './ui/Badge';
 import { NoteMarkdown } from './NoteMarkdown';
 
 // One GitLab thread as it reads in the diff: who said what, in order, and whether it is settled.
-export function ThreadCard({ thread, showPlace }: { thread: Thread; showPlace?: boolean }) {
+export function ThreadCard({ thread, showPlace, flash }: { thread: Thread; showPlace?: boolean; flash?: boolean }) {
   const settled = thread.resolved;
   return (
-    <div className={cn('rounded-md border px-3 py-2 font-sans text-sm', settled ? 'border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900' : 'border-violet-500/30 bg-violet-500/5')}>
+    <div data-thread={thread.id} className={cn('rounded-md border px-3 py-2 font-sans text-sm transition-shadow', settled ? 'border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900' : 'border-violet-500/30 bg-violet-500/5', flash && 'ring-2 ring-blue-500')}>
       <div className="mb-1 flex flex-wrap items-center gap-2 text-xs text-fg-muted">
         <MessageSquare className="size-3.5" aria-hidden />
         <span>{thread.notes.length === 1 ? 'Comment' : `${thread.notes.length} comments`}</span>
@@ -29,10 +29,10 @@ export function ThreadCard({ thread, showPlace }: { thread: Thread; showPlace?: 
 }
 
 // A table row carrying a thread under the line it is about.
-export function ThreadRow({ thread }: { thread: Thread }) {
+export function ThreadRow({ thread, flash }: { thread: Thread; flash?: boolean }) {
   return (
     <tr>
-      <td colSpan={3} className="px-3 py-1.5"><ThreadCard thread={thread} /></td>
+      <td colSpan={3} className="px-3 py-1.5"><ThreadCard thread={thread} flash={flash} /></td>
     </tr>
   );
 }

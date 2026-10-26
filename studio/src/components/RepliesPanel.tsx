@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { Check, Loader2, Reply as ReplyIcon, Trash2 } from 'lucide-react';
+import { Check, Crosshair, Loader2, Reply as ReplyIcon, Trash2 } from 'lucide-react';
 import { deleteDraft, postReply, type FixesStatus, type PostedInfo, type Reply, type ReplyVerdict, type Thread } from '../lib/api';
 import { replyBody } from '../lib/replies';
 import { Badge } from './ui/Badge';
 import type { BadgeTone } from './ui/badgeStyles';
 import { Button } from './ui/Button';
+import { cn } from '../lib/utils';
 import { ThreadCard } from './ThreadRow';
 
 const VERDICTS: Record<ReplyVerdict, { label: string; tone: BadgeTone }> = {
@@ -20,8 +21,8 @@ const short = (sha: string | null) => sha?.slice(0, 8) ?? '';
 
 // One card per reviewer thread of my own MR: the conversation, what the triage made of it, and my
 // answer, editable, added to my pending replies in that thread. A "fixed" reply waits until the fix
-// is pushed, then names the commit.
-export function RepliesPanel({ slug, threads, replies, posted, fixes, locked, reload }: {
+// is pushed, then names the commit. With `onSelect`, a thread on a file can be pointed at in the diff.
+export function RepliesPanel({ slug, threads, replies, posted, fixes, locked, reload, selected = null, onSelect }: {
   slug: string;
   threads: Thread[];
   replies: Reply[];
@@ -29,20 +30,22 @@ export function RepliesPanel({ slug, threads, replies, posted, fixes, locked, re
   fixes: FixesStatus | null;
   locked: boolean;
   reload: () => void;
+  selected?: string | null;
+  onSelect?: (id: string) => void;
 }) {
   if (!threads.length) return <p className="text-sm text-fg-muted">No open reviewer thread on this MR.</p>;
   return (
     <ul className="space-y-4">
       {threads.map((t) => (
         <li key={t.id}>
-          <ReplyCard slug={slug} thread={t} drafted={replies.find((r) => r.thread === t.id) ?? null} sent={posted[`${slug}:reply-${t.id}`] ?? null} fixes={fixes} locked={locked} reload={reload} />
+          <ReplyCard slug={slug} thread={t} drafted={replies.find((r) => r.thread === t.id) ?? null} sent={posted[`${slug}:reply-${t.id}`] ?? null} fixes={fixes} locked={locked} reload={reload} selected={selected === t.id} onSelect={onSelect} />
         </li>
       ))}
     </ul>
   );
 }
 
-function ReplyCard({ slug, thread, drafted, sent, fixes, locked, reload }: {
+function ReplyCard({ slug, thread, drafted, sent, fixes, locked, reload, selected, onSelect }: {
   slug: string;
   thread: Thread;
   drafted: Reply | null;
@@ -50,6 +53,8 @@ function ReplyCard({ slug, thread, drafted, sent, fixes, locked, reload }: {
   fixes: FixesStatus | null;
   locked: boolean;
   reload: () => void;
+  selected: boolean;
+  onSelect?: (id: string) => void;
 }) {
   const [text, setText] = useState(drafted?.reply ?? '');
   const [resolve, setResolve] = useState(drafted?.resolve ?? false);
@@ -87,9 +92,13 @@ function ReplyCard({ slug, thread, drafted, sent, fixes, locked, reload }: {
   };
 
   return (
-    <div className="space-y-2 rounded-lg border border-zinc-200 p-3 dark:border-zinc-800">
+    <div className={cn('space-y-2 rounded-lg border p-3', selected ? 'border-blue-500 ring-1 ring-blue-500' : 'border-zinc-200 dark:border-zinc-800')}>
       <div className="flex flex-wrap items-center gap-2 text-xs text-fg-muted">
-        {thread.path ? <code>{thread.path}{thread.line ? `:${thread.line}` : ''}</code> : <span>General comment</span>}
+        {thread.path && onSelect ? (
+          <button onClick={() => onSelect(thread.id)} title="Show it in the diff" aria-pressed={selected} className="inline-flex min-w-0 items-center gap-1.5 rounded text-left hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
+            <Crosshair className="size-3.5 shrink-0" aria-hidden /><code className="break-all">{thread.path}{thread.line ? `:${thread.line}` : ''}</code>
+          </button>
+        ) : thread.path ? <code>{thread.path}{thread.line ? `:${thread.line}` : ''}</code> : <span>General comment</span>}
         {verdict ? <Badge tone={verdict.tone}>{verdict.label}</Badge> : <Badge tone="neutral">No drafted reply</Badge>}
       </div>
       <ThreadCard thread={thread} />
