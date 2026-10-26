@@ -1,5 +1,5 @@
 import { ExternalLink, Loader2, RefreshCw, Send } from 'lucide-react';
-import type { Risk, ReviewItem, ReviewVersion } from '../lib/api';
+import type { Risk, ReviewItem } from '../lib/api';
 import { cn } from '../lib/utils';
 import { RiskBadge } from './RiskBadge';
 import { VerdictBadge } from './VerdictBadge';
@@ -7,7 +7,7 @@ import { Button } from './ui/Button';
 
 // Title, verdict and the actions on a review. On my own MR there is no verdict to give: the
 // action is sending my replies to the reviewers.
-export function ReaderHeader({ item, risk, showSubmit, draftCount, sending, reviewing, onSubmit, versions, versionId, onVersion, locked, onRerun }: {
+export function ReaderHeader({ item, risk, showSubmit, draftCount, sending, reviewing, onSubmit, locked, onRerun }: {
   item: ReviewItem | undefined;
   risk: Risk | null;
   showSubmit: boolean;
@@ -16,9 +16,6 @@ export function ReaderHeader({ item, risk, showSubmit, draftCount, sending, revi
   // The bot is reviewing the MR: the findings behind the drafts are about to be replaced.
   reviewing: boolean;
   onSubmit: () => void;
-  versions: ReviewVersion[];
-  versionId: string | null;
-  onVersion: (id: string | null) => void;
   locked: boolean;
   onRerun: () => void;
 }) {
@@ -38,17 +35,6 @@ export function ReaderHeader({ item, risk, showSubmit, draftCount, sending, revi
           <Button variant="primary" disabled={sending || reviewing} title={sending ? 'Waiting for GitLab to confirm the comments being added' : reviewing ? 'Wait for the review in progress to finish' : undefined} onClick={onSubmit}>
             {sending ? <Loader2 className="size-3.5 animate-spin motion-reduce:animate-pulse" /> : <Send className="size-3.5" />}{item?.kind === 'comments' ? 'Send replies' : 'Submit review'}{draftCount > 0 ? ` (${draftCount})` : ''}
           </Button>
-        )}
-        {versions.length > 0 && (
-          <select
-            value={versionId ?? ''}
-            onChange={(e) => onVersion(e.target.value || null)}
-            aria-label="Review version"
-            className="touch-target rounded-lg border border-zinc-200 bg-white px-2 py-1.5 text-sm dark:border-zinc-800 dark:bg-zinc-900"
-          >
-            <option value="">Latest review</option>
-            {versions.map((v) => <option key={v.id} value={v.id}>{new Date(v.at).toLocaleString()}</option>)}
-          </select>
         )}
         {item?.tracked && item.kind !== 'retro' && (
           <Button disabled={locked} onClick={onRerun} aria-label={item.kind === 'comments' ? 'Re-run triage' : 'Re-run review'} title={item.kind === 'comments' ? 'Triage the reviewer comments again on the current head of the MR' : 'Run the review again on the current head of the MR'} className="px-2.5">

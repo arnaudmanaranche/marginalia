@@ -87,6 +87,7 @@ export const ReviewItem = z.object({
   tracked: z.boolean().describe('A merge request in `status.json` points at this review. Posting needs it.'),
   jira: JiraRef,
   myState: MyState.optional(),
+  awaiting: z.enum(['queued', 'failed']).optional().describe('The bot picked the MR up and has no report for it yet: its first review is to come (or running), or it failed.'),
 }).meta({ id: 'ReviewItem' });
 
 const StackLayer = z.object({
@@ -143,6 +144,18 @@ export const DiffFile = z.object({
   additions: z.number().int(), deletions: z.number().int(), omitted: z.boolean(), lines: z.array(z.record(z.string(), z.unknown())),
 }).meta({ id: 'DiffFile' });
 export const Diff = z.object({ files: z.array(DiffFile), reviewedSha: nullable(z.string()).optional(), approximate: z.boolean().optional() }).meta({ id: 'Diff' });
+
+export const Pushes = z.object({
+  pushes: z.array(z.object({
+    n: z.number().int(), headSha: z.string(), baseSha: z.string(), at: z.string(),
+    commits: z.array(z.object({ sha: z.string(), title: z.string() })).describe('The commits this push added, newest first.'),
+    rebased: z.boolean().describe('The base moved: the push is a rebase, its commits are the whole branch again.'),
+    youReviewed: z.boolean().describe('Your last review on GitLab was of this push.'),
+    reports: z.array(nullable(z.string())).describe('The bot\'s reports written on this push, newest first: an earlier version id (`/api/history/{slug}/{id}`), or null for the current report.'),
+    head: z.boolean(),
+  })),
+  defaultFrom: nullable(z.string()).describe('The head of the push you last reviewed, unless it is the MR\'s head: where to start reading.'),
+}).meta({ id: 'Pushes' });
 
 export const DraftNote = z.object({ id: z.number().int(), body: z.string(), path: nullable(z.string()), line: nullable(z.number().int()) }).meta({ id: 'DraftNote' });
 export const Drafts = z.object({ drafts: z.array(DraftNote) }).meta({ id: 'Drafts' });

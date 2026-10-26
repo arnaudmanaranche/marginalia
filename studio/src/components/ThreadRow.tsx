@@ -1,4 +1,4 @@
-import { Check, MessageSquare } from 'lucide-react';
+import { MessageSquare } from 'lucide-react';
 import type { Thread } from '../lib/api';
 import { cn, timeAgo } from '../lib/utils';
 import { Badge } from './ui/Badge';
@@ -13,7 +13,7 @@ export function ThreadCard({ thread, showPlace }: { thread: Thread; showPlace?: 
         <MessageSquare className="size-3.5" aria-hidden />
         <span>{thread.notes.length === 1 ? 'Comment' : `${thread.notes.length} comments`}</span>
         {showPlace && thread.line != null && <code>line {thread.line}</code>}
-        {settled && <Badge tone="success"><Check className="mr-1 size-3" aria-hidden />Resolved</Badge>}
+        {settled && <Badge tone="success">Resolved</Badge>}
         {thread.outdated && <Badge tone="neutral">Earlier version</Badge>}
       </div>
       <ul className="space-y-2">

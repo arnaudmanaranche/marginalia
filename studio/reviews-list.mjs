@@ -82,15 +82,50 @@ function buildStacks(status) {
   return [...byId.values()].map((st) => ({ ...st, layers: st.layers.sort((a, b) => a.position - b.position) }));
 }
 
+// The bot statuses of an MR it is about to review, or failed to, before any report exists.
+const AWAITING = new Set(['pending', 'reviewing', 'failed', 'skipped']);
+
+// An MR the poll just picked up has no report yet: it is listed at once, `awaiting` its first one,
+// so it arrives in the queue when the bot finds it rather than minutes later.
+export function awaitingItem(project, mr) {
+  const fileSlug = mr.reviewPath.split('/').pop().replace(/\.md$/, '');
+  const at = mr.updatedAt ?? new Date().toISOString();
+  return {
+    slug: reviewId(project, fileSlug),
+    project: project.key,
+    kind: mr.kind ?? kindOf(fileSlug),
+    title: mr.title ?? fileSlug,
+    iid: mr.iid,
+    author: mr.author ?? null,
+    webUrl: mr.web_url ?? null,
+    branch: mr.sourceBranch ?? null,
+    verdict: null, risk: null, critical: 0, important: 0, summary: null, highlights: [], postable: 0,
+    contract: { source: 'none', warnings: [] },
+    stackId: mr.stack?.id ? `${project.key}/${mr.stack.id}` : null,
+    crossLayer: [],
+    stale: false,
+    mtime: at,
+    reviewedAt: at,
+    tracked: true,
+    jira: mr.jira ?? null,
+    myState: newerState(mr.myState ?? null, stateOverrides.get(`${project.key}:${mr.iid}`) ?? null),
+    // Reviewing shows from the bot's live status; here, whether the first review is still to come.
+    awaiting: mr.status === 'failed' ? 'failed' : 'queued',
+  };
+}
+
 async function listProjectReviews(project, status) {
-  const byPath = new Map((status?.mrs ?? []).filter((m) => m.project === project.key).map((mr) => [mr.reviewPath, mr]));
+  const mrs = (status?.mrs ?? []).filter((m) => m.project === project.key);
+  const byPath = new Map(mrs.map((mr) => [mr.reviewPath, mr]));
   let names = [];
   try {
     names = (await readdir(project.reviewsDir)).filter((n) => n.endsWith('.md'));
   } catch {
     /* reviews dir not created yet */
   }
-  return Promise.all(names.map(async (name) => {
+  const written = new Set(names.map((n) => join(project.reviewsDir, n)));
+  const awaiting = mrs.filter((mr) => mr.reviewPath && !written.has(mr.reviewPath) && AWAITING.has(mr.status)).map((mr) => awaitingItem(project, mr));
+  return [...awaiting, ...(await Promise.all(names.map(async (name) => {
     const fileSlug = name.slice(0, -3);
     const path = join(project.reviewsDir, name);
     const [md, st] = await Promise.all([readFile(path, 'utf8'), stat(path)]);
@@ -117,7 +152,7 @@ async function listProjectReviews(project, status) {
       jira: mr?.jira ?? null,
       myState: newerState(mr?.myState ?? null, mr ? stateOverrides.get(`${project.key}:${mr.iid}`) ?? null : null),
     };
-  }));
+  })))];
 }
 
 export async function listReviews() {

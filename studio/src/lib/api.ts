@@ -41,6 +41,8 @@ export interface ReviewItem {
   postable: number;
   contract: { source: ShapeSource; warnings: string[] };
   jira: { key: string; priority: string | null; rank: number | null } | null;
+  // Picked up by the bot, no report yet: the first review is to come (or running), or it failed.
+  awaiting?: 'queued' | 'failed';
 }
 
 export type RiskLevel = 'low' | 'medium' | 'high';
@@ -64,6 +66,8 @@ export interface TourStop {
   summary: string | null;
   files: string[];
   findingIds: string[];
+  // The MR's threads this stop is about: on my own MR, the ones answered here.
+  threadIds?: string[];
   // Tests, database or generated files only: read last.
   supporting?: boolean;
 }
@@ -380,4 +384,25 @@ export async function fetchThreads(slug: string, scope: 'lines' | 'all' = 'lines
   const j = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(j.error ?? `HTTP ${res.status}`);
   return j.threads;
+}
+
+// One push of the MR (a GitLab version), oldest first: what it added, and who looked at it.
+export interface Push {
+  n: number;
+  headSha: string;
+  baseSha: string;
+  at: string;
+  // The commits this push added, newest first. After a rebase, the whole branch again.
+  commits: { sha: string; title: string }[];
+  rebased: boolean;
+  youReviewed: boolean;
+  // The bot's reports written on this push, newest first: an earlier version id, or null for the current one.
+  reports: (string | null)[];
+  head: boolean;
+}
+
+export interface Pushes {
+  pushes: Push[];
+  // After the push I last reviewed on GitLab, unless it is the head: where reading starts.
+  defaultFrom: string | null;
 }

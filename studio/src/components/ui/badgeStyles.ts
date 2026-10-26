@@ -28,7 +28,9 @@ const TONE_RING: Record<BadgeTone, string> = {
   violet: 'ring-violet-500/30',
 };
 
-// Also usable on a link: <a className={badgeClass({ tone: 'success', ring: true })}>.
-export function badgeClass({ tone = 'neutral', ring = false }: { tone?: BadgeTone; ring?: boolean } = {}) {
-  return cn('inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs', TONE_FILL[tone], TONE_TEXT[tone], ring && ['ring-1 ring-inset', TONE_RING[tone]]);
+// Every badge has the same shape: a pill of text on the tone's fill, with a border of the same
+// tone. No icon in it: the word carries the meaning, the colour backs it up.
+// Also usable on a link: <a className={badgeClass({ tone: 'success' })}>.
+export function badgeClass({ tone = 'neutral' }: { tone?: BadgeTone } = {}) {
+  return cn('inline-flex items-center whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset', TONE_FILL[tone], TONE_TEXT[tone], TONE_RING[tone]);
 }

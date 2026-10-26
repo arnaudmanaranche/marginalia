@@ -1,11 +1,13 @@
 import { AlertOctagon, CheckCircle2, CircleDashed, GitMerge, RefreshCw } from 'lucide-react';
 import type { CrossFinding, ReviewItem, Stack, StackLayer } from '../lib/api';
 import { cn } from '../lib/utils';
+import { Badge } from './ui/Badge';
+import type { BadgeTone } from './ui/badgeStyles';
 
-const KIND: Record<CrossFinding['kind'], { label: string; cls: string }> = {
-  'settled-later': { label: 'Settled in a later layer', cls: 'bg-zinc-500/10 text-zinc-600 dark:text-zinc-300' },
-  'belongs-lower': { label: 'Belongs in a lower layer', cls: 'bg-red-500/10 text-red-700 dark:text-red-300' },
-  'assumes-upper': { label: 'Assumes a later layer', cls: 'bg-blue-500/10 text-blue-700 dark:text-blue-300' },
+const KIND: Record<CrossFinding['kind'], { label: string; tone: BadgeTone }> = {
+  'settled-later': { label: 'Settled in a later layer', tone: 'neutral' },
+  'belongs-lower': { label: 'Belongs in a lower layer', tone: 'danger' },
+  'assumes-upper': { label: 'Assumes a later layer', tone: 'info' },
 };
 
 interface Row {
@@ -116,7 +118,7 @@ export function StackBoard({ stack, items, current, isPosted, onSelect }: {
               const slug = slugOf(other);
               return (
                 <li key={i} className="flex gap-3">
-                  <span className={cn('h-fit shrink-0 rounded px-1.5 py-0.5 text-xs font-medium', KIND[c.kind].cls)}>{KIND[c.kind].label}</span>
+                  <Badge tone={KIND[c.kind].tone} className="h-fit shrink-0">{KIND[c.kind].label}</Badge>
                   <div className="min-w-0 flex-1">
                     <p className={cn(c.kind === 'settled-later' && 'text-fg-muted')}>{c.text}</p>
                     {other !== null && (

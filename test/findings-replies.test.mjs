@@ -39,3 +39,14 @@ test('a triage with only replies is a valid findings file, and a review has no r
   assert.equal(triage.replies.length, 1);
   assert.deepEqual(buildShape({ markdown: '# Review' }).replies, []);
 });
+
+test('a tour stop keeps the ids of the threads it answers, and drops what is not an id', async () => {
+  const { buildTour } = await import('../lib/findings-walkthrough.mjs');
+  const { tour } = buildTour([{ title: 'Doctor scripts opt out of telemetry', summary: 's', files: ['package.json'], threads: [THREAD, 'nope'] }], []);
+  assert.deepEqual(tour[0].threadIds, [THREAD]);
+});
+
+test('a report without an overview or a tour says so: every report is read through them', () => {
+  const shape = buildShape({ markdown: '# Triage', findingsRaw: JSON.stringify({ replies: [{ thread: THREAD, verdict: 'answered', reply: 'Yes.' }] }) });
+  assert.match(shape.warnings.join('\n'), /no overview[\s\S]*no tour/);
+});

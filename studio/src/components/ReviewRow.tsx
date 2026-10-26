@@ -1,4 +1,4 @@
-import { GitBranch, Loader2 } from 'lucide-react';
+import * as m from 'motion/react-m';
 import type { ReviewItem } from '../lib/api';
 import { standingOf } from '../lib/dashboard';
 import { cn, timeAgo } from '../lib/utils';
@@ -12,9 +12,12 @@ function StandingBadge({ item }: { item: ReviewItem }) {
   return standing ? <Badge tone={standing.tone}>{standing.label}</Badge> : null;
 }
 
-// One review per line: the title opens it; author, findings and age say how urgent it is.
+// One review per line: the title opens it; findings and age say how urgent it is.
 // While the bot is reviewing the MR the row is disabled: the report on disk is about to be replaced.
-export function ReviewRow({ item, unread, reviewing = false, showProject = false }: { item: ReviewItem; unread: boolean; reviewing?: boolean; showProject?: boolean }) {
+// An MR the bot just picked up is listed before its first report, disabled until it exists. A row
+// that `arrived` while the page was open slides in and glows for a moment.
+export function ReviewRow({ item, unread, reviewing = false, arrived = false, showProject = false }: { item: ReviewItem; unread: boolean; reviewing?: boolean; arrived?: boolean; showProject?: boolean }) {
+  const disabled = reviewing || Boolean(item.awaiting);
   const title = (
     <>
       {item.iid && <span className="mr-2 font-mono text-xs text-fg-muted">!{item.iid}</span>}
@@ -23,21 +26,30 @@ export function ReviewRow({ item, unread, reviewing = false, showProject = false
     </>
   );
   return (
-    <li aria-disabled={reviewing || undefined} className={cn('flex flex-wrap items-center gap-x-4 gap-y-1 bg-white px-4 py-3 text-sm dark:bg-zinc-900', reviewing ? 'cursor-not-allowed opacity-60' : 'hover:bg-zinc-50 dark:hover:bg-zinc-800/60')}>
+    <m.li
+      layout="position"
+      initial={arrived ? { opacity: 0, y: -12 } : false}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+      aria-disabled={disabled || undefined}
+      className={cn(
+        'flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 text-sm transition-colors duration-1000 motion-reduce:transition-none',
+        arrived ? 'bg-blue-50 dark:bg-blue-950/50' : 'bg-white dark:bg-zinc-900',
+        disabled ? 'cursor-not-allowed' : 'hover:bg-zinc-50 dark:hover:bg-zinc-800/60',
+        reviewing && !item.awaiting && 'opacity-60',
+      )}
+    >
       <span className={unread ? 'size-2 shrink-0 rounded-full bg-blue-500' : 'size-2 shrink-0'} aria-hidden />
-      {reviewing ? (
+      {disabled ? (
         <span className="min-w-0 flex-1 basis-64 truncate font-medium">{title}</span>
       ) : (
         <a href={`#/${item.slug}`} className="min-w-0 flex-1 basis-64 truncate font-medium hover:underline">{title}</a>
       )}
-      {reviewing && <Badge tone="info"><Loader2 className="size-3 animate-spin motion-reduce:animate-none" aria-hidden />Reviewing…</Badge>}
+      {arrived && <Badge tone="info">New</Badge>}
+      {reviewing && <Badge tone="info" className="animate-pulse motion-reduce:animate-none">Reviewing…</Badge>}
+      {!reviewing && item.awaiting === 'queued' && <Badge tone="neutral" title="The bot will review it in this poll">Queued</Badge>}
+      {!reviewing && item.awaiting === 'failed' && <Badge tone="danger" title="The first review failed; it is tried again on the next poll">Review failed</Badge>}
       {showProject && <Badge tone="neutral" title="Project">{item.project}</Badge>}
-      {item.author && <span className="max-w-[9rem] truncate text-xs text-fg-muted">{item.author}</span>}
-      {item.branch && (
-        <span className="hidden min-w-0 max-w-[14rem] items-center gap-1 truncate font-mono text-xs text-fg-muted 2xl:inline-flex">
-          <GitBranch className="size-3.5 shrink-0" aria-hidden />{item.branch}
-        </span>
-      )}
       {(item.critical > 0 || item.important > 0) && (
         <span className="flex gap-2 text-xs tabular-nums">
           {item.critical > 0 && <span className="text-red-700 dark:text-red-300">{item.critical} critical</span>}
@@ -46,8 +58,9 @@ export function ReviewRow({ item, unread, reviewing = false, showProject = false
       )}
       <StandingBadge item={item} />
       <RiskBadge level={item.risk ?? null} />
-      <VerdictBadge verdict={item.verdict} />
+      {/* My own MR gets no verdict from me: I answer it, I do not review it. */}
+      {item.kind !== 'comments' && <VerdictBadge verdict={item.verdict} />}
       <span className="w-20 shrink-0 whitespace-nowrap text-right text-xs text-fg-muted">{timeAgo(item.reviewedAt)}</span>
-    </li>
+    </m.li>
   );
 }

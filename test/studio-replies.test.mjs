@@ -58,3 +58,13 @@ test('submitting is open on my own MR without ALLOW_POSTING, and still closed on
   assert.equal(theirs.status, 403);
   assert.match(await errorOf(theirs), /ALLOW_POSTING/);
 });
+
+test('an MR the bot just picked up is listed before its first report, awaiting it', async () => {
+  const { awaitingItem } = await import('../studio/reviews-list.mjs');
+  const item = awaitingItem(PROJECTS[0], { ...tracked(7, 'review', 'feat-new'), title: 'feat: new', status: 'pending', sourceBranch: 'feat/new' });
+  assert.equal(item.slug, 'demo/feat-new');
+  assert.equal(item.awaiting, 'queued');
+  assert.equal(awaitingItem(PROJECTS[0], { ...tracked(8, 'review', 'feat-broken'), status: 'failed' }).awaiting, 'failed');
+  assert.equal(item.branch, 'feat/new');
+  assert.equal(item.verdict, null);
+});

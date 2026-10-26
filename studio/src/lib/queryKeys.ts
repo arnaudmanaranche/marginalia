@@ -8,7 +8,8 @@ export const keys = {
   historyList: (slug: string, refreshKey?: string) => ['history', slug, 'list', refreshKey ?? null] as const,
   historyVersion: (slug: string, id: string) => ['history', slug, 'version', id] as const,
   threads: (slug: string, refreshKey?: string, scope: 'lines' | 'all' = 'lines') => ['threads', slug, scope, refreshKey ?? null] as const,
-  diff: (slug: string, stop: string, mode: string, version: string | null, refreshKey?: string) => ['diff', slug, stop, mode, version, refreshKey ?? null] as const,
+  diff: (slug: string, stop: string, from: string | null, version: string | null, refreshKey?: string) => ['diff', slug, stop, from, version, refreshKey ?? null] as const,
+  pushes: (slug: string, refreshKey?: string) => ['pushes', slug, refreshKey ?? null] as const,
 };
 
 // What the bot's "changed" event makes stale. The list and the reports are cheap local reads. The

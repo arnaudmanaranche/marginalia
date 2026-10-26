@@ -23,3 +23,5 @@ worktree/
 storybook-static
 marginalia.db*
 .npmrc
+repos/
+compose.override.yaml

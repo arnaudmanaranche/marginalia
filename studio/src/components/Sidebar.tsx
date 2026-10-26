@@ -10,11 +10,12 @@ const TONE = { success: 'text-emerald-700 dark:text-emerald-300', warning: 'text
 
 // Navigation / history: every review, in the same groups as Home (whose turn it is on GitLab), plus the
 // retros. Meant to be tucked away; the open reviews live in the tabs.
-export function Sidebar({ items, activeSlug, botBySlug, isUnread, showProject = false, open, onSelect, onClose }: {
+export function Sidebar({ items, activeSlug, botBySlug, isUnread, isNew, showProject = false, open, onSelect, onClose }: {
   items: ReviewItem[];
   activeSlug: string | null;
   botBySlug: Map<string, BotState>;
   isUnread: (i: ReviewItem) => boolean;
+  isNew: (i: ReviewItem) => boolean;
   showProject?: boolean;
   open: boolean;
   onSelect: (slug: string) => void;
@@ -81,8 +82,23 @@ export function Sidebar({ items, activeSlug, botBySlug, isUnread, showProject = 
                   <ul>
                     {g.items.map((item) => {
                       const active = item.slug === activeSlug;
+                      // No report yet: nothing to open, but it is in the queue.
+                      if (item.awaiting) {
+                        return (
+                          <li key={item.slug} aria-disabled className={cn('flex cursor-not-allowed items-start gap-2 rounded-lg px-2 py-1.5 text-sm text-fg-muted transition-colors duration-1000 motion-reduce:transition-none', isNew(item) && 'bg-blue-50 dark:bg-blue-950/50')}>
+                            <span className="mt-0.5"><TabIcon item={item} bot={botBySlug.get(item.slug)} /></span>
+                            <span className="min-w-0 flex-1">
+                              <span className="line-clamp-2 leading-snug">{item.title}</span>
+                              <span className="mt-0.5 flex items-center gap-1.5 text-xs">
+                                {item.iid && <span className="font-mono">!{item.iid}</span>}
+                                <span>{botBySlug.get(item.slug) === 'reviewing' ? 'Reviewing…' : item.awaiting === 'failed' ? 'Review failed' : 'Queued'}</span>
+                              </span>
+                            </span>
+                          </li>
+                        );
+                      }
                       return (
-                        <li key={item.slug}>
+                        <li key={item.slug} className={cn('rounded-lg transition-colors duration-1000 motion-reduce:transition-none', isNew(item) && 'bg-blue-50 dark:bg-blue-950/50')}>
                           <a
                             href={`#/${item.slug}`}
                             aria-current={active ? 'page' : undefined}

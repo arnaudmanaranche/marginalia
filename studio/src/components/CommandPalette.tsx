@@ -46,7 +46,7 @@ export function CommandPalette({ open, setOpen, items, onSelect }: { open: boole
             >
               <FileText className="size-4 shrink-0 text-fg-subtle" />
               <span className="min-w-0 flex-1 truncate">{it.iid ? <span className="mr-2 font-mono text-xs text-fg-muted">!{it.iid}</span> : null}{it.title}</span>
-              <VerdictBadge verdict={it.verdict} />
+              {it.kind !== 'comments' && <VerdictBadge verdict={it.verdict} />}
             </Command.Item>
           ))}
         </Command.List>

@@ -23,7 +23,7 @@ export function ConfirmPost({ iid, text, target, onCancel, onConfirm, fallbackRe
         <h2 id="confirm-post-title" className="text-base font-semibold">Add this comment to your review of !{iid}?</h2>
         <p className="mt-1 text-sm text-fg-muted">It joins your pending GitLab review: nobody sees it until you submit the review.</p>
         <p className="mt-1 text-sm text-fg-muted">
-          {target ? <>Anchored on <code className="rounded bg-zinc-100 px-1 py-0.5 text-[0.85em] dark:bg-zinc-800">{target.path}{target.line ? `:${target.line}` : ''}</code> in the diff{target.line ? '' : ' (whole file)'}.</> : 'No file found above it: it will be a general comment.'}
+          {target ? <>Anchored on <code className="rounded bg-zinc-100 px-1 py-0.5 text-[0.85em] [overflow-wrap:anywhere] dark:bg-zinc-800">{target.path}{target.line ? `:${target.line}` : ''}</code> in the diff{target.line ? '' : ' (whole file)'}.</> : 'No file found above it: it will be a general comment.'}
         </p>
         <pre id="confirm-post-text" tabIndex={0} aria-label="Comment text" className="mt-3 max-h-64 overflow-y-auto whitespace-pre-wrap rounded-lg border border-zinc-200 bg-zinc-50 p-3 text-sm dark:border-zinc-800 dark:bg-zinc-950">{text}</pre>
         <div className="mt-4 flex justify-end gap-2">

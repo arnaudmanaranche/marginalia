@@ -22,10 +22,23 @@ export function useReviewVersions(slug: string | undefined, reviewedAt: string |
     enabled: Boolean(slug && versionId),
     queryFn: () => fetchHistoryVersion(slug!, versionId!),
   });
+  // The report the current one replaced, to say what changed since (cached with the versions read).
+  const last = list.data?.[0] ?? null;
+  const previous = useQuery({
+    queryKey: keys.historyVersion(slug ?? '', last?.id ?? ''),
+    enabled: Boolean(slug && last),
+    queryFn: () => fetchHistoryVersion(slug!, last!.id),
+  });
   useEffect(() => {
     if (!version.isError || version.isFetching) return;
     toast.error('Could not load that version', { description: version.error.message });
     setVersionId(null);
   }, [version.isError, version.isFetching, version.error, version.errorUpdatedAt]);
-  return { versions: slug ? list.data ?? NONE : NONE, versionId, setVersionId, oldReview: versionId ? version.data ?? null : null };
+  return {
+    versions: slug ? list.data ?? NONE : NONE,
+    versionId,
+    setVersionId,
+    oldReview: versionId ? version.data ?? null : null,
+    previous: slug && last && previous.data ? { id: last.id, at: last.at, review: previous.data } : null,
+  };
 }

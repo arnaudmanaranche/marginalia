@@ -5,6 +5,7 @@ import { Toaster, toast } from 'sonner';
 import { loadSeen, saveSeen, type ReviewItem } from './lib/api';
 import { useReview, useReviews } from './lib/useReviews';
 import { useLiveEvents } from './lib/useLiveEvents';
+import { useArrivals } from './lib/arrivals';
 import { ALL_PROJECTS, activeFilter, filterByProject, filterOptions, hasSeveralProjects } from './lib/projects';
 import { useMergedPosted } from './lib/pendingPosts';
 import { groupReviews, waitingOnYou } from './lib/dashboard';
@@ -142,6 +143,10 @@ export function App() {
   const sidebarOpen = sidebarPref && sidebarAvailable;
 
   const items = useMemo(() => data?.items ?? [], [data]);
+  // A review that came in while the page is open (a poll found a new MR) arrives visibly.
+  const slugs = useMemo(() => (data ? data.items.map((i) => i.slug) : null), [data]);
+  const arrived = useArrivals(slugs);
+  const isNew = (i: ReviewItem) => arrived(i.slug);
   const known = useMemo(() => (data ? new Set(data.items.map((i) => i.slug)) : null), [data]);
   const { tabs: openSlugs, close: closeTab } = useOpenTabs(slug, known);
   const tabItems = openSlugs.map((s) => items.find((i) => i.slug === s)).filter((i): i is ReviewItem => Boolean(i));
@@ -207,7 +212,7 @@ export function App() {
       <CommandPalette open={palette} setOpen={setPalette} items={items} onSelect={go} />
 
       <div className="flex">
-        <Sidebar showProject={several} items={items} activeSlug={slug} botBySlug={botBySlug} isUnread={isUnread} open={sidebarOpen} onSelect={go} onClose={() => setSidebarOpen(false)} />
+        <Sidebar showProject={several} items={items} activeSlug={slug} botBySlug={botBySlug} isUnread={isUnread} isNew={isNew} open={sidebarOpen} onSelect={go} onClose={() => setSidebarOpen(false)} />
         <main className="min-w-0 flex-1">
       {slug === SETTINGS_ROUTE ? (
         <SettingsPage settings={data?.settings ?? null} defaults={data?.settingsDefaults ?? null} projects={projects?.length ?? 1} />
@@ -233,7 +238,7 @@ export function App() {
           {data && groups.length === 0 ? (
             <div className="mt-16 flex flex-col items-center gap-2 text-fg-muted"><Inbox className="size-8" />No recent reviews.</div>
           ) : (
-            <ReviewGroups groups={groups} isUnread={isUnread} isReviewing={isReviewing} showProject={several} />
+            <ReviewGroups groups={groups} isUnread={isUnread} isReviewing={isReviewing} isNew={isNew} showProject={several} />
           )}
         </div>
       )}

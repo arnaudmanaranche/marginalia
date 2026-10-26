@@ -1,14 +1,14 @@
 import { ChevronRight } from 'lucide-react';
 import type { ReviewItem } from '../lib/api';
 import type { Group } from '../lib/dashboard';
-import { cn } from '../lib/utils';
 import { ReviewRow } from './ReviewRow';
+import { Badge } from './ui/Badge';
 
 function Heading({ group }: { group: Group }) {
   return (
     <>
       <span className="font-medium">{group.title}</span>
-      <span className={cn('rounded-full px-2 py-0.5 text-xs tabular-nums', group.needsYou ? 'bg-blue-500/15 text-blue-700 dark:text-blue-300' : 'bg-zinc-500/10 text-fg-muted')}>{group.items.length}</span>
+      <Badge tone={group.needsYou ? 'info' : 'neutral'} className="tabular-nums">{group.items.length}</Badge>
       <span className="hidden text-xs font-normal text-fg-muted sm:inline">{group.hint}</span>
     </>
   );
@@ -17,14 +17,16 @@ function Heading({ group }: { group: Group }) {
 interface RowState {
   isUnread: (i: ReviewItem) => boolean;
   isReviewing: (i: ReviewItem) => boolean;
+  // Came into the queue while the page was open.
+  isNew: (i: ReviewItem) => boolean;
   // Several projects are watched: each row says which one it is from.
   showProject?: boolean;
 }
 
-function List({ group, isUnread, isReviewing, showProject }: { group: Group } & RowState) {
+function List({ group, isUnread, isReviewing, isNew, showProject }: { group: Group } & RowState) {
   return (
     <ul className="divide-y divide-zinc-200 overflow-hidden rounded-xl border border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800">
-      {group.items.map((i) => <ReviewRow key={i.slug} item={i} unread={isUnread(i)} reviewing={isReviewing(i)} showProject={showProject} />)}
+      {group.items.map((i) => <ReviewRow key={i.slug} item={i} unread={isUnread(i)} reviewing={isReviewing(i)} arrived={isNew(i)} showProject={showProject} />)}
     </ul>
   );
 }

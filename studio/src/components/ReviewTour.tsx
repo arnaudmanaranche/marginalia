@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import * as m from 'motion/react-m';
 import { ChevronLeft, ChevronRight, Route } from 'lucide-react';
-import type { Finding, PostedInfo, TourStop } from '../lib/api';
+import type { Finding, FixesStatus, PostedInfo, Reply, Thread, TourStop } from '../lib/api';
 import { Badge } from './ui/Badge';
 import { Button } from './ui/Button';
 import { FindingsPanel } from './FindingsPanel';
+import { RepliesPanel } from './RepliesPanel';
 import { NoteMarkdown } from './NoteMarkdown';
 import { cn } from '../lib/utils';
-import { useMrDiff, type DiffScope } from '../lib/useMrDiff';
+import { useMrDiff, usePushes, type DiffScope } from '../lib/useMrDiff';
 import { useThreads } from '../lib/useThreads';
 import type { Focus } from '../lib/tourFocus';
 import { DiffPane } from './DiffPane';
@@ -22,18 +23,28 @@ interface Post {
   reload: () => void;
 }
 
+// On my own MR: the reviewer threads each stop answers, with my drafted reply to each.
+export interface Answers {
+  slug: string;
+  byStop: Record<string, Thread[]>;
+  replies: Reply[];
+  posted: Record<string, PostedInfo>;
+  fixes: FixesStatus | null;
+  locked: boolean;
+  reload: () => void;
+}
+
 // A guided read of the MR, one stop at a time, in the order the skill chose:
-// what the group of changes does, what to check, and the findings on it.
-// `diff` says where the code comes from: the MR's slug, the earlier review being read if any, and
-// whether to open on what changed since the review (a returned MR).
+// what the group of changes does, what to check, and the findings on it (or, on my own MR,
+// the reviewer threads to answer there).
+// `diff` says where the code comes from: the MR's slug and the earlier review being read, if any.
 export interface DiffSource {
   slug: string;
   version: string | null;
   key: string | undefined;
-  startSince: boolean;
 }
 
-export function ReviewTour({ stops, findings, post, diff: source, showFullDiff }: { showFullDiff: boolean; stops: TourStop[]; findings: Finding[]; post: Post | null; diff: DiffSource | null }) {
+export function ReviewTour({ stops, findings, post, answers = null, diff: source, showFullDiff, onReport }: { showFullDiff: boolean; stops: TourStop[]; findings: Finding[]; post: Post | null; answers?: Answers | null; diff: DiffSource | null; onReport?: (id: string) => void }) {
   const [at, setIndex] = useState(0);
   // A new review can have fewer stops than the one that was open: never point past the last.
   const index = Math.min(at, stops.length - 1);
@@ -53,8 +64,11 @@ export function ReviewTour({ stops, findings, post, diff: source, showFullDiff }
     setFocus(null);
   }, [index]);
   const stopId = stops[index].id;
-  const [mode, setMode] = useState<DiffScope['mode']>(source?.startSince ? 'since' : 'full');
-  const scope: DiffScope = { version: source?.version ?? null, mode };
+  // Where the diff starts: after the push I last reviewed on GitLab until I pick another one.
+  const pushes = usePushes(source && !source.version ? source.slug : null, source?.key);
+  const [picked, setPicked] = useState<string | null | undefined>(undefined);
+  const from = picked === undefined ? pushes?.defaultFrom ?? null : picked;
+  const scope: DiffScope = { version: source?.version ?? null, from: source?.version ? null : from };
   // What the MR's conversation says sits on today's code: it is shown with the current diff only.
   const threads = useThreads(source && !source.version ? source.slug : null, source?.key);
   const { state: diff, retry: retryDiff } = useMrDiff(source?.slug ?? null, stopId, source?.key, scope);
@@ -71,12 +85,14 @@ export function ReviewTour({ stops, findings, post, diff: source, showFullDiff }
   }, [index, stops.length]);
   const stop = stops[index];
   const fileCount = diff.status === 'ready' ? diff.files.length : null;
-  const meta = [fileCount === null ? null : `${fileCount} file${fileCount === 1 ? '' : 's'}`, findings.filter((f) => stop.findingIds.includes(f.id)).length === 0 ? 'no findings, skim' : null].filter(Boolean).join(' · ') || ' ';
   const here = findings.filter((f) => stop.findingIds.includes(f.id));
+  const toAnswer = answers?.byStop[stop.id] ?? [];
+  const nothing = answers ? (toAnswer.length === 0 ? 'no thread to answer, skim' : `${toAnswer.length} thread${toAnswer.length === 1 ? '' : 's'} to answer`) : here.length === 0 ? 'no findings, skim' : null;
+  const meta = [fileCount === null ? null : `${fileCount} file${fileCount === 1 ? '' : 's'}`, nothing].filter(Boolean).join(' · ') || ' ';
   const last = index === stops.length - 1;
   return (
     <div className="mb-6 grid gap-4 lg:mb-0 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)]">
-    <section ref={pane} aria-label="Review tour" className={cn('rounded-lg border border-zinc-200 bg-white px-4 dark:border-zinc-800 dark:bg-zinc-900 lg:h-full lg:overflow-y-auto', post ? 'pb-0' : 'pb-4')}>
+    <section ref={pane} aria-label="Review tour" className={cn('rounded-lg border border-zinc-200 bg-white px-4 dark:border-zinc-800 dark:bg-zinc-900 lg:h-full lg:overflow-y-auto', post || answers ? 'pb-0' : 'pb-4')}>
       <div className="sticky top-0 z-10 -mx-4 flex flex-wrap items-center justify-between gap-2 bg-white px-4 py-3 text-xs text-fg-muted dark:bg-zinc-900">
         <span className="inline-flex items-center gap-1.5 font-medium uppercase tracking-wide"><Route className="size-3.5" aria-hidden />Stop {index + 1} of {stops.length}</span>
         <div className="flex items-center gap-1.5">
@@ -95,6 +111,11 @@ export function ReviewTour({ stops, findings, post, diff: source, showFullDiff }
         <h2 className="mt-3 text-lg font-semibold tracking-tight">{stop.title}{stop.supporting && <Badge className="ml-2 align-middle">Supporting</Badge>}</h2>
         {stop.summary && <NoteMarkdown className="mt-1 text-fg-muted">{stop.summary}</NoteMarkdown>}
         <p className="mt-2 text-xs text-fg-subtle">{meta}</p>
+        {toAnswer.length > 0 && answers && (
+          <div className="mt-4">
+            <RepliesPanel slug={answers.slug} threads={toAnswer} replies={answers.replies} posted={answers.posted} fixes={answers.fixes} locked={answers.locked} reload={answers.reload} />
+          </div>
+        )}
         {here.length > 0 && (
           <div className="mt-4">
             {post ? <FindingsPanel findings={here} threads={threads} compact focus={focus} onFocus={(id) => select(id, 'list')} {...post} /> : (
@@ -105,10 +126,10 @@ export function ReviewTour({ stops, findings, post, diff: source, showFullDiff }
           </div>
         )}
       </m.div>
-      {post && <StopChat key={post.slug} slug={post.slug} stopId={stops[index].id} />}
+      {(post || answers) && <StopChat key={post?.slug ?? answers!.slug} slug={post?.slug ?? answers!.slug} stopId={stops[index].id} />}
     </section>
     <div ref={diffPane} className="min-w-0 lg:h-full lg:overflow-y-auto lg:pr-1">
-      <DiffPane showAll={showFullDiff} state={diff} findings={findings} threads={threads} focus={focus} scope={scope} onScope={setMode} onSelectFinding={(id) => select(id, 'diff')} onRetry={retryDiff} />
+      <DiffPane showAll={showFullDiff} state={diff} findings={findings} threads={threads} focus={focus} scope={scope} pushes={pushes} onFrom={setPicked} onReport={onReport} onSelectFinding={(id) => select(id, 'diff')} onRetry={retryDiff} />
     </div>
     </div>
   );

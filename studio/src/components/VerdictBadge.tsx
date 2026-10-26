@@ -22,10 +22,5 @@ export function VerdictBadge({ verdict, compact = false }: { verdict: Verdict; c
       </span>
     );
   }
-  return (
-    <Badge tone={tone} ring title={label} className="font-medium">
-      <Icon className="size-3.5" aria-hidden />
-      {label}
-    </Badge>
-  );
+  return <Badge tone={tone} title={label}>{label}</Badge>;
 }

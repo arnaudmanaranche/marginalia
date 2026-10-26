@@ -17,14 +17,11 @@ test('an older review is matched to the newest version pushed before it was writ
   assert.equal(resolveReviewedVersion({ versions, sha: null, at: NaN }).sha, null);
 });
 
-test("'full' spans the reviewed version, 'since' runs from its commit to the head now", () => {
+test('a review spans its version, from the base to the head it saw', () => {
   const reviewed = { sha: 'c2', version: versions[1], approximate: false };
-  assert.deepEqual(diffRange({ mode: 'full', reviewed, head: 'c3' }), { from: 'b', to: 'c2' });
-  assert.deepEqual(diffRange({ mode: 'since', reviewed, head: 'c3' }), { from: 'c2', to: 'c3' });
+  assert.deepEqual(diffRange({ reviewed }), { from: 'b', to: 'c2' });
 });
 
 test('a range that cannot be told says why instead of guessing', () => {
-  assert.match(diffRange({ mode: 'full', reviewed: { sha: 'x', version: null }, head: 'c3' }).error, /no longer on GitLab/);
-  assert.match(diffRange({ mode: 'since', reviewed: { sha: null, version: null }, head: 'c3' }).error, /before its version/);
-  assert.match(diffRange({ mode: 'since', reviewed: { sha: 'c2', version: versions[1] }, head: null }).error, /no versions/);
+  assert.match(diffRange({ reviewed: { sha: 'x', version: null } }).error, /no longer on GitLab/);
 });

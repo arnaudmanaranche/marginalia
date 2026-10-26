@@ -9,11 +9,11 @@ import { uploadFetchPath } from '../lib/gitlab-upload.mjs';
 import { listHistory, readHistory } from '../lib/history.mjs';
 import { buildShape, loadShape } from '../lib/findings.mjs';
 import { filesForPatterns, toDiffFile } from '../lib/mr-diff.mjs';
-import { reviewDiff } from '../lib/review-diff.mjs';
+import { diffSincePush, reviewDiff, reviewPushes } from '../lib/review-diff.mjs';
 import { reviewThreads } from '../lib/review-threads.mjs';
 import { listMergeRequestDiffs } from '../lib/gitlab.mjs';
 import { listDraftNotes } from '../lib/gitlab-drafts.mjs';
-import { Diff, Drafts, ReviewContent, ReviewId, ReviewsPayload, Threads, Version, Versions } from './schemas.mjs';
+import { Diff, Drafts, Pushes, ReviewContent, ReviewId, ReviewsPayload, Threads, Version, Versions } from './schemas.mjs';
 import { jsonOf, route } from './route-kit.mjs';
 import { locate, shortMessage } from './context.mjs';
 import { kindOf, listReviews } from './reviews-list.mjs';
@@ -72,18 +72,20 @@ export function readRoutes(app) {
   app.openapi(route({
     method: 'get', path: '/api/reviews/{slug}/diff', tags: ['Reviews'], operationId: 'getDiff',
     summary: 'The MR diff',
-    description: 'Live diff of the MR, or of one tour stop. With `version` or `mode=since`, the diff as an earlier review saw it, or what changed since.',
-    request: { params: slug, query: z.object({ version: z.string().regex(/^[\w-]+$/).optional(), mode: z.enum(['full', 'since']).optional(), stop: z.string().optional() }) },
+    description: 'Live diff of the MR, or of one tour stop. With `version`, the diff as an earlier review saw it; with `from` (the head commit of one of the MR\'s pushes), what changed after that push up to the head now.',
+    request: { params: slug, query: z.object({ version: z.string().regex(/^[\w-]+$/).optional(), from: z.string().regex(/^[0-9a-f]{7,64}$/).optional(), stop: z.string().optional() }) },
     responses: { 200: jsonOf(Diff, 'The changed files.') }, errors: [400, 404, 502],
   }), async (c) => {
     const found = await tracked(c, c.req.valid('param').slug);
     if (found.reply) return found.reply;
     const { project, mr } = found;
-    const { version: versionId = null, mode = 'full', stop: stopId = null } = c.req.valid('query');
+    const { version: versionId = null, from = null, stop: stopId = null } = c.req.valid('query');
     try {
-      // The live diff, unless it is about what an earlier review saw or what changed since it.
-      if (versionId || mode === 'since') {
-        const { status, ...body } = await reviewDiff(project, mr, found.slug, { versionId, mode, stopId });
+      // The live diff, unless it is about what an earlier review saw or what changed after a push.
+      if (versionId || from) {
+        const { status, ...body } = versionId
+          ? await reviewDiff(project, mr, found.slug, { versionId, stopId })
+          : await diffSincePush(project, mr, found.slug, { from, stopId });
         return c.json(body, status);
       }
       let files = (await listMergeRequestDiffs(project, mr.iid)).map(toDiffFile);
@@ -93,6 +95,21 @@ export function readRoutes(app) {
         files = stop ? filesForPatterns(files, stop.files) : [];
       }
       return c.json({ files }, 200);
+    } catch (err) {
+      return c.json({ error: shortMessage(err) }, 502);
+    }
+  });
+
+  app.openapi(route({
+    method: 'get', path: '/api/reviews/{slug}/pushes', tags: ['Reviews'], operationId: 'getPushes',
+    summary: 'The MR\'s pushes',
+    description: 'Oldest first, each with the commits it added, and where your last review on GitLab and the bot\'s reports sit. `defaultFrom` is where to start reading: after the push you last reviewed.',
+    request: { params: slug }, responses: { 200: jsonOf(Pushes, 'The pushes.') }, errors: [400, 404, 502],
+  }), async (c) => {
+    const found = await tracked(c, c.req.valid('param').slug);
+    if (found.reply) return found.reply;
+    try {
+      return c.json(await reviewPushes(found.project, found.mr, found.slug), 200);
     } catch (err) {
       return c.json({ error: shortMessage(err) }, 502);
     }
