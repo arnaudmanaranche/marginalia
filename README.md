@@ -560,6 +560,25 @@ without `noImplicitAny`, so parameters need no annotation). A module opts in wit
 on its first line, and CI fails if one stops passing; start every new module with it. `poll.mjs`,
 `bin/` and `scripts/` are not opted in yet.
 
+## Monitoring with PostHog
+
+Optional and off by default. With `POSTHOG_HOST` (`https://eu.i.posthog.com`, `https://us.i.posthog.com`
+or your own instance) and `POSTHOG_KEY` (the project API key `phc_...`, which can only write events) in the
+environment, every finished Claude run sends one `marginalia_run` event, and a pass that fails sends one
+with `outcome: failed` and a class of error (`git`, `gitlab`, `claude`, `timeout`, `permission`, `no_report`,
+`other`). `MARGINALIA_TELEMETRY=off` turns it off whatever else is set. A slow or unreachable PostHog never
+delays or fails a review; it logs one warning per process.
+
+The event carries ids and numbers only, never an MR title, a branch name, a diff or any review text:
+`project`, `mr_iid`, `kind` (`review`, `triage`, `chat`), `command`, `cost_usd`, `output_tokens`, `turns`,
+`duration_ms`, `run_number` and `rerun` (this MR had a pass of this kind before), and for reviews
+`verdict`, `risk`, `critical`, `important`, `postable`, `report_source`, `contract_warnings`. It is sent
+with `$process_person_profile: false` (events, not people) under the id `marginalia:<your GitLab username>`.
+
+Runs the bot recorded before you turned it on are in the `run` table; `npm run posthog:backfill` shows what
+would be sent, and `npm run posthog:backfill -- --send` sends it. A run always has the same event id, so
+sending it twice, or after live events started, never duplicates it. `doctor --dry-run` never sends.
+
 ## Troubleshooting
 
 - **`did not produce a report`**: run `npm run doctor -- --dry-run <iid>` and read the command's raw output in the error.

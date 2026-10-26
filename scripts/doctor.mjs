@@ -23,6 +23,8 @@ export async function runDoctor(argv = process.argv.slice(2)) {
 
   console.log('marginalia doctor\n');
   process.env.MR_REVIEW_BOT_SKIP_CONFIG_CHECK = '1';
+  // A dry run is a test of the chain, not usage, and the process exits before an event could be sent.
+  process.env.MARGINALIA_TELEMETRY = 'off';
   let cfg;
   let projectsMod;
   try {

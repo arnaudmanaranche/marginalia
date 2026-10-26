@@ -35,6 +35,7 @@
     "test": "node --test test/*.test.mjs",
     "check:size": "node scripts/check-file-size.mjs",
     "typecheck": "tsc -p .",
+    "posthog:backfill": "node scripts/posthog-backfill.mjs",
     "studio:install": "npm --prefix studio install",
     "studio:build": "npm --prefix studio run build",
     "studio:dev": "npm --prefix studio run dev",
