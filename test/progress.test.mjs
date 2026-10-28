@@ -26,3 +26,17 @@ test('streamed events give the steps and the final result', async () => {
   assert.deepEqual(steps, ['Opening the app.', '$ ls']);
   assert.equal(JSON.parse(stdout).result, '# Report');
 });
+
+test('a sub-agent step is told apart, and every raw event is handed on', async () => {
+  const events = [
+    { type: 'assistant', message: { content: [{ type: 'tool_use', name: 'Agent', input: { description: 'Review the diff' } }] } },
+    { type: 'assistant', parent_tool_use_id: 'toolu_1', message: { content: [{ type: 'tool_use', name: 'Read', input: { file_path: '/r/a.ts' } }] } },
+    { type: 'result', result: 'done' },
+  ];
+  const script = `process.stdout.write(${JSON.stringify(events.map((e) => JSON.stringify(e)).join('\n'))})`;
+  const steps = [];
+  const raw = [];
+  await runStreaming(process.execPath, ['-e', script], {}, (s, info) => steps.push([s, info.sub]), (line) => raw.push(line));
+  assert.deepEqual(steps, [['Starting a sub-agent: Review the diff', false], ['Reading a.ts', true]]);
+  assert.equal(raw.length, 3);
+});

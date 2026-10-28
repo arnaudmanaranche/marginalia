@@ -5,6 +5,7 @@ import { readRoutes } from './routes-read.mjs';
 import { writeRoutes } from './routes-write.mjs';
 import { actionRoutes } from './routes-actions.mjs';
 import { replyRoutes } from './routes-replies.mjs';
+import { runRoutes } from './routes-runs.mjs';
 import { liveRoutes, serveStatic } from './routes-live.mjs';
 
 const DESCRIPTION = `The contract between the studio server and the React app. Generated from the zod schemas the routes validate with.
@@ -32,13 +33,14 @@ export function createApp({ hosts } = {}) {
   writeRoutes(app);
   actionRoutes(app);
   replyRoutes(app);
+  runRoutes(app);
   liveRoutes(app);
 
   app.doc31('/openapi.json', {
     openapi: '3.1.0',
     info: { title: 'Marginalia studio API', version: '2.0.0', description: DESCRIPTION },
     servers: [{ url: 'http://localhost:4477', description: 'Studio server (`npm start`). In dev the Vite proxy forwards `/api` and `/events` here.' }],
-    tags: [{ name: 'Reviews' }, { name: 'Settings' }, { name: 'Pending review' }, { name: 'Triage fixes' }, { name: 'Replies' }],
+    tags: [{ name: 'Reviews' }, { name: 'Settings' }, { name: 'Pending review' }, { name: 'Triage fixes' }, { name: 'Replies' }, { name: 'Runs' }],
   });
 
   // Anything else: a write is refused, a read is the app (its own routes live in the browser).

@@ -43,6 +43,8 @@ export interface ReviewItem {
   jira: { key: string; priority: string | null; rank: number | null } | null;
   // Picked up by the bot, no report yet: the first review is to come (or running), or it failed.
   awaiting?: 'queued' | 'failed';
+  // Why the last run failed, while the MR is marked failed.
+  failure?: Failure | null;
 }
 
 export type RiskLevel = 'low' | 'medium' | 'high';
@@ -149,10 +151,96 @@ export interface Stack {
   layers: StackLayer[];
 }
 
+// Why a run failed, sorted (lib/failure-kind.mjs). `transient`: passes by itself, retried soon.
+export interface Failure {
+  kind: string;
+  transient: boolean;
+  title: string;
+  advice: string;
+}
+
+// One run of the bot on a review (see lib/run-trace.mjs): the stages it goes through and the steps it took.
+export type StageState = 'pending' | 'running' | 'done' | 'failed' | 'skipped';
+export interface LiveStage {
+  id: string;
+  label: string;
+  state: StageState;
+}
+export interface RunStage extends LiveStage {
+  startedAt: string | null;
+  endedAt: string | null;
+}
+export interface RunStep {
+  at: string;
+  text: string;
+  stage: string | null;
+  // Taken by a sub-agent the run started.
+  sub: boolean;
+}
+export interface RunSummary {
+  id: string;
+  slug: string;
+  project: string;
+  iid: number | string;
+  kind: 'review' | 'triage';
+  command: string;
+  startedAt: string;
+  endedAt: string | null;
+  outcome: 'running' | 'reviewed' | 'skipped' | 'failed';
+  error: string | null;
+  failure: Failure | null;
+  stages: RunStage[];
+  stepCount: number;
+  cost: { usd: number; turns: number; outputTokens: number } | null;
+}
+// The doctor's diagnosis of a failed run (lib/doctor-prompt.mjs).
+export type DoctorWhere = 'bot' | 'agent' | 'environment' | 'gitlab' | 'claude' | 'repo';
+export interface Doctor {
+  state: 'running' | 'done' | 'failed';
+  startedAt?: string;
+  endedAt?: string;
+  summary?: string;
+  cause?: string;
+  where?: DoctorWhere;
+  confidence?: 'high' | 'medium' | 'low';
+  evidence?: string[];
+  retryWillWork?: boolean;
+  fix?: { inBot: boolean; what: string | null; files: string[] };
+  // Reused from an earlier run that failed the same way.
+  sameAs?: string;
+  error?: string;
+}
+// The fix the doctor prepared on a branch of Marginalia (lib/doctor-fix.mjs).
+export interface DoctorFix {
+  state: 'running' | 'ready' | 'nothing' | 'failed' | 'pushed';
+  branch?: string;
+  commit?: string;
+  diffStat?: string;
+  testsPassed?: boolean;
+  note?: string;
+  error?: string;
+  url?: string | null;
+}
+export interface RunTrace extends RunSummary {
+  steps: RunStep[];
+  doctor: Doctor | null;
+  fix: DoctorFix | null;
+  fixSource: { available: boolean; why?: string };
+}
+
+async function postRun(slug: string, runId: string, tail: string): Promise<void> {
+  const res = await fetch(`/api/reviews/${encodeURIComponent(slug)}/runs/${encodeURIComponent(runId)}/${tail}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? `HTTP ${res.status}`);
+}
+export const startDoctorFix = (slug: string, runId: string) => postRun(slug, runId, 'doctor/fix');
+export const pushDoctorFix = (slug: string, runId: string) => postRun(slug, runId, 'doctor/fix/push');
+
+export const startDoctor = (slug: string, runId: string) => postRun(slug, runId, 'doctor');
+
 export interface BotStatus {
   pid: number;
   phase: 'idle' | 'polling' | 'reviewing' | 'error' | 'stopped';
-  current: { project?: string; iid: number; title: string; startedAt: string; progress?: string[] } | null;
+  current: { project?: string; iid: number; title: string; startedAt: string; progress?: string[]; runId?: string; slug?: string; stages?: LiveStage[]; stepCount?: number } | null;
   lastPoll: { at: string; ok: boolean; error: string | null } | null;
   nextPollAt: string | null;
   mrs?: { project?: string; iid: number; status: string; reviewPath?: string | null }[];

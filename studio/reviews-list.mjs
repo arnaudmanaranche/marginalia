@@ -111,6 +111,7 @@ export function awaitingItem(project, mr) {
     myState: newerState(mr.myState ?? null, stateOverrides.get(`${project.key}:${mr.iid}`) ?? null),
     // Reviewing shows from the bot's live status; here, whether the first review is still to come.
     awaiting: mr.status === 'failed' ? 'failed' : 'queued',
+    failure: mr.status === 'failed' ? mr.failure ?? null : null,
   };
 }
 
@@ -149,6 +150,8 @@ async function listProjectReviews(project, status) {
       mtime: st.mtime.toISOString(),
       reviewedAt: mr?.reviewedAt ?? st.mtime.toISOString(),
       tracked: Boolean(mr),
+      // A re-run that failed: the report on screen is the one before it.
+      failure: mr?.status === 'failed' ? mr.failure ?? null : null,
       jira: mr?.jira ?? null,
       myState: newerState(mr?.myState ?? null, mr ? stateOverrides.get(`${project.key}:${mr.iid}`) ?? null : null),
     };

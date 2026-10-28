@@ -7,6 +7,9 @@ import { allowedTargets, loadSettings, pollIntervalMs } from './lib/settings.mjs
 import { startStudio } from './studio/server.mjs';
 import { isFancyTerminal, c, log, logError } from './lib/log.mjs';
 import { logger } from './lib/logger.mjs';
+import { trackFailure } from './lib/telemetry.mjs';
+import { RETRY_AFTER_MS, failureKind } from './lib/failure-kind.mjs';
+import { startDoctor } from './lib/doctor.mjs';
 import { loadState, saveState } from './lib/state.mjs';
 import { status, writeStatus, setMrStatus, sameMr } from './lib/status.mjs';
 import { notify } from './lib/notify.mjs';
@@ -30,6 +33,21 @@ async function whileReviewing(mr, work) {
     status.phase = 'polling';
     status.current = null;
     await writeStatus();
+  }
+}
+
+// A failure that passes by itself (GitLab unreachable, Claude overloaded) brings the next poll
+// closer and raises no alarm; any other one is notified and handed to the doctor, which explains it
+// in the studio. Either way the MR is tried again next poll.
+let retrySoon = false;
+async function failed(mr, label, err) {
+  const failure = failureKind(err.message);
+  await setMrStatus(mr, { status: 'failed', error: err.message, failure });
+  if (failure.transient) retrySoon = true;
+  else notify(`${label} failed: ${failure.title}`, `!${mr.iid} ${mr.title}`);
+  if (!failure.transient && err.run) {
+    void startDoctor({ project: mr.project, fileSlug: err.run.fileSlug, runId: err.run.id, auto: true })
+      .catch((e) => logger.warn({ err: e }, 'Could not start the doctor'));
   }
 }
 
@@ -63,8 +81,8 @@ async function reviewOne(mr, plan, state) {
       notify('Review ready', `!${mr.iid} ${mr.title}`, reviewOutputPath(mr));
     } catch (err) {
       logError(mr, 'Review failed', err);
-      await setMrStatus(mr, { status: 'failed', error: err.message });
-      notify('Review failed', `!${mr.iid} ${mr.title}`);
+      trackFailure({ mr, kind: 'review', command: mr.project.reviewCommand, error: err });
+      await failed(mr, 'Review', err);
     }
   });
 }
@@ -80,8 +98,8 @@ async function triageOne(mr, peerCommentAt, state) {
       notify('Comments triaged', `!${mr.iid} ${mr.title}`, mrCommentsOutputPath(mr));
     } catch (err) {
       logError(mr, 'Comment triage failed', err);
-      await setMrStatus(mr, { status: 'failed', error: err.message });
-      notify('Comment triage failed', `!${mr.iid} ${mr.title}`);
+      trackFailure({ mr, kind: 'triage', command: mr.project.triageCommand, error: err });
+      await failed(mr, 'Comment triage', err);
     }
   });
 }
@@ -183,8 +201,10 @@ async function runPoll() {
     status.lastPoll = { at: new Date().toISOString(), ok: true, error: null };
   } catch (err) {
     logger.error({ err }, 'Poll failed');
-    // Only notify on the ok -> error transition, not on every failed poll.
-    if (status.lastPoll?.ok !== false) notify('Marginalia error', err.message);
+    const failure = failureKind(err.message);
+    if (failure.transient) retrySoon = true;
+    // Only notify on the ok -> error transition, not on every failed poll, nor for a passing outage.
+    else if (status.lastPoll?.ok !== false) notify('Marginalia error', err.message);
     status.phase = 'error';
     status.lastPoll = { at: new Date().toISOString(), ok: false, error: err.message };
   } finally {
@@ -195,9 +215,12 @@ async function runPoll() {
   }
 }
 
-// The next poll is due `interval` after the previous one *finished* (`from`).
+// The next poll is due `interval` after the previous one *finished* (`from`), sooner after a failure
+// that passes by itself.
 function scheduleNextPoll(from) {
-  const delay = Math.max(from + pollIntervalMs() - Date.now(), 1000);
+  const interval = retrySoon ? Math.min(pollIntervalMs(), RETRY_AFTER_MS) : pollIntervalMs();
+  retrySoon = false;
+  const delay = Math.max(from + interval - Date.now(), 1000);
   clearTimeout(pollTimer);
   status.nextPollAt = new Date(Date.now() + delay).toISOString();
   pollTimer = setTimeout(runPoll, delay);

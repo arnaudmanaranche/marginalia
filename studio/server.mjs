@@ -4,11 +4,12 @@
 // (studio/dist) as static files. Bound to 127.0.0.1 only; read-only apart from
 // PUT /api/settings, POST /api/rerun, the posting routes (on other people's MRs only when
 // ALLOW_POSTING=true), and on my own MRs the replies to reviewers and POST /api/push.
-import { watch } from 'node:fs';
+import { mkdirSync, watch } from 'node:fs';
 import { dirname } from 'node:path';
 import { serve } from '@hono/node-server';
 import { STATUS_FILE, STUDIO_HOST, STUDIO_PORT } from '../lib/config.mjs';
 import { PROJECTS } from '../lib/projects.mjs';
+import { RUNS_DIR } from '../lib/run-journal.mjs';
 import { logger } from '../lib/logger.mjs';
 import { createApp } from './app.mjs';
 import { broadcast } from './context.mjs';
@@ -35,6 +36,13 @@ export function startStudio() {
     watchers.push(watch(dirname(STATUS_FILE), (_e, name) => (name === 'settings.json' || name === 'status.json') && broadcast()));
   } catch {
     /* same */
+  }
+  // A run's trace and the doctor's diagnosis move on their own, between two status writes.
+  try {
+    mkdirSync(RUNS_DIR, { recursive: true });
+    watchers.push(watch(RUNS_DIR, { recursive: true }, (_e, name) => !/\.(tmp|jsonl)$/.test(String(name)) && broadcast()));
+  } catch {
+    /* no recursive watch here: runs still refresh on each status write */
   }
   server.on('close', () => {
     for (const w of watchers) w.close();

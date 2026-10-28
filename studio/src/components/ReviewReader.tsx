@@ -9,6 +9,8 @@ import { useReviewVersions } from '../lib/useReviewVersions';
 import { useSectionState } from '../lib/useSectionState';
 import { useThreads } from '../lib/useThreads';
 import { useFixes } from '../lib/useFixes';
+import { useRuns } from '../lib/useRuns';
+import { runToFlag } from '../lib/runs';
 import { reviewerThreads } from '../lib/replies';
 import { squash } from '../lib/reviewComments';
 import { PostContext } from '../lib/reviewContexts';
@@ -23,6 +25,7 @@ import { ReviewOverview } from './ReviewOverview';
 import { ReplyBoard } from './ReplyBoard';
 import { ReportDelta } from './ReportDelta';
 import { ReviewTour } from './ReviewTour';
+import { RunPanel } from './RunPanel';
 import { TourSkeleton } from './ReviewSkeleton';
 import { Button } from './ui/Button';
 
@@ -34,6 +37,14 @@ export function ReviewReader({ item, review: currentReview, reviewError, onRetry
   const markdown = content?.markdown ?? null;
   const shape = content?.shape ?? null;
   const { rerunning, rerun } = useRerun(item, live);
+  // The bot's runs on this MR: followed live, and shown when the last one failed after this report.
+  const awaiting = item?.awaiting ?? null;
+  const runs = useRuns(item?.tracked ? item.slug : null);
+  const flagged = runToFlag(runs, item?.reviewedAt);
+  const [showRuns, setShowRuns] = useState(false);
+  const runPanel = item && (awaiting || live || flagged || showRuns)
+    ? <RunPanel key={item.slug} slug={item.slug} awaiting={awaiting} failure={item.failure ?? null} collapsible={!awaiting} defaultOpen={Boolean(awaiting) || showRuns} liveRunId={live?.runId ?? null} />
+    : null;
   const submit = useMutation({ mutationFn: (v: { slug: string; summary?: string; action: ReviewAction }) => submitReview(v.slug, v.summary, v.action) });
   const draftCount = item ? Object.entries(posted).filter(([k, p]) => k.startsWith(`${item.slug}:`) && p.state === 'draft').length : 0;
   // A comment still on its way would land after the submit, as a new pending one: wait for it.
@@ -81,16 +92,19 @@ export function ReviewReader({ item, review: currentReview, reviewError, onRetry
       <ReaderHeader
         item={item}
         risk={shape?.risk ?? null}
-        showSubmit={(allowPosting || author) && Boolean(item?.tracked) && (draftCount > 0 || item?.kind === 'review')}
+        showSubmit={(allowPosting || author) && Boolean(item?.tracked) && !awaiting && (draftCount > 0 || item?.kind === 'review')}
         draftCount={draftCount}
         sending={sending}
         reviewing={rerunning || Boolean(live)}
         onSubmit={() => setSubmitting(true)}
         locked={locked}
         onRerun={rerun}
+        runsOpen={showRuns}
+        onToggleRuns={item?.tracked && !awaiting ? () => setShowRuns((v) => !v) : undefined}
       />
       <ReaderNotices viewingOld={viewingOld} onBackToLatest={() => setVersionId(null)} />
-      {markdown === null && (reviewError && !viewingOld ? (
+      {runPanel}
+      {markdown === null && !awaiting && (reviewError && !viewingOld ? (
         <div role="alert" className="flex flex-wrap items-center gap-3 rounded-lg border border-zinc-200 p-4 text-sm text-fg-muted dark:border-zinc-800">
           <span>This review could not be loaded ({reviewError}).</span>
           <Button size="sm" onClick={onRetry}>Try again</Button>

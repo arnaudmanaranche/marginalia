@@ -89,3 +89,13 @@ test('a review written before shapes were stored is still listed and readable', 
   assert.equal(body.shape.source, 'markdown');
   assert.equal(body.shape.verdict, 'APPROVE');
 });
+
+test('the runs of a review are listed, and an unknown run is a 404', async () => {
+  const runs = await get(`/api/reviews/${encodeURIComponent(idOf('no-run-yet'))}/runs`);
+  assert.equal(runs.status, 200);
+  assert.deepEqual(runs.body, { runs: [] });
+  const missing = await get(`/api/reviews/${encodeURIComponent(idOf('no-run-yet'))}/runs/2026-01-01T00-00-00-000Z-review`);
+  assert.equal(missing.status, 404);
+  const bad = await get(`/api/reviews/${encodeURIComponent(idOf('no-run-yet'))}/runs/..%2F..%2Fetc`);
+  assert.notEqual(bad.status, 200);
+});

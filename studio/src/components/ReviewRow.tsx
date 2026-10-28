@@ -13,11 +13,9 @@ function StandingBadge({ item }: { item: ReviewItem }) {
 }
 
 // One review per line: the title opens it; findings and age say how urgent it is.
-// While the bot is reviewing the MR the row is disabled: the report on disk is about to be replaced.
-// An MR the bot just picked up is listed before its first report, disabled until it exists. A row
-// that `arrived` while the page was open slides in and glows for a moment.
+// An MR the bot is reviewing, or just picked up and has no report for yet, opens on what the bot is
+// doing. A row that `arrived` while the page was open slides in and glows for a moment.
 export function ReviewRow({ item, unread, reviewing = false, arrived = false, showProject = false }: { item: ReviewItem; unread: boolean; reviewing?: boolean; arrived?: boolean; showProject?: boolean }) {
-  const disabled = reviewing || Boolean(item.awaiting);
   const title = (
     <>
       {item.iid && <span className="mr-2 font-mono text-xs text-fg-muted">!{item.iid}</span>}
@@ -31,24 +29,20 @@ export function ReviewRow({ item, unread, reviewing = false, arrived = false, sh
       initial={arrived ? { opacity: 0, y: -12 } : false}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-      aria-disabled={disabled || undefined}
       className={cn(
         'flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 text-sm transition-colors duration-1000 motion-reduce:transition-none',
         arrived ? 'bg-blue-50 dark:bg-blue-950/50' : 'bg-white dark:bg-zinc-900',
-        disabled ? 'cursor-not-allowed' : 'hover:bg-zinc-50 dark:hover:bg-zinc-800/60',
-        reviewing && !item.awaiting && 'opacity-60',
+        'hover:bg-zinc-50 dark:hover:bg-zinc-800/60',
       )}
     >
       <span className={unread ? 'size-2 shrink-0 rounded-full bg-blue-500' : 'size-2 shrink-0'} aria-hidden />
-      {disabled ? (
-        <span className="min-w-0 flex-1 basis-64 truncate font-medium">{title}</span>
-      ) : (
-        <a href={`#/${item.slug}`} className="min-w-0 flex-1 basis-64 truncate font-medium hover:underline">{title}</a>
-      )}
+      <a href={`#/${item.slug}`} className="min-w-0 flex-1 basis-64 truncate font-medium hover:underline">{title}</a>
       {arrived && <Badge tone="info">New</Badge>}
       {reviewing && <Badge tone="info" className="animate-pulse motion-reduce:animate-none">Reviewing…</Badge>}
-      {!reviewing && item.awaiting === 'queued' && <Badge tone="neutral" title="The bot will review it in this poll">Queued</Badge>}
-      {!reviewing && item.awaiting === 'failed' && <Badge tone="danger" title="The first review failed; it is tried again on the next poll">Review failed</Badge>}
+      {!reviewing && item.awaiting === 'queued' && <Badge tone="neutral" title="The bot reviews it in this poll: open it to follow the run">Queued</Badge>}
+      {!reviewing && item.awaiting === 'failed' && (item.failure?.transient
+        ? <Badge tone="warning" title={`${item.failure.title}. It is tried again on its own in a few minutes.`}>Retrying soon</Badge>
+        : <Badge tone="danger" title={`${item.failure?.title ?? 'The first review failed'}: open it to see why. It is tried again on the next poll.`}>Review failed</Badge>)}
       {showProject && <Badge tone="neutral" title="Project">{item.project}</Badge>}
       {(item.critical > 0 || item.important > 0) && (
         <span className="flex gap-2 text-xs tabular-nums">
