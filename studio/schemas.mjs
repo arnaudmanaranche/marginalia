@@ -41,6 +41,7 @@ export const Reply = z.object({
   verdict: z.enum(['fixed', 'already_fixed', 'not_relevant', 'wrong', 'answered']).describe('`fixed`: fixed by this triage, sent once the fix is pushed.'),
   reply: z.string().describe('The drafted answer to the reviewer, first person.'),
   resolve: z.boolean().describe('Whether sending it also resolves the thread.'),
+  commit: z.string().optional().describe('The commit that fixed this thread (staged triage): the reply names it once pushed.'),
 }).meta({ id: 'Reply' });
 
 export const ReviewShape = z.object({

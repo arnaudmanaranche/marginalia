@@ -287,6 +287,29 @@ a stack (rebuilt from the open MR list on every poll). For these:
 - The studio shows the stack above the review as a merge board.
 - Layers you authored yourself are not shown on the board (they go through triage).
 
+### Marginalia's staged pipeline (`REVIEW_COMMAND=marginalia`, `TRIAGE_COMMAND=marginalia`)
+
+Instead of one long Claude call running your repo's slash command, the bot drives the work
+itself, in stages you follow live in the studio (each with its steps, time and cost):
+
+- **Review of a colleague's MR.** The bot checks out the MR and gathers, in code, the diff from
+  where the branch left its target, the ticket (when Jira is configured), the conversation and
+  the last report. One agent **maps** the change: before/after, risk, and chapters (one idea
+  each, core first, tests and generated files last). Then one agent **per chapter** reviews it,
+  three at a time, reading the repo's own rules (`CLAUDE.md`, `AGENTS.md`, `CONTRIBUTING`,
+  `docs/adr`, and `.claude/agents/code-reviewer.md` as its checklist). The bot merges their
+  findings by rule: duplicates dropped, stable ids, the verdict from the severities. A chapter
+  that fails is said in the report; the others still count.
+- **Triage of my own MR.** The bot gathers the open reviewer threads with the code they are
+  about. One agent **weighs** them all (fix, already fixed, not relevant, wrong, answer) and
+  drafts the replies; then one agent **per thread to fix** makes that change and commits it
+  alone, so each reply names its own commit once you push. A fix that fails is rolled back.
+- Each stage has only the tools its job needs (read-only for the review; edit and local commit
+  for a fix), and its answer is checked against a contract: one that does not fit is sent back
+  once, in the same session, with what was wrong.
+
+A slash command (`/code-review`, `/mr-comments`) still works as before, as described below.
+
 ### MRs authored by someone else (`GITLAB_USERNAME` doesn't match)
 
 - Runs `claude -p "/code-review MR !<iid>"` in the bot worktree. The command

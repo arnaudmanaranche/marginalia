@@ -46,7 +46,10 @@ test('a tour stop keeps the ids of the threads it answers, and drops what is not
   assert.deepEqual(tour[0].threadIds, [THREAD]);
 });
 
-test('a report without an overview or a tour says so: every report is read through them', () => {
-  const shape = buildShape({ markdown: '# Triage', findingsRaw: JSON.stringify({ replies: [{ thread: THREAD, verdict: 'answered', reply: 'Yes.' }] }) });
-  assert.match(shape.warnings.join('\n'), /no overview[\s\S]*no tour/);
+test('a review without an overview or a tour says so; a triage needs neither', () => {
+  const review = buildShape({ markdown: '# Review', findingsRaw: JSON.stringify({ verdict: 'APPROVE', findings: [{ title: 'x', severity: 'info' }] }) });
+  assert.match(review.warnings.join('\n'), /no overview[\s\S]*no tour/);
+  const triage = buildShape({ markdown: '# Triage', findingsRaw: JSON.stringify({ replies: [{ thread: THREAD, verdict: 'answered', reply: 'Yes.', commit: 'abc1234' }] }) });
+  assert.doesNotMatch(triage.warnings.join('\n'), /no overview|no tour/);
+  assert.equal(triage.replies[0].commit, 'abc1234');
 });

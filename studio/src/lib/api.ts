@@ -127,6 +127,8 @@ export interface Reply {
   verdict: ReplyVerdict;
   reply: string;
   resolve: boolean;
+  // The commit that fixed this thread (staged triage, one commit per thread).
+  commit?: string;
 }
 
 export interface CrossFinding {

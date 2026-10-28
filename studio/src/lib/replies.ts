@@ -6,12 +6,13 @@ export function reviewerThreads(threads: Thread[]): Thread[] {
 }
 
 // What a reply sends. A comment the triage fixed is only answered once the fix is on the MR, and
-// the answer names the commit: null until then.
-export function replyBody(text: string, fixed: boolean, fixes: FixesStatus | null): string | null {
+// the answer names the commit: the thread's own when the triage made one per thread, else the
+// fixes' head. Null until pushed.
+export function replyBody(text: string, fixed: boolean, fixes: FixesStatus | null, commit?: string | null): string | null {
   const answer = text.trim();
   if (!fixed) return answer;
   if (fixes?.state !== 'pushed' || !fixes.fixesSha) return null;
-  return `${answer}\n\nFixed in ${fixes.fixesSha.slice(0, 8)}.`;
+  return `${answer}\n\nFixed in ${(commit ?? fixes.fixesSha).slice(0, 8)}.`;
 }
 
 // The order I answer them in on my own MR: file by file, down each file, general comments last.

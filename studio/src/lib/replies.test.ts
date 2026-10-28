@@ -35,3 +35,10 @@ describe('byPlace', () => {
     expect(byPlace([general, b9, a12, a3]).map((t) => t.id)).toEqual(['a3', 'a12', 'b9', 'g']);
   });
 });
+
+describe('replyBody with one commit per thread', () => {
+  it('names the thread\'s own commit once the fixes are pushed', () => {
+    expect(replyBody('Done.', true, fixes(), 'abc1234def567')).toBe('Done.\n\nFixed in abc1234d.');
+    expect(replyBody('Done.', true, fixes({ state: 'ready' }), 'abc1234def567')).toBeNull();
+  });
+});

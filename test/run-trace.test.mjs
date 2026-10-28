@@ -81,3 +81,18 @@ test('the journal keeps runs per review, newest first, and prunes the oldest', a
 test('a run id sorts by time and is safe as a file name', () => {
   assert.equal(runId('2026-10-28T16:05:51.598Z', 'triage'), '2026-10-28T16-05-51-598Z-triage');
 });
+
+test('a staged run plans the stages it learns, and runs some side by side', async () => {
+  const { planStages, beginStage, endStage } = await import('../lib/run-trace.mjs');
+  let t = startTrace({ id: 'r2', slug: 'webapp/feat-x', project: 'webapp', iid: 12, kind: 'review', command: 'marginalia', at: 't0', plan: 'staged-review' });
+  t = enterStage(t, 'map', 't1');
+  t = planStages(t, 'map', [['chapter-1', 'Review: coupons'], ['chapter-2', 'Review: tests'], ['map', 'dup']]);
+  assert.deepEqual(t.stages.map((s) => s.id), ['checkout', 'context', 'map', 'chapter-1', 'chapter-2', 'report']);
+  t = enterStage(t, 'chapter-1', 't2');
+  t = beginStage(t, 'chapter-2', 't2');
+  t = addStep(t, 'Reading b.ts', 't3', { stage: 'chapter-2' });
+  assert.equal(t.steps.at(-1).stage, 'chapter-2');
+  t = endStage(t, 'chapter-2', 't4');
+  t = finishTrace(t, 'failed', 't5', 'boom');
+  assert.deepEqual(states(t).slice(2), ['map:done', 'chapter-1:failed', 'chapter-2:done', 'report:skipped']);
+});

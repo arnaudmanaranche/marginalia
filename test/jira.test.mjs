@@ -21,3 +21,15 @@ test('most urgent first, unknown last, newest first on ties', () => {
   ];
   assert.deepEqual(items.sort(byPriorityThenDate).map((i) => i.slug), ['high-new', 'high-old', 'medium', 'none-new', 'none-old']);
 });
+
+test('a ticket description reads as plain text, lists and paragraphs on their own lines', async () => {
+  const { adfText } = await import('../lib/jira.mjs');
+  const doc = { type: 'doc', content: [
+    { type: 'heading', content: [{ type: 'text', text: 'Acceptance criteria' }] },
+    { type: 'bulletList', content: [
+      { type: 'listItem', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'A coupon takes off its percentage' }] }] },
+      { type: 'listItem', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'The total never goes below zero' }] }] },
+    ] },
+  ] };
+  assert.equal(adfText(doc).trim(), 'Acceptance criteria\n\n- A coupon takes off its percentage\n- The total never goes below zero');
+});

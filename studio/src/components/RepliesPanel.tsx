@@ -61,7 +61,7 @@ function ReplyCard({ slug, thread, drafted, sent, fixes, locked, reload, selecte
   const [busy, setBusy] = useState(false);
   const fixed = drafted?.verdict === 'fixed';
   // A fix is only worth announcing once the reviewer can see it on the MR.
-  const body = replyBody(text, fixed, fixes);
+  const body = replyBody(text, fixed, fixes, drafted?.commit);
   const waitingForPush = body === null;
   const verdict = drafted ? VERDICTS[drafted.verdict] : null;
 
@@ -127,7 +127,7 @@ function ReplyCard({ slug, thread, drafted, sent, fixes, locked, reload, selecte
           />
           {fixed && (
             <p className="text-xs text-fg-muted">
-              {waitingForPush ? 'Push the fixes first: this reply names the commit that fixed it.' : <>Ends with <code>Fixed in {short(fixes?.fixesSha ?? null)}.</code></>}
+              {waitingForPush ? 'Push the fixes first: this reply names the commit that fixed it.' : <>Ends with <code>Fixed in {short(drafted?.commit ?? fixes?.fixesSha ?? null)}.</code></>}
             </p>
           )}
           <div className="flex flex-wrap items-center justify-between gap-2">
