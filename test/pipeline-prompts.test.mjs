@@ -75,6 +75,7 @@ test('the chapters make one review: deduplicated, unique ids, the verdict from t
   assert.equal(data.verdict, 'REQUEST_CHANGES');
   assert.deepEqual(data.tour[0].findings, ['same', 'other']);
   assert.match(data.tour[2].summary, /could not be reviewed \(overloaded\)/);
+  assert.deepEqual(data.tour.map((t) => t.unreviewed ?? false), [false, false, true], 'the failed chapter is marked, so the studio keeps it as a stop');
   assert.match(data.summary, /3 findings: 1 important, 2 suggestion\. 1 chapter could not be reviewed\./);
   assert.match(warnings.join(), /1 of 3 chapters/);
   const md = renderReview({ title: 'T', iid: 1, branch: 'b' }, data);

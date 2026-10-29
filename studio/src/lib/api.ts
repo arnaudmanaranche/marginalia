@@ -72,6 +72,8 @@ export interface TourStop {
   threadIds?: string[];
   // Tests, database or generated files only: read last.
   supporting?: boolean;
+  // A chapter the bot could not review: to read yourself, findings or not.
+  unreviewed?: boolean;
 }
 
 // A changed file of the MR with its numbered diff lines (see lib/mr-diff.mjs).

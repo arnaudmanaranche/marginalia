@@ -77,9 +77,12 @@ export function ReviewTour({ stops, findings, post, diff: source, showFullDiff, 
   const meta = [fileCount === null ? null : `${fileCount} file${fileCount === 1 ? '' : 's'}`, nothing].filter(Boolean).join(' · ') || ' ';
   const last = index === stops.length - 1;
   return (
-    <div className="mb-6 grid gap-4 lg:mb-0 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)]">
-    <section ref={pane} aria-label="Review tour" className={cn('rounded-lg border border-line bg-surface px-4 lg:h-full lg:overflow-y-auto', post ? 'pb-0' : 'pb-4')}>
-      {/* Where the read is: one segment per stop (click one to jump), the count, and the way on. */}
+    // Without a diff (an MR no longer tracked) the stop takes the width: no empty column beside it.
+    <div className={cn('mb-6 grid gap-4 lg:mb-0 lg:min-h-0 lg:flex-1 lg:grid-rows-[minmax(0,1fr)]', source ? 'lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]' : 'mx-auto w-full max-w-3xl')}>
+    <section ref={pane} aria-label="Review tour" className={cn('rounded-lg border border-line bg-surface px-4 lg:overflow-y-auto', source ? 'lg:h-full' : 'lg:self-start', post ? 'pb-0' : 'pb-4')}>
+      {/* Where the read is: one segment per stop (click one to jump), the count, and the way on.
+          A single stop has nowhere to go. */}
+      {stops.length > 1 && (
       <div className="sticky top-0 z-10 -mx-4 flex items-center gap-3 bg-surface px-4 py-3">
         <ol className="flex flex-1 gap-1" aria-label="Stops">
           {stops.map((s, i) => (
@@ -94,8 +97,9 @@ export function ReviewTour({ stops, findings, post, diff: source, showFullDiff, 
           <Button size="sm" title="Next stop (→)" disabled={last} onClick={() => setIndex(index + 1)}>Next<ChevronRight className="size-3.5" /></Button>
         </div>
       </div>
+      )}
       <m.div key={stop.id} initial={{ opacity: 0, x: direction * 14 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}>
-        <h2 className="mt-1 text-lg font-semibold tracking-tight">{stop.title}{stop.supporting && <Badge className="ml-2 align-middle">Supporting</Badge>}</h2>
+        <h2 className={cn('text-lg font-semibold tracking-tight', stops.length > 1 ? 'mt-1' : 'mt-4')}>{stop.title}{stop.supporting && <Badge className="ml-2 align-middle">Supporting</Badge>}</h2>
         {stop.summary && <NoteMarkdown className="mt-1 text-fg-muted">{stop.summary}</NoteMarkdown>}
         <p className="mt-2 text-xs text-fg-subtle">{meta}</p>
         {here.length > 0 && (
@@ -110,9 +114,9 @@ export function ReviewTour({ stops, findings, post, diff: source, showFullDiff, 
       </m.div>
       {post && <StopChat key={post.slug} slug={post.slug} stopId={stops[index].id} />}
     </section>
-    <div ref={diffPane} className="min-w-0 lg:h-full lg:overflow-y-auto lg:pr-1">
+    {source && <div ref={diffPane} className="min-w-0 lg:h-full lg:overflow-y-auto lg:pr-1">
       <DiffPane showAll={showFullDiff} state={diff} findings={findings} threads={threads} focus={focus} scope={scope} pushes={pushes} onFrom={setPicked} onReport={onReport} onSelectFinding={(id) => select(id, 'diff')} onRetry={retryDiff} />
-    </div>
+    </div>}
     </div>
   );
 }

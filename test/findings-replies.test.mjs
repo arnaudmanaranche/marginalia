@@ -46,6 +46,12 @@ test('a tour stop keeps the ids of the threads it answers, and drops what is not
   assert.deepEqual(tour[0].threadIds, [THREAD]);
 });
 
+test('a stop the bot could not review keeps that mark; the others carry none', async () => {
+  const { buildTour } = await import('../lib/findings-walkthrough.mjs');
+  const { tour } = buildTour([{ title: 'Coupons', summary: 's', unreviewed: true }, { title: 'Tests', summary: 's', unreviewed: 'yes' }], []);
+  assert.deepEqual(tour.map((s) => s.unreviewed), [true, undefined]);
+});
+
 test('a review without an overview or a tour says so; a triage needs neither', () => {
   const review = buildShape({ markdown: '# Review', findingsRaw: JSON.stringify({ verdict: 'APPROVE', findings: [{ title: 'x', severity: 'info' }] }) });
   assert.match(review.warnings.join('\n'), /no overview[\s\S]*no tour/);

@@ -12,6 +12,7 @@ import { useFixes } from '../lib/useFixes';
 import { useRuns } from '../lib/useRuns';
 import { runToFlag } from '../lib/runs';
 import { reviewerThreads } from '../lib/replies';
+import { stopsToRead } from '../lib/stops';
 import { squash } from '../lib/reviewComments';
 import { PostContext } from '../lib/reviewContexts';
 import { extractMeta, rankOf, SUPPORTING_RANK, splitSections } from '../lib/reviewSections';
@@ -59,15 +60,17 @@ export function ReviewReader({ item, review: currentReview, reviewError, onRetry
   const postCtx = useMemo(() => ({ allowPosting, slug: item?.slug ?? null, iid: item?.tracked ? item.iid : null, posted, reload, locked, findings: shape?.findings ?? [] }), [allowPosting, item?.slug, item?.tracked, item?.iid, posted, reload, locked, shape]);
   const linkCtx = useMemo(() => ({ projectUrl, branch: item?.branch ?? null, mrWebUrl: item?.webUrl ?? null }), [projectUrl, item?.branch, item?.webUrl]);
   const meta = useMemo(() => extractMeta(markdown ?? ''), [markdown]);
+  // The tour skips the chapters with nothing to act on (stops.ts): a clean chapter is not a stop.
+  const stops = useMemo(() => stopsToRead(shape?.tour ?? []), [shape]);
   // Findings the person can't reach otherwise: with a tour, the ones no chapter holds; without one,
   // those with no comment card in the report's own text.
   const loose = useMemo(() => {
     const findings = shape?.findings ?? [];
-    const tour = shape?.tour ?? [];
+    const tour = stops;
     if (tour.length) return findings.filter((f) => !tour.some((s) => s.findingIds.includes(f.id)));
     const text = squash(markdown ?? '');
     return findings.filter((f) => !f.comment || !text.includes(squash(f.comment)));
-  }, [markdown, shape]);
+  }, [markdown, shape, stops]);
   // What others already raised folds those findings up; read only when there are some to post.
   const threads = useThreads(!author && item?.tracked && item.iid && !viewingOld && loose.length ? item.slug : null, item?.reviewedAt);
   const { intro: rawIntro, sections } = useMemo(() => splitSections(meta.markdown), [meta]);
@@ -85,7 +88,7 @@ export function ReviewReader({ item, review: currentReview, reviewError, onRetry
   // My own MR is not reviewed but answered: the reviewer threads and the fixes take the place of a tour.
   const answering = Boolean(author && onLatest && item?.iid);
   // A review with a tour is read through its tour; the written report only stands in for one without.
-  const hasTour = !author && (shape?.tour?.length ?? 0) > 0;
+  const hasTour = !author && stops.length > 0;
 
   return (
     <LinkContext.Provider value={linkCtx}>
@@ -118,7 +121,7 @@ export function ReviewReader({ item, review: currentReview, reviewError, onRetry
         <ReportDelta previous={previous.review.shape?.findings ?? []} at={previous.at} current={shape?.findings ?? []} onRead={() => setVersionId(previous.id)} />
       )}
       {markdown !== null && hasTour && (
-          <ReviewTour showFullDiff={showFullDiff} stops={shape!.tour!} findings={shape!.findings} diff={item?.tracked && item.iid ? { slug: item.slug, version: versionId, key: item.reviewedAt } : null} post={item?.tracked && item.iid && !viewingOld ? { slug: item.slug, iid: item.iid, allowPosting, locked, posted, reload } : null} onReport={setVersionId} />
+          <ReviewTour showFullDiff={showFullDiff} stops={stops} findings={shape!.findings} diff={item?.tracked && item.iid ? { slug: item.slug, version: versionId, key: item.reviewedAt } : null} post={item?.tracked && item.iid && !viewingOld ? { slug: item.slug, iid: item.iid, allowPosting, locked, posted, reload } : null} onReport={setVersionId} />
       )}
       {markdown !== null && answering && item?.iid && (
         <ReplyBoard slug={item.slug} iid={item.iid} threads={allThreads} open={openThreads} replies={shape?.replies ?? []} posted={posted} fixes={fixes} locked={locked} reload={reload} refreshKey={item.reviewedAt} showFullDiff={showFullDiff} onReport={setVersionId} />
