@@ -1,4 +1,4 @@
-import { ExternalLink, History, Loader2, RefreshCw, Send } from 'lucide-react';
+import { ExternalLink, Loader2, RefreshCw, Send } from 'lucide-react';
 import type { Risk, ReviewItem } from '../lib/api';
 import { cn } from '../lib/utils';
 import { RiskBadge } from './RiskBadge';
@@ -7,7 +7,7 @@ import { Button } from './ui/Button';
 
 // Title, verdict and the actions on a review. On my own MR there is no verdict to give: the
 // action is sending my replies to the reviewers.
-export function ReaderHeader({ item, risk, showSubmit, draftCount, sending, reviewing, onSubmit, locked, onRerun, runsOpen = false, onToggleRuns }: {
+export function ReaderHeader({ item, risk, showSubmit, draftCount, sending, reviewing, onSubmit, locked, onRerun }: {
   item: ReviewItem | undefined;
   risk: Risk | null;
   showSubmit: boolean;
@@ -18,9 +18,6 @@ export function ReaderHeader({ item, risk, showSubmit, draftCount, sending, revi
   onSubmit: () => void;
   locked: boolean;
   onRerun: () => void;
-  // The bot's runs on this MR: what it did, step by step. Absent when there is nothing to show.
-  runsOpen?: boolean;
-  onToggleRuns?: () => void;
 }) {
   return (
     <div className="mb-4 flex shrink-0 flex-wrap items-start justify-between gap-3 lg:flex-nowrap">
@@ -37,11 +34,6 @@ export function ReaderHeader({ item, risk, showSubmit, draftCount, sending, revi
         {showSubmit && (
           <Button variant="primary" disabled={sending || reviewing} title={sending ? 'Waiting for GitLab to confirm the comments being added' : reviewing ? 'Wait for the review in progress to finish' : undefined} onClick={onSubmit}>
             {sending ? <Loader2 className="size-3.5 animate-spin motion-reduce:animate-pulse" /> : <Send className="size-3.5" />}{item?.kind === 'comments' ? 'Send replies' : 'Submit review'}{draftCount > 0 ? ` (${draftCount})` : ''}
-          </Button>
-        )}
-        {onToggleRuns && (
-          <Button onClick={onToggleRuns} aria-pressed={runsOpen} aria-label="What the bot did" title="What the bot did on this MR, run by run" className="px-2.5">
-            <History className="size-4" />
           </Button>
         )}
         {item?.tracked && item.kind !== 'retro' && (

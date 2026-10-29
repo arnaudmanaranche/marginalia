@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
-import { RotateCcw } from 'lucide-react';
+import { toast } from '../lib/toast';
+import { RotateCcw, Volume2 } from 'lucide-react';
+import { play, setSoundsOn, soundsOn } from '../lib/sounds';
 import { saveSettings, type Settings } from '../lib/api';
 import { keys } from '../lib/queryKeys';
 import { Button } from './ui/Button';
@@ -123,10 +124,41 @@ export function SettingsPage({ settings, defaults, projects = 1 }: { settings: S
         </p>
       </div>
 
+      <SoundSetting />
+
       <div className="mt-8 flex items-center gap-3">
         <Button type="submit" variant="primary" disabled={!dirty || saving}>{saving ? 'Saving…' : 'Save'}</Button>
         {dirty && <Button variant="ghost" onClick={() => setDraft(toDraft(settings))}>Discard changes</Button>}
       </div>
     </form>
+  );
+}
+
+// For this browser only, and applied at once: nothing to save.
+function SoundSetting() {
+  const [on, setOn] = useState(soundsOn);
+  return (
+    <div className="mt-8 border-t border-zinc-200 pt-6 dark:border-zinc-800">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <label className="flex items-start gap-3 text-sm font-medium">
+          <input
+            type="checkbox"
+            checked={on}
+            onChange={(e) => {
+              setSoundsOn(e.target.checked);
+              setOn(e.target.checked);
+              if (e.target.checked) play('done');
+            }}
+            aria-describedby="setting-sounds-hint"
+            className="mt-0.5 size-4 rounded border-zinc-300"
+          />
+          Play sounds
+        </label>
+        <Button variant="ghost" size="sm" disabled={!on} onClick={() => play('arrive')}><Volume2 className="size-3.5" />Try one</Button>
+      </div>
+      <p id="setting-sounds-hint" className="mt-1 pl-7 text-xs text-fg-muted">
+        A short sound when an MR arrives, a review or a triage is ready, a run fails, a reviewer writes on your MR, and when an action of yours goes through or fails. This browser only, applied at once.
+      </p>
+    </div>
   );
 }

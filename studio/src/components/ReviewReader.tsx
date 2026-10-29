@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { toast } from 'sonner';
+import { toast } from '../lib/toast';
 import { useMutation } from '@tanstack/react-query';
 import { submitReview, type BotStatus, type PostedInfo, type ReviewAction, type ReviewContent, type ReviewItem } from '../lib/api';
 import { LinkContext } from '../lib/links';
@@ -37,13 +37,13 @@ export function ReviewReader({ item, review: currentReview, reviewError, onRetry
   const markdown = content?.markdown ?? null;
   const shape = content?.shape ?? null;
   const { rerunning, rerun } = useRerun(item, live);
-  // The bot's runs on this MR: followed live, and shown when the last one failed after this report.
+  // What the bot is doing on this MR, while it does it: a passing activity log, gone once the run
+  // ends. Only a run that failed stays, for what to do about it.
   const awaiting = item?.awaiting ?? null;
   const runs = useRuns(item?.tracked ? item.slug : null);
   const flagged = runToFlag(runs, item?.reviewedAt);
-  const [showRuns, setShowRuns] = useState(false);
-  const runPanel = item && (awaiting || live || flagged || showRuns)
-    ? <RunPanel key={item.slug} slug={item.slug} awaiting={awaiting} failure={item.failure ?? null} collapsible={!awaiting} defaultOpen={Boolean(awaiting) || showRuns} liveRunId={live?.runId ?? null} />
+  const runPanel = item && (awaiting || live || flagged)
+    ? <RunPanel key={item.slug} slug={item.slug} awaiting={awaiting} failure={item.failure ?? null} collapsible={!awaiting && !live} defaultOpen={Boolean(awaiting || live)} liveRunId={live?.runId ?? null} />
     : null;
   const submit = useMutation({ mutationFn: (v: { slug: string; summary?: string; action: ReviewAction }) => submitReview(v.slug, v.summary, v.action) });
   const draftCount = item ? Object.entries(posted).filter(([k, p]) => k.startsWith(`${item.slug}:`) && p.state === 'draft').length : 0;
@@ -99,8 +99,6 @@ export function ReviewReader({ item, review: currentReview, reviewError, onRetry
         onSubmit={() => setSubmitting(true)}
         locked={locked}
         onRerun={rerun}
-        runsOpen={showRuns}
-        onToggleRuns={item?.tracked && !awaiting ? () => setShowRuns((v) => !v) : undefined}
       />
       <ReaderNotices viewingOld={viewingOld} onBackToLatest={() => setVersionId(null)} />
       {runPanel}
@@ -146,7 +144,7 @@ export function ReviewReader({ item, review: currentReview, reviewError, onRetry
           setSubmitting(false);
           reload();
           const done = { comment: 'submitted', approve: 'approved', request_changes: 'submitted with changes requested' }[action];
-          toast.success(author ? `Replies on !${item.iid} sent` : `Review of !${item.iid} ${done}`, item.webUrl ? { action: { label: 'Open', onClick: () => window.open(item.webUrl!, '_blank', 'noopener') } } : undefined);
+          toast.sent(author ? `Replies on !${item.iid} sent` : `Review of !${item.iid} ${done}`, item.webUrl ? { action: { label: 'Open', onClick: () => window.open(item.webUrl!, '_blank', 'noopener') } } : undefined);
         }}
       />
     )}

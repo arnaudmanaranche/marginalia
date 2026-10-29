@@ -50,11 +50,12 @@ export function runHeadline(run: RunSummary | null, { awaiting, now, failure = n
   return { tone: 'neutral', title: 'Last run finished', detail: `Took ${runTime(run, now)}${cost}.` };
 }
 
-// The run to warn about on a report: the newest one, when it failed or was skipped after the report
-// on screen was written, so what is shown is older than what the bot tried.
+// The run to keep on screen once it ended: the newest one, when it failed after the report on screen
+// was written, so what is shown is older than what the bot tried. A skipped run is tried again on
+// the next poll by itself: nothing to keep.
 export function runToFlag(runs: RunSummary[] | null, reviewedAt: string | undefined): RunSummary | null {
   const last = runs?.[0];
-  if (!last || (last.outcome !== 'failed' && last.outcome !== 'skipped')) return null;
+  if (!last || last.outcome !== 'failed') return null;
   if (reviewedAt && ms(last.startedAt) < ms(reviewedAt)) return null;
   return last;
 }

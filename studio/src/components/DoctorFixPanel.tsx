@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { toast } from 'sonner';
+import { toast } from '../lib/toast';
 import { ExternalLink, GitBranch, Loader2, Upload, Wrench } from 'lucide-react';
 import { pushDoctorFix, startDoctorFix, type DoctorFix } from '../lib/api';
 import { Badge } from './ui/Badge';

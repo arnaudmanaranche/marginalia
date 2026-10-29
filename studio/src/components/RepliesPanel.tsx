@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { toast } from 'sonner';
+import { toast } from '../lib/toast';
 import { Check, Crosshair, Loader2, Reply as ReplyIcon, Trash2, Upload } from 'lucide-react';
 import { deleteDraft, postReply, pushFixes, type FixesStatus, type PostedInfo, type Reply, type ReplyVerdict, type Thread } from '../lib/api';
 import { landedFix, pendingFix, replyBody } from '../lib/replies';

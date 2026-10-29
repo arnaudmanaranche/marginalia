@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { AlertTriangle, CheckCircle2, ChevronDown, ChevronRight, Circle, Clock, Loader2, MinusCircle, XCircle } from 'lucide-react';
-import type { Failure, RunStage, RunSummary } from '../lib/api';
+import type { Failure, RunStage } from '../lib/api';
 import { useRun, useRuns } from '../lib/useRuns';
 import { useNow } from '../lib/useNow';
 import { runHeadline, runTime, stageTime, type Tone } from '../lib/runs';
@@ -15,7 +15,6 @@ const TONE: Record<Tone, string> = {
   warning: 'border-amber-500/40 bg-amber-500/5',
   neutral: 'border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900',
 };
-const OUTCOME: Record<RunSummary['outcome'], string> = { running: 'running', reviewed: 'done', skipped: 'skipped', failed: 'failed' };
 
 function StageIcon({ state }: { state: RunStage['state'] }) {
   if (state === 'done') return <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400" aria-label="Done" />;
@@ -25,15 +24,14 @@ function StageIcon({ state }: { state: RunStage['state'] }) {
   return <Circle className="size-4 text-fg-subtle" aria-label="Not started" />;
 }
 
-// What the bot is doing, or did, on this review: its stages, every step the agent took and, when a
-// run failed, why. `awaiting`: no report yet, so this is the whole page. `collapsible`: a report is
-// on screen and this sits over it, folded to its headline until opened.
+// The bot's activity on this review while a run is on: its stages and each step as it happens, a
+// passing state that goes once the run ends. A run that failed stays, with why and the doctor.
+// `awaiting`: no report yet, so this is the whole page. `collapsible`: a report is on screen and a
+// failed run sits over it, folded to its headline until opened.
 export function RunPanel({ slug, awaiting, failure = null, collapsible = false, defaultOpen = true, liveRunId }: { slug: string; awaiting: 'queued' | 'failed' | null; failure?: Failure | null; collapsible?: boolean; defaultOpen?: boolean; liveRunId?: string | null }) {
   const runs = useRuns(slug);
-  const [picked, setPicked] = useState<string | null>(null);
   const [open, setOpen] = useState(defaultOpen);
-  // A new run takes over the panel unless the person picked an older one to read.
-  const selectedId = picked ?? liveRunId ?? runs?.[0]?.id ?? null;
+  const selectedId = liveRunId ?? runs?.[0]?.id ?? null;
   const trace = useRun(slug, selectedId);
   const run = trace ?? runs?.find((r) => r.id === selectedId) ?? null;
   const running = run?.outcome === 'running';
@@ -46,7 +44,7 @@ export function RunPanel({ slug, awaiting, failure = null, collapsible = false, 
   const expanded = !collapsible || open;
 
   return (
-    <section aria-label="Bot run" className={cn('mb-4 shrink-0 rounded-lg border p-4', TONE[headline.tone])}>
+    <section aria-label="Bot activity" className={cn('mb-4 shrink-0 rounded-lg border p-4', TONE[headline.tone])}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <button
           disabled={!collapsible}
@@ -64,16 +62,6 @@ export function RunPanel({ slug, awaiting, failure = null, collapsible = false, 
             <span className="block text-sm text-fg-muted">{headline.detail}</span>
           </span>
         </button>
-        {runs && runs.length > 1 && expanded && (
-          <label className="flex items-center gap-2 text-xs text-fg-muted">
-            Run
-            <select value={selectedId ?? ''} onChange={(e) => setPicked(e.target.value || null)} className="rounded-md border border-zinc-300 bg-white px-2 py-1 text-xs dark:border-zinc-700 dark:bg-zinc-900">
-              {runs.map((r, i) => (
-                <option key={r.id} value={r.id}>{i === 0 ? 'Latest' : timeAgo(r.startedAt)} · {r.kind} · {OUTCOME[r.outcome]}</option>
-              ))}
-            </select>
-          </label>
-        )}
       </div>
 
       {expanded && advice && (

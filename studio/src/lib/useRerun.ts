@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { toast } from 'sonner';
+import { toast } from './toast';
 import { rerunReview, type BotStatus, type ReviewItem } from './api';
 
 // Re-running a review: `rerunning` is true from the click until the run has started and

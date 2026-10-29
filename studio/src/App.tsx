@@ -1,11 +1,13 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { LazyMotion, MotionConfig } from 'motion/react';
 import { Inbox } from 'lucide-react';
-import { Toaster, toast } from 'sonner';
+import { Toaster } from 'sonner';
+import { toast } from './lib/toast';
 import { loadSeen, saveSeen, type ReviewItem } from './lib/api';
 import { useReview, useReviews } from './lib/useReviews';
 import { useLiveEvents } from './lib/useLiveEvents';
 import { useArrivals } from './lib/arrivals';
+import { useSoundCues } from './lib/useSoundCues';
 import { ALL_PROJECTS, activeFilter, filterByProject, filterOptions, hasSeveralProjects } from './lib/projects';
 import { useMergedPosted } from './lib/pendingPosts';
 import { groupReviews, waitingOnYou } from './lib/dashboard';
@@ -146,6 +148,7 @@ export function App() {
   // A review that came in while the page is open (a poll found a new MR) arrives visibly.
   const slugs = useMemo(() => (data ? data.items.map((i) => i.slug) : null), [data]);
   const arrived = useArrivals(slugs);
+  useSoundCues(data?.items, data?.status ?? null);
   const isNew = (i: ReviewItem) => arrived(i.slug);
   const known = useMemo(() => (data ? new Set(data.items.map((i) => i.slug)) : null), [data]);
   const { tabs: openSlugs, close: closeTab } = useOpenTabs(slug, known);

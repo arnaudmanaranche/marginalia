@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { toast } from 'sonner';
+import { toast } from '../lib/toast';
 import { Loader2, RefreshCw, Stethoscope } from 'lucide-react';
 import { startDoctor, type Doctor, type DoctorFix, type DoctorWhere, type Failure } from '../lib/api';
 import { duration } from '../lib/runs';

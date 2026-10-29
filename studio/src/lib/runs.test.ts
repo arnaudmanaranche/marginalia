@@ -58,4 +58,8 @@ describe('runToFlag', () => {
     expect(runToFlag([run({ outcome: 'reviewed' }), failed], '2026-10-28T09:00:00Z')).toBeNull();
     expect(runToFlag(null, undefined)).toBeNull();
   });
+
+  it('lets a skipped run go: it is tried again on the next poll', () => {
+    expect(runToFlag([run({ outcome: 'skipped', startedAt: '2026-10-28T11:00:00Z' })], '2026-10-28T09:00:00Z')).toBeNull();
+  });
 });

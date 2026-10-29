@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { Check, Copy } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '../lib/toast';
 import { cn } from '../lib/utils';
 
 // A fenced code block as a card: a header bar with the language (and, for a diff,

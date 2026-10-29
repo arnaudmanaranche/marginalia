@@ -1,5 +1,5 @@
 import { useEffect, useEffectEvent, useRef, useState, type RefObject } from 'react';
-import { toast } from 'sonner';
+import { toast } from '../lib/toast';
 import { GitCommitHorizontal, Loader2, RefreshCw, Upload } from 'lucide-react';
 import { pushFixes, type FixesStatus } from '../lib/api';
 import type { FixesState } from '../lib/useFixes';

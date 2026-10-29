@@ -1,5 +1,5 @@
 import { useEffect, useEffectEvent, useRef, useState } from 'react';
-import { toast } from 'sonner';
+import { toast } from '../lib/toast';
 import { m } from 'motion/react';
 import { Check, Loader2, MessageSquare, Send, X, type LucideIcon } from 'lucide-react';
 import { cn } from '../lib/utils';

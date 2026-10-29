@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { toast } from 'sonner';
+import { toast } from '../lib/toast';
 import { Check, Pencil, Trash2, X } from 'lucide-react';
 import type { DraftNote } from '../lib/api';
 import { useDraftMutations } from '../lib/useDrafts';

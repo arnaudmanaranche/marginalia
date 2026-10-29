@@ -14,10 +14,13 @@ function BotState({ status, connection }: { status: BotStatus | null; connection
     return <span className="flex items-center gap-1.5 text-fg-muted"><Power className="size-4" />Bot stopped</span>;
   }
   if (status.phase === 'reviewing' && status.current) {
+    // The bot's latest step, as it happens: a passing line, gone with the run.
+    const step = status.current.progress?.at(-1);
     return (
-      <span className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400">
-        <Eye className="size-4" />Reviewing !{status.current.iid}
-        <Loader2 className="size-3.5 animate-spin motion-reduce:animate-pulse" />
+      <span className="flex min-w-0 items-center gap-1.5 text-blue-600 dark:text-blue-400">
+        <Eye className="size-4 shrink-0" />Reviewing !{status.current.iid}
+        <Loader2 className="size-3.5 shrink-0 animate-spin motion-reduce:animate-pulse" />
+        {step && <span key={step} aria-live="polite" title={step} className="hidden min-w-0 max-w-[36ch] truncate text-xs text-fg-muted motion-safe:animate-[fade-in_200ms_ease-out] md:inline">{step}</span>}
       </span>
     );
   }
@@ -40,7 +43,7 @@ export function StatusBar({ status, connection, settingsActive, onOpenPalette, o
     <div className="border-b border-zinc-200 dark:border-zinc-800">
       <div className="flex h-14 items-center gap-4 px-4">
         <button onClick={onHome} className="touch-target flex items-center gap-2 font-semibold tracking-tight"><Logo />Marginalia</button>
-        <div className="ml-2 text-sm"><BotState status={status} connection={connection} /></div>
+        <div className="ml-2 min-w-0 text-sm"><BotState status={status} connection={connection} /></div>
         {status?.lastPoll && (
           <span className="hidden text-xs text-fg-muted md:inline">last poll {timeAgo(status.lastPoll.at)}</span>
         )}

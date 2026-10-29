@@ -135,3 +135,10 @@ html {
     transform: translateX(100%);
   }
 }
+/* A new line of the bot's activity slides in. */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+}

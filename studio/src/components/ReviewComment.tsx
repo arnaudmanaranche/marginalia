@@ -1,5 +1,5 @@
 import { Children, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { toast } from 'sonner';
+import { toast } from '../lib/toast';
 import { Check, Copy, Pencil, Send, Undo2 } from 'lucide-react';
 import { textOf } from '../lib/markdown';
 import { editKey, readEdit, writeEdit } from '../lib/commentEdits';

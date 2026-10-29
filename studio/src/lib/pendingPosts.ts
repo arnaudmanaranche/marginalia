@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useSyncExternalStore } from 'react';
-import { toast } from 'sonner';
+import { toast } from './toast';
 import { MutationObserver } from '@tanstack/react-query';
 import { postComment, type PostedInfo } from './api';
 import { queryClient } from './queryClient';
