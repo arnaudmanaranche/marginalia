@@ -32,8 +32,8 @@ function Swatches({ items }: { items: Swatch[] }) {
   return (
     <ul className="grid grid-cols-[repeat(auto-fill,minmax(14rem,1fr))] gap-3">
       {items.map((s) => (
-        <li key={s.name} className="overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
-          <div className="h-14 border-b border-zinc-200 dark:border-zinc-800" style={{ background: s.value }} aria-hidden />
+        <li key={s.name} className="overflow-hidden rounded-xl border border-line bg-surface">
+          <div className="h-14 border-b border-line" style={{ background: s.value }} aria-hidden />
           <div className="p-3 text-sm">
             <p className="font-medium">{s.name}</p>
             <p className="mt-0.5 font-mono text-xs text-fg-muted">{s.value}</p>
@@ -72,7 +72,7 @@ export const Typography: Story = {
       </div>
       <div>
         <p className="mb-1 text-xs uppercase tracking-wide text-fg-muted">Code · mono</p>
-        <code className="rounded bg-zinc-100 px-1.5 py-0.5 text-sm dark:bg-zinc-800">studio/server.mjs:301</code>
+        <code className="rounded bg-sunken px-1.5 py-0.5 text-sm">studio/server.mjs:301</code>
       </div>
     </div>
   ),
@@ -85,7 +85,7 @@ export const RadiiAndSpacing: Story = {
       <div className="flex flex-wrap gap-4">
         {[['md', 'rounded-md', '6px'], ['lg', 'rounded-lg', '8px'], ['xl', 'rounded-xl', '12px'], ['full', 'rounded-full', '9999px']].map(([name, cls, px]) => (
           <div key={name} className="text-center text-xs">
-            <div className={`mb-1 size-16 border border-zinc-300 bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-800 ${cls}`} />
+            <div className={`mb-1 size-16 border border-line-strong bg-sunken ${cls}`} />
             {name} · {px}
           </div>
         ))}

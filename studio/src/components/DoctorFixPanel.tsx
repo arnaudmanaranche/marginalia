@@ -58,7 +58,7 @@ export function DoctorFixPanel({ slug, runId, fix, source }: { slug: string; run
         {fix.state === 'pushed' && <Badge tone="info">Pushed</Badge>}
       </p>
       {fix.note && <p className="text-sm text-fg-muted">{fix.note}</p>}
-      {fix.diffStat && <pre className="max-h-40 overflow-auto rounded bg-zinc-50 p-2 font-mono text-xs dark:bg-zinc-950">{fix.diffStat}</pre>}
+      {fix.diffStat && <pre className="max-h-40 overflow-auto rounded bg-canvas p-2 font-mono text-xs">{fix.diffStat}</pre>}
       {fix.state === 'pushed' ? (
         fix.url
           ? <a href={fix.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:underline dark:text-blue-400"><ExternalLink className="size-3.5" />Open a merge request for it</a>

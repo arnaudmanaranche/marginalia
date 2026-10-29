@@ -49,8 +49,8 @@ export function DiffFileView({ file, findings, threads, defaultOpen, focus, onSe
   }, [focus, targetId, open, all, targetIndex]);
 
   return (
-    <section ref={root} aria-label={file.path} className="overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-800">
-      <button onClick={() => setOpen((o) => !o)} aria-expanded={open} className="flex w-full items-center gap-2 bg-zinc-50 px-3 py-2 text-left text-xs dark:bg-zinc-900">
+    <section ref={root} aria-label={file.path} className="overflow-hidden rounded-lg border border-line">
+      <button onClick={() => setOpen((o) => !o)} aria-expanded={open} className="flex w-full items-center gap-2 bg-strip px-3 py-2 text-left text-xs">
         {open ? <ChevronDown className="size-3.5 shrink-0" aria-hidden /> : <ChevronRight className="size-3.5 shrink-0" aria-hidden />}
         <code className="min-w-0 flex-1 break-all">{file.path}</code>
         {mine.length > 0 && <Badge tone="warning">{mine.length}</Badge>}
@@ -93,13 +93,13 @@ export function DiffFileView({ file, findings, threads, defaultOpen, focus, onSe
             </tbody>
           </table>
           {loose.length > 0 && (
-            <div className="space-y-2 border-t border-zinc-200 p-3 dark:border-zinc-800">
+            <div className="space-y-2 border-t border-line p-3">
               <p className="text-xs text-fg-muted">Threads on this file whose line is not in this diff</p>
               {loose.map((t) => <ThreadCard key={t.id} thread={t} showPlace flash={flash === t.id} />)}
             </div>
           )}
           {!all && file.lines.length > PREVIEW_LINES && (
-            <button className="w-full border-t border-zinc-200 px-3 py-1.5 text-xs text-blue-600 dark:border-zinc-800 dark:text-blue-400" onClick={() => setAll(true)}>Show all {file.lines.length} lines</button>
+            <button className="w-full border-t border-line px-3 py-1.5 text-xs text-blue-600 dark:text-blue-400" onClick={() => setAll(true)}>Show all {file.lines.length} lines</button>
           )}
         </div>
       ))}

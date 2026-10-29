@@ -8,7 +8,7 @@ import { NoteMarkdown } from './NoteMarkdown';
 export function ThreadCard({ thread, showPlace, flash }: { thread: Thread; showPlace?: boolean; flash?: boolean }) {
   const settled = thread.resolved;
   return (
-    <div data-thread={thread.id} className={cn('rounded-md border px-3 py-2 font-sans text-sm transition-shadow', settled ? 'border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900' : 'border-violet-500/30 bg-violet-500/5', flash && 'ring-2 ring-blue-500')}>
+    <div data-thread={thread.id} className={cn('rounded-md border px-3 py-2 font-sans text-sm transition-shadow', settled ? 'border-line bg-strip' : 'border-violet-500/30 bg-violet-500/5', flash && 'ring-2 ring-blue-500')}>
       <div className="mb-1 flex flex-wrap items-center gap-2 text-xs text-fg-muted">
         <MessageSquare className="size-3.5" aria-hidden />
         <span>{thread.notes.length === 1 ? 'Comment' : `${thread.notes.length} comments`}</span>

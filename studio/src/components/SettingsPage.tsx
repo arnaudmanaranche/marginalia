@@ -94,7 +94,7 @@ export function SettingsPage({ settings, defaults, projects = 1 }: { settings: S
                   inputMode={f.list ? undefined : 'numeric'}
                   placeholder={f.placeholder}
                   aria-describedby={`${id}-hint`}
-                  className="touch-target w-full rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/50 dark:border-zinc-800 dark:bg-zinc-900"
+                  className="touch-target w-full rounded-lg border border-line bg-surface px-3 py-1.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/50"
                 />
                 {changedFromDefault && (
                   <Button variant="ghost" size="sm" disabled={saving} onClick={() => void save({ [f.key]: null }, `${f.label} back to the .env default`)} title={`Back to the .env default (${defaultDraft[f.key] || 'empty'})`}>
@@ -108,7 +108,7 @@ export function SettingsPage({ settings, defaults, projects = 1 }: { settings: S
         })}
       </div>
 
-      <div className="mt-8 border-t border-zinc-200 pt-6 dark:border-zinc-800">
+      <div className="mt-8 border-t border-line pt-6">
         <label className="flex items-start gap-3 text-sm font-medium">
           <input
             type="checkbox"
@@ -138,7 +138,7 @@ export function SettingsPage({ settings, defaults, projects = 1 }: { settings: S
 function SoundSetting() {
   const [on, setOn] = useState(soundsOn);
   return (
-    <div className="mt-8 border-t border-zinc-200 pt-6 dark:border-zinc-800">
+    <div className="mt-8 border-t border-line pt-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <label className="flex items-start gap-3 text-sm font-medium">
           <input

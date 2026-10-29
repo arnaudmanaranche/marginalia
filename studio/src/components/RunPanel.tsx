@@ -13,7 +13,7 @@ const TONE: Record<Tone, string> = {
   info: 'border-blue-500/30 bg-blue-500/5',
   danger: 'border-red-500/40 bg-red-500/5',
   warning: 'border-amber-500/40 bg-amber-500/5',
-  neutral: 'border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900',
+  neutral: 'border-line bg-surface',
 };
 
 function StageIcon({ state }: { state: RunStage['state'] }) {
@@ -65,7 +65,7 @@ export function RunPanel({ slug, awaiting, failure = null, collapsible = false, 
       </div>
 
       {expanded && advice && (
-        <div className="mt-3 rounded-md border border-zinc-200 bg-white p-3 text-sm dark:border-zinc-800 dark:bg-zinc-900">
+        <div className="mt-3 rounded-md border border-line bg-surface p-3 text-sm">
           <p className="font-medium">{advice.transient ? 'Nothing to do for now' : 'What to do'}</p>
           <NoteMarkdown className="text-fg-muted">{advice.advice}</NoteMarkdown>
         </div>
@@ -74,7 +74,7 @@ export function RunPanel({ slug, awaiting, failure = null, collapsible = false, 
         <div className="mt-4 space-y-4">
           <ol aria-label="Stages" className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
             {run.stages.map((s, i) => (
-              <li key={s.id} className={cn('flex items-start gap-2 rounded-md border px-3 py-2 text-sm', s.state === 'running' ? 'border-blue-500/40 bg-white dark:bg-zinc-900' : s.state === 'failed' ? 'border-red-500/40 bg-white dark:bg-zinc-900' : 'border-zinc-200 dark:border-zinc-800')}>
+              <li key={s.id} className={cn('flex items-start gap-2 rounded-md border px-3 py-2 text-sm', s.state === 'running' ? 'border-blue-500/40 bg-surface' : s.state === 'failed' ? 'border-red-500/40 bg-surface' : 'border-line')}>
                 <span className="mt-0.5 shrink-0"><StageIcon state={s.state} /></span>
                 <span className="min-w-0 flex-1">
                   <span className={cn('block leading-snug', (s.state === 'pending' || s.state === 'skipped') && 'text-fg-muted')}><span className="sr-only">Stage {i + 1}: </span>{s.label}</span>
@@ -84,7 +84,7 @@ export function RunPanel({ slug, awaiting, failure = null, collapsible = false, 
             ))}
           </ol>
           {run.error && (
-            <div role="alert" className="rounded-md border border-red-500/30 bg-white p-3 dark:bg-zinc-900">
+            <div role="alert" className="rounded-md border border-red-500/30 bg-surface p-3">
               <p className="mb-1 text-xs font-medium uppercase tracking-wide text-red-700 dark:text-red-300">{run.outcome === 'skipped' ? 'Why it was skipped' : 'Error'}</p>
               <pre className="max-h-48 overflow-auto whitespace-pre-wrap break-words font-mono text-xs leading-5">{run.error}</pre>
             </div>

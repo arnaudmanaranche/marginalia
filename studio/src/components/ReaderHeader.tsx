@@ -42,7 +42,7 @@ export function ReaderHeader({ item, risk, showSubmit, draftCount, sending, revi
           </Button>
         )}
         {item?.webUrl && (
-          <a href={item.webUrl} target="_blank" rel="noreferrer" aria-label="Open in GitLab" title="Open in GitLab" className="touch-target inline-flex items-center justify-center rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-sm hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:bg-zinc-800">
+          <a href={item.webUrl} target="_blank" rel="noreferrer" aria-label="Open in GitLab" title="Open in GitLab" className="touch-target inline-flex items-center justify-center rounded-lg border border-line bg-surface px-2.5 py-1.5 text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800">
             <ExternalLink className="size-4" />
           </a>
         )}

@@ -28,6 +28,16 @@
      subtle = icons and non-text marks only (>= 3:1), never sentences. */
   --fg-muted: var(--color-zinc-600);
   --fg-subtle: var(--color-zinc-500);
+
+  /* canvas: the page; surface: a card or panel on it; sunken: a well inside a surface (a chip,
+     inline code); strip: the header band of a card (a file name over its diff); line: the
+     hairline between things; line-strong: the edge of a control. */
+  --canvas: var(--color-zinc-50);
+  --surface: var(--color-white);
+  --sunken: var(--color-zinc-100);
+  --strip: var(--color-zinc-50);
+  --line: var(--color-zinc-200);
+  --line-strong: var(--color-zinc-300);
 }
 @media (pointer: coarse) {
   :root {
@@ -39,20 +49,34 @@
   :root {
     --fg-muted: var(--color-zinc-400);
     --fg-subtle: var(--color-zinc-500);
+    --canvas: var(--color-zinc-950);
+    --surface: var(--color-zinc-900);
+    --sunken: var(--color-zinc-800);
+    --strip: var(--color-zinc-900);
+    --line: var(--color-zinc-800);
+    --line-strong: var(--color-zinc-700);
   }
 }
 
 @theme inline {
   --color-fg-muted: var(--fg-muted);
   --color-fg-subtle: var(--fg-subtle);
+  /* Surfaces and lines (BRAND.md): one name per role, each switching with the theme, so a
+     component never pairs a light and a dark shade by hand. */
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-sunken: var(--sunken);
+  --color-strip: var(--strip);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
 }
 
 body {
-  @apply bg-zinc-50 text-zinc-900 antialiased;
+  @apply bg-canvas text-zinc-900 antialiased;
 }
 @media (prefers-color-scheme: dark) {
   body {
-    @apply bg-zinc-950 text-zinc-100;
+    @apply text-zinc-100;
   }
 }
 

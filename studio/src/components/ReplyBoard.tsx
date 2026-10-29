@@ -43,12 +43,12 @@ export function ReplyBoard({ slug, iid, threads, open, replies, posted, fixes, l
 
   return (
     <div className="mb-6 grid gap-4 lg:mb-0 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)]">
-      <section aria-label="Reviewer threads" className="rounded-lg border border-zinc-200 bg-white px-4 pb-4 dark:border-zinc-800 dark:bg-zinc-900 lg:h-full lg:overflow-y-auto">
-        <div className="sticky top-0 z-10 -mx-4 flex flex-wrap items-center justify-between gap-2 bg-white px-4 py-3 text-xs text-fg-muted dark:bg-zinc-900">
+      <section aria-label="Reviewer threads" className="rounded-lg border border-line bg-surface px-4 pb-4 lg:h-full lg:overflow-y-auto">
+        <div className="sticky top-0 z-10 -mx-4 flex flex-wrap items-center justify-between gap-2 bg-surface px-4 py-3 text-xs text-fg-muted">
           <span className="inline-flex items-center gap-1.5 font-medium uppercase tracking-wide"><MessageSquare className="size-3.5" aria-hidden />Reviewer threads</span>
           <span>{ordered.length === 0 ? 'nothing to answer' : `${ordered.length} to answer`}</span>
         </div>
-        <div className="mb-4 rounded-lg border border-zinc-200 p-3 dark:border-zinc-800">
+        <div className="mb-4 rounded-lg border border-line p-3">
           <h2 className="mb-2 inline-flex items-center gap-1.5 text-sm font-semibold"><Upload className="size-3.5" aria-hidden />Fixes to push{toPush > 0 && <span className="font-normal text-fg-muted">({toPush})</span>}</h2>
           <FixesPanel slug={slug} iid={iid} locked={locked} state={fixes} />
         </div>

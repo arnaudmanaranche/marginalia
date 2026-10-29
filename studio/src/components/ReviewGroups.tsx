@@ -25,7 +25,7 @@ interface RowState {
 
 function List({ group, isUnread, isReviewing, isNew, showProject }: { group: Group } & RowState) {
   return (
-    <ul className="divide-y divide-zinc-200 overflow-hidden rounded-xl border border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800">
+    <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line">
       {group.items.map((i) => <ReviewRow key={i.slug} item={i} unread={isUnread(i)} reviewing={isReviewing(i)} arrived={isNew(i)} showProject={showProject} />)}
     </ul>
   );

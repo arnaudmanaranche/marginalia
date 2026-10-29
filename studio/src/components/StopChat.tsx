@@ -49,10 +49,10 @@ export function StopChat({ slug, stopId }: { slug: string; stopId: string }) {
   return (
     // A fragment: the form must be a direct child of the scrolling section to stay pinned.
     <>
-      <div aria-live="polite" className="mt-4 space-y-2 border-t border-zinc-200 pt-3 dark:border-zinc-800">
+      <div aria-live="polite" className="mt-4 space-y-2 border-t border-line pt-3">
         {messages.map((m, i) => (
           m.role === 'user'
-            ? <p key={i} className="ml-auto w-fit max-w-[90%] rounded-lg bg-zinc-100 px-3 py-1.5 text-sm dark:bg-zinc-800">{m.text}</p>
+            ? <p key={i} className="ml-auto w-fit max-w-[90%] rounded-lg bg-sunken px-3 py-1.5 text-sm">{m.text}</p>
             : <NoteMarkdown key={i} className="text-sm">{m.text}</NoteMarkdown>
         ))}
         {pending === stopId && <p className="flex items-center gap-1.5 text-xs text-fg-muted"><Loader2 className="size-3.5 animate-spin motion-reduce:animate-pulse" aria-hidden />Reading the code…</p>}
@@ -61,11 +61,11 @@ export function StopChat({ slug, stopId }: { slug: string; stopId: string }) {
       </div>
       <form
         onSubmit={(e) => { e.preventDefault(); send(text); }}
-        className="sticky bottom-0 -mx-4 bg-white px-4 pb-4 pt-2 dark:bg-zinc-900"
+        className="sticky bottom-0 -mx-4 bg-surface px-4 pb-4 pt-2"
       >
         <div className={cn(
-          'flex items-end gap-1 rounded-xl border bg-zinc-50 py-1.5 pl-3.5 pr-1.5 transition-colors focus-within:border-blue-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500/40 dark:bg-zinc-950 dark:focus-within:bg-zinc-950',
-          speech.listening ? 'border-red-500/70' : 'border-zinc-200 dark:border-zinc-800',
+          'flex items-end gap-1 rounded-xl border bg-canvas py-1.5 pl-3.5 pr-1.5 transition-colors focus-within:border-blue-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500/40 dark:focus-within:bg-zinc-950',
+          speech.listening ? 'border-red-500/70' : 'border-line',
         )}>
           <textarea
             value={text}

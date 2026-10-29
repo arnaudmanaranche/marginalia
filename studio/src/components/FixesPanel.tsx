@@ -104,7 +104,7 @@ function ConfirmPush({ iid, fixes, fallbackRef, onCancel, onConfirm }: { iid: st
   }, []);
   return (
     <div role="presentation" className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4" onClick={busy ? undefined : onCancel}>
-      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="confirm-push-title" className="w-full max-w-lg rounded-xl border border-zinc-200 bg-white p-5 shadow-2xl dark:border-zinc-800 dark:bg-zinc-900" onClick={(e) => e.stopPropagation()}>
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="confirm-push-title" className="w-full max-w-lg rounded-xl border border-line bg-surface p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <h2 id="confirm-push-title" className="text-base font-semibold">Push {fixes.commits.length} commit{fixes.commits.length > 1 ? 's' : ''} to !{iid}?</h2>
         <p className="mt-1 text-sm text-fg-muted">
           <code>{fixes.branch}</code> moves from <code>{short(fixes.remoteSha)}</code> to <code>{short(fixes.fixesSha)}</code>. Fast-forward only: if the branch moved meanwhile, nothing is pushed.

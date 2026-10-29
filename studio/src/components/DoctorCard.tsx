@@ -43,7 +43,7 @@ export function DoctorCard({ slug, runId, doctor, failure, fix, fixSource }: { s
   );
 
   return (
-    <section aria-label="Doctor" className="rounded-md border border-violet-500/30 bg-white p-3 text-sm dark:bg-zinc-900">
+    <section aria-label="Doctor" className="rounded-md border border-violet-500/30 bg-surface p-3 text-sm">
       <p className="mb-2 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-violet-700 dark:text-violet-300"><Stethoscope className="size-3.5" aria-hidden />Doctor</p>
       {!doctor && (
         <div className="flex flex-wrap items-center justify-between gap-2">

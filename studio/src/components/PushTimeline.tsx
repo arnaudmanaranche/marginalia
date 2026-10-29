@@ -27,7 +27,7 @@ export function PushTimeline({ pushes, from, onFrom: choose, onReport }: { pushe
     : `After push ${list[start].n}${list[start].youReviewed ? ' (your last review)' : ''} · ${plural(after.length, 'push')}, ${plural(commits.length, 'commit')}`;
 
   return (
-    <div className="mb-3 rounded-lg border border-zinc-200 text-xs dark:border-zinc-800">
+    <div className="mb-3 rounded-lg border border-line text-xs">
       <button
         aria-expanded={open}
         onClick={() => setOpen(!open)}
@@ -37,7 +37,7 @@ export function PushTimeline({ pushes, from, onFrom: choose, onReport }: { pushe
         <ChevronDown className={cn('size-3.5 shrink-0 text-fg-muted transition-transform motion-reduce:transition-none', open && 'rotate-180')} aria-hidden />
       </button>
       {open && (
-        <div className="border-t border-zinc-200 px-3 py-2 dark:border-zinc-800">
+        <div className="border-t border-line px-3 py-2">
           <p className="mb-2 text-fg-muted">Pick where to start: the diff shows what came after that push, up to now.</p>
           <ol className="space-y-0.5" aria-label="Pushes">
             <li>
@@ -51,7 +51,7 @@ export function PushTimeline({ pushes, from, onFrom: choose, onReport }: { pushe
         </div>
       )}
       {start >= 0 && commits.length > 0 && (
-        <ul className="space-y-0.5 border-t border-zinc-200 px-3 py-2 dark:border-zinc-800" aria-label="Commits shown">
+        <ul className="space-y-0.5 border-t border-line px-3 py-2" aria-label="Commits shown">
           {rebased && <li className="mb-1 text-amber-700 dark:text-amber-300">The branch was rebased since: the diff also holds what came from the target branch.</li>}
           {commits.map((c) => (
             <li key={c.sha} className="flex items-baseline gap-2">

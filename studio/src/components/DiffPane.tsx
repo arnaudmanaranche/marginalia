@@ -21,7 +21,7 @@ export function DiffPane({ showAll, state, findings, focus, threads, scope, push
     return (
       <>
         {toggle}
-        <div role="alert" className="flex flex-wrap items-center gap-3 rounded-lg border border-zinc-200 p-4 text-sm text-fg-muted dark:border-zinc-800">
+        <div role="alert" className="flex flex-wrap items-center gap-3 rounded-lg border border-line p-4 text-sm text-fg-muted">
           <span>The diff could not be loaded ({state.message}).</span>
           <Button size="sm" onClick={onRetry}>Try again</Button>
         </div>

@@ -19,7 +19,7 @@ export function ReportDelta({ previous, at, current, onRead }: { previous: Findi
   const delta = reportDelta(previous, current);
   const any = previous.length + current.length > 0;
   return (
-    <section aria-label="Since the previous report" className="mb-4 shrink-0 rounded-lg border border-zinc-200 text-xs dark:border-zinc-800">
+    <section aria-label="Since the previous report" className="mb-4 shrink-0 rounded-lg border border-line text-xs">
       <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
         <button aria-expanded={open} disabled={!any} onClick={() => setOpen(!open)} className="flex min-w-0 flex-wrap items-center gap-2 text-left disabled:cursor-default">
           <span className="text-fg-muted">Since the previous report ({timeAgo(at)})</span>
@@ -31,7 +31,7 @@ export function ReportDelta({ previous, at, current, onRead }: { previous: Findi
         <button onClick={onRead} className="shrink-0 text-fg-muted underline hover:text-zinc-900 dark:hover:text-zinc-100">Read it</button>
       </div>
       {open && (
-        <div className="grid gap-3 border-t border-zinc-200 px-3 py-2 dark:border-zinc-800 md:grid-cols-3">
+        <div className="grid gap-3 border-t border-line px-3 py-2 md:grid-cols-3">
           {GROUPS.map((g) => (
             <div key={g.key}>
               <h3 className="mb-1 font-medium capitalize">{g.label}</h3>

@@ -14,7 +14,7 @@ export function DraftRow({ slug, draft, disabled, onChanged }: { slug: string; d
   const busy = update.isPending || remove.isPending;
   const fail = (failure: string) => (e: Error) => toast.error(failure, { description: e.message });
   return (
-    <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-2.5 text-sm dark:border-zinc-800 dark:bg-zinc-950">
+    <div className="rounded-lg border border-line bg-canvas p-2.5 text-sm">
       <div className="flex items-center justify-between gap-2">
         <code className="min-w-0 break-all text-xs text-fg-muted">{draft.path ? `${draft.path}${draft.line ? `:${draft.line}` : ''}` : 'General comment'}</code>
         <span className="flex shrink-0 items-center gap-1">
@@ -38,7 +38,7 @@ export function DraftRow({ slug, draft, disabled, onChanged }: { slug: string; d
         </span>
       </div>
       {editing ? (
-        <textarea value={text} onChange={(e) => setText(e.target.value)} rows={Math.min(10, Math.max(3, text.split('\n').length + 1))} aria-label="Draft text" className="mt-2 w-full resize-y rounded-md border border-zinc-300 bg-white p-2 text-sm outline-none focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/50 dark:border-zinc-700 dark:bg-zinc-900" />
+        <textarea value={text} onChange={(e) => setText(e.target.value)} rows={Math.min(10, Math.max(3, text.split('\n').length + 1))} aria-label="Draft text" className="mt-2 w-full resize-y rounded-md border border-line-strong bg-surface p-2 text-sm outline-none focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/50" />
       ) : (
         <NoteMarkdown className="mt-1">{draft.body}</NoteMarkdown>
       )}

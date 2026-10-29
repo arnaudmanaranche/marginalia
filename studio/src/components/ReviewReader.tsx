@@ -103,7 +103,7 @@ export function ReviewReader({ item, review: currentReview, reviewError, onRetry
       <ReaderNotices viewingOld={viewingOld} onBackToLatest={() => setVersionId(null)} />
       {runPanel}
       {markdown === null && !awaiting && (reviewError && !viewingOld ? (
-        <div role="alert" className="flex flex-wrap items-center gap-3 rounded-lg border border-zinc-200 p-4 text-sm text-fg-muted dark:border-zinc-800">
+        <div role="alert" className="flex flex-wrap items-center gap-3 rounded-lg border border-line p-4 text-sm text-fg-muted">
           <span>This review could not be loaded ({reviewError}).</span>
           <Button size="sm" onClick={onRetry}>Try again</Button>
         </div>

@@ -21,8 +21,8 @@ export function CodeBlock({ lang, text, children }: { lang: string | null; text:
     }
   };
   return (
-    <figure className="not-prose my-4 overflow-hidden rounded-lg border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
-      <figcaption className="flex items-center justify-between gap-2 border-b border-zinc-200 bg-zinc-50 px-3 py-1.5 font-mono text-xs text-fg-muted dark:border-zinc-800 dark:bg-zinc-900/60">
+    <figure className="not-prose my-4 overflow-hidden rounded-lg border border-line bg-white dark:bg-zinc-950">
+      <figcaption className="flex items-center justify-between gap-2 border-b border-line bg-zinc-50 px-3 py-1.5 font-mono text-xs text-fg-muted dark:bg-zinc-900/60">
         <span className="flex items-center gap-2">
           {lang ?? 'text'}
           {diff && (

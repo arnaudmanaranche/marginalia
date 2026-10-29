@@ -46,14 +46,14 @@ export function Sidebar({ items, activeSlug, botBySlug, isUnread, isNew, showPro
         aria-label="All reviews"
         aria-hidden={!open}
         className={cn(
-          'z-30 shrink-0 overflow-hidden border-zinc-200 bg-zinc-50 transition-[width,border-color] duration-300 ease-out motion-reduce:transition-none dark:border-zinc-800 dark:bg-zinc-950',
+          'z-30 shrink-0 overflow-hidden border-line bg-canvas transition-[width,border-color] duration-300 ease-out motion-reduce:transition-none',
           'fixed bottom-0 left-0 top-[var(--chrome-h)] lg:sticky lg:top-[var(--chrome-h)] lg:h-[calc(100vh-var(--chrome-h))] lg:self-start',
           open ? 'w-72 border-r' : 'w-0 border-r-0',
         )}
       >
         <div className="flex h-full w-72 flex-col">
           <div className="p-3">
-            <label className="flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-2.5 text-sm focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/50 dark:border-zinc-800 dark:bg-zinc-900">
+            <label className="flex items-center gap-2 rounded-lg border border-line bg-surface px-2.5 text-sm focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/50">
               <Search className="size-4 shrink-0 text-fg-subtle" />
               <input
                 aria-label="Filter reviews"

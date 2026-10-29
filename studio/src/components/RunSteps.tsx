@@ -27,12 +27,12 @@ export function RunSteps({ steps, stages, startedAt, running, total }: { steps: 
           const el = e.currentTarget;
           pinned.current = el.scrollHeight - el.scrollTop - el.clientHeight < 24;
         }}
-        className="max-h-96 overflow-y-auto rounded-md border border-zinc-200 bg-zinc-50 py-1 font-mono text-xs leading-5 dark:border-zinc-800 dark:bg-zinc-950"
+        className="max-h-96 overflow-y-auto rounded-md border border-line bg-canvas py-1 font-mono text-xs leading-5"
       >
         {steps.map((s, i) => (
           <Fragment key={i}>
             {(i === 0 || steps[i - 1].stage !== s.stage) && (
-              <li className="sticky top-0 bg-zinc-50 px-3 pt-1.5 pb-0.5 font-sans text-[11px] font-medium uppercase tracking-wide text-fg-muted dark:bg-zinc-950">{label(s.stage)}</li>
+              <li className="sticky top-0 bg-canvas px-3 pt-1.5 pb-0.5 font-sans text-[11px] font-medium uppercase tracking-wide text-fg-muted">{label(s.stage)}</li>
             )}
             <li className={cn('flex gap-3 px-3', s.sub && 'pl-6')}>
               <span className="w-14 shrink-0 select-none text-right tabular-nums text-fg-subtle">+{duration(new Date(s.at).getTime() - t0)}</span>

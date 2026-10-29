@@ -49,7 +49,7 @@ export function ConfirmSubmit({ slug, iid, count, canVerdict, reload, onCancel, 
         initial={{ opacity: 0, y: 12, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-        className="flex max-h-[calc(100dvh-2rem)] w-full max-w-xl flex-col rounded-2xl border border-zinc-200 bg-white shadow-2xl shadow-black/30 dark:border-zinc-800 dark:bg-zinc-900"
+        className="flex max-h-[calc(100dvh-2rem)] w-full max-w-xl flex-col rounded-2xl border border-line bg-surface shadow-2xl shadow-black/30"
         onClick={(e) => e.stopPropagation()}
       >
         <header className="px-6 pb-3 pt-5">
@@ -66,10 +66,10 @@ export function ConfirmSubmit({ slug, iid, count, canVerdict, reload, onCancel, 
             {draftsError && <p className="text-sm text-red-600 dark:text-red-400">Could not load the drafts: {draftsError}</p>}
             {loading && (
               <div role="status" className="space-y-2" aria-label="Loading the pending comments">
-                {[0, 1].map((i) => <div key={i} className="h-14 animate-pulse rounded-lg bg-zinc-100 motion-reduce:animate-none dark:bg-zinc-800" />)}
+                {[0, 1].map((i) => <div key={i} className="h-14 animate-pulse rounded-lg bg-sunken motion-reduce:animate-none" />)}
               </div>
             )}
-            {drafts?.length === 0 && <p className="rounded-lg border border-dashed border-zinc-300 px-3 py-4 text-center text-sm text-fg-muted dark:border-zinc-700">No pending comment on GitLab.</p>}
+            {drafts?.length === 0 && <p className="rounded-lg border border-dashed border-line-strong px-3 py-4 text-center text-sm text-fg-muted">No pending comment on GitLab.</p>}
             {drafts?.map((d) => (
               <DraftRow key={d.id} slug={slug} draft={d} disabled={busy} onChanged={reload} />
             ))}
@@ -89,10 +89,10 @@ export function ConfirmSubmit({ slug, iid, count, canVerdict, reload, onCancel, 
           )}
           <div>
             <label htmlFor="review-summary" className="block text-sm font-medium">Summary <span className="font-normal text-fg-muted">(optional)</span></label>
-            <textarea id="review-summary" data-autofocus value={summary} onChange={(e) => setSummary(e.target.value)} rows={3} placeholder={canVerdict ? 'One or two lines for the author' : 'One or two lines for the reviewers'} className="mt-1.5 w-full resize-y rounded-lg border border-zinc-300 bg-zinc-50 p-3 text-sm outline-none placeholder:text-fg-subtle focus-visible:border-blue-500 focus-visible:bg-white focus-visible:ring-2 focus-visible:ring-blue-500/50 dark:border-zinc-700 dark:bg-zinc-950" />
+            <textarea id="review-summary" data-autofocus value={summary} onChange={(e) => setSummary(e.target.value)} rows={3} placeholder={canVerdict ? 'One or two lines for the author' : 'One or two lines for the reviewers'} className="mt-1.5 w-full resize-y rounded-lg border border-line-strong bg-canvas p-3 text-sm outline-none placeholder:text-fg-subtle focus-visible:border-blue-500 focus-visible:bg-white focus-visible:ring-2 focus-visible:ring-blue-500/50" />
           </div>
         </fieldset>
-        <footer className="flex items-center justify-end gap-2 border-t border-zinc-200 px-6 py-3 dark:border-zinc-800">
+        <footer className="flex items-center justify-end gap-2 border-t border-line px-6 py-3">
           <Button disabled={busy} onClick={onCancel}>Cancel</Button>
           <Button
             variant="primary"

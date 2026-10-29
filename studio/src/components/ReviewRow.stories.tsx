@@ -6,7 +6,7 @@ const meta = {
   title: 'Scholia/Data display/ReviewRow',
   component: ReviewRow,
   args: { item: review, unread: false },
-  decorators: [(Story) => <ul className="divide-y divide-zinc-200 overflow-hidden rounded-xl border border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800"><Story /></ul>],
+  decorators: [(Story) => <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line"><Story /></ul>],
 } satisfies Meta<typeof ReviewRow>;
 export default meta;
 type Story = StoryObj<typeof meta>;

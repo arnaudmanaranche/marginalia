@@ -31,7 +31,7 @@ export function ReviewRow({ item, unread, reviewing = false, arrived = false, sh
       transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
       className={cn(
         'flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 text-sm transition-colors duration-1000 motion-reduce:transition-none',
-        arrived ? 'bg-blue-50 dark:bg-blue-950/50' : 'bg-white dark:bg-zinc-900',
+        arrived ? 'bg-blue-50 dark:bg-blue-950/50' : 'bg-surface',
         'hover:bg-zinc-50 dark:hover:bg-zinc-800/60',
       )}
     >

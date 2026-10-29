@@ -26,14 +26,14 @@ interface Props {
 export function TabStrip({ tabs, activeSlug, botBySlug, isUnread, isPosted, homeUnread, sidebarOpen, sidebarAvailable, onToggleSidebar, onSelect, onClose }: Props) {
   const reduceMotion = useReducedMotion();
   return (
-    <nav aria-label="Open reviews" className="flex h-[var(--strip-h)] items-stretch border-b border-zinc-200 bg-zinc-100/60 dark:border-zinc-800 dark:bg-zinc-900/40">
+    <nav aria-label="Open reviews" className="flex h-[var(--strip-h)] items-stretch border-b border-line bg-zinc-100/60 dark:bg-zinc-900/40">
       <button
         onClick={onToggleSidebar}
         disabled={!sidebarAvailable}
         aria-pressed={sidebarOpen}
         aria-label="Toggle sidebar"
         title={sidebarAvailable ? 'Toggle sidebar (⌘B)' : 'Home already lists every review'}
-        className={cn('touch-target flex w-11 shrink-0 items-center justify-center border-r border-zinc-200 dark:border-zinc-800', !sidebarAvailable ? 'text-zinc-300 dark:text-zinc-700' : sidebarOpen ? 'bg-white text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100' : 'text-fg-muted hover:bg-zinc-200/60 dark:hover:bg-zinc-800/60')}
+        className={cn('touch-target flex w-11 shrink-0 items-center justify-center border-r border-line', !sidebarAvailable ? 'text-zinc-300 dark:text-zinc-700' : sidebarOpen ? 'bg-white text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100' : 'text-fg-muted hover:bg-zinc-200/60 dark:hover:bg-zinc-800/60')}
       >
         <PanelLeft className="size-4" />
       </button>
@@ -47,7 +47,7 @@ export function TabStrip({ tabs, activeSlug, botBySlug, isUnread, isPosted, home
             e.preventDefault();
             onSelect(null);
           }}
-          className={cn('flex shrink-0 items-center gap-2 border-r border-t-2 border-zinc-200 px-3 text-sm dark:border-zinc-800', activeSlug === null ? 'border-t-blue-500 bg-white font-medium dark:bg-zinc-950' : 'border-t-transparent text-zinc-600 hover:bg-zinc-200/60 dark:text-zinc-400 dark:hover:bg-zinc-800/60')}
+          className={cn('flex shrink-0 items-center gap-2 border-r border-t-2 border-line px-3 text-sm', activeSlug === null ? 'border-t-blue-500 bg-white font-medium dark:bg-zinc-950' : 'border-t-transparent text-zinc-600 hover:bg-zinc-200/60 dark:text-zinc-400 dark:hover:bg-zinc-800/60')}
         >
           <LayoutGrid className="size-4" />
           Reviews
@@ -76,7 +76,7 @@ export function TabStrip({ tabs, activeSlug, botBySlug, isUnread, isPosted, home
                 }
               }}
               // Like a browser: tabs start at 14rem and all shrink together as more open; below ~96px the title hides (icon only), and the active tab keeps room for its close button.
-              className={cn('@container group relative flex shrink grow-0 items-stretch overflow-hidden border-r border-t-2 border-zinc-200 dark:border-zinc-800', active ? cn('bg-white dark:bg-zinc-950', accent) : 'border-t-transparent hover:bg-zinc-200/60 dark:hover:bg-zinc-800/60')}
+              className={cn('@container group relative flex shrink grow-0 items-stretch overflow-hidden border-r border-t-2 border-line', active ? cn('bg-white dark:bg-zinc-950', accent) : 'border-t-transparent hover:bg-zinc-200/60 dark:hover:bg-zinc-800/60')}
             >
               <a
                 href={`#/${item.slug}`}

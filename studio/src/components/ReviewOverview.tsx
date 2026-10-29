@@ -5,7 +5,7 @@ import type { Overview } from '../lib/api';
 export function ReviewOverview({ overview }: { overview: Overview }) {
   return (
     <section aria-label="Before and after" className="mb-4 grid shrink-0 items-stretch gap-3 md:grid-cols-[1fr_auto_1fr]">
-      <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-950">
+      <div className="rounded-lg border border-line bg-canvas p-3">
         <h2 className="text-xs font-medium uppercase tracking-wide text-fg-muted">Before</h2>
         <p className="mt-1 text-sm">{overview.before}</p>
       </div>

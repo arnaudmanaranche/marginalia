@@ -11,12 +11,12 @@ export function TourSkeleton() {
     <div role="status" aria-label="Loading the review" className="lg:flex lg:min-h-0 lg:flex-1 lg:flex-col">
       <span className="sr-only">Loading the review…</span>
       <div className="mb-4 grid shrink-0 items-stretch gap-3 md:grid-cols-[1fr_auto_1fr]">
-        <div className="rounded-lg border border-zinc-200 p-3 dark:border-zinc-800"><div className={`${bar} h-3 w-12`} /><div className={`${bar} mt-3 h-3 w-4/5`} /><div className={`${bar} mt-2 h-3 w-3/5`} /></div>
+        <div className="rounded-lg border border-line p-3"><div className={`${bar} h-3 w-12`} /><div className={`${bar} mt-3 h-3 w-4/5`} /><div className={`${bar} mt-2 h-3 w-3/5`} /></div>
         <ArrowRight className="hidden size-5 self-center text-fg-subtle md:block" aria-hidden />
-        <div className="rounded-lg border border-zinc-200 p-3 dark:border-zinc-800"><div className={`${bar} h-3 w-12`} /><div className={`${bar} mt-3 h-3 w-4/5`} /><div className={`${bar} mt-2 h-3 w-2/5`} /></div>
+        <div className="rounded-lg border border-line p-3"><div className={`${bar} h-3 w-12`} /><div className={`${bar} mt-3 h-3 w-4/5`} /><div className={`${bar} mt-2 h-3 w-2/5`} /></div>
       </div>
       <div className="grid gap-4 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)]">
-        <div className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
+        <div className="rounded-lg border border-line p-4">
           <div className="flex items-center justify-between"><div className={`${bar} h-3 w-24`} /><div className={`${bar} h-7 w-28`} /></div>
           <div className="mt-4 flex gap-1">{[0, 1, 2, 3].map((i) => <div key={i} className={`${bar} h-1.5 flex-1 rounded-full`} />)}</div>
           <div className={`${bar} mt-5 h-5 w-3/4`} />

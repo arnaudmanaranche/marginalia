@@ -9,9 +9,9 @@ const bar = 'shimmer rounded bg-zinc-200 dark:bg-zinc-800';
 // sweep across it. Same footprint as the real thing, so nothing jumps when it arrives.
 export function DiffSkeleton() {
   return (
-    <div role="status" aria-label="Loading the diff" className="overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-800">
+    <div role="status" aria-label="Loading the diff" className="overflow-hidden rounded-lg border border-line">
       <span className="sr-only">Loading the diff…</span>
-      <div className="flex items-center gap-3 border-b border-zinc-200 bg-zinc-50 px-3 py-2.5 dark:border-zinc-800 dark:bg-zinc-900">
+      <div className="flex items-center gap-3 border-b border-line bg-strip px-3 py-2.5">
         <div className={cn(bar, 'size-3.5')} />
         <div className={cn(bar, 'h-3 w-2/5')} />
         <div className={cn(bar, 'ml-auto h-3 w-14')} />

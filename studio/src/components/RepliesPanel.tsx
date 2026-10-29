@@ -97,7 +97,7 @@ function ReplyCard({ slug, thread, drafted, sent, fixes, onFixes, locked, reload
   };
 
   return (
-    <div className={cn('space-y-2 rounded-lg border p-3', selected ? 'border-blue-500 ring-1 ring-blue-500' : 'border-zinc-200 dark:border-zinc-800')}>
+    <div className={cn('space-y-2 rounded-lg border p-3', selected ? 'border-blue-500 ring-1 ring-blue-500' : 'border-line')}>
       <div className="flex flex-wrap items-center gap-2 text-xs text-fg-muted">
         {thread.path && onSelect ? (
           <button onClick={() => onSelect(thread.id)} title="Show it in the diff" aria-pressed={selected} className="inline-flex min-w-0 items-center gap-1.5 rounded text-left hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
@@ -108,7 +108,7 @@ function ReplyCard({ slug, thread, drafted, sent, fixes, onFixes, locked, reload
       </div>
       <ThreadCard thread={thread} />
       {sent ? (
-        <div className="space-y-2 rounded-md bg-zinc-50 p-3 text-sm dark:bg-zinc-900">
+        <div className="space-y-2 rounded-md bg-strip p-3 text-sm">
           <p className="flex flex-wrap items-center gap-2 text-xs text-fg-muted">
             <Check className="size-3.5" aria-hidden />
             {sent.state === 'published' ? 'Sent' : 'In your pending replies'}{sent.resolve ? ', resolves the thread' : ''}
@@ -128,7 +128,7 @@ function ReplyCard({ slug, thread, drafted, sent, fixes, onFixes, locked, reload
             onChange={(e) => setText(e.target.value)}
             placeholder="Your answer to the reviewer"
             rows={Math.min(10, Math.max(3, text.split('\n').length + 1))}
-            className="w-full resize-y rounded-md border border-zinc-300 bg-white p-3 text-sm leading-relaxed outline-none focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/50 dark:border-zinc-700 dark:bg-zinc-900"
+            className="w-full resize-y rounded-md border border-line-strong bg-surface p-3 text-sm leading-relaxed outline-none focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/50"
           />
           {fixed && (landed
             ? <p className="text-xs text-fg-muted">Ends with <code>Fixed in {short(landed)}.</code></p>

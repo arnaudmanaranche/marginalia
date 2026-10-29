@@ -154,6 +154,22 @@ Graphite neutrals and one signal blue, with four status hues. Both themes are co
 - **Muted Text** (oklch(44.2% 0.017 285.786) light / oklch(70.5% 0.015 286.067) dark): secondary copy, exposed as `--fg-muted` (text-fg-muted); at least 6:1 on the canvas and on cards in both themes.
 - **Subtle Mark** (oklch(55.2% 0.016 285.938)): `--fg-subtle`, for icons and non-text marks only (3:1), never for sentences.
 
+### Tokens in code
+Each neutral role is one Tailwind class that switches with the theme (`studio/src/index.css`), so a component names the role and never pairs a light and a dark shade by hand:
+
+| Role | Class | Light | Dark |
+|---|---|---|---|
+| The page | `bg-canvas` | zinc-50 | zinc-950 |
+| A card, panel, modal or input | `bg-surface` | white | zinc-900 |
+| The header band of a card (a file name over its diff) | `bg-strip` | zinc-50 | zinc-900 |
+| A well inside a surface (a chip, inline code) | `bg-sunken` | zinc-100 | zinc-800 |
+| Every border and divider | `border-line`, `divide-line` | zinc-200 | zinc-800 |
+| The edge of a control | `border-line-strong` | zinc-300 | zinc-700 |
+| Secondary sentences | `text-fg-muted` | zinc-600 | zinc-400 |
+| Icons and marks only | `text-fg-subtle` | zinc-500 | zinc-500 |
+
+A new neutral role is added there, in both themes, before it is used.
+
 ### Named Rules
 **The Signal Rule.** Blue is a signal, not a mood. If it is not selection, unread, focus or the one primary action, it is not blue.
 **The Double-Code Rule.** A status is never carried by color alone: pair it with an icon, a word or a shape (verdict badges do all three).
@@ -232,6 +248,23 @@ Command palette and post confirmation are true modal dialogs: focus moves in, Ta
 
 Motion explains state and continuity, and stays short. Cards glide between sizes with a layout animation (0.5s, `cubic-bezier(0.4, 0, 0.2, 1)`); tabs grow in and out over 0.22s; extra card content fades in only once the card is nearly in place. With `prefers-reduced-motion`, travel disappears (instant resize, no smooth scroll, spinners become a soft pulse) while state changes and opacity stay.
 
+### Sound
+
+The studio answers in sound as well as on screen (`studio/src/lib/sounds.ts`), so a person reading another tab still knows when something happens. The sounds follow the voice: short (under 0.4s), quiet, made of plain tones, never a jingle. Each kind of moment has one sound, the same everywhere:
+
+- **Arrive**: two soft rising notes, a new MR in the list.
+- **Done**: a short major arpeggio, a review or a triage ready.
+- **Comment**: a light double knock, a reviewer wrote on my MR.
+- **Failed**: two low falling notes, a run that needs a person (not one retried on its own).
+- **Success / Error**: how an action of mine ended, played with its toast.
+- **Sent**: a quick upward sweep, a review or replies gone to GitLab.
+
+Sound only backs up what the screen says: nothing is said by sound alone. Nothing plays for what was there when the page opened, nor before the person touched the page. Sounds are on by default and switched off per browser in Settings.
+
+## Voice
+
+The words are part of the brand. The studio says what happened and what to do, in plain words a teammate would use: "The MR branch moved since the triage: re-run it", not "Error 409: conflict". A message names the thing (the MR, the branch, the check) and, when something failed, the next step. No exclamation marks, no cheer, no blame. Errors from git or GitLab are kept whole where a person may need them, under the plain sentence, never instead of it.
+
 ## Do's and Don'ts
 
 ### Do:
@@ -240,6 +273,8 @@ Motion explains state and continuity, and stays short. Cards glide between sizes
 - **Do** keep controls compact for mouse and let `touch-target` raise them to 44px on coarse pointers.
 - **Do** wrap any new modal in the shared focus handling (`useModalFocus`) and scroll lock.
 - **Do** give any new animation a `prefers-reduced-motion` path that keeps the state change.
+- **Do** use the neutral role classes (`bg-surface`, `border-line`, …) rather than a `zinc-*` and `dark:zinc-*` pair.
+- **Do** give a new kind of moment a sound only if a person would want to hear it from another tab.
 
 ### Don't:
 - **Don't** make it playful: no very round corners, bright decorative color, illustration or cheerful copy (the confirmed rejection).
@@ -247,3 +282,4 @@ Motion explains state and continuity, and stays short. Cards glide between sizes
 - **Don't** use blue for anything but selection, unread, focus and the one primary action.
 - **Don't** set sentences in `zinc-500` on dark surfaces.
 - **Don't** nest cards, or let long identifiers push past a container's border.
+- **Don't** play a sound for something the screen does not also show, or for every click.

@@ -40,7 +40,7 @@ function BotState({ status, connection }: { status: BotStatus | null; connection
 
 export function StatusBar({ status, connection, settingsActive, onOpenPalette, onHome, onSettings }: { status: BotStatus | null; connection: 'connecting' | 'unreachable' | 'ok'; settingsActive: boolean; onOpenPalette: () => void; onHome: () => void; onSettings: () => void }) {
   return (
-    <div className="border-b border-zinc-200 dark:border-zinc-800">
+    <div className="border-b border-line">
       <div className="flex h-14 items-center gap-4 px-4">
         <button onClick={onHome} className="touch-target flex items-center gap-2 font-semibold tracking-tight"><Logo />Marginalia</button>
         <div className="ml-2 min-w-0 text-sm"><BotState status={status} connection={connection} /></div>
@@ -49,17 +49,17 @@ export function StatusBar({ status, connection, settingsActive, onOpenPalette, o
         )}
         <button
           onClick={onOpenPalette}
-          className="touch-target ml-auto flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-sm text-fg-muted hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700"
+          className="touch-target ml-auto flex items-center gap-2 rounded-lg border border-line bg-surface px-3 py-1.5 text-sm text-fg-muted hover:border-zinc-300 dark:hover:border-zinc-700"
         >
           Search…
-          <kbd className="flex items-center gap-0.5 rounded bg-zinc-100 px-1.5 py-0.5 text-xs dark:bg-zinc-800"><Command className="size-3" />K</kbd>
+          <kbd className="flex items-center gap-0.5 rounded bg-sunken px-1.5 py-0.5 text-xs"><Command className="size-3" />K</kbd>
         </button>
         <button
           onClick={onSettings}
           aria-label="Settings"
           aria-current={settingsActive ? 'page' : undefined}
           title="Settings"
-          className={`touch-target rounded-lg border p-2 hover:border-zinc-300 dark:hover:border-zinc-700 ${settingsActive ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-zinc-200 bg-white text-fg-muted dark:border-zinc-800 dark:bg-zinc-900'}`}
+          className={`touch-target rounded-lg border p-2 hover:border-zinc-300 dark:hover:border-zinc-700 ${settingsActive ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-line bg-surface text-fg-muted'}`}
         >
           <Settings className="size-4" />
         </button>

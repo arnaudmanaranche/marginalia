@@ -52,7 +52,7 @@ export function StackBoard({ stack, items, current, isPosted, onSelect }: {
   const slugOf = (iid: number | null) => (iid === null ? null : byIid.get(iid)?.item?.slug ?? null);
 
   return (
-    <section aria-label="Stack" className="space-y-3 border-b border-zinc-200 bg-zinc-50 px-6 py-5 dark:border-zinc-800 dark:bg-zinc-950">
+    <section aria-label="Stack" className="space-y-3 border-b border-line bg-canvas px-6 py-5">
       <div className="flex items-center gap-3">
         <GitMerge className="size-5 shrink-0" aria-hidden />
         <div className="min-w-0">
@@ -65,7 +65,7 @@ export function StackBoard({ stack, items, current, isPosted, onSelect }: {
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-lg border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+      <div className="overflow-x-auto rounded-lg border border-line bg-surface">
         <table className="w-full text-left text-sm">
           <thead className="text-xs uppercase tracking-wide text-fg-muted">
             <tr><th className="px-3 py-2">Merge</th><th className="px-3 py-2">MR</th><th className="px-3 py-2">Verdict</th><th className="px-3 py-2">Critical / important</th><th className="px-3 py-2">Blocked by</th><th className="px-3 py-2">State</th></tr>
@@ -110,7 +110,7 @@ export function StackBoard({ stack, items, current, isPosted, onSelect }: {
       )}
 
       {cross.length > 0 && (
-        <details open className="rounded-lg border border-zinc-200 bg-white p-3 text-sm dark:border-zinc-800 dark:bg-zinc-900">
+        <details open className="rounded-lg border border-line bg-surface p-3 text-sm">
           <summary className="cursor-pointer font-medium">Across layers · {cross.length}</summary>
           <ul className="mt-2 space-y-2">
             {cross.map((c, i) => {

@@ -74,7 +74,7 @@ function CommentArea({ finding, text, onText, editing, onEditing, showActions, l
           rows={Math.min(10, Math.max(3, text.split('\n').length + 1))}
           placeholder={finding.comment ? undefined : 'Write the comment to post on this point'}
           aria-label={`Comment on: ${finding.title}`}
-          className="w-full resize-y rounded-md border border-zinc-300 bg-white p-2 text-sm outline-none focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/50 dark:border-zinc-700 dark:bg-zinc-900"
+          className="w-full resize-y rounded-md border border-line-strong bg-surface p-2 text-sm outline-none focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/50"
         />
       ) : (
         <div className="whitespace-pre-wrap rounded-md border border-blue-500/30 bg-blue-500/5 p-2">{text}</div>
@@ -98,7 +98,7 @@ function RaisedCard({ finding, raised, onFocus, onUnfold }: { finding: Finding; 
   const { path, line, resolved } = raised.thread;
   const where = path ? `${path.split('/').pop()}${line ? `:${line}` : ''}` : 'the MR';
   return (
-    <div className="flex gap-2 rounded-lg border border-dashed border-zinc-300 px-3 py-2 text-sm text-fg-muted dark:border-zinc-700">
+    <div className="flex gap-2 rounded-lg border border-dashed border-line-strong px-3 py-2 text-sm text-fg-muted">
       <MessagesSquare className="mt-0.5 size-4 shrink-0 text-fg-subtle" aria-hidden />
       <div className="min-w-0 flex-1">
         <p className="font-medium leading-snug text-zinc-900 dark:text-zinc-100"><span className="sr-only">{finding.severity}: </span>{finding.title}</p>
@@ -106,7 +106,7 @@ function RaisedCard({ finding, raised, onFocus, onUnfold }: { finding: Finding; 
           Already raised by {raised.author} in a {resolved ? 'resolved' : 'open'} thread on{' '}
           <button type="button" onClick={() => onFocus?.(finding.id)} title={`${path}${line ? `:${line}` : ''} (show it in the diff)`} className="break-all font-mono text-blue-600 hover:underline dark:text-blue-400">{where}</button>
         </p>
-        <NoteMarkdown className="mt-1.5 line-clamp-4 border-l-2 border-zinc-300 pl-2 text-xs text-fg-muted prose-p:my-0 dark:border-zinc-700">{raised.body}</NoteMarkdown>
+        <NoteMarkdown className="mt-1.5 line-clamp-4 border-l-2 border-line-strong pl-2 text-xs text-fg-muted prose-p:my-0">{raised.body}</NoteMarkdown>
         <Button size="sm" variant="ghost" className="-ml-2 mt-2" onClick={onUnfold}>Comment anyway</Button>
       </div>
     </div>
@@ -154,7 +154,7 @@ function FindingCard({ finding, raised, compact = false, focus = null, onFocus, 
   );
   if (!compact) {
     return (
-      <div ref={rootRef} tabIndex={-1} className="rounded-lg border border-zinc-200 bg-zinc-50 p-3 text-sm focus:outline-none dark:border-zinc-800 dark:bg-zinc-950">
+      <div ref={rootRef} tabIndex={-1} className="rounded-lg border border-line bg-canvas p-3 text-sm focus:outline-none">
         <FindingHeader finding={finding} info={info} />
         {finding.body !== finding.title && <NoteMarkdown className="mt-2 text-fg-muted">{finding.body}</NoteMarkdown>}
         {comment}
@@ -163,7 +163,7 @@ function FindingCard({ finding, raised, compact = false, focus = null, onFocus, 
     );
   }
   return (
-    <div ref={rootRef} tabIndex={-1} className={cn('rounded-lg border border-zinc-200 text-sm transition-shadow focus:outline-none dark:border-zinc-800', flash && 'ring-2 ring-blue-500')}>
+    <div ref={rootRef} tabIndex={-1} className={cn('rounded-lg border border-line text-sm transition-shadow focus:outline-none', flash && 'ring-2 ring-blue-500')}>
       <div className="flex items-start gap-2 px-3 py-2">
         <button type="button" aria-expanded={expanded} onClick={() => { if (!expanded) onFocus?.(finding.id); setExpanded((e) => !e); }} className="flex min-w-0 flex-1 items-start gap-2 text-left">
           <span className={cn('mt-1.5 size-2 shrink-0 rounded-full', DOT[finding.severity])} aria-hidden />
@@ -173,7 +173,7 @@ function FindingCard({ finding, raised, compact = false, focus = null, onFocus, 
         {info ? <PostedBadge info={info} /> : canPost && <Button size="sm" variant="primary" onClick={() => setConfirming(true)}>Add</Button>}
       </div>
       {expanded && (
-        <div className="border-t border-zinc-200 px-3 pb-3 pt-2 dark:border-zinc-800">
+        <div className="border-t border-line px-3 pb-3 pt-2">
           {finding.path && (
             <button type="button" onClick={() => onFocus?.(finding.id)} title="Show it in the diff" className="break-all text-left font-mono text-xs text-blue-600 hover:underline dark:text-blue-400">{finding.path}{finding.line ? `:${finding.line}` : ''}</button>
           )}
