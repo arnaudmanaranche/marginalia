@@ -5,7 +5,7 @@ import { locate } from './context.mjs';
 
 export const slug = z.object({ slug: ReviewId });
 export const badSlug = (c) => c.json({ error: 'bad slug' }, 400);
-const notTracked = (c) => c.json({ error: 'no tracked merge request for this review' }, 404);
+export const notTracked = (c) => c.json({ error: 'no tracked merge request for this review' }, 404);
 
 // The tracked MR of a review id ({ project, slug, mr }), or `{ reply }`: the answer to give instead.
 /** @returns {Promise<any>} */

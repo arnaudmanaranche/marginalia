@@ -15,25 +15,19 @@ const ROOT = join(fileURLToPath(import.meta.url), '..', '..');
 
 export const countLines = (text) => text.split('\n').length - (text.endsWith('\n') ? 1 : 0);
 
-// Files that came into api/src over the limit when the studio server moved there. This list only
-// shrinks: split a file, then remove it here. Never add to it.
 // Where the size rule applies.
 const GUARDED_DIRS = ['api/src', 'packages/contract/src'];
-
-export const OVER_LIMIT = [
-  'api/src/http/routes-actions.mjs',
-];
 
 // api/src/foo.mjs, also inside a worktree of this repo (.claude/worktrees/<name>/api/src/foo.mjs).
 export function isGuarded(path, root = ROOT) {
   const rel = relative(root, path).split(sep).join('/').replace(/^\.claude\/worktrees\/[^/]+\//, '');
-  return GUARDED_DIRS.some((dir) => rel.startsWith(`${dir}/`)) && rel.endsWith('.mjs') && !OVER_LIMIT.includes(rel);
+  return GUARDED_DIRS.some((dir) => rel.startsWith(`${dir}/`)) && rel.endsWith('.mjs');
 }
 
 export function oversized(root = ROOT) {
   return GUARDED_DIRS.flatMap((dir) => readdirSync(join(root, dir), { recursive: true })
     .map((f) => `${dir}/${String(f).split(sep).join('/')}`)
-    .filter((file) => file.endsWith('.mjs') && !OVER_LIMIT.includes(file))
+    .filter((file) => file.endsWith('.mjs'))
     .map((file) => ({ file, lines: countLines(readFileSync(join(root, file), 'utf8')) }))
     .filter(({ lines }) => lines > MAX_LINES));
 }
