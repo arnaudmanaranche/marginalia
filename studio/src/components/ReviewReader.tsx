@@ -70,7 +70,12 @@ export function ReviewReader({ item, review: currentReview, reviewError, onRetry
   }, [markdown, shape]);
   // What others already raised folds those findings up; read only when there are some to post.
   const threads = useThreads(!author && item?.tracked && item.iid && !viewingOld && loose.length ? item.slug : null, item?.reviewedAt);
-  const { intro, sections } = useMemo(() => splitSections(meta.markdown), [meta]);
+  const { intro: rawIntro, sections } = useMemo(() => splitSections(meta.markdown), [meta]);
+  // The report's own `# title` repeats the header above it: said once.
+  const intro = useMemo(() => {
+    const h1 = rawIntro.match(/^\s*#\s+(.+)\n?/);
+    return h1 && h1[1].trim() === item?.title?.trim() ? rawIntro.slice(h1[0].length) : rawIntro;
+  }, [rawIntro, item?.title]);
   const ordered = useMemo(
     () => sections.map((s, i) => ({ s, i })).sort((a, b) => rankOf(a.s.title) - rankOf(b.s.title) || a.i - b.i).map((x) => x.s),
     [sections],

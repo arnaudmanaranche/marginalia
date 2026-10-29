@@ -22,8 +22,9 @@ export function ReaderHeader({ item, risk, showSubmit, draftCount, sending, revi
   return (
     <div className="mb-4 flex shrink-0 flex-wrap items-start justify-between gap-3 lg:flex-nowrap">
       <div className="min-w-0 flex-1">
-        <div className="flex min-w-0 items-center gap-x-3">
-          <h1 title={item?.title} className="min-w-0 truncate text-2xl font-semibold tracking-tight">{item?.title ?? 'Review'}</h1>
+        {/* Never squeezed away: the title wraps (two lines at most) and the badges go under it. */}
+        <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5">
+          <h1 title={item?.title} className="line-clamp-2 min-w-0 break-words text-2xl font-semibold tracking-tight [text-wrap:balance] lg:line-clamp-1">{item?.title ?? 'Review'}</h1>
           <span className="flex shrink-0 items-center gap-2">
             {item?.kind !== 'comments' && <VerdictBadge verdict={item?.verdict ?? null} />}
             <RiskBadge level={risk?.level ?? null} why={risk?.rationale} />

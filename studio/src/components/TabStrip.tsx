@@ -1,6 +1,6 @@
 import { AnimatePresence, useReducedMotion } from 'motion/react';
 import * as m from 'motion/react-m';
-import { Check, LayoutGrid, PanelLeft, X } from 'lucide-react';
+import { Check, LayoutGrid, X } from 'lucide-react';
 import type { ReviewItem } from '../lib/api';
 import { cn } from '../lib/utils';
 import { TabIcon, type BotState } from './TabIcon';
@@ -15,28 +15,14 @@ interface Props {
   isUnread: (i: ReviewItem) => boolean;
   isPosted: (i: ReviewItem) => boolean;
   homeUnread: number;
-  sidebarOpen: boolean;
-  // False on Home, where the card grid already lists every review.
-  sidebarAvailable: boolean;
-  onToggleSidebar: () => void;
   onSelect: (slug: string | null) => void;
   onClose: (slug: string) => void;
 }
 
-export function TabStrip({ tabs, activeSlug, botBySlug, isUnread, isPosted, homeUnread, sidebarOpen, sidebarAvailable, onToggleSidebar, onSelect, onClose }: Props) {
+export function TabStrip({ tabs, activeSlug, botBySlug, isUnread, isPosted, homeUnread, onSelect, onClose }: Props) {
   const reduceMotion = useReducedMotion();
   return (
-    <nav aria-label="Open reviews" className="flex h-[var(--strip-h)] items-stretch border-b border-line bg-zinc-100/60 dark:bg-zinc-900/40">
-      <button
-        onClick={onToggleSidebar}
-        disabled={!sidebarAvailable}
-        aria-pressed={sidebarOpen}
-        aria-label="Toggle sidebar"
-        title={sidebarAvailable ? 'Toggle sidebar (⌘B)' : 'Home already lists every review'}
-        className={cn('touch-target flex w-11 shrink-0 items-center justify-center border-r border-line', !sidebarAvailable ? 'text-zinc-300 dark:text-zinc-700' : sidebarOpen ? 'bg-white text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100' : 'text-fg-muted hover:bg-zinc-200/60 dark:hover:bg-zinc-800/60')}
-      >
-        <PanelLeft className="size-4" />
-      </button>
+    <nav aria-label="Open reviews" className="flex h-[var(--strip-h)] items-stretch border-b border-line bg-strip">
 
       <ul className="flex min-w-0 flex-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <li className="flex shrink-0">

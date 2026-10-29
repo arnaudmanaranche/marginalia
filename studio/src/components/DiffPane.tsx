@@ -11,7 +11,9 @@ import { PushTimeline } from './PushTimeline';
 // The code of the current stop: its files from the MR diff, findings inline. Over it, the MR's
 // pushes say which code that is: the whole MR, or what came after one push. An earlier review
 // shows the code as it saw it.
-export function DiffPane({ showAll, state, findings, focus, threads, scope, pushes, onFrom, onReport, onSelectFinding, onRetry }: { showAll: boolean; state: DiffState; findings: Finding[]; threads: Thread[]; focus: Focus | null; scope: DiffScope; pushes: Pushes | null; onFrom: (from: string | null) => void; onReport?: (id: string) => void; onSelectFinding: (id: string) => void; onRetry: () => void }) {
+export function DiffPane({ showAll, state, findings, focus, threads: allThreads, scope, pushes, onFrom, onReport, onSelectFinding, onRetry }: { showAll: boolean; state: DiffState; findings: Finding[]; threads: Thread[]; focus: Focus | null; scope: DiffScope; pushes: Pushes | null; onFrom: (from: string | null) => void; onReport?: (id: string) => void; onSelectFinding: (id: string) => void; onRetry: () => void }) {
+  // A bot's note (a CI table, a preview link) is not a conversation about the code: left out.
+  const threads = allThreads.filter((t) => !t.notes[0]?.bot);
   const toggle = scope.version !== null
     ? <p className="mb-3 text-xs text-fg-muted">The code as this earlier review saw it.</p>
     : pushes && pushes.pushes.length > 0 ? <PushTimeline pushes={pushes} from={scope.from} onFrom={onFrom} onReport={onReport} /> : null;

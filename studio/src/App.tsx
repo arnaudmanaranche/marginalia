@@ -14,7 +14,6 @@ import { groupReviews, waitingOnYou } from './lib/dashboard';
 import { usePersistentState, useOpenTabs } from './lib/layout';
 import { StatusBar } from './components/StatusBar';
 import { TabStrip, type BotState } from './components/TabStrip';
-import { Sidebar } from './components/Sidebar';
 import { ReviewGroups } from './components/ReviewGroups';
 import { ProjectFilter } from './components/ProjectFilter';
 // Not needed on Home, and the heaviest part of the bundle (markdown, highlighting).
@@ -65,20 +64,6 @@ function useSeen(current: ReviewItem | undefined) {
   return { isUnread };
 }
 
-// ⌘B toggles the sidebar.
-function useSidebarShortcut(available: boolean, setOpen: (update: (open: boolean) => boolean) => void) {
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key.toLowerCase() === 'b' && (e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey) {
-        e.preventDefault();
-        if (available) setOpen((v) => !v);
-      }
-    };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [setOpen, available]);
-}
-
 // Close the active review tab like a browser tab. ⌘W is reserved by the browser (a page never
 // receives it), so the working shortcuts are Ctrl+W, ⌥W and ⌘⌥W; plain ⌘W is handled too in case
 // it is ever delivered. The "W" is the character typed, not the physical position, so it also works
@@ -111,7 +96,7 @@ function useCloseTabShortcut(slug: string | null, palette: boolean, close: (slug
 // What Home lists: the recent reviews, grouped by whose turn it is on GitLab.
 function useHomeGroups(items: ReviewItem[]) {
   return useMemo(() => {
-    // Old MRs are noise on Home; they stay reachable from the sidebar, tabs and palette.
+    // Old MRs are noise on Home; they stay reachable from the tabs and the palette (⌘K).
     const fresh = items.filter((i) => Date.now() - new Date(i.reviewedAt).getTime() < STALE_DAYS * 86_400_000);
     return groupReviews(fresh);
   }, [items]);
@@ -124,8 +109,6 @@ export function App() {
   const posted = useMergedPosted(data?.posted ?? EMPTY_POSTED);
   const slug = useHashSlug();
   const [palette, setPalette] = useState(false);
-  // Tucked away by default: the tabs are the working set, the sidebar is history.
-  const [sidebarPref, setSidebarOpen] = usePersistentState('mr-review-viewer:sidebar-open', false);
 
   // One persistent toast while the API is unreachable, dismissed once it's back.
   useEffect(() => {
@@ -139,10 +122,6 @@ export function App() {
     return () => clearTimeout(t);
   }, []);
 
-  // Home is the list, so the sidebar only exists while reading a
-  // review. The stored preference is kept and comes back on the next review.
-  const sidebarAvailable = slug !== null;
-  const sidebarOpen = sidebarPref && sidebarAvailable;
 
   const items = useMemo(() => data?.items ?? [], [data]);
   // A review that came in while the page is open (a poll found a new MR) arrives visibly.
@@ -179,7 +158,6 @@ export function App() {
   const waitingAll = waitingOnYou(useHomeGroups(items));
   const waiting = waitingOnYou(groups);
 
-  useSidebarShortcut(sidebarAvailable, setSidebarOpen);
   const go = (s: string | null) => {
     location.hash = s ? `#/${s}` : '';
     window.scrollTo({ top: 0 });
@@ -196,7 +174,7 @@ export function App() {
     <MotionConfig reducedMotion="user">
     <LazyMotion features={loadMotionFeatures} strict>
       <Toaster position="bottom-right" theme="system" richColors />
-      <header className="sticky top-0 z-40 bg-zinc-50/90 backdrop-blur dark:bg-zinc-950/90">
+      <header className="sticky top-0 z-40 bg-canvas">
         <StatusBar status={data?.status ?? null} connection={data ? 'ok' : error ? 'unreachable' : 'connecting'} settingsActive={slug === SETTINGS_ROUTE} onOpenPalette={() => setPalette(true)} onHome={() => go(null)} onSettings={() => go(SETTINGS_ROUTE)} />
         <TabStrip
           tabs={tabItems}
@@ -205,9 +183,6 @@ export function App() {
           isUnread={isUnread}
           isPosted={isPosted}
           homeUnread={waitingAll}
-          sidebarOpen={sidebarOpen}
-          sidebarAvailable={sidebarAvailable}
-          onToggleSidebar={() => setSidebarOpen((v) => !v)}
           onSelect={go}
           onClose={close}
         />
@@ -215,7 +190,6 @@ export function App() {
       <CommandPalette open={palette} setOpen={setPalette} items={items} onSelect={go} />
 
       <div className="flex">
-        <Sidebar showProject={several} items={items} activeSlug={slug} botBySlug={botBySlug} isUnread={isUnread} isNew={isNew} open={sidebarOpen} onSelect={go} onClose={() => setSidebarOpen(false)} />
         <main className="min-w-0 flex-1">
       {slug === SETTINGS_ROUTE ? (
         <SettingsPage settings={data?.settings ?? null} defaults={data?.settingsDefaults ?? null} projects={projects?.length ?? 1} />

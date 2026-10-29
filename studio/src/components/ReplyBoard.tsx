@@ -48,10 +48,13 @@ export function ReplyBoard({ slug, iid, threads, open, replies, posted, fixes, l
           <span className="inline-flex items-center gap-1.5 font-medium uppercase tracking-wide"><MessageSquare className="size-3.5" aria-hidden />Reviewer threads</span>
           <span>{ordered.length === 0 ? 'nothing to answer' : `${ordered.length} to answer`}</span>
         </div>
-        <div className="mb-4 rounded-lg border border-line p-3">
-          <h2 className="mb-2 inline-flex items-center gap-1.5 text-sm font-semibold"><Upload className="size-3.5" aria-hidden />Fixes to push{toPush > 0 && <span className="font-normal text-fg-muted">({toPush})</span>}</h2>
-          <FixesPanel slug={slug} iid={iid} locked={locked} state={fixes} />
-        </div>
+        {/* Only when there is something to do about the fixes: none made, or all on the MR, is no news. */}
+        {(fixes.error || fixes.fixes?.state === 'ready' || fixes.fixes?.state === 'outdated') && (
+          <div className="mb-4 rounded-lg border border-line p-3">
+            <h2 className="mb-2 inline-flex items-center gap-1.5 text-sm font-semibold"><Upload className="size-3.5" aria-hidden />Fixes to push{toPush > 0 && <span className="font-normal text-fg-muted">({toPush})</span>}</h2>
+            <FixesPanel slug={slug} iid={iid} locked={locked} state={fixes} />
+          </div>
+        )}
         <RepliesPanel slug={slug} threads={ordered} replies={replies} posted={posted} fixes={fixes.fixes} onFixes={fixes.setFixes} locked={locked} reload={reload} selected={selected} onSelect={select} />
       </section>
       <div className="min-w-0 lg:h-full lg:overflow-y-auto lg:pr-1">

@@ -6,10 +6,13 @@ import { Badge } from './ui/Badge';
 import { RiskBadge } from './RiskBadge';
 import { VerdictBadge } from './VerdictBadge';
 
-// Where I stand on the MR, from GitLab (see standingOf).
+// Where I stand on the MR, from GitLab (see standingOf), when it says more than the group the row
+// sits in: "Review requested" is what "Needs your first review" means, "You commented" what
+// "Waiting on others" means.
+const SAID_BY_GROUP = new Set(['Review requested', 'You commented']);
 function StandingBadge({ item }: { item: ReviewItem }) {
   const standing = item.myState ? standingOf(item.kind, item.myState) : null;
-  return standing ? <Badge tone={standing.tone}>{standing.label}</Badge> : null;
+  return standing && !SAID_BY_GROUP.has(standing.label) ? <Badge tone={standing.tone}>{standing.label}</Badge> : null;
 }
 
 // One review per line: the title opens it; findings and age say how urgent it is.
@@ -51,7 +54,8 @@ export function ReviewRow({ item, unread, reviewing = false, arrived = false, sh
         </span>
       )}
       <StandingBadge item={item} />
-      <RiskBadge level={item.risk ?? null} />
+      {/* Low risk is the quiet default: only a risk worth weighing is shown. */}
+      {item.risk !== 'low' && <RiskBadge level={item.risk ?? null} />}
       {/* My own MR gets no verdict from me: I answer it, I do not review it. */}
       {item.kind !== 'comments' && <VerdictBadge verdict={item.verdict} />}
       <span className="w-20 shrink-0 whitespace-nowrap text-right text-xs text-fg-muted">{timeAgo(item.reviewedAt)}</span>

@@ -170,7 +170,7 @@ function FindingCard({ finding, raised, compact = false, focus = null, onFocus, 
           <span className="min-w-0 flex-1 font-medium leading-snug"><span className="sr-only">{finding.severity}: </span>{finding.title}</span>
           <ChevronRight className={cn('mt-0.5 size-4 shrink-0 text-fg-subtle transition-transform motion-reduce:transition-none', expanded && 'rotate-90')} aria-hidden />
         </button>
-        {info ? <PostedBadge info={info} /> : canPost && <Button size="sm" variant="primary" onClick={() => setConfirming(true)}>Add</Button>}
+        {info ? <PostedBadge info={info} /> : canPost && <Button size="sm" onClick={() => setConfirming(true)} title="Add this comment to your pending review">Add</Button>}
       </div>
       {expanded && (
         <div className="border-t border-line px-3 pb-3 pt-2">

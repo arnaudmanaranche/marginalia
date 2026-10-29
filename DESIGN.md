@@ -196,7 +196,7 @@ A new neutral role is added there, in both themes, before it is used.
 
 ## Layout
 
-A sticky chrome of two rows (a 3.5rem top bar and a 2.5rem strip of open reviews, 3rem on touch) sits over a flexible body. The body is a grouped list on Home (what waits on you first, what is done folded) and a reader on a review: article capped at 80ch. A left sidebar (18rem) lists every review but only exists while a review is open; Home is itself the list. Spacing rhythm is Tailwind's 4px base: 8px inside compact controls, 12px between related items, 16px card padding, 24px page gutters.
+A sticky chrome of two rows (a 3.5rem top bar and a 2.5rem strip of open reviews, 3rem on touch) sits over a flexible body. The body is a grouped list on Home (what waits on you first, what is done folded) and a reader on a review: article capped at 80ch. There is no sidebar: Home is the list, the strip holds what is being read, and the command palette (⌘K) reaches every review, old ones included. Spacing rhythm is Tailwind's 4px base: 8px inside compact controls, 12px between related items, 16px card padding, 24px page gutters.
 
 The chrome height is a token (`--chrome-h`, `--strip-h`) that grows on coarse pointers, and everything pinned beneath it reads the variable. Open reviews behave like browser tabs: they start at 14rem wide, shrink together as more open, drop to an icon below ~96px, and animate in and out.
 
@@ -239,7 +239,7 @@ Moderate, consistent corners: 6px on small marks, 8px on controls and inputs, 12
 
 ### Navigation
 - **Open-review strip:** a `nav` of links, active one marked with `aria-current` and a 2px top rule in the verdict color (green or red); each carries a state icon (spinner for in progress, clock for waiting, triangle for failed, else the verdict), an unread dot and a close button that appears on hover or when active.
-- **Sidebar:** grouped list (Needs changes, Approved, Triage, Retro) with the same icons; an unread review is set in medium weight.
+- **Stack line:** a review in a stack opens under one line: its layers bottom to top as chips (verdict icon, `!iid`, the current one outlined in blue), whether the stack can merge, and a toggle for what crosses layers.
 
 ### Dialogs
 Command palette and post confirmation are true modal dialogs: focus moves in, Tab wraps, Escape closes and focus returns to the opener. The confirmation puts focus on Cancel, the safe action.
@@ -275,6 +275,9 @@ The words are part of the brand. The studio says what happened and what to do, i
 - **Do** give any new animation a `prefers-reduced-motion` path that keeps the state change.
 - **Do** use the neutral role classes (`bg-surface`, `border-line`, …) rather than a `zinc-*` and `dark:zinc-*` pair.
 - **Do** give a new kind of moment a sound only if a person would want to hear it from another tab.
+
+### Say it once
+A piece of information appears in one place, the one where it is read. A badge that repeats its group's heading, a "nothing changed" line, a card announcing there is nothing to do, a label naming what the element plainly is ("Comment" over a comment), a title the report repeats under the page's own: each is left out. An empty state is shown only where a person would otherwise wonder.
 
 ### Don't:
 - **Don't** make it playful: no very round corners, bright decorative color, illustration or cheerful copy (the confirmed rejection).

@@ -70,7 +70,7 @@ export interface Standing {
 }
 
 // Where I stand on the MR, in words: what I decided, what waits to be sent, or that a review is asked
-// of me. Shared by the list rows and the sidebar so both say the same thing.
+// of me. Read by the list rows.
 export function standingOf(kind: ReviewItem['kind'], s: MyState): Standing | null {
   if (kind === 'comments') return s.unresolved > 0 ? { label: `${s.unresolved} open`, tone: 'warning' } : null;
   if (s.decision === 'approved') return { label: 'You approved', tone: 'success' };

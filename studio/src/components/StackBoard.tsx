@@ -1,4 +1,5 @@
-import { AlertOctagon, CheckCircle2, CircleDashed, GitMerge, RefreshCw } from 'lucide-react';
+import { useState } from 'react';
+import { AlertOctagon, CheckCircle2, ChevronDown, ChevronRight, CircleDashed, GitMerge, RefreshCw } from 'lucide-react';
 import type { CrossFinding, ReviewItem, Stack, StackLayer } from '../lib/api';
 import { cn } from '../lib/utils';
 import { Badge } from './ui/Badge';
@@ -21,8 +22,9 @@ function VerdictIcon({ item }: { item: ReviewItem | undefined }) {
   return <CircleDashed className="size-4 text-zinc-400" aria-label="Not reviewed" />;
 }
 
-// The stack of the open review as one merge verdict: layers bottom to top, who
-// blocks whom, and the issues that cross layers.
+// The stack of the open review in one line: its layers bottom to top (the merge order), each with
+// its verdict, which one this is, and whether the stack can merge. What crosses layers opens on
+// demand: the review below is what the page is for.
 export function StackBoard({ stack, items, current, isPosted, onSelect }: {
   stack: Stack;
   items: ReviewItem[];
@@ -51,88 +53,70 @@ export function StackBoard({ stack, items, current, isPosted, onSelect }: {
   ];
   const slugOf = (iid: number | null) => (iid === null ? null : byIid.get(iid)?.item?.slug ?? null);
 
-  return (
-    <section aria-label="Stack" className="space-y-3 border-b border-line bg-canvas px-6 py-5">
-      <div className="flex items-center gap-3">
-        <GitMerge className="size-5 shrink-0" aria-hidden />
-        <div className="min-w-0">
-          <h2 className="font-semibold">
-            {ready ? 'Stack ready to merge, bottom first' : `Stack not ready: ${blocking} blocking, ${waiting} not up to date`}
-          </h2>
-          <p className="text-sm text-fg-muted">
-            {stack.layers.length} layers on <code className="font-mono text-xs">{stack.baseBranch}</code>. Merge bottom to top, retargeting each MR to {stack.baseBranch} once the one below has landed.
-          </p>
-        </div>
-      </div>
+  const [open, setOpen] = useState(false);
+  const status = ready ? 'ready to merge' : [blocking && `${blocking} blocking`, waiting && `${waiting} not up to date`].filter(Boolean).join(', ');
 
-      <div className="overflow-x-auto rounded-lg border border-line bg-surface">
-        <table className="w-full text-left text-sm">
-          <thead className="text-xs uppercase tracking-wide text-fg-muted">
-            <tr><th className="px-3 py-2">Merge</th><th className="px-3 py-2">MR</th><th className="px-3 py-2">Verdict</th><th className="px-3 py-2">Critical / important</th><th className="px-3 py-2">Blocked by</th><th className="px-3 py-2">State</th></tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => {
-              const active = r.item?.slug === current.slug;
-              const by = blockedBy(r);
-              const state = !r.item ? 'waiting' : r.item.stale ? 'stale' : isPosted(r.item) ? 'posted' : 'reviewed';
-              return (
-                <tr
-                  key={r.layer.iid}
-                  aria-current={active ? 'true' : undefined}
-                  className={cn('relative border-t border-zinc-100 dark:border-zinc-800', active && 'bg-blue-500/10', r.item && !active && 'hover:bg-zinc-50 dark:hover:bg-zinc-800/50')}
-                >
-                  <td className="px-3 py-2 font-mono text-xs">#{r.layer.position}</td>
-                  <td className="px-3 py-2">
-                    {r.item ? (
-                      // The link covers the whole row (the ::after), so the row is clickable for a mouse and
-                      // reachable from the keyboard through this one link, with no handler on the row itself.
-                      <a href={`#/${r.item.slug}`} onClick={() => onSelect(r.item!.slug)} className="hover:underline after:absolute after:inset-0 after:content-['']"><span className="font-mono text-xs text-fg-muted">!{r.layer.iid}</span> {r.layer.title}</a>
-                    ) : (
-                      <span><span className="font-mono text-xs text-fg-muted">!{r.layer.iid}</span> {r.layer.title}</span>
-                    )}
-                  </td>
-                  <td className="px-3 py-2"><VerdictIcon item={r.item} /></td>
-                  <td className="px-3 py-2 text-fg-muted">{r.item?.verdict ? `${r.item.critical} / ${r.item.important}` : '–'}</td>
-                  <td className="px-3 py-2 font-mono text-xs">{by ? `!${by.iid}` : '–'}</td>
-                  <td className={cn('px-3 py-2 text-xs', state === 'stale' && 'text-amber-700 dark:text-amber-300', state === 'posted' && 'text-emerald-700 dark:text-emerald-300')}>{state}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+  return (
+    <section aria-label="Stack" className="border-b border-line bg-canvas px-6 py-2.5 text-sm">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <span className="inline-flex items-center gap-1.5 font-medium" title={`Merge bottom to top, retargeting each MR to ${stack.baseBranch} once the one below has landed.`}>
+          <GitMerge className="size-4 shrink-0 text-fg-subtle" aria-hidden />Stack on <code className="font-mono text-xs">{stack.baseBranch}</code>
+        </span>
+        {/* Bottom layer first: the order they merge in. */}
+        <ol className="flex flex-wrap items-center gap-1" aria-label="Layers, bottom first">
+          {rows.map((r, i) => {
+            const active = r.item?.slug === current.slug;
+            const by = blockedBy(r);
+            const state = !r.item ? 'not reviewed yet' : r.item.stale ? 'review out of date' : isPosted(r.item) ? 'review posted' : 'reviewed';
+            const label = <><VerdictIcon item={r.item} /><span className="font-mono text-xs">!{r.layer.iid}</span></>;
+            const chip = cn('inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5', active ? 'border-blue-500/60 bg-blue-500/10' : 'border-line hover:bg-sunken', r.item?.stale && 'border-dashed');
+            const title = `${r.layer.title}: ${state}${by ? `, waits for !${by.iid}` : ''}`;
+            return (
+              <li key={r.layer.iid} className="flex items-center gap-1">
+                {i > 0 && <ChevronRight className="size-3.5 text-fg-subtle" aria-hidden />}
+                {r.item && !active
+                  ? <a href={`#/${r.item.slug}`} onClick={() => onSelect(r.item!.slug)} title={title} className={chip}>{label}</a>
+                  : <span aria-current={active ? 'true' : undefined} title={title} className={chip}>{label}</span>}
+              </li>
+            );
+          })}
+        </ol>
+        <span className={cn('text-xs', ready ? 'text-emerald-700 dark:text-emerald-300' : 'text-fg-muted')}>{status}</span>
+        {cross.length > 0 && (
+          <button onClick={() => setOpen((o) => !o)} aria-expanded={open} className="ml-auto inline-flex items-center gap-1 text-xs text-fg-muted hover:text-zinc-900 dark:hover:text-zinc-100">
+            {cross.length} across layers<ChevronDown className={cn('size-3.5 transition-transform motion-reduce:transition-none', open && 'rotate-180')} aria-hidden />
+          </button>
+        )}
       </div>
 
       {current.stale && (
-        <div role="status" className="flex items-center gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-900 dark:text-amber-200">
-          <RefreshCw className="size-4 shrink-0" aria-hidden />
-          This review predates new commits on this layer or on the one below. It is re-run on the next poll, lower layers first.
-        </div>
+        <p role="status" className="mt-2 flex items-center gap-2 text-xs text-amber-800 dark:text-amber-200">
+          <RefreshCw className="size-3.5 shrink-0" aria-hidden />
+          This review predates new commits on this layer or the one below. It is re-run on the next poll, lower layers first.
+        </p>
       )}
 
-      {cross.length > 0 && (
-        <details open className="rounded-lg border border-line bg-surface p-3 text-sm">
-          <summary className="cursor-pointer font-medium">Across layers · {cross.length}</summary>
-          <ul className="mt-2 space-y-2">
-            {cross.map((c, i) => {
-              const other = c.from === here?.layer.iid ? c.iid : c.from;
-              const slug = slugOf(other);
-              return (
-                <li key={i} className="flex gap-3">
-                  <Badge tone={KIND[c.kind].tone} className="h-fit shrink-0">{KIND[c.kind].label}</Badge>
-                  <div className="min-w-0 flex-1">
-                    <p className={cn(c.kind === 'settled-later' && 'text-fg-muted')}>{c.text}</p>
-                    {other !== null && (
-                      <p className="mt-1 text-xs text-fg-muted">
-                        {c.from === here?.layer.iid ? 'Concerns' : 'Raised by'}{' '}
-                        {slug ? <a href={`#/${slug}`} onClick={(e) => { e.preventDefault(); onSelect(slug); }} className="text-blue-600 hover:underline dark:text-blue-400">!{other}</a> : `!${other}`}
-                      </p>
-                    )}
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        </details>
+      {open && (
+        <ul className="mt-3 space-y-2 border-t border-line pt-3">
+          {cross.map((c, i) => {
+            const other = c.from === here?.layer.iid ? c.iid : c.from;
+            const slug = slugOf(other);
+            return (
+              <li key={i} className="flex gap-3">
+                <Badge tone={KIND[c.kind].tone} className="h-fit shrink-0">{KIND[c.kind].label}</Badge>
+                <div className="min-w-0 flex-1">
+                  <p className={cn('break-words [overflow-wrap:anywhere]', c.kind === 'settled-later' && 'text-fg-muted')}>{c.text}</p>
+                  {other !== null && (
+                    <p className="mt-0.5 text-xs text-fg-muted">
+                      {c.from === here?.layer.iid ? 'Concerns' : 'Raised by'}{' '}
+                      {slug ? <a href={`#/${slug}`} onClick={(e) => { e.preventDefault(); onSelect(slug); }} className="text-blue-600 hover:underline dark:text-blue-400">!{other}</a> : `!${other}`}
+                    </p>
+                  )}
+                </div>
+              </li>
+            );
+          })}
+        </ul>
       )}
     </section>
   );
