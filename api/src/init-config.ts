@@ -40,7 +40,7 @@ export function buildConfig({ shared, projects, previous = {} }) {
     projects,
   };
   const result = parseConfig(raw);
-  return result.ok ? { ok: true, raw } : result;
+  return result.ok ? { ok: true as const, raw } : result;
 }
 
 // The defaults the prompts start from: an existing .env (legacy single project) or
@@ -69,6 +69,6 @@ export const ENV_ONLY = [
 export function migrateEnv(env) {
   const raw = JSON.parse(JSON.stringify(configFromEnv(env))); // drops the undefined keys
   const result = parseConfig(raw);
-  if (!result.ok) return { ok: false, errors: result.errors };
-  return { ok: true, raw, stillInEnv: ENV_ONLY.filter((k) => env[k]) };
+  if (!result.ok) return { ok: false as const, errors: result.errors };
+  return { ok: true as const, raw, stillInEnv: ENV_ONLY.filter((k) => env[k]) };
 }

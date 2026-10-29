@@ -15,7 +15,7 @@ export const teamPaths = (dataDir) => ({
 // Each file is replaced atomically (write a temp, rename over), so a review starting
 // during a sync sees the old plugin or the new one, never a gap.
 export async function assemblePlugin({ teamDir, pluginDir }, teamName) {
-  const present = [];
+  const present: string[] = [];
   for (const d of TEAM_DIRS) if (await fileExists(join(teamDir, d))) present.push(d);
   const plan = planTeamPlugin({ teamDir, pluginDir, teamName, present });
   await mkdir(dirname(plan.manifest.path), { recursive: true });
@@ -45,7 +45,7 @@ export async function listTeamContent(teamDir) {
   const names = async (dir, keep) => (await readdir(join(teamDir, dir), { withFileTypes: true }).catch(() => []))
     .filter(keep).map((e) => e.name.replace(/\.md$/, '')).sort();
   const md = (e) => e.isFile() && e.name.endsWith('.md');
-  const skills = [];
+  const skills: string[] = [];
   for (const name of await names('skills', (e) => e.isDirectory())) {
     if (await fileExists(join(teamDir, 'skills', name, 'SKILL.md'))) skills.push(name);
   }

@@ -54,8 +54,7 @@ export async function diffSincePush(project, mr, slug, { from, stopId = null }) 
 // The commits each recent push added, with my last review on GitLab and the bot's reports marked.
 export async function reviewPushes(project, mr, slug) {
   const versions = (await gitlab.listMergeRequestVersions(project, mr.iid)).slice(0, MAX_PUSHES);
-  /** @type {[any, any[]][]} */
-  const entries = await Promise.all(versions.map(async (v) => [v.id, (await gitlab.getMergeRequestVersion(project, mr.iid, v.id)).commits ?? []]));
+  const entries: [any, any[]][] = await Promise.all(versions.map(async (v) => [v.id, (await gitlab.getMergeRequestVersion(project, mr.iid, v.id)).commits ?? []]));
   const commitsByVersion = new Map(entries);
   const artifact = artifactAt(project.reviewsDir, slug);
   const history = (await artifact.listHistory()).slice(0, MAX_REPORTS);

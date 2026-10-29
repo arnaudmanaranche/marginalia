@@ -12,7 +12,7 @@ export function createPosthogClient({ host, key, fetchFn = (url, init) => fetch(
       let sent = 0;
       let failed = 0;
       /** @type {string | null} */
-      let error = null;
+      let error: string | null = null;
       for (let i = 0; i < events.length; i += chunk) {
         const batch = events.slice(i, i + chunk);
         try {

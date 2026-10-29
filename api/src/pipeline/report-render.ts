@@ -42,7 +42,7 @@ function conflictLines(c) {
 }
 
 /** @param {{ title: string, iid: number | string, branch: string }} mr @param {any[]} threads @param {any} data the findings file of a triage @param {any} [conflicts] */
-export function renderTriage(mr, threads, data, conflicts = null) {
+export function renderTriage(mr: { title: string; iid: number | string; branch: string }, threads: any[], data: any, conflicts: any = null) {
   const lines = [`# ${mr.title}`, '', `**MR:** !${mr.iid} | **Branch:** ${mr.branch}`, '', ...conflictLines(conflicts), '## Replies to the reviewers', '', data.summary, ''];
   for (const r of data.replies) {
     const t = threads.find((x) => x.id === r.thread);

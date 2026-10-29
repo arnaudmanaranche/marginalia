@@ -35,7 +35,7 @@ export function denyRules({ rootDir, repoPath, worktreeDir }: { rootDir: string;
     ...BOT_PATHS.map((path) => `Edit(${absolute(join(rootDir, path))})`),
     ...DENIED_GIT.map((cmd) => `Bash(${cmd}:*)`),
   ];
-  for (const base of [repoPath, worktreeDir].filter(Boolean)) {
+  for (const base of [repoPath, worktreeDir].filter((d): d is string => Boolean(d))) {
     for (const dir of TRUSTED_CLAUDE_DIRS) rules.push(`Edit(${absolute(join(base, '.claude', dir))}/**)`);
     for (const file of TRUSTED_CLAUDE_FILES) rules.push(`Edit(${absolute(join(base, '.claude', file))})`);
   }
@@ -44,7 +44,7 @@ export function denyRules({ rootDir, repoPath, worktreeDir }: { rootDir: string;
 
 // `gitHost` is the only network host Bash may reach. autoAllowBashIfSandboxed is
 // off so the allowed-tools list, not the sandbox, decides which commands run.
-export function sandboxSettings({ rootDir, repoPath, worktreeDir, reviewsDir, gitHost }: { rootDir: string; repoPath?: string; worktreeDir?: string; reviewsDir?: string; gitHost?: string }) {
+export function sandboxSettings({ rootDir, repoPath, worktreeDir, reviewsDir, gitHost }: { rootDir: string; repoPath: string; worktreeDir?: string; reviewsDir?: string; gitHost?: string }) {
   return {
     enabled: true,
     failIfUnavailable: true,

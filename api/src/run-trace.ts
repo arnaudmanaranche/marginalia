@@ -62,7 +62,7 @@ export function startTrace({ id, slug, project, iid, kind, command, at, plan = k
     stages: STAGES[plan].map(([sid, label]) => /** @type {Stage} */ ({ id: sid, label, state: 'pending', startedAt: null, endedAt: null })),
     steps: /** @type {Step[]} */ ([]),
     droppedSteps: 0,
-    cost: /** @type {{ usd: number, turns: number, outputTokens: number } | null} */ (null),
+    cost: null as { usd: number; turns: number; outputTokens: number } | null,
   };
 }
 
@@ -111,7 +111,7 @@ export function addStep(trace, text, at, { sub = false, stage }: { sub?: boolean
 // How the run ended. A failure marks the stages it happened in (all that were running: several run
 // side by side); a success closes the last one; a skip leaves what never started as skipped.
 /** @param {Trace} trace @param {Exclude<Outcome, 'running'>} outcome @param {string} at @param {string | null} [error] */
-export function finishTrace(trace, outcome, at, error = null) {
+export function finishTrace(trace, outcome: 'reviewed' | 'skipped' | 'failed', at: string, error: string | null = null) {
   const stages = trace.stages.map((s) => {
     if (s.state === 'running') return { ...s, state: /** @type {StageState} */ (outcome === 'failed' ? 'failed' : outcome === 'skipped' ? 'skipped' : 'done'), endedAt: at };
     if (s.state === 'pending') return { ...s, state: /** @type {StageState} */ ('skipped') };

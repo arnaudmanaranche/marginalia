@@ -17,7 +17,7 @@ Applies to the bot (`api/src`) and to `packages/contract`. Words follow `GLOSSAR
 ## Types
 
 - TypeScript, built with `tsc` to `dist/` (`npm run build`; `npm start`, `npm test` and `npm run typecheck` build first). Imports between source files say `.ts`; the build rewrites them to `.js`.
-- `strict` is on. **Migration debt:** `strictNullChecks` and `noImplicitAny` are still off in `api/tsconfig.json` and come on in separate commits (about 250 and 1,030 errors to fix). No new `any` without a comment saying why.
+- `strict` is on, with `strictNullChecks`. **Migration debt:** `noImplicitAny` is still off in `api/tsconfig.json` and comes on in its own commits (about 1,030 errors). No new `any` without a comment saying why; type an empty array or a `null` that is assigned later (`const xs: string[] = []`, `let t: Timer | null = null`).
 - Types of anything that crosses a boundary (review, HTTP bodies, GitLab payloads we rely on) come from the zod schemas in `packages/contract`. Never hand-write a type a schema already gives.
 - Parse untrusted input once, at the edge, into a typed value. Inside, trust the type.
 

@@ -12,7 +12,7 @@ const SECRET_NAME = /(TOKEN|SECRET|PASSWORD|PASSWD|API_?KEY|CREDENTIAL|PRIVATE_?
 // never reach this subprocess even if it's still set. MR_REVIEW_BOT=1 stays
 // for commands written against the original contract. `passthrough` lists the
 // secret-looking names a command really needs (CLAUDE_ENV_PASSTHROUGH).
-export function claudeEnv(env, passthrough = []) {
+export function claudeEnv(env, passthrough: string[] = []) {
   const keep = new Set(passthrough);
   const clean = Object.fromEntries(Object.entries(env).filter(([name]) => (
     name !== 'ANTHROPIC_API_KEY'
@@ -23,7 +23,7 @@ export function claudeEnv(env, passthrough = []) {
 
 // `resume` continues an earlier session (a stage told its answer did not fit the contract).
 /** @param {{ prompt: string, tools: string[], systemPrompt: string, settings?: object | null, resume?: string | null }} options */
-export function claudeArgs({ prompt, tools, systemPrompt, settings = null, resume = null }) {
+export function claudeArgs({ prompt, tools, systemPrompt, settings = null, resume = null }: { prompt: string; tools: string[]; systemPrompt: string; settings?: object | null; resume?: string | null }) {
   return [
     '-p', prompt,
     ...(resume ? ['--resume', resume] : []),

@@ -21,7 +21,7 @@ export const cleanWorktree = (cwd, { ignored = false } = {}) => gitIn(cwd).run('
 
 // Fetches an MR's head from origin: into `into` when given, else into FETCH_HEAD. A `+` forces it
 // for a ref that was rebased since (a stack's lower layer).
-export const fetchMrHead = (cwd, iid, into = /** @type {string | null} */ (null)) => gitIn(cwd).run('fetch', '--quiet', 'origin', into ? `+merge-requests/${iid}/head:${into}` : `merge-requests/${iid}/head`);
+export const fetchMrHead = (cwd, iid, into: string | null = null) => gitIn(cwd).run('fetch', '--quiet', 'origin', into ? `+merge-requests/${iid}/head:${into}` : `merge-requests/${iid}/head`);
 
 // Fetches a branch of origin into `into`.
 export const fetchBranch = (cwd, branch, into) => gitIn(cwd).run('fetch', '--quiet', 'origin', `+${branch}:${into}`);

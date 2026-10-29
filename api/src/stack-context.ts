@@ -8,7 +8,7 @@ import { layersAbove, stackPrompt } from './stack.ts';
 // renders the stack instructions. `stack` is { stacks, info } from poll.ts.
 export async function buildStackPrompt(mr, stack) {
   const BOT_WORKTREE_DIR = mr.project.worktreeDir;
-  const upperRefs = {};
+  const upperRefs: Record<string, string> = {};
   for (const iid of layersAbove(stack.stacks, mr.iid)) {
     const ref = `refs/marginalia/stack/${iid}`;
     try {

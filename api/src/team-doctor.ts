@@ -25,7 +25,7 @@ const FAILURE_FIX = {
 
 function syncChecks({ marker, behind, now }) {
   if (!marker) return [warn('The team repo has never been synced', 'run `marginalia sync`')];
-  const out = [];
+  const out: any[] = [];
   if (!marker.ok) {
     const fix = FAILURE_FIX[marker.kind] ?? 'run `marginalia sync` and read its message';
     out.push(warn(`The last team sync failed (${marker.kind ?? 'error'}): ${marker.error}`, fix));

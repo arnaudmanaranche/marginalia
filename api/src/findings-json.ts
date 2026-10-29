@@ -34,10 +34,10 @@ function normalizeFinding(raw, index) {
 // Validates and normalizes what a command put in .marginalia-findings.json.
 // Lenient: it keeps what it can and says what it dropped.
 export function normalizeFindingsData(data) {
-  const warnings = [];
+  const warnings: string[] = [];
   if (!data || typeof data !== 'object' || Array.isArray(data)) return { ok: false, error: 'the file is not a JSON object' };
   if (data.findings !== undefined && !Array.isArray(data.findings)) return { ok: false, error: '"findings" is not an array' };
-  const findings = [];
+  const findings: any[] = [];
   (data.findings ?? []).forEach((raw, i) => {
     const r = normalizeFinding(raw, i) as any;
     if (r.warning) warnings.push(r.warning);
@@ -70,6 +70,6 @@ export function parseFindingsJson(raw) {
   try {
     return normalizeFindingsData(JSON.parse(text));
   } catch (err) {
-    return { ok: false, error: `not valid JSON (${String(err.message).slice(0, 80)})` };
+    return { ok: false, error: `not valid JSON (${String((err as Error).message).slice(0, 80)})` };
   }
 }

@@ -15,7 +15,7 @@ const at = (iso) => (iso ? Date.parse(iso) : NaN);
  * `defaultFrom` is where to start reading: after the push I last reviewed, unless it is the head.
  * @param {{ versions: any[], commitsByVersion: Map<any, any[]>, myReviewAt?: string | null, reports?: { id: string | null, sha: string | null | undefined }[] }} input
  */
-export function buildPushes({ versions, commitsByVersion, myReviewAt = null, reports = [] }) {
+export function buildPushes({ versions, commitsByVersion, myReviewAt = null, reports = [] }: { versions: any[], commitsByVersion: Map<any, any[]>, myReviewAt?: string | null, reports?: { id: string | null, sha: string | null | undefined }[] }) {
   const oldestFirst = [...versions].reverse();
   const mine = Number.isFinite(at(myReviewAt)) ? oldestFirst.findLastIndex((v) => at(v.created_at) <= at(myReviewAt)) : -1;
   const pushes = oldestFirst.map((v, i) => {

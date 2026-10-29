@@ -44,7 +44,7 @@ export function parseJudge(answer, ids) {
   const json = jsonAnswer(answer);
   if (!json.ok) return json;
   if (!Array.isArray(json.value.threads)) return { ok: false, error: '"threads" must be an array' };
-  const out = [];
+  const out: any[] = [];
   for (const raw of json.value.threads) {
     const id = String(raw?.thread ?? '');
     if (!ids.includes(id) || out.some((o) => o.thread === id)) continue;

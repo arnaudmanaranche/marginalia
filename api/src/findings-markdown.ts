@@ -29,8 +29,8 @@ export function extractSummary(md) {
 }
 
 function toFinding(severity, lines) {
-  const quote = [];
-  const rest = [];
+  const quote: string[] = [];
+  const rest: string[] = [];
   for (const l of lines) {
     if (/^\s*>/.test(l)) quote.push(l);
     // The label before a comment: the studio's card already carries it.
@@ -55,12 +55,10 @@ function toFinding(severity, lines) {
 // top-level bullet is one finding, and a blockquote under it is its comment.
 // A blockquote with no bullet above it is a finding of its own.
 export function findingsFromMarkdown(md) {
-  const out = [];
-  /** @type {string | null} */
-  let severity = null;
+  const out: any[] = [];
+  let severity: string | null = null;
   let fence = false;
-  /** @type {string[] | null} */
-  let current = null;
+  let current: string[] | null = null;
   const flush = () => {
     if (current) {
       const f = toFinding(severity ?? 'info', current);

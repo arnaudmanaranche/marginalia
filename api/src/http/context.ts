@@ -37,8 +37,7 @@ export function subscribe(listener) {
   listeners.add(listener);
   return () => listeners.delete(listener);
 }
-/** @type {NodeJS.Timeout | null} */
-let debounce = null;
+let debounce: NodeJS.Timeout | null = null;
 export function broadcast() {
   if (debounce) clearTimeout(debounce);
   debounce = setTimeout(() => {

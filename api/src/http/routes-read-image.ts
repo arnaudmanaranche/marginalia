@@ -13,8 +13,7 @@ export function imageRoute(app) {
     responses: { 200: { description: 'The image.', content: { 'image/*': { schema: z.string().openapi({ format: 'binary' }) } } } }, errors: [400, 404, 502],
   }), async (c) => {
     const { src } = c.req.valid('query');
-    /** @type {any} */
-    let project = null;
+    let project: any = null;
     try {
       project = projectOfUpload(new URL(src, GITLAB_BASE_URL).pathname, PROJECTS);
     } catch { /* not a URL: uploadFetchPath refuses it below */ }

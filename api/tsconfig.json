@@ -17,8 +17,7 @@
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "rootDir": ".",
-    "outDir": "dist",
-    "strictNullChecks": false
+    "outDir": "dist"
   },
   "include": [
     "src",

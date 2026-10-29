@@ -27,7 +27,7 @@ const REVIEWER_STATES = { approved: 'approved', requested_changes: 'changes_requ
 const newest = (times) => times.filter((t) => Number.isFinite(t)).reduce((a, b) => Math.max(a, b), -Infinity);
 const iso = (ms) => (Number.isFinite(ms) && ms > -Infinity ? new Date(ms).toISOString() : null);
 
-export function computeReviewState({ me, author, discussions, reviewers = [], approvedBy = [], lastPushAt = null, drafts = 0, now = Date.now() }) {
+export function computeReviewState({ me, author, discussions, reviewers = [] as any[], approvedBy = [] as any[], lastPushAt = null, drafts = 0, now = Date.now() }) {
   const notes = discussions.flatMap((d) => d.notes ?? []);
   const time = (n) => Date.parse(n.created_at);
   const mine = notes.filter((n) => n.author?.username === me);

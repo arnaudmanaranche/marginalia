@@ -22,13 +22,13 @@ async function poll() {
   logger.info('Polling open MRs...');
   status.phase = 'polling';
   await writeStatus();
-  const failures = [];
+  const failures: string[] = [];
   for (const project of PROJECTS) {
     try {
       if ((await passOver(project, passDeps, statusSink)).retrySoon) retrySoon = true;
     } catch (err) {
       logger.error({ project: project.key, err }, 'Poll failed');
-      failures.push(`${project.key}: ${err.message}`);
+      failures.push(`${project.key}: ${(err as Error).message}`);
     }
   }
   if (failures.length) throw new Error(failures.join('; '));
@@ -49,7 +49,7 @@ function printBanner() {
   console.log(`\n${c.cyan}${c.bold}${BANNER}${c.reset}\n`);
 }
 
-let pollTimer = null;
+let pollTimer: ReturnType<typeof setTimeout> | undefined;
 let isPolling = false;
 
 // The next poll is only scheduled once this one is over: a review can take
@@ -96,7 +96,7 @@ function scheduleNextPoll(from) {
 // settings.json changes (from the studio): re-arm the pending timer so the
 // new interval applies right away instead of after the next poll. While a
 // poll is running, its own finally block reads the fresh value.
-let settingsDebounce = null;
+let settingsDebounce: ReturnType<typeof setTimeout> | undefined;
 function watchSettings() {
   try {
     watch(ROOT, (_event, name) => {

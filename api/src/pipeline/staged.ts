@@ -12,7 +12,7 @@ export const isStaged = (command) => command.trim() === BUILTIN_COMMAND;
 // A staged run, giving the same report a command's run would: its markdown, and its shape built
 // from the findings file the stages wrote (plus what they warn about).
 /** @param {{ mr: any, run: any, kind: 'review' | 'triage', outputPath: string, stack?: any }} input */
-export async function stagedRun({ mr, run, kind, outputPath, stack = null }) {
+export async function stagedRun({ mr, run, kind, outputPath, stack = null as any }) {
   const settings = runSettings(mr.project);
   const out = kind === 'review'
     ? await stagedReview({ mr, run, outputPath, stack, settings })

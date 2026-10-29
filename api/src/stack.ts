@@ -61,8 +61,8 @@ export function analyzeStacks(mrs: Record<string, any>[]) {
 
 // Every layer above `iid`, nearest first, from the map analyzeStacks() returned.
 export function layersAbove(stacks, iid) {
-  const out = [];
-  const seen = new Set([iid]);
+  const out: any[] = [];
+  const seen = new Set<any>([iid]);
   const queue = [...(stacks.get(iid)?.childIids ?? [])];
   while (queue.length) {
     const next = queue.shift();
@@ -111,7 +111,7 @@ const CROSS_RE = /^-\s*\[(settled-later|belongs-lower|assumes-upper)\s+!(\d+)\]\
 
 // The `### Across layers` bullets of a review: [{ kind, iid, text }].
 export function parseAcrossLayers(md) {
-  const out = [];
+  const out: any[] = [];
   let inside = false;
   let fence = false;
   for (const line of md.split('\n')) {

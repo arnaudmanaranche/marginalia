@@ -3,7 +3,7 @@
 // (studio/dist) as static files. Bound to 127.0.0.1 only; read-only apart from
 // PUT /api/settings, POST /api/rerun, the posting routes (on other people's MRs only when
 // ALLOW_POSTING=true), and on my own MRs the replies to reviewers and POST /api/push.
-import { mkdirSync, watch } from 'node:fs';
+import { mkdirSync, watch, type FSWatcher } from 'node:fs';
 import { dirname } from 'node:path';
 import { serve } from '@hono/node-server';
 import { STATUS_FILE, STUDIO_HOST, STUDIO_PORT } from '../config.ts';
@@ -21,7 +21,7 @@ export function startStudio() {
     if (!['127.0.0.1', 'localhost', '::1'].includes(STUDIO_HOST)) logger.warn(`Studio listens on ${STUDIO_HOST} with no login: publish the port on 127.0.0.1 only, or keep it on a private network.`);
   });
   server.on('error', (err) => logger.error(err.code === 'EADDRINUSE' ? `Studio: port ${STUDIO_PORT} already in use` : `Studio: ${err.message}`));
-  const watchers = [];
+  const watchers: FSWatcher[] = [];
   for (const project of PROJECTS) {
     try {
       watchers.push(watch(project.reviewsDir, broadcast));

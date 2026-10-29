@@ -10,12 +10,12 @@ const BLOCKING = new Set(['critical', 'important']);
  * The findings file's shape (see findings.ts), and the warnings to show.
  */
 export function mergeReview({ map, chapters }) {
-  const seen = new Set();
-  const ids = new Set();
-  const findings = [];
+  const seen = new Set<string>();
+  const ids = new Set<string>();
+  const findings: Record<string, any>[] = [];
   const tour = map.chapters.map((chapter, i) => {
     const done = chapters[i];
-    const mine = [];
+    const mine: string[] = [];
     for (const f of done?.result?.findings ?? []) {
       const key = `${f.path ?? ''}|${f.line ?? ''}|${f.title.toLowerCase()}`;
       if (seen.has(key)) continue;

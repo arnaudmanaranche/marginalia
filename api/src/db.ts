@@ -7,7 +7,7 @@ import { MIGRATIONS } from './db-schema.ts';
 export function openDatabase(file) {
   const db = new DatabaseSync(file);
   if (file !== ':memory:') db.exec('PRAGMA journal_mode = WAL');
-  const version = Number(/** @type {{ user_version: number }} */ (db.prepare('PRAGMA user_version').get()).user_version);
+  const version = Number((db.prepare('PRAGMA user_version').get() as { user_version: number }).user_version);
   if (version > MIGRATIONS.length) {
     throw new Error(`${file} was written by a newer Marginalia (schema ${version}, this one knows ${MIGRATIONS.length}): update it.`);
   }

@@ -6,7 +6,7 @@ const HUNK = /^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@\s?(.*)$/;
 // A unified diff as lines: { t: 'hunk', text } or { t: 'add' | 'del' | 'ctx', old, new, text }.
 // `old` is null on an added line and `new` on a deleted one.
 export function parseDiff(diff) {
-  const lines = [];
+  const lines: Record<string, any>[] = [];
   let oldNo = 0;
   let newNo = 0;
   for (const raw of String(diff ?? '').split('\n')) {
@@ -25,7 +25,7 @@ export function parseDiff(diff) {
       lines.push({ t: 'ctx', old: oldNo++, new: newNo++, text: raw.slice(1) });
     }
   }
-  while (lines.at(-1)?.t === 'ctx' && lines.at(-1).text === '') lines.pop();
+  while (lines.at(-1)?.t === 'ctx' && lines.at(-1)!.text === '') lines.pop();
   return lines;
 }
 
@@ -56,7 +56,7 @@ export function globToRegExp(glob) {
 // The changed files a stop covers, in the order the stop lists them, each once.
 export function filesForPatterns(files, patterns) {
   const seen = new Set();
-  const out = [];
+  const out: any[] = [];
   for (const pattern of patterns) {
     const re = globToRegExp(pattern);
     for (const f of files) {

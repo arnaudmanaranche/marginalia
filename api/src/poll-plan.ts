@@ -10,7 +10,7 @@ export function planMergeRequests({ openMrs, state, allowedTargets, username, tr
   const stacks = analyzeStacks(openMrs);
   const openByIid = new Map<any, any>(openMrs.map((mr) => [mr.iid, mr]));
   const allMrs = allowedTargets.length
-    ? openMrs.filter((mr) => allowedTargets.includes(stacks.get(mr.iid).baseBranch))
+    ? openMrs.filter((mr) => allowedTargets.includes(stacks.get(mr.iid)!.baseBranch))
     : openMrs;
   const stackInfo = (mr) => {
     const info = stacks.get(mr.iid);
@@ -24,7 +24,7 @@ export function planMergeRequests({ openMrs, state, allowedTargets, username, tr
   // the ones it builds on; MRs I authored get their reviewer comments triaged.
   const reviewMrs = allMrs
     .filter((mr) => mr.author.username !== username)
-    .sort((a, b) => stacks.get(a.iid).depth - stacks.get(b.iid).depth);
+    .sort((a, b) => stacks.get(a.iid)!.depth - stacks.get(b.iid)!.depth);
   const myMrs = triageEnabled ? allMrs.filter((mr) => mr.author.username === username) : [];
   return { stacks, stackInfo, parentOf, isCurrent, reviewMrs, myMrs };
 }

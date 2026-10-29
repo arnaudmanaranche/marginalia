@@ -19,8 +19,7 @@ export function isBotAuthor(author) {
 // Time of the most recent note by someone other than `me` (system notes, bot
 // notes and my own replies don't count), or null if no peer has commented at all.
 export function latestPeerNoteAt(discussions, me) {
-  /** @type {number | null} */
-  let latest = null;
+  let latest: number | null = null;
   for (const discussion of discussions) {
     for (const note of discussion.notes ?? []) {
       if (note.system || isBotAuthor(note.author) || note.author?.username === me) continue;

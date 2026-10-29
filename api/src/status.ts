@@ -9,11 +9,11 @@ export const status = {
   pid: process.pid,
   startedAt: new Date().toISOString(),
   phase: 'idle', // idle | polling | reviewing | error | stopped
-  current: /** @type {any} */ (null), // MR being reviewed right now
-  lastPoll: null, // { at, ok, error }
-  nextPollAt: null,
+  current: null as any, // MR being reviewed right now
+  lastPoll: null as { at: string; ok: boolean; error: string | null } | null,
+  nextPollAt: null as string | null,
   projects: PROJECTS.map((p) => ({ key: p.key, kind: p.kind, reviewsDir: p.reviewsDir })),
-  mrs: /** @type {any[]} */ ([]),
+  mrs: [] as any[],
 };
 
 let statusWrite = Promise.resolve();

@@ -53,7 +53,7 @@ export function runStreaming(
     let buffer = '';
     let stderr = '';
     /** @type {any} */
-    let result = null;
+    let result: any = null;
     const handle = (line) => {
       if (line.trim()) onEvent(line);
       let event;

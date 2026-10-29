@@ -24,7 +24,7 @@ export async function followRun(mr, { kind, command, outputPath, plan }) {
   void pruneTraces(trace.project, basename(outputPath, '.md')).catch(() => {});
 
   /** @type {NodeJS.Timeout | null} */
-  let timer = null;
+  let timer: ReturnType<typeof setTimeout> | null = null;
   // Stages running side by side flush at the same time: saves go one after the other, each
   // writing the trace as it is by then.
   let saving = Promise.resolve();
@@ -90,7 +90,7 @@ export async function followRun(mr, { kind, command, outputPath, plan }) {
       trace = { ...trace, cost: { usd: was.usd + stats.costUsd, turns: was.turns + stats.turns, outputTokens: was.outputTokens + stats.outputTokens } };
     },
     /** @param {'reviewed' | 'skipped' | 'failed'} outcome @param {string | null} [error] */
-    async finish(outcome, error = null) {
+    async finish(outcome: 'reviewed' | 'skipped' | 'failed', error: string | null = null) {
       trace = finishTrace(trace, outcome, new Date().toISOString(), error);
       await flush();
       await new Promise((resolve) => (transcript ? transcript.end(resolve) : resolve(null)));

@@ -21,7 +21,7 @@ const ask = async (promise) => {
   if (p.isCancel(value)) { p.cancel('Aborted, nothing written.'); process.exit(1); }
   return value;
 };
-const text = (message: string, initialValue = '', validate?: (v: string) => string | undefined) => ask(p.text({ message, initialValue, validate: validate ?? ((v) => (v.trim() ? undefined : 'required')) }));
+const text = (message: string, initialValue = '', validate?: (v: string | undefined) => string | undefined) => ask(p.text({ message, initialValue, validate: validate ?? ((v) => (v?.trim() ? undefined : 'required')) }));
 // Validates with `check` until it passes, or the user gives up.
 async function until(message: string, initial: string | undefined, check: (value: string) => any) {
   for (;;) {
@@ -101,19 +101,19 @@ export async function runInit() {
     return 1;
   }
   const dataDir = resolveDataDir({ root: ROOT });
-  let previous = null;
+  let previous: ReturnType<typeof readConfigFile> = null;
   try { previous = readConfigFile(dataDir); } catch (err) { p.log.warn(`${err.message.split('\n')[0]}\nIgnoring it, the answers below replace it.`); }
   const fromEnv = envDefaults(dataDir);
   p.intro('Marginalia setup');
   const shared = await askShared(previous ?? fromEnv);
   const queue = previous ? [...previous.projects] : [fromEnv.project];
-  const projects = [];
+  const projects: any[] = [];
   for (;;) {
     projects.push(await askProject(shared, queue.shift()));
     if (queue.length) continue;
     if (!(await ask(p.confirm({ message: 'Add another project? (a back and a front repo are two projects)', initialValue: false })))) break;
   }
-  const built = buildConfig({ shared, projects, previous: previous ?? {} }) as { ok: boolean; errors?: string[]; raw?: any };
+  const built = buildConfig({ shared, projects, previous: previous ?? {} });
   if (!built.ok) { p.log.error(`Invalid answers:\n  ${built.errors.join('\n  ')}`); return 1; }
   const file = join(dataDir, CONFIG_FILENAME);
   mkdirSync(dataDir, { recursive: true });

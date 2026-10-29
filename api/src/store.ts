@@ -9,7 +9,7 @@ export const DB_FILE = join(DATA_DIR, 'marginalia.db');
 
 // The process-wide database, opened (and the old JSON files imported) on first use.
 /** @type {import('node:sqlite').DatabaseSync | null} */
-let db = null;
+let db: import("node:sqlite").DatabaseSync | null = null;
 export function getDb() {
   if (db) return db;
   const file = process.env.MARGINALIA_DB || DB_FILE;

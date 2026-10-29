@@ -19,7 +19,7 @@ const words = (text) => String(text ?? '').split(/\s+/).filter(Boolean);
 
 function mergeProject(dev, teamProject, defaults) {
   const merged = { ...dev };
-  const fromTeam = [];
+  const fromTeam: any[] = [];
   for (const field of FIELDS) {
     if (isSet(dev[field])) continue;
     const [value, source] = isSet(teamProject?.[field]) ? [teamProject[field], 'team project']
@@ -52,7 +52,7 @@ export function mergeTeam(rawConfig, team, { env = {} } = {}) {
   const defaults = team?.defaults ?? {};
   const teamProjects = team?.projects ?? [];
   const byId = new Map(teamProjects.map((p) => [p.gitlabProjectId, p]));
-  const fromTeam = [];
+  const fromTeam: any[] = [];
   const projects = (rawConfig.projects ?? []).map((dev) => {
     const result = mergeProject(dev, byId.get(dev.gitlabProjectId), defaults);
     fromTeam.push(...result.fromTeam);

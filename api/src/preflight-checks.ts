@@ -13,9 +13,9 @@ const firstLine = (text) => String(text ?? '').trim().split('\n').find(Boolean)?
 
 // `claude auth status` prints JSON. An older CLI without the command can't tell: the run goes on.
 /** @param {{ stdout?: string, error?: string | null }} probe */
-export function claudeCheck({ stdout = '', error = null }) {
+export function claudeCheck({ stdout = '', error = null }: { stdout?: string, error?: string | null }) {
   const label = 'Claude';
-  let status = /** @type {any} */ (null);
+  let status: any = null;
   try {
     status = JSON.parse(stdout);
   } catch { /* not JSON: see below */ }
@@ -27,7 +27,7 @@ export function claudeCheck({ stdout = '', error = null }) {
 
 // The project as the token sees it: reading it proves both the token and the access.
 /** @param {{ project?: any, error?: string | null }} probe */
-export function gitlabCheck({ project = null, error = null }) {
+export function gitlabCheck({ project = null, error = null }: { project?: any, error?: string | null }) {
   if (project) return ok('GitLab', `the token reads ${project.path_with_namespace ?? 'the project'}`);
   // The message is kept whole: failure-kind.ts sorts it (network, refused token).
   return block('GitLab', firstLine(error));
@@ -35,7 +35,7 @@ export function gitlabCheck({ project = null, error = null }) {
 
 // `git ls-remote origin refs/merge-requests/<iid>/head`: the MR head the checkout fetches.
 /** @param {{ stdout?: string, error?: string | null, iid: number | string }} probe */
-export function branchCheck({ stdout = '', error = null, iid }) {
+export function branchCheck({ stdout = '', error = null, iid }: { stdout?: string, error?: string | null, iid: number | string }) {
   if (error) return block('Git remote', `origin could not be read: ${firstLine(error)}`);
   const sha = stdout.trim().split(/\s/)[0];
   if (!sha) return block('Git remote', `origin has no head for !${iid}: the MR may be closed or its branch deleted`);
@@ -46,7 +46,7 @@ export function branchCheck({ stdout = '', error = null, iid }) {
 // pushing the fixes from the studio will need. A refusal of the push itself (not a fast-forward,
 // up to date) means the access is there.
 /** @param {{ stdout?: string, error?: string | null, branch: string }} probe */
-export function pushCheck({ stdout = '', error = null, branch }) {
+export function pushCheck({ stdout = '', error = null, branch }: { stdout?: string, error?: string | null, branch: string }) {
   const text = `${stdout}\n${error ?? ''}`;
   if (!error || /\[rejected\]|non-fast-forward|up to date|up-to-date|fetch first/i.test(text)) return ok('Push access', `this machine can push to ${branch}`);
   if (/denied|forbidden|\b403\b|\b401\b|authentication failed|could not read username|not allowed to push|permission/i.test(text)) {
@@ -57,7 +57,7 @@ export function pushCheck({ stdout = '', error = null, branch }) {
 
 // The ticket the agents are given. Without it a review is still useful, so this never blocks.
 /** @param {{ key: string | null, enabled: boolean, error?: string | null }} probe */
-export function jiraCheck({ key, enabled, error = null }) {
+export function jiraCheck({ key, enabled, error = null }: { key: string | null, enabled: boolean, error?: string | null }) {
   if (!key) return ok('Ticket', 'the MR names no ticket');
   if (!enabled) return warn('Ticket', `the bot has no Jira access (JIRA_BASE_URL, JIRA_EMAIL, JIRA_API_TOKEN), so it cannot read ${key}: the agents go without it`);
   if (error) return warn('Ticket', `Jira refused the bot (${firstLine(error)}): the agents go without ${key}`);

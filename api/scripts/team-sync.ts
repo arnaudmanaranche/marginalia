@@ -62,7 +62,7 @@ export default async function teamSync({ dataDir, env = process.env, log = conso
   }
   const loaded: LoadedTeam = await loadTeam(dir, runningVersion());
   if (!loaded.ok) {
-    log(`Synced, but the team repo cannot be used: ${loaded.errors.join('\n  ')}`);
+    log(`Synced, but the team repo cannot be used: ${loaded.errors!.join('\n  ')}`);
     if (loaded.tooOld) log('Update marginalia, then run the sync again. The team skills are not used until then.');
     return 1;
   }

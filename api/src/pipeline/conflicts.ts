@@ -32,7 +32,7 @@ export async function settleConflicts({ mr, run, context, settings }) {
   await git.run('merge', '--no-ff', '--no-commit', `origin/${target}`).catch(() => null);
   try {
     const done = await agentStage({ run, stage: 'conflicts', prompt: conflictPrompt({ context, target, files }), system: TRIAGE_SYSTEM, tools: STAGE_FIX_TOOLS, cwd, settings, parse: parseConflict });
-    const left = [];
+    const left: string[] = [];
     for (const f of files) if (MARKER.test(await readFile(join(cwd, f), 'utf8').catch(() => ''))) left.push(f);
     if (left.length) throw new Error(`conflict markers are left in ${left.join(', ')}`);
     if (!done.settled) throw new Error(done.how);

@@ -12,7 +12,7 @@
  */
 export function withTrust(claudeJson, paths) {
   const projects = { ...(claudeJson.projects ?? {}) };
-  const added = [];
+  const added: string[] = [];
   for (const path of paths) {
     if (projects[path]?.hasTrustDialogAccepted === true) continue;
     projects[path] = { ...projects[path], hasTrustDialogAccepted: true };

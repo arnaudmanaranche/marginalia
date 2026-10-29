@@ -47,7 +47,7 @@ export async function pushOneFix(project, mr, sha) {
       return { pushed: false, status: before, error: 'this fix builds on an earlier one: push all the fixes together instead' };
     }
     await pushTo(project.repoPath, await head(work), mr.source_branch);
-    let note = /** @type {string | null} */ (null);
+    let note: string | null = null;
     try {
       for (const c of oldestFirst) if (c.sha !== sha) await pick(c.sha);
       // Compare-and-swap: a triage that ran meanwhile wins.

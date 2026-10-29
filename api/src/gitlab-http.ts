@@ -51,8 +51,8 @@ export function createGitlabClient({ baseUrl, token, fetchFn = (url, init) => fe
   // Every item of a list endpoint: 100 a page, following X-Next-Page (capped, so a runaway
   // list cannot loop). `path` may already carry a query string.
   async function paginate(path) {
-    const items = [];
-    let page = '1';
+    const items: any[] = [];
+    let page: string | null = '1';
     for (let n = 0; page && n < MAX_PAGES; n++) {
       const sep = path.includes('?') ? '&' : '?';
       const res = await send(`${path}${sep}per_page=100&page=${page}`);

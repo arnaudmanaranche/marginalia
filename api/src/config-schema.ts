@@ -38,6 +38,6 @@ export const ConfigSchema = z.object({
 // { ok: true, config } or { ok: false, errors: ['projects.0.repoLocalPath: ...'] }
 export function parseConfig(raw) {
   const result = ConfigSchema.safeParse(raw);
-  if (result.success) return { ok: /** @type {const} */ (true), config: result.data };
-  return { ok: /** @type {const} */ (false), errors: result.error.issues.map((i) => `${i.path.join('.') || 'config'}: ${i.message}`) };
+  if (result.success) return { ok: true as const, config: result.data };
+  return { ok: false as const, errors: result.error.issues.map((i) => `${i.path.join('.') || 'config'}: ${i.message}`) };
 }

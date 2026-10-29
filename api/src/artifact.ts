@@ -20,10 +20,10 @@ export function artifactAt(reviewsDir, slug) {
     // that version's id, or null. `reviewedSha` is the head commit the run read: it is what lets the
     // studio show the code this review covered.
     /** @param {{ content: string, shape: any }} report @param {string | null} [reviewedSha] */
-    async write({ content, shape }, reviewedSha = null) {
+    async write({ content, shape }: { content: string; shape: any }, reviewedSha: string | null = null) {
       const kept = await history.keep(content);
       await writeFile(markdownPath, content);
-      const stored = { ...shape, generatedAt: new Date().toISOString(), ...(reviewedSha && { reviewedSha }) };
+      const stored = { ...shape, generatedAt: new Date().toISOString(), ...(reviewedSha ? { reviewedSha } : {}) };
       await writeFile(shapePath, `${JSON.stringify(stored, null, 2)}\n`);
       return kept;
     },

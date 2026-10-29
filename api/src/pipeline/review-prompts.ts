@@ -39,7 +39,7 @@ export function parseMap(answer, changed) {
     .filter((c) => c.title && c.files.length)
     .slice(0, 12);
   if (!kept.length) return { ok: false, error: 'no chapter has a title and files' };
-  const warnings = [];
+  const warnings: string[] = [];
   const left = changed.filter((p) => !kept.some((c) => c.files.some((f) => matchesPattern(f, p))));
   if (left.length) {
     kept.push({ title: 'The rest of the change', summary: 'Files the map did not place in a chapter.', check: 'Whatever these files change on their own.', files: left });

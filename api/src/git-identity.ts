@@ -9,7 +9,7 @@ import { logger } from './logger.ts';
 
 const DEFAULT_EMAIL = 'marginalia@localhost';
 
-/** @typedef {{ name: string, email: string }} Identity */
+type Identity = { name: string; email: string };
 
 // Pure: the identity from the environment and GitLab's /user, in that order.
 /** @param {Record<string, string | undefined>} env @param {any} user @returns {Identity | null} */
@@ -23,21 +23,21 @@ export function identityOf(env, user) {
 
 // The environment that makes git author and commit as `id`.
 /** @param {Identity | null} id @returns {Record<string, string>} */
-export const identityEnv = (id) => (id
+export const identityEnv = (id: Identity | null): Record<string, string> => (id
   ? { GIT_AUTHOR_NAME: id.name, GIT_AUTHOR_EMAIL: id.email, GIT_COMMITTER_NAME: id.name, GIT_COMMITTER_EMAIL: id.email }
   : {});
 
 /** @type {Promise<Identity | null> | null} */
-let cached = null;
+let cached: Promise<Identity | null> | null = null;
 // Read once per process; a GitLab that can't be read now is asked again next time.
 /** @returns {Promise<Identity | null>} */
-export function commitIdentity() {
+export function commitIdentity(): Promise<Identity | null> {
   cached ??= gitlab.currentUser().then((user) => identityOf(process.env, user), (err) => {
     logger.warn(`Could not read the GitLab user for the commit identity: ${err.message}`);
     cached = null;
     return identityOf(process.env, null);
   });
-  return /** @type {Promise<Identity | null>} */ (cached);
+  return cached as Promise<Identity | null>;
 }
 
 // The environment of a git command that commits, as me.

@@ -5,7 +5,7 @@ const MAX_THREAD_CHARS = 6000;
 // The threads as plain text, truncated. `me` names the bot's user in that role; `ids` names each
 // thread by its GitLab discussion id, for a reply to point at.
 function threadText(threads, me, { ids = false } = {}) {
-  const lines = [];
+  const lines: string[] = [];
   for (const t of threads) {
     const where = t.path ? ` on ${t.path}${t.line ? `:${t.line}` : ''}` : '';
     lines.push(`- Thread${ids ? ` ${t.id}` : ''}${where}${t.resolved ? ' (resolved)' : ''}:`);

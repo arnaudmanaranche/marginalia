@@ -18,7 +18,7 @@ import { buildStackPrompt } from './stack-context.ts';
 // --append-system-prompt, its report read back from whatever it wrote. See pipeline/ for the
 // staged runs Marginalia drives itself.
 /** @param {{ mr: any, run: any, kind: 'review' | 'triage', command: string, tools: string[], outputPath: string, stack?: any }} input */
-export async function commandRun({ mr, run, kind, command, tools, outputPath, stack = null }) {
+export async function commandRun({ mr, run, kind, command, tools, outputPath, stack = null }: { mr: any; run: any; kind: 'review' | 'triage'; command: string; tools: string[]; outputPath: string; stack?: any }) {
   const BOT_WORKTREE_DIR = mr.project.worktreeDir;
   await run.stage('context');
   const stackContext = stack && stack.info.size > 1 ? await buildStackPrompt(mr, stack) : '';

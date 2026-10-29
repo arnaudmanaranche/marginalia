@@ -23,7 +23,7 @@ export async function fixesStatus(project, mr) {
   const git = gitIn(cwd);
   const fixesSha = await refSha(cwd, `refs/heads/${ref}`);
   const remoteSha = await remoteHead(cwd, mr.source_branch);
-  const base = { ref, branch: mr.source_branch, fixesSha, remoteSha, commits: /** @type {ReturnType<typeof parseFixLog>} */ ([]), landed: /** @type {{ thread: string, sha: string }[]} */ ([]) };
+  const base = { ref, branch: mr.source_branch, fixesSha, remoteSha, commits: [] as ReturnType<typeof parseFixLog>, landed: [] as { thread: string; sha: string }[] };
   // The remote head may be commits pushed since the triage that this repo hasn't fetched yet.
   if (remoteSha && !(await git.ok('cat-file', '-e', `${remoteSha}^{commit}`))) {
     await fetchBranch(cwd, `refs/heads/${mr.source_branch}`, `refs/marginalia/remote/${mr.iid}`).catch(() => null);

@@ -56,9 +56,9 @@ export function buildTour(raw, findings) {
   if (raw === undefined || raw === null) return { tour: [], warnings: [] };
   if (!Array.isArray(raw)) return { tour: [], warnings: ['"tour" is not an array'] };
   const known = new Set(findings.map((f) => f.id));
-  const claimed = new Set();
-  const warnings = [];
-  const stops = [];
+  const claimed = new Set<string>();
+  const warnings: string[] = [];
+  const stops: Record<string, any>[] = [];
   raw.forEach((s, i) => {
     const title = str(s?.title ?? s?.name, 200);
     const summary = str(s?.summary ?? s?.description ?? s?.body, 2000);

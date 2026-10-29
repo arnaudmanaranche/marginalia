@@ -16,7 +16,7 @@ import { GUIDANCE_FILES, parseNumstat } from './context-text.ts';
 // the branch left its target, the ticket, the repo's rules files, the conversation and the last
 // report. A source that fails (GitLab, Jira) is left out with a warning, never fatal.
 /** @param {any} mr @param {{ outputPath: string, stack?: any }} opts */
-export async function gatherContext(mr, { outputPath, stack = null }) {
+export async function gatherContext(mr, { outputPath, stack = null }: { outputPath: string, stack?: any }) {
   const cwd = mr.project.worktreeDir;
   const git = gitIn(cwd);
   const base = await git.run('merge-base', `origin/${mr.target_branch}`, 'HEAD');

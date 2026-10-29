@@ -81,8 +81,7 @@ export function writeRoutes(app, gitlab = defaultGitlab) {
     } catch (err) {
       return c.json({ error: shortMessage(err) }, 502);
     }
-    /** @type {string | null} */
-    let approveError = null;
+    let approveError: string | null = null;
     if (action === 'approve') {
       try {
         await gitlab.approveMergeRequest(project, mr.iid, (await loadState(project))[mr.iid]);

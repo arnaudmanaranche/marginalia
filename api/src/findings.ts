@@ -44,8 +44,8 @@ export const NO_FINDINGS_WARNING = 'No findings could be read from this report: 
 // `findingsRaw` is the content of .marginalia-findings.json, or null when the
 // command wrote none.
 /** @param {{ markdown: string, findingsRaw?: string | null }} input */
-export function buildShape({ markdown, findingsRaw = null }) {
-  const warnings = [];
+export function buildShape({ markdown, findingsRaw = null }: { markdown: string; findingsRaw?: string | null }) {
+  const warnings: string[] = [];
   const derived = deriveFromMarkdown(markdown);
   if (findingsRaw !== null) {
     const parsed = parseFindingsJson(findingsRaw);
@@ -88,7 +88,7 @@ export function buildShape({ markdown, findingsRaw = null }) {
 // What the studio's review list shows, from a shape.
 export function listFields(shape) {
   const count = (s) => shape.findings.filter((f) => f.severity === s).length;
-  const highlights = [];
+  const highlights: { severity: string, text: string }[] = [];
   for (const severity of ['critical', 'important']) {
     for (const f of shape.findings.filter((x) => x.severity === severity).slice(0, 2)) {
       highlights.push({ severity, text: clip(plain(f.body), 150) });

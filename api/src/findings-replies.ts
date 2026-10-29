@@ -30,8 +30,8 @@ function normalizeVerdict(raw) {
 export function normalizeReplies(raw) {
   if (raw === undefined || raw === null) return { replies: [], warnings: [] };
   if (!Array.isArray(raw)) return { replies: [], warnings: ['"replies" is not an array'] };
-  const replies = [];
-  const warnings = [];
+  const replies: Record<string, any>[] = [];
+  const warnings: string[] = [];
   raw.forEach((r, i) => {
     const thread = String(r?.thread ?? r?.threadId ?? r?.discussion ?? r?.discussionId ?? '').trim();
     if (!DISCUSSION_ID.test(thread)) return void warnings.push(`reply #${i + 1} has no thread id`);

@@ -18,7 +18,7 @@ export function parseFixLog(out) {
 // The fixes already on the MR branch, by thread: the commit to name in that thread's reply.
 /** @param {{ sha: string, thread: string | null }[]} commits newest first */
 export function landedByThread(commits) {
-  const landed = [];
+  const landed: { thread: string, sha: string }[] = [];
   for (const c of commits) if (c.thread && !landed.some((l) => l.thread === c.thread)) landed.push({ thread: c.thread, sha: c.sha });
   return landed;
 }

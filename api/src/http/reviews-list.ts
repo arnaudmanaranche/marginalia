@@ -19,7 +19,7 @@ async function listProjectReviews(project, status) {
   type Mr = Record<string, any>;
   const mrs = ((status?.mrs ?? []) as Mr[]).filter((m) => m.project === project.key);
   const byPath = new Map<string, Mr>(mrs.map((mr): [string, Mr] => [mr.reviewPath, mr]));
-  let names = [];
+  let names: string[] = [];
   try {
     names = (await readdir(project.reviewsDir)).filter((n) => n.endsWith('.md'));
   } catch {

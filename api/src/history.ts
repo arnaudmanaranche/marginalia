@@ -33,7 +33,7 @@ export function historyIn(dir, markdownPath, shapePath) {
 
     // Versions, newest first.
     async list() {
-      let names = [];
+      let names: string[] = [];
       try {
         names = (await readdir(dir)).filter((n) => n.endsWith('.md'));
       } catch {

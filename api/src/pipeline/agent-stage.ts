@@ -41,8 +41,8 @@ export async function agentStage({ run, stage, prompt, system, tools, cwd, setti
 
 // Runs `fn` on each item, at most `limit` at a time, keeping the order of the results.
 /** @template I, R @param {I[]} items @param {number} limit @param {(item: I, index: number) => Promise<R>} fn @returns {Promise<R[]>} */
-export async function mapLimit(items, limit, fn) {
-  const results = /** @type {R[]} */ ([]);
+export async function mapLimit<I, R>(items: I[], limit: number, fn: (item: I, index: number) => Promise<R>): Promise<R[]> {
+  const results: R[] = [];
   let next = 0;
   const worker = async () => {
     while (next < items.length) {
