@@ -25,3 +25,6 @@ marginalia.db*
 .npmrc
 repos/
 compose.override.yaml
+
+# built studio copied next to the code by `prepack`
+api/ui-dist/

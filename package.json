@@ -1,66 +1,32 @@
 {
-  "name": "@worldia/marginalia",
+  "name": "marginalia",
   "version": "2.0.0",
+  "private": true,
   "type": "module",
-  "description": "Poller that watches open GitLab MRs, triggers Claude Code headless review, and posts the result as an MR comment.",
-  "main": "poll.mjs",
-  "bin": {
-    "marginalia": "bin/marginalia.mjs"
-  },
-  "files": [
-    "bin",
-    "api/src",
-    "packages/contract/src",
-    "packages/contract/package.json",
-    "scripts/*.mjs",
-    "!scripts/check-file-size.mjs",
-    "poll.mjs",
-    "ui/public/logo.png",
-    "ui/dist",
-    "skills",
-    "examples",
-    "swiftbar",
-    ".env.example"
-  ],
+  "description": "Marginalia workspace: the bot (api), the studio (ui) and their contract (packages/contract).",
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "api",
+    "ui"
   ],
-  "bundleDependencies": [
-    "@worldia/marginalia-contract"
-  ],
-  "publishConfig": {
-    "access": "restricted"
-  },
   "scripts": {
-    "prepack": "npm --prefix ui ci && npm --prefix ui run build",
-    "start": "node poll.mjs",
+    "start": "npm --workspace api start",
     "dev": "concurrently -k -n api,studio -c blue,magenta \"npm start\" \"npm run studio:dev\"",
-    "setup": "npm install && npm run studio:install && npm run studio:build && npm run init",
-    "init": "node scripts/init.mjs",
-    "doctor": "node scripts/doctor.mjs",
-    "autostart": "node scripts/autostart.mjs",
-    "test": "node --test test/*.test.mjs",
+    "setup": "npm install && npm run studio:build && npm run init",
+    "init": "npm --workspace api run init",
+    "doctor": "npm --workspace api run doctor --",
+    "autostart": "npm --workspace api run autostart --",
+    "test": "npm --workspace api test",
+    "test:ui": "npm --workspace ui test",
     "check:size": "node scripts/check-file-size.mjs",
-    "typecheck": "tsc -p .",
-    "posthog:backfill": "node scripts/posthog-backfill.mjs",
-    "studio:install": "npm --prefix ui install",
-    "studio:build": "npm --prefix ui run build",
-    "studio:dev": "npm --prefix ui run dev",
-    "studio:storybook": "npm --prefix ui run storybook"
+    "typecheck": "npm --workspace api run typecheck",
+    "posthog:backfill": "npm --workspace api run posthog:backfill --",
+    "studio:build": "npm --workspace ui run build",
+    "studio:dev": "npm --workspace ui run dev",
+    "studio:storybook": "npm --workspace ui run storybook"
   },
   "engines": {
     "node": ">=22"
-  },
-  "dependencies": {
-    "@clack/prompts": "^1.8.1",
-    "@hono/node-server": "^2.1.5",
-    "@hono/zod-openapi": "^1.6.3",
-    "commander": "^15.0.0",
-    "dotenv": "^16.4.5",
-    "hono": "^4.13.13",
-    "pino": "^10.4.0",
-    "pino-pretty": "^13.2.0",
-    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@types/node": "^26.6.5",

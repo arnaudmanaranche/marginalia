@@ -18,7 +18,7 @@ import { appendRun } from './runlog.mjs';
 // The doctor's fix for a failure that belongs in Marginalia: made by Claude in a worktree of a git
 // clone of Marginalia (MARGINALIA_SOURCE_DIR, else the install itself when it is one), on a branch
 // doctor/<run>, committed and tested there. It is pushed only when the person asks, from the studio.
-const SOURCE_DIR = process.env.MARGINALIA_SOURCE_DIR || ROOT;
+const SOURCE_DIR = process.env.MARGINALIA_SOURCE_DIR || join(ROOT, '..');
 const FIXES_DIR = join(DATA_DIR, 'doctor-fixes');
 const TIMEOUT_MS = 20 * 60_000;
 const SYSTEM = "You are Marginalia's doctor, fixing a failure you diagnosed, in Marginalia's own code. Only the worktree you are in may change.";
@@ -62,7 +62,7 @@ async function prepare({ trace, doctor, save }) {
     const base = await head(SOURCE_DIR);
     await source.run('worktree', 'add', '-B', branch, dir, base);
     // The tests need the dependencies; the worktree borrows the clone's.
-    for (const sub of ['node_modules', 'ui/node_modules']) {
+    for (const sub of ['node_modules']) {
       if (existsSync(join(SOURCE_DIR, sub))) await symlink(join(SOURCE_DIR, sub), join(dir, sub)).catch(() => {});
     }
     const args = claudeArgs({ prompt: fixPrompt({ trace, doctor }), tools: FIX_TOOLS, systemPrompt: SYSTEM });

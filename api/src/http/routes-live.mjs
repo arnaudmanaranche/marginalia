@@ -1,11 +1,11 @@
 // @ts-check
 import { readFile } from 'node:fs/promises';
-import { join, dirname, extname, normalize } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join, extname, normalize } from 'node:path';
 import { streamSSE } from 'hono/streaming';
 import { subscribe } from './context.mjs';
+import { uiDist, uiDistCandidates } from '../ui-assets.mjs';
 
-const DIST = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', 'ui', 'dist');
+const DIST = uiDist() ?? uiDistCandidates()[1];
 const MIME = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',

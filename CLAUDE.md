@@ -21,7 +21,7 @@ moving the code into `api/` (bot), `ui/` (studio) and `packages/contract`. Read 
 - No module in `api/src` may exceed **150 lines** (`MAX_LINES` in
   `scripts/check-file-size.mjs`); components in `ui/` stay under 200.
 - Enforced three ways: a `PostToolUse` hook (`.claude/settings.json`) that rejects an edit leaving
-  a file over the limit, `test/file-size.test.mjs` in `npm test`, and `npm run check:size`.
+  a file over the limit, `api/test/file-size.test.mjs` in `npm test`, and `npm run check:size`.
 - Near the limit, split by responsibility rather than compacting: pure logic in its own module
   with no config or I/O import, requests and side effects in another. Do not raise the limit to
   make a change fit.

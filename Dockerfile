@@ -7,21 +7,25 @@
 #   /repos             your checkouts of the repos to review              (bind mount)
 # See "Run in a container" in the README.
 
-# --- the React app, built once
+# --- the React app, built once (the repo is an npm workspace: one lockfile at the root)
 FROM node:22-bookworm-slim AS studio
-WORKDIR /studio
-COPY ui/package.json ui/package-lock.json ./
-RUN npm ci
-COPY ui/index.html ui/tsconfig.json ui/vite.config.ts ./
-COPY ui/public ./public
-COPY ui/src ./src
-RUN npm run build
+WORKDIR /src
+COPY package.json package-lock.json ./
+COPY api/package.json api/
+COPY ui/package.json ui/
+COPY packages/contract/package.json packages/contract/
+RUN npm ci --workspace ui --include-workspace-root=false
+COPY ui ui
+RUN npm --workspace ui run build
 
-# --- production dependencies of the server side
+# --- production dependencies of the bot (and the contract package it links to)
 FROM node:22-bookworm-slim AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
-RUN npm ci --omit=dev
+COPY api/package.json api/
+COPY ui/package.json ui/
+COPY packages/contract/package.json packages/contract/
+RUN npm ci --omit=dev --workspace api --include-workspace-root=false
 
 # --- what runs
 FROM node:22-bookworm-slim
@@ -34,17 +38,14 @@ RUN apt-get update \
  && npm cache clean --force \
  && git config --system --add safe.directory '*'
 
+# /app is the workspace root, /app/api the package the bot runs from.
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
-COPY package.json poll.mjs .env.example ./
-COPY bin ./bin
+COPY package.json ./
+COPY packages/contract ./packages/contract
 COPY api ./api
-COPY scripts ./scripts
-COPY docker ./docker
-COPY skills ./skills
-COPY examples ./examples
-COPY --from=studio /studio/dist ./ui/dist
-RUN chmod +x docker/entrypoint.sh docker/git-https.mjs \
+COPY --from=studio /src/ui/dist ./api/ui-dist
+RUN chmod +x api/docker/entrypoint.sh api/docker/git-https.mjs \
  && mkdir -p /data /home/node/.claude /repos \
  && chown node:node /data /home/node/.claude /repos
 
@@ -66,5 +67,5 @@ EXPOSE 4477
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
   CMD node -e "fetch('http://127.0.0.1:'+process.env.STUDIO_PORT+'/openapi.json').then((r)=>process.exit(r.ok?0:1),()=>process.exit(1))"
 
-ENTRYPOINT ["/usr/bin/tini", "--", "/app/docker/entrypoint.sh"]
+ENTRYPOINT ["/usr/bin/tini", "--", "/app/api/docker/entrypoint.sh"]
 CMD ["start"]

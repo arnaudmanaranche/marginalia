@@ -1,0 +1,49 @@
+{
+  "name": "@worldia/marginalia",
+  "version": "2.0.0",
+  "type": "module",
+  "description": "Bot that runs Claude Code reviews on GitLab merge requests, with a studio to read them.",
+  "main": "poll.mjs",
+  "bin": {
+    "marginalia": "bin/marginalia.mjs"
+  },
+  "files": [
+    "bin",
+    "src",
+    "scripts",
+    "poll.mjs",
+    "ui-dist",
+    "skills",
+    "examples",
+    "swiftbar",
+    ".env.example"
+  ],
+  "publishConfig": {
+    "access": "restricted"
+  },
+  "scripts": {
+    "prepack": "node scripts/bundle-ui.mjs",
+    "start": "node poll.mjs",
+    "init": "node scripts/init.mjs",
+    "doctor": "node scripts/doctor.mjs",
+    "autostart": "node scripts/autostart.mjs",
+    "test": "node --test test/*.test.mjs",
+    "typecheck": "tsc -p .",
+    "posthog:backfill": "node scripts/posthog-backfill.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@clack/prompts": "^1.8.1",
+    "@hono/node-server": "^2.1.5",
+    "@hono/zod-openapi": "^1.6.3",
+    "@worldia/marginalia-contract": "2.0.0",
+    "commander": "^15.0.0",
+    "dotenv": "^16.4.5",
+    "hono": "^4.13.13",
+    "pino": "^10.4.0",
+    "pino-pretty": "^13.2.0",
+    "zod": "^4.6.7"
+  }
+}

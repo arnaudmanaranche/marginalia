@@ -56,7 +56,7 @@ V2 reverses the 12 October 2026 decision to drop the mention bot. The reading ex
 
 ## Evidence on Hand
 
-- `examples/commands/` and `examples/agents/`: sample review and triage commands from V1.
+- `api/examples/commands/` and `api/examples/agents/`: sample review and triage commands from V1.
 - Real generated reviews from the author's own use exist on their machine (about thirty), used to develop the studio. They are not part of this repository.
 - No usage data, customer testimonials or benchmarks exist. None should be invented.
 

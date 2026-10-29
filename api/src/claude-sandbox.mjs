@@ -14,8 +14,11 @@ const SHELL_FILES = ['.zshrc', '.zprofile', '.zshenv', '.bashrc', '.bash_profile
 // reaches them through the worktree's .claude symlink, so both spellings are denied.
 const TRUSTED_CLAUDE_DIRS = ['commands', 'agents', 'skills', 'hooks'];
 const TRUSTED_CLAUDE_FILES = ['settings.json', 'settings.local.json'];
-// The bot's own code and secrets. Its worktree may live under it, so no blanket rule.
-const BOT_PATHS = ['api/**', 'scripts/**', 'swiftbar/**', 'poll.mjs', '.env'];
+// The bot's own code, relative to its package folder (`rootDir`). Its worktree may live under it,
+// so no blanket rule. `../packages` is the contract of a clone of the repo.
+const BOT_PATHS = ['src/**', 'scripts/**', 'swiftbar/**', 'poll.mjs', '../packages/**'];
+// Where a .env can be: beside the package, or at the root of the clone that holds it.
+const ENV_FILES = ['.env', '../.env'];
 
 // Permission rules: `//` is an absolute path, `~/` the home directory.
 const absolute = (path) => `/${path}`;
@@ -29,7 +32,7 @@ export function denyRules({ rootDir, repoPath, worktreeDir }) {
     ...SHELL_FILES.map((file) => `Edit(~/${file})`),
     'Edit(~/.claude/**)',
     'Edit(~/Library/LaunchAgents/**)',
-    `Read(${absolute(join(rootDir, '.env'))})`,
+    ...ENV_FILES.map((file) => `Read(${absolute(join(rootDir, file))})`),
     ...BOT_PATHS.map((path) => `Edit(${absolute(join(rootDir, path))})`),
     ...DENIED_GIT.map((cmd) => `Bash(${cmd}:*)`),
   ];
@@ -50,7 +53,7 @@ export function sandboxSettings({ rootDir, repoPath, worktreeDir, reviewsDir, gi
     allowUnsandboxedCommands: false,
     filesystem: {
       allowWrite: [worktreeDir, join(repoPath, '.git'), reviewsDir],
-      denyRead: [...SECRET_DIRS.map((dir) => `~/${dir}`), join(rootDir, '.env')],
+      denyRead: [...SECRET_DIRS.map((dir) => `~/${dir}`), ...ENV_FILES.map((file) => join(rootDir, file))],
     },
     network: { allowedDomains: gitHost ? [gitHost] : [] },
   };

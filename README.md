@@ -25,7 +25,7 @@ npm run doctor -- --dry-run 123   # runs the real chain on MR !123 into a temp f
 npm start
 ```
 
-No commands yet? Copy `examples/commands/*.md` and `examples/agents/*.md` into
+No commands yet? Copy `api/examples/commands/*.md` and `api/examples/agents/*.md` into
 your repo's (or `~/.claude`'s) `commands/` and `agents/`, then set
 `REVIEW_COMMAND=/review` and `TRIAGE_COMMAND=/triage`.
 
@@ -88,7 +88,7 @@ the bot and the studio work without them):
 ```bash
 cd ~/marginalia
 npm install
-cp .env.example .env
+cp api/.env.example .env      # a clone keeps its .env at the repo root
 # edit .env: GITLAB_PROJECT_ID, GITLAB_TOKEN, GITLAB_USERNAME, REPO_LOCAL_PATH
 ```
 
