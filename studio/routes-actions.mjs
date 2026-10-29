@@ -1,6 +1,6 @@
 // @ts-check
 import { loadState, saveState } from '../lib/state.mjs';
-import { loadShape } from '../lib/findings.mjs';
+import { artifactAt } from '../lib/artifact.mjs';
 import { askAboutStop } from '../lib/chat.mjs';
 import { buildChatPrompt, parseChatInput } from '../lib/chat-prompt.mjs';
 import { filesForPatterns, toDiffFile } from '../lib/mr-diff.mjs';
@@ -55,7 +55,7 @@ export function actionRoutes(app) {
     const found = await locate(slug);
     if (!found?.mr) return notTracked(c);
     const { project, mr } = found;
-    const shape = await loadShape(project.reviewsDir, found.slug, '');
+    const shape = await artifactAt(project.reviewsDir, found.slug).readShape();
     const stop = (shape.tour ?? []).find((s) => s.id === stopId);
     if (!stop) return c.json({ error: 'no such stop in this review' }, 404);
     if (chatBusy) return c.json({ error: 'another question is being answered, try again in a moment' }, 429);

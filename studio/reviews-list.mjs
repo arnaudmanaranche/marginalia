@@ -6,7 +6,8 @@ import { PROJECTS, projectByKey } from '../lib/projects.mjs';
 import { reviewId } from '../lib/review-id.mjs';
 import { TRIAGE_FILE_PREFIX } from '../lib/paths.mjs';
 import { loadPosted, savePosted } from '../lib/posted.mjs';
-import { loadShape, listFields } from '../lib/findings.mjs';
+import { artifactAt } from '../lib/artifact.mjs';
+import { listFields } from '../lib/findings.mjs';
 import { byPriorityThenDate } from '../lib/jira.mjs';
 import { envDefaults, loadSettings } from '../lib/settings.mjs';
 import { parseAcrossLayers } from '../lib/stack.mjs';
@@ -129,7 +130,7 @@ async function listProjectReviews(project, status) {
     const fileSlug = name.slice(0, -3);
     const path = join(project.reviewsDir, name);
     const [md, st] = await Promise.all([readFile(path, 'utf8'), stat(path)]);
-    const shape = await loadShape(project.reviewsDir, fileSlug, md);
+    const shape = await artifactAt(project.reviewsDir, fileSlug).readShape(md);
     const mr = byPath.get(path);
     const title = md.match(/^#\s+(.+)$/m)?.[1] ?? null;
     return {

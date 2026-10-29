@@ -22,7 +22,8 @@ const REVIEWS_DIR = PROJECTS[0].reviewsDir;
 // A review is addressed as <project key>/<slug>.
 const idOf = (name) => `${PROJECTS[0].key}/${name}`;
 const { FINDINGS_FILE } = await import('../lib/findings.mjs');
-const { REPORT_FILE, buildReport, writeReportFiles } = await import('../lib/report.mjs');
+const { artifactAt } = await import('../lib/artifact.mjs');
+const { REPORT_FILE, buildReport } = await import('../lib/report.mjs');
 const { startStudio } = await import('../studio/server.mjs');
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -46,7 +47,7 @@ for (const name of names) {
   const [report, stdout, findings] = await Promise.all([read('report.md'), read('stdout.txt'), read('findings.json')]);
   if (report !== null) await writeFile(join(worktree, REPORT_FILE), report);
   if (findings !== null) await writeFile(join(worktree, FINDINGS_FILE), findings);
-  await writeReportFiles(join(REVIEWS_DIR, `${name}.md`), await buildReport({ worktreeDir: worktree, stdout: stdout ?? '' }));
+  await artifactAt(REVIEWS_DIR, name).write(await buildReport({ worktreeDir: worktree, stdout: stdout ?? '' }));
 }
 
 const server = startStudio();

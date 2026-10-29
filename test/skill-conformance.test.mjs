@@ -14,8 +14,9 @@ import { mkdtemp, readdir, readFile, writeFile, access } from 'node:fs/promises'
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { FINDINGS_FILE, NO_FINDINGS_WARNING, SEVERITIES, VERDICTS, listFields, loadShape } from '../lib/findings.mjs';
-import { REPORT_FILE, buildReport, writeReportFiles } from '../lib/report.mjs';
+import { artifactAt } from '../lib/artifact.mjs';
+import { FINDINGS_FILE, NO_FINDINGS_WARNING, SEVERITIES, VERDICTS, listFields } from '../lib/findings.mjs';
+import { REPORT_FILE, buildReport } from '../lib/report.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), 'fixtures', 'skills');
 const read = (path) => readFile(path, 'utf8').catch(() => null);
@@ -98,9 +99,9 @@ for (const name of fixtures) {
   test(`${name}: the files written for the studio read back identically`, async () => {
     const { built } = await run(name);
     const reviews = await mkdtemp(join(tmpdir(), 'marginalia-reviews-'));
-    await writeReportFiles(join(reviews, 'feat-x.md'), built);
+    await artifactAt(reviews, 'feat-x').write(built);
     assert.equal(await readFile(join(reviews, 'feat-x.md'), 'utf8'), built.content);
-    const stored = await loadShape(reviews, 'feat-x', built.content);
+    const stored = await artifactAt(reviews, 'feat-x').readShape(built.content);
     assert.deepEqual({ ...stored, generatedAt: undefined }, { ...built.shape, generatedAt: undefined });
     assert.ok(!Number.isNaN(Date.parse(stored.generatedAt)));
   });
@@ -114,7 +115,7 @@ for (const name of fixtures) {
 
 test('a shape stored by the bot is used as is; a review without one is read from its markdown', async () => {
   const reviews = await mkdtemp(join(tmpdir(), 'marginalia-reviews-'));
-  const legacy = await loadShape(reviews, 'old', '**Verdict:** APPROVE\n\n## Suggestions\n\n- Tidy `src/a.ts:1`.\n');
+  const legacy = await artifactAt(reviews, 'old').readShape('**Verdict:** APPROVE\n\n## Suggestions\n\n- Tidy `src/a.ts:1`.\n');
   assert.equal(legacy.source, 'markdown');
   assert.equal(legacy.verdict, 'APPROVE');
   assert.equal(legacy.findings.length, 1);

@@ -4,7 +4,8 @@ import { mkdtemp, writeFile, access } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { FINDINGS_FILE } from '../lib/findings.mjs';
-import { REPORT_FILE, buildReport, clearStaleReport, contractPrompt } from '../lib/report.mjs';
+import { REPORT_FILE, buildReport, clearStaleReport } from '../lib/report.mjs';
+import { contractPrompt } from '../lib/run-contract.mjs';
 
 const exists = (p) => access(p).then(() => true, () => false);
 

@@ -6,8 +6,8 @@ import { GITLAB_BASE_URL, GITLAB_TOKEN } from '../lib/config.mjs';
 import { PROJECTS } from '../lib/projects.mjs';
 import { parseReviewId, projectOfUpload } from '../lib/review-id.mjs';
 import { uploadFetchPath } from '../lib/gitlab-upload.mjs';
-import { listHistory, readHistory } from '../lib/history.mjs';
-import { buildShape, loadShape } from '../lib/findings.mjs';
+import { artifactAt } from '../lib/artifact.mjs';
+import { buildShape } from '../lib/findings.mjs';
 import { filesForPatterns, toDiffFile } from '../lib/mr-diff.mjs';
 import { diffSincePush, reviewDiff, reviewPushes } from '../lib/review-diff.mjs';
 import { reviewThreads } from '../lib/review-threads.mjs';
@@ -48,7 +48,7 @@ export function readRoutes(app) {
     if (!where) return badSlug(c);
     try {
       const md = await readFile(join(where.project.reviewsDir, `${where.slug}.md`), 'utf8');
-      return c.json({ slug: id, kind: kindOf(where.slug), markdown: md, shape: await loadShape(where.project.reviewsDir, where.slug, md) }, 200);
+      return c.json({ slug: id, kind: kindOf(where.slug), markdown: md, shape: await artifactAt(where.project.reviewsDir, where.slug).readShape(md) }, 200);
     } catch {
       return c.json({ error: 'not found' }, 404);
     }
@@ -89,7 +89,7 @@ export function readRoutes(app) {
       }
       let files = (await gitlab.listMergeRequestDiffs(project, mr.iid)).map(toDiffFile);
       if (stopId) {
-        const shape = await loadShape(project.reviewsDir, found.slug, '');
+        const shape = await artifactAt(project.reviewsDir, found.slug).readShape();
         const stop = (shape.tour ?? []).find((s) => s.id === stopId);
         files = stop ? filesForPatterns(files, stop.files) : [];
       }
@@ -121,7 +121,7 @@ export function readRoutes(app) {
   }), async (c) => {
     const where = parseReviewId(c.req.valid('param').slug, PROJECTS);
     if (!where) return badSlug(c);
-    return c.json({ versions: await listHistory(where.project.reviewsDir, where.slug) }, 200);
+    return c.json({ versions: await artifactAt(where.project.reviewsDir, where.slug).listHistory() }, 200);
   });
 
   app.openapi(route({
@@ -132,7 +132,7 @@ export function readRoutes(app) {
     const { slug: id, id: versionId } = c.req.valid('param');
     const where = parseReviewId(id, PROJECTS);
     if (!where) return badSlug(c);
-    const version = await readHistory(where.project.reviewsDir, where.slug, versionId);
+    const version = await artifactAt(where.project.reviewsDir, where.slug).readHistory(versionId);
     if (version === null) return c.json({ error: 'not found' }, 404);
     return c.json({ slug: id, id: versionId, markdown: version.markdown, shape: version.shape ?? buildShape({ markdown: version.markdown }) }, 200);
   });
