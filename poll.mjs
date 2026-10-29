@@ -8,7 +8,7 @@ import { startStudio } from './studio/server.mjs';
 import { isFancyTerminal, c, log, logError } from './lib/log.mjs';
 import { logger } from './lib/logger.mjs';
 import { trackFailure } from './lib/telemetry.mjs';
-import { RETRY_AFTER_MS, failureKind } from './lib/failure-kind.mjs';
+import { RETRY_AFTER_MS, failureKind, needsDoctor } from './lib/failure-kind.mjs';
 import { startDoctor } from './lib/doctor.mjs';
 import { loadState, saveState } from './lib/state.mjs';
 import { status, writeStatus, setMrStatus, sameMr } from './lib/status.mjs';
@@ -19,7 +19,8 @@ import { jiraPriorityOf } from './lib/jira.mjs';
 import { reviewOutputPath, mrCommentsOutputPath, mtimeOrNull } from './lib/paths.mjs';
 import { ensureBotWorktree } from './lib/worktree.mjs';
 import { runReview, runMrComments } from './lib/claude-runner.mjs';
-import { planMergeRequests, needsTriage, recordBelow, pruneState } from './lib/poll-plan.mjs';
+import { isStaged } from './lib/pipeline/staged.mjs';
+import { planMergeRequests, needsTriage, triageSignal, recordBelow, pruneState } from './lib/poll-plan.mjs';
 import { reviewEntry, commentsEntry } from './lib/poll-status.mjs';
 
 // Marks the bot busy on one MR while `work` runs, then back to polling.
@@ -45,7 +46,7 @@ async function failed(mr, label, err) {
   await setMrStatus(mr, { status: 'failed', error: err.message, failure });
   if (failure.transient) retrySoon = true;
   else notify(`${label} failed: ${failure.title}`, `!${mr.iid} ${mr.title}`);
-  if (!failure.transient && err.run) {
+  if (needsDoctor(failure) && err.run) {
     void startDoctor({ project: mr.project, fileSlug: err.run.fileSlug, runId: err.run.id, auto: true })
       .catch((e) => logger.warn({ err: e }, 'Could not start the doctor'));
   }
@@ -87,12 +88,12 @@ async function reviewOne(mr, plan, state) {
   });
 }
 
-async function triageOne(mr, peerCommentAt, state) {
+async function triageOne(mr, signal, state) {
   await whileReviewing(mr, async () => {
     try {
       const outcome = await runMrComments(mr);
       if (outcome !== 'reviewed') return skipped(mr);
-      state.mineComments[mr.iid] = peerCommentAt;
+      state.mineComments[mr.iid] = signal;
       await saveState(mr.project, state);
       await setMrStatus(mr, { status: 'up_to_date', reviewedAt: new Date().toISOString() });
       notify('Comments triaged', `!${mr.iid} ${mr.title}`, mrCommentsOutputPath(mr));
@@ -135,8 +136,10 @@ async function pollProject(project) {
 
   const toReview = reviewMrs.filter((mr) => !plan.isCurrent(mr));
   const peerCommentAts = await Promise.all(myMrs.map((mr) => latestPeerCommentAt(mr)));
-  const myMrsWithSignal = myMrs.map((mr, i) => ({ mr, peerCommentAt: peerCommentAts[i] }));
-  const toTriage = myMrsWithSignal.filter(({ mr, peerCommentAt }) => needsTriage(state, mr, peerCommentAt));
+  // GitLab's has_conflicts: the staged triage merges the target in and settles them.
+  const settlesConflicts = isStaged(project.triageCommand ?? '');
+  const myMrsWithSignal = myMrs.map((mr, i) => ({ mr, signal: triageSignal(peerCommentAts[i], settlesConflicts && mr.has_conflicts ? mr.sha : null) }));
+  const toTriage = myMrsWithSignal.filter(({ mr, signal }) => needsTriage(state, mr, signal));
 
   // The review/report file's mtime doubles as "last reviewed at", so files
   // written by hand or before this field existed get a date too.
@@ -149,9 +152,9 @@ async function pollProject(project) {
   const stateOf = (mr) => states.get(mr.iid) ?? previous.find((m) => sameMr(m, mr))?.myState ?? null;
   const entries = [
     ...reviewMrs.map((mr, i) => reviewEntry(mr, { plan, reviewPath: reviewOutputPath(mr), reviewedAtMs: reviewedAts[i], jira: jiras[i], myState: stateOf(mr) })),
-    ...myMrsWithSignal.map(({ mr, peerCommentAt }, i) => commentsEntry(mr, {
-      // No peer comment at all counts as "up to date": there is nothing to triage yet.
-      pending: needsTriage(state, mr, peerCommentAt),
+    ...myMrsWithSignal.map(({ mr, signal }, i) => commentsEntry(mr, {
+      // No peer comment and no conflict counts as "up to date": there is nothing to triage yet.
+      pending: needsTriage(state, mr, signal),
       reviewPath: mrCommentsOutputPath(mr),
       reviewedAtMs: triagedAts[i],
       myState: stateOf(mr),
@@ -162,7 +165,7 @@ async function pollProject(project) {
   logger.info({ project: project.key }, `${reviewMrs.length} MR(s) to review, ${myMrs.length} of my own — ${toReview.length} need a review, ${toTriage.length} need comment triage.`);
 
   for (const mr of toReview) await reviewOne(mr, plan, state);
-  for (const { mr, peerCommentAt } of toTriage) await triageOne(mr, peerCommentAt, state);
+  for (const { mr, signal } of toTriage) await triageOne(mr, signal, state);
 
   pruneState(state, new Set(reviewMrs.map((mr) => String(mr.iid))), new Set(myMrs.map((mr) => String(mr.iid))));
   await saveState(project, state);

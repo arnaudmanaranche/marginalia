@@ -301,12 +301,22 @@ itself, in stages you follow live in the studio (each with its steps, time and c
   findings by rule: duplicates dropped, stable ids, the verdict from the severities. A chapter
   that fails is said in the report; the others still count.
 - **Triage of my own MR.** The bot gathers the open reviewer threads with the code they are
-  about. One agent **weighs** them all (fix, already fixed, not relevant, wrong, answer) and
-  drafts the replies; then one agent **per thread to fix** makes that change and commits it
-  alone, so each reply names its own commit once you push. A fix that fails is rolled back.
-- Each stage has only the tools its job needs (read-only for the review; edit and local commit
-  for a fix), and its answer is checked against a contract: one that does not fit is sent back
-  once, in the same session, with what was wrong.
+  about. When the MR conflicts with its target, it first **merges the target in** (a merge, so
+  the push stays a fast-forward) and one agent settles the conflicted files; the bot checks no
+  marker is left before committing the merge, else undoes it. A conflict alone starts a triage.
+  One agent **weighs** the threads (fix, already fixed, not relevant, wrong, answer) and drafts
+  the replies; then one agent **per thread to fix** makes that change, which the bot commits on
+  its own with the thread in a `Marginalia-Thread` trailer. In the studio, each thread's fix can
+  be **pushed alone** from its card (the others are replayed on top of it, still to push), and
+  its reply names the commit that landed. A fix that fails is rolled back.
+- **Preflight.** Every run, staged or not, starts by checking in a few seconds that Claude is
+  logged in, the GitLab token reads the project, origin serves the MR's head, and for a triage
+  that this machine can push to the branch (`git push --dry-run --no-verify`). One that would
+  stop the run half way stops it there, before any agent is paid for, with what to do. The
+  ticket is checked too, but a run without it goes on and says so.
+- Each stage has only the tools its job needs (read-only for the review; edit, never commit,
+  for a fix or a conflict), and its answer is checked against a contract: one that does not fit
+  is sent back once, in the same session, with what was wrong.
 
 A slash command (`/code-review`, `/mr-comments`) still works as before, as described below.
 

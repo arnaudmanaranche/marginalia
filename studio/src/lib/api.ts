@@ -422,7 +422,11 @@ export interface FixesStatus {
   state: 'none' | 'ready' | 'pushed' | 'outdated';
   fixesSha: string | null;
   remoteSha: string | null;
-  commits: { sha: string; subject: string }[];
+  // Newest first. `thread`: the reviewer thread the fix answers; `merge`: the merge that settles the conflicts.
+  commits: { sha: string; subject: string; thread: string | null; merge: boolean }[];
+  // The fixes already on the MR branch, by thread.
+  landed: { thread: string; sha: string }[];
+  note?: string;
 }
 
 export async function fetchFixes(slug: string): Promise<FixesStatus> {
@@ -433,11 +437,12 @@ export async function fetchFixes(slug: string): Promise<FixesStatus> {
   return j;
 }
 
-export async function pushFixes(slug: string): Promise<FixesStatus> {
+// Every fix, or with `sha` that one alone.
+export async function pushFixes(slug: string, sha?: string): Promise<FixesStatus> {
   const res = await fetch('/api/push', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ slug }),
+    body: JSON.stringify({ slug, sha }),
   });
   const j = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(j.error ?? `HTTP ${res.status}`);

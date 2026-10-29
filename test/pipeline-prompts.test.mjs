@@ -1,11 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { contextText, parseNumstat } from '../lib/pipeline/context-text.mjs';
+import { contextText, parseMergeTree, parseNumstat } from '../lib/pipeline/context-text.mjs';
 import { jsonAnswer, matchesPattern } from '../lib/pipeline/json-answer.mjs';
 import { chapterPrompt, mapPrompt, parseChapter, parseMap } from '../lib/pipeline/review-prompts.mjs';
 import { mergeReview } from '../lib/pipeline/review-merge.mjs';
 import { renderReview } from '../lib/pipeline/report-render.mjs';
-import { judgePrompt, parseFix, parseJudge } from '../lib/pipeline/triage-prompts.mjs';
+import { conflictPrompt, judgePrompt, parseConflict, parseFix, parseJudge } from '../lib/pipeline/triage-prompts.mjs';
+import { landedByThread, parseFixLog } from '../lib/fixes-log.mjs';
 
 const ctx = {
   mr: { iid: 12, title: 'feat: coupons', author: 'alice', description: 'Adds coupons.', source: 'feat/coupons', target: 'develop', url: null },
@@ -96,4 +97,23 @@ test('the judge sees every thread with its code, and must give each one a verdic
   assert.match(parseJudge('```json\n{"threads":[{"thread":"aaaaaaaa11","verdict":"fix","why":"W","plan":"P"}]}\n```', ids).error, /no verdict for thread\(s\) bbbbbbbb/);
   assert.match(parseJudge('```json\n{"threads":[{"thread":"aaaaaaaa11","verdict":"fix","why":"W"}]}\n```', ['aaaaaaaa11']).error, /no "plan"/);
   assert.equal(parseFix('```json\n{"changed":true,"what":"Renamed x.","reply":"Renamed it."}\n```').value.changed, true);
+});
+
+test('a merge that conflicts names its files; the agent settles them and says how', () => {
+  assert.deepEqual(parseMergeTree('4b825dc\nsrc/a.ts\nsrc/b.ts\nsrc/a.ts\n\nAuto-merging src/a.ts\nCONFLICT (content): Merge conflict in src/a.ts\n'), ['src/a.ts', 'src/b.ts']);
+  const p = conflictPrompt({ context: 'CTX', target: 'develop', files: ['src/a.ts'] });
+  assert.match(p, /Your stage: settle the conflicts of merging develop/);
+  assert.match(p, /Do not run git add, commit or merge/);
+  assert.deepEqual(parseConflict('```json\n{"settled":true,"how":"Kept both."}\n```').value, { settled: true, how: 'Kept both.' });
+  assert.equal(parseConflict('```json\n{"settled":true}\n```').ok, false);
+});
+
+test('the fix commits are read with their thread, and the landed ones found by it', () => {
+  const log = 'c3\0p2\0fix: c\0thread-c\n\x1eb2\0p1 m1\0Merge develop\0\n\x1ea1\0p0\0fix: a\0thread-a\n\x1e';
+  assert.deepEqual(parseFixLog(log), [
+    { sha: 'c3', subject: 'fix: c', thread: 'thread-c', merge: false },
+    { sha: 'b2', subject: 'Merge develop', thread: null, merge: true },
+    { sha: 'a1', subject: 'fix: a', thread: 'thread-a', merge: false },
+  ]);
+  assert.deepEqual(landedByThread([{ sha: 'new', thread: 't' }, { sha: 'old', thread: 't' }]), [{ thread: 't', sha: 'new' }]);
 });

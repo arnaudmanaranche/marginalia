@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { planMergeRequests, needsTriage, recordBelow, pruneState } from '../lib/poll-plan.mjs';
+import { planMergeRequests, needsTriage, triageSignal, recordBelow, pruneState } from '../lib/poll-plan.mjs';
 
 const mr = (iid, source, target, author = 'alice', sha = `sha${iid}`) => ({ iid, sha, title: `MR ${iid}`, source_branch: source, target_branch: target, author: { username: author } });
 const fresh = () => ({ mineComments: {}, stackBelow: {} });
@@ -56,4 +56,16 @@ test('pruneState drops MRs that are no longer open, keeps the bookkeeping keys',
   const state = { 1: 'a', 2: 'b', mineComments: { 7: 't', 8: 't' }, stackBelow: { 1: 'x', 2: 'y' } };
   pruneState(state, new Set(['1']), new Set(['7']));
   assert.deepEqual(state, { 1: 'a', mineComments: { 7: 't' }, stackBelow: { 1: 'x' } });
+});
+
+test('a conflict at a new head starts a triage, once; a value stored before conflicts counted reads the same', () => {
+  const state = { mineComments: { 5: 't1' } };
+  assert.equal(needsTriage(state, { iid: 5 }, triageSignal('t1')), false);
+  assert.equal(needsTriage(state, { iid: 5 }, triageSignal('t1', 'sha1')), true);
+  state.mineComments[5] = triageSignal('t1', 'sha1');
+  assert.equal(needsTriage(state, { iid: 5 }, triageSignal('t1', 'sha1')), false);
+  assert.equal(needsTriage(state, { iid: 5 }, triageSignal('t1')), false, 'the conflict settled and pushed: nothing new');
+  assert.equal(needsTriage(state, { iid: 5 }, triageSignal('t2')), true);
+  assert.equal(needsTriage({ mineComments: {} }, { iid: 6 }, triageSignal(null, 'sha9')), true);
+  assert.equal(triageSignal(null), null);
 });

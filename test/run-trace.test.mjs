@@ -12,16 +12,16 @@ const start = (kind = 'review') => startTrace({ id: 'r1', slug: 'webapp/feat-x',
 const states = (trace) => trace.stages.map((s) => `${s.id}:${s.state}`);
 
 test('a run starts with every stage of its kind pending', () => {
-  assert.deepEqual(states(start()), ['checkout:pending', 'context:pending', 'agent:pending', 'report:pending']);
-  assert.match(start('triage').stages[2].label, /answers the reviewers/);
+  assert.deepEqual(states(start()), ['preflight:pending', 'checkout:pending', 'context:pending', 'agent:pending', 'report:pending']);
+  assert.match(start('triage').stages[3].label, /answers the reviewers/);
 });
 
 test('entering a stage closes the one before and skips any jumped over', () => {
   let t = enterStage(start(), 'checkout', 't1');
   t = enterStage(t, 'agent', 't2');
-  assert.deepEqual(states(t), ['checkout:done', 'context:skipped', 'agent:running', 'report:pending']);
-  assert.equal(t.stages[0].endedAt, 't2');
-  assert.equal(t.stages[2].startedAt, 't2');
+  assert.deepEqual(states(t), ['preflight:skipped', 'checkout:done', 'context:skipped', 'agent:running', 'report:pending']);
+  assert.equal(t.stages[1].endedAt, 't2');
+  assert.equal(t.stages[3].startedAt, 't2');
 });
 
 test('steps belong to the stage they were taken in, and a sub-agent step says so', () => {
@@ -42,7 +42,7 @@ test('a failure marks the stage it happened in and keeps the error', () => {
   let t = enterStage(start(), 'checkout', 't1');
   t = enterStage(t, 'agent', 't2');
   t = finishTrace(t, 'failed', 't3', 'claude exited with code 1');
-  assert.deepEqual(states(t), ['checkout:done', 'context:skipped', 'agent:failed', 'report:skipped']);
+  assert.deepEqual(states(t), ['preflight:skipped', 'checkout:done', 'context:skipped', 'agent:failed', 'report:skipped']);
   assert.equal(t.outcome, 'failed');
   assert.equal(t.error, 'claude exited with code 1');
   assert.equal(t.failure.kind, 'unknown');
@@ -62,7 +62,7 @@ test('the live summary carries the stages and the last steps only', () => {
   assert.equal(live.runId, 'r1');
   assert.equal(live.progress.length, 8);
   assert.equal(live.progress.at(-1), 's19');
-  assert.equal(live.stages[2].state, 'running');
+  assert.equal(live.stages[3].state, 'running');
 });
 
 test('the journal keeps runs per review, newest first, and prunes the oldest', async () => {
@@ -87,12 +87,12 @@ test('a staged run plans the stages it learns, and runs some side by side', asyn
   let t = startTrace({ id: 'r2', slug: 'webapp/feat-x', project: 'webapp', iid: 12, kind: 'review', command: 'marginalia', at: 't0', plan: 'staged-review' });
   t = enterStage(t, 'map', 't1');
   t = planStages(t, 'map', [['chapter-1', 'Review: coupons'], ['chapter-2', 'Review: tests'], ['map', 'dup']]);
-  assert.deepEqual(t.stages.map((s) => s.id), ['checkout', 'context', 'map', 'chapter-1', 'chapter-2', 'report']);
+  assert.deepEqual(t.stages.map((s) => s.id), ['preflight', 'checkout', 'context', 'map', 'chapter-1', 'chapter-2', 'report']);
   t = enterStage(t, 'chapter-1', 't2');
   t = beginStage(t, 'chapter-2', 't2');
   t = addStep(t, 'Reading b.ts', 't3', { stage: 'chapter-2' });
   assert.equal(t.steps.at(-1).stage, 'chapter-2');
   t = endStage(t, 'chapter-2', 't4');
   t = finishTrace(t, 'failed', 't5', 'boom');
-  assert.deepEqual(states(t).slice(2), ['map:done', 'chapter-1:failed', 'chapter-2:done', 'report:skipped']);
+  assert.deepEqual(states(t).slice(3), ['map:done', 'chapter-1:failed', 'chapter-2:done', 'report:skipped']);
 });

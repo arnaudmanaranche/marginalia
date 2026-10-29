@@ -52,7 +52,7 @@ export function ReplyBoard({ slug, iid, threads, open, replies, posted, fixes, l
           <h2 className="mb-2 inline-flex items-center gap-1.5 text-sm font-semibold"><Upload className="size-3.5" aria-hidden />Fixes to push{toPush > 0 && <span className="font-normal text-fg-muted">({toPush})</span>}</h2>
           <FixesPanel slug={slug} iid={iid} locked={locked} state={fixes} />
         </div>
-        <RepliesPanel slug={slug} threads={ordered} replies={replies} posted={posted} fixes={fixes.fixes} locked={locked} reload={reload} selected={selected} onSelect={select} />
+        <RepliesPanel slug={slug} threads={ordered} replies={replies} posted={posted} fixes={fixes.fixes} onFixes={fixes.setFixes} locked={locked} reload={reload} selected={selected} onSelect={select} />
       </section>
       <div className="min-w-0 lg:h-full lg:overflow-y-auto lg:pr-1">
         <DiffPane showAll={showFullDiff} state={diff} findings={[]} threads={threads} focus={focus} scope={scope} pushes={pushes} onFrom={setPicked} onReport={onReport} onSelectFinding={() => {}} onRetry={retry} />

@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 // A stand-in for `claude -p` in the staged pipeline tests: answers each stage from its prompt, in
 // stream-json, as the real CLI does. The second chapter first answers off contract, to exercise the
-// correction round (--resume). A fix stage really edits a file and commits it.
+// correction round (--resume). A fix stage really edits a file, and commits it although told not
+// to, as an agent may: the bot folds that commit into its own. A conflict stage settles the file.
 import { execFileSync } from 'node:child_process';
-import { appendFileSync } from 'node:fs';
+import { appendFileSync, writeFileSync } from 'node:fs';
 
 const args = process.argv.slice(2);
 const prompt = args[args.indexOf('-p') + 1] ?? '';
@@ -41,6 +42,10 @@ if (resumed) {
   execFileSync('git', ['add', '-A']);
   execFileSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@t', '-c', 'core.hooksPath=/dev/null', 'commit', '-qm', 'fix: clamp the total']);
   answer({ changed: true, what: 'Clamped the total at zero.', reply: 'Good catch, the total is clamped at zero now.' });
+} else if (prompt.includes('Your stage: settle the conflicts')) {
+  step('Read', { file_path: '/w/src/pricing.mjs' });
+  writeFileSync('src/pricing.mjs', 'export const total = (items, coupon = 0) => items.reduce((a, b) => a + b, 0) * (1 - coupon / 100) + 0;\nexport const clamp = (t) => Math.max(0, t);\n');
+  answer({ settled: true, how: 'develop added a shipping fee, the MR a coupon: kept both.' });
 } else {
   answer('unknown stage');
 }

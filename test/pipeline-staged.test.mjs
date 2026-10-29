@@ -60,8 +60,8 @@ test('a staged review maps the change, reviews each chapter, and weighs the find
   const out = await stagedReview({ mr, run, outputPath, settings: null });
   const trace = await run.finish('reviewed');
 
-  assert.deepEqual(trace.stages.map((s) => `${s.id}:${s.state}`), ['checkout:skipped', 'context:done', 'map:done', 'chapter-1:done', 'chapter-2:done', 'report:done']);
-  assert.match(trace.stages[3].label, /Review: A coupon takes its percentage off/);
+  assert.deepEqual(trace.stages.map((s) => `${s.id}:${s.state}`), ['preflight:skipped', 'checkout:skipped', 'context:done', 'map:done', 'chapter-1:done', 'chapter-2:done', 'report:done']);
+  assert.match(trace.stages[4].label, /Review: A coupon takes its percentage off/);
   assert.ok(trace.steps.some((s) => s.stage === 'chapter-2' && /did not fit the contract/.test(s.text)), 'chapter 2 was asked again');
   assert.ok(trace.steps.some((s) => s.stage === 'context' && /2 changed files.*CLAUDE\.md/.test(s.text)));
   assert.equal(trace.cost.usd.toFixed(2), '0.04');
@@ -81,8 +81,8 @@ test('a staged triage weighs the reviewer threads, fixes one in its own commit, 
   const out = await stagedTriage({ mr, run, settings: null });
   const trace = await run.finish('reviewed');
 
-  assert.deepEqual(trace.stages.map((s) => `${s.id}:${s.state}`), ['checkout:skipped', 'context:done', 'judge:done', 'fix-1:done', 'report:done']);
-  assert.equal(trace.stages[3].label, 'Fix: src/pricing.mjs:1');
+  assert.deepEqual(trace.stages.map((s) => `${s.id}:${s.state}`), ['preflight:skipped', 'checkout:skipped', 'context:done', 'conflicts:done', 'judge:done', 'fix-1:done', 'report:done']);
+  assert.equal(trace.stages[5].label, 'Fix: src/pricing.mjs:1');
   const commit = git('rev-parse', 'HEAD');
   assert.notEqual(commit, before);
   assert.equal(git('rev-list', '--count', `${before}..HEAD`), '1');
@@ -96,4 +96,27 @@ test('a staged triage weighs the reviewer threads, fixes one in its own commit, 
   assert.equal(shape.replies.length, 2, 'my own note is not a thread to answer');
   assert.match(out.content, /Fix: commit `[0-9a-f]{8}`/);
   assert.match(await readFile(join(repo, 'src/pricing.mjs'), 'utf8'), /clamp/);
+  assert.equal(git('log', '-1', '--format=%s%n%(trailers:key=Marginalia-Thread,valueonly)'), 'fix: Clamped the total at zero.\naaaaaaaa1111', 'the bot\'s commit, with the thread');
+});
+
+test('a triage on an MR that conflicts with its target merges it in and settles the conflict first', async () => {
+  // develop moves on the line the MR changed.
+  const mine = git('rev-parse', 'HEAD');
+  git('checkout', '-q', 'develop');
+  await writeFile(join(repo, 'src/pricing.mjs'), 'export const total = (items) => items.reduce((a, b) => a + b, 0) + 5;\n');
+  git('commit', '-qam', 'shipping fee');
+  git('update-ref', 'refs/remotes/origin/develop', 'HEAD');
+  git('checkout', '-q', 'feat/coupons');
+
+  const run = await followRun(mr, { kind: 'triage', command: 'marginalia', outputPath: join(project.reviewsDir, 'mr-comments-feat-coupons.md'), plan: 'staged-triage' });
+  const out = await stagedTriage({ mr, run, settings: null });
+  const trace = await run.finish('reviewed');
+
+  assert.equal(trace.stages.find((s) => s.id === 'conflicts').state, 'done');
+  assert.ok(trace.steps.some((s) => s.stage === 'conflicts' && /conflicts in 1 file\(s\): src\/pricing\.mjs/.test(s.text)));
+  const merge = git('rev-list', '--merges', '-n', '1', `${mine}..HEAD`);
+  assert.ok(merge, 'a merge commit');
+  assert.equal(git('rev-parse', `${merge}^1`), mine, 'the merge sits on the MR head, so the push is a fast-forward');
+  assert.match(out.content, /## Conflicts with the target branch[\s\S]*kept both/);
+  assert.deepEqual(out.warnings, []);
 });

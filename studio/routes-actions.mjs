@@ -6,8 +6,9 @@ import { buildChatPrompt, parseChatInput } from '../lib/chat-prompt.mjs';
 import { filesForPatterns, toDiffFile } from '../lib/mr-diff.mjs';
 import { listMergeRequestDiffs } from '../lib/gitlab.mjs';
 import { fixesStatus, pushFixes } from '../lib/fixes.mjs';
+import { pushOneFix } from '../lib/fixes-push.mjs';
 import { envDefaults, saveSettings } from '../lib/settings.mjs';
-import { BotState, ChatAnswer, ChatRequest, FixesStatus, Ok, Rerun, ReviewId, SettingsAnswer, SettingsPatch, SlugBody } from './schemas.mjs';
+import { BotState, ChatAnswer, ChatRequest, FixesStatus, Ok, PushRequest, Rerun, ReviewId, SettingsAnswer, SettingsPatch, SlugBody } from './schemas.mjs';
 import { z } from '@hono/zod-openapi';
 import { jsonBody, jsonOf, route } from './route-kit.mjs';
 import { locate, readStatus, serialQueue, shortMessage } from './context.mjs';
@@ -136,15 +137,22 @@ export function actionRoutes(app) {
   // (fast-forward).
   app.openapi(route({
     method: 'post', path: '/api/push', tags: ['Triage fixes'], operationId: 'pushFixes',
-    summary: 'Push a triage\'s fixes to the MR branch', description: 'Only on your own merge request (a `comments` triage). Fast-forward only.',
-    request: { body: jsonBody(SlugBody) },
+    summary: 'Push a triage\'s fixes to the MR branch', description: 'Only on your own merge request (a `comments` triage). Fast-forward only. With `sha`, that one fix alone: the others are replayed on top of it, still to push.',
+    request: { body: jsonBody(PushRequest) },
     responses: { 200: jsonOf(FixesStatus, 'Pushed; the status after the push.') }, errors: [400, 403, 404, 409, 415, 502],
   }), (c) => pushQueue(async () => {
-    const found = await locate(c.req.valid('json').slug);
+    const { slug, sha } = c.req.valid('json');
+    const found = await locate(slug);
     const mr = found?.mr;
     if (!found || mr?.kind !== 'comments' || !mr.sourceBranch) return c.json({ error: 'no tracked triage for this slug' }, 404);
+    const target = { iid: mr.iid, source_branch: mr.sourceBranch };
     try {
-      const { pushed, status } = await pushFixes(found.project, { iid: mr.iid, source_branch: mr.sourceBranch });
+      if (sha) {
+        const one = await pushOneFix(found.project, target, sha);
+        if (!one.pushed) return c.json({ error: one.error, status: one.status }, 409);
+        return c.json(one.status, 200);
+      }
+      const { pushed, status } = await pushFixes(found.project, target);
       if (!pushed) return c.json({ error: status.state === 'outdated' ? 'the MR branch moved since the triage: re-run it' : `nothing to push (${status.state})`, status }, 409);
       return c.json(status, 200);
     } catch (err) {

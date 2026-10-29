@@ -206,8 +206,19 @@ export const Drafts = z.object({ drafts: z.array(DraftNote) }).meta({ id: 'Draft
 export const FixesStatus = z.object({
   ref: z.string(), branch: z.string(), state: z.enum(['none', 'ready', 'pushed', 'outdated']),
   fixesSha: nullable(z.string()), remoteSha: nullable(z.string()),
-  commits: z.array(z.object({ sha: z.string(), subject: z.string() })).describe('The commits a push adds, newest first (only when `ready`).'),
+  commits: z.array(z.object({
+    sha: z.string(), subject: z.string(),
+    thread: nullable(z.string()).describe('The reviewer thread this fix answers (its `Marginalia-Thread` trailer).'),
+    merge: z.boolean().describe('The merge of the target branch that settled the MR\'s conflicts.'),
+  })).describe('The commits a push adds, newest first (only when `ready`).'),
+  landed: z.array(z.object({ thread: z.string(), sha: z.string() })).describe('The fixes already on the MR branch, by thread: the commit a "fixed" reply names.'),
+  note: z.string().optional().describe('After pushing one fix alone: what became of the others, when they could not follow.'),
 }).meta({ id: 'FixesStatus' });
+
+export const PushRequest = z.object({
+  slug: ReviewId,
+  sha: z.string().regex(/^[0-9a-f]{40}$/).optional().describe('Push only this fix (one of `commits`); without it, every fix.'),
+}).meta({ id: 'PushRequest' });
 
 export const AddToReviewRequest = z.object({
   slug: ReviewId,

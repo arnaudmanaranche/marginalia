@@ -53,7 +53,7 @@ export function FixesPanel({ slug, iid, locked, state }: { slug: string; iid: st
               <li key={c.sha} className="flex items-baseline gap-2">
                 <GitCommitHorizontal className="size-3.5 shrink-0 self-center text-fg-muted" aria-hidden />
                 <code className="shrink-0 text-xs text-fg-muted">{short(c.sha)}</code>
-                <span className="min-w-0 break-words">{c.subject}</span>
+                <span className="min-w-0 break-words">{c.subject}{c.merge && <span className="text-fg-muted"> (the merge that settles the conflicts)</span>}</span>
               </li>
             ))}
           </ul>
