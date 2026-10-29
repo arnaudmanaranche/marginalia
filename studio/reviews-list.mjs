@@ -5,7 +5,7 @@ import { ALLOW_POSTING, JIRA_BASE_URL } from '../lib/config.mjs';
 import { PROJECTS, projectByKey } from '../lib/projects.mjs';
 import { reviewId } from '../lib/review-id.mjs';
 import { TRIAGE_FILE_PREFIX } from '../lib/paths.mjs';
-import { loadPosted, savePosted } from '../lib/posted.mjs';
+import { posted } from '../lib/posted.mjs';
 import { artifactAt } from '../lib/artifact.mjs';
 import { listFields } from '../lib/findings.mjs';
 import { byPriorityThenDate } from '../lib/jira.mjs';
@@ -26,11 +26,10 @@ async function reconcilePosted() {
   if (Date.now() - lastReconcile < 15_000) return;
   lastReconcile = Date.now();
   await postQueue(async () => {
-    const posted = await loadPosted();
     let changed = false;
-    for (const [key, info] of Object.entries(posted)) {
-      // Keys are `<project>/<slug>:<comment>`; a project that left the config is left alone.
-      const project = projectByKey(key.split('/')[0]);
+    for (const { key, projectKey, info } of posted.entries()) {
+      // A project that left the config is left alone.
+      const project = projectByKey(projectKey);
       // With posting off, only the replies on my own MRs (which carry their thread) can exist.
       if (!info.iid || !project || (ALLOW_POSTING !== 'true' && !info.threadId)) continue;
       try {
@@ -39,25 +38,21 @@ async function reconcilePosted() {
           // Gone from the drafts: published from GitLab itself, or deleted there.
           const noteId = info.body ? await gitlab.findPublishedNoteId(project, info.iid, info.body) : null;
           if (noteId) {
-            posted[key] = { ...info, state: 'published', url: `${info.mrUrl}#note_${noteId}` };
-            delete posted[key].draftId;
-          } else delete posted[key];
+            posted.publish(key, `${info.mrUrl}#note_${noteId}`, info.at);
+          } else posted.forget(key);
           changed = true;
           continue;
         }
         const noteId = info.url?.match(/#note_(\d+)$/)?.[1];
         if (noteId && !(await gitlab.mergeRequestNoteExists(project, info.iid, noteId))) {
-          delete posted[key];
+          posted.forget(key);
           changed = true;
         }
       } catch {
         /* GitLab unreachable: keep it for now */
       }
     }
-    if (changed) {
-      await savePosted(posted);
-      broadcast();
-    }
+    if (changed) broadcast();
   }).catch(() => {});
 }
 
@@ -175,6 +170,6 @@ export async function listReviews() {
     jiraBaseUrl: JIRA_BASE_URL ? JIRA_BASE_URL.replace(/\/+$/, '') : null,
     settings: loadSettings(), settingsDefaults: envDefaults(),
     allowPosting: ALLOW_POSTING === 'true',
-    posted: await loadPosted(),
+    posted: posted.all(),
   };
 }

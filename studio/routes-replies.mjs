@@ -1,6 +1,5 @@
 // @ts-check
-import { postedKey } from '../lib/state-shape.mjs';
-import { loadPosted, savePosted } from '../lib/posted.mjs';
+import { posted } from '../lib/posted.mjs';
 import { gitlab as defaultGitlab } from '../lib/gitlab-api.mjs';
 import { PostedInfo, ReplyRequest } from './schemas.mjs';
 import { jsonBody, jsonOf, route } from './route-kit.mjs';
@@ -25,19 +24,17 @@ export function replyRoutes(app, gitlab = defaultGitlab) {
     if (!found?.mr) return c.json({ error: 'no tracked merge request for this review' }, 404);
     const { project, mr } = found;
     if (mr.kind !== 'comments') return c.json({ error: 'replies are only for your own merge requests' }, 403);
-    const posted = await loadPosted();
-    const key = postedKey(project.key, found.slug, replyCommentId(threadId));
-    if (posted[key]) return c.json({ error: 'this thread already has a reply', posted: posted[key] }, 409);
+    const already = posted.find(project.key, found.slug, replyCommentId(threadId));
+    if (already) return c.json({ error: 'this thread already has a reply', posted: already }, 409);
     let draft;
     try {
       draft = await gitlab.createReplyDraftNote(project, mr.iid, threadId, body, resolve);
     } catch (err) {
       return c.json({ error: shortMessage(err) }, / -> 404:/.test(String(err.message)) ? 404 : 502);
     }
-    posted[key] = { at: new Date().toISOString(), iid: mr.iid, state: 'draft', draftId: draft.id, body, mrUrl: mr.web_url, url: mr.web_url, threadId, resolve };
-    await savePosted(posted);
+    const entry = posted.recordDraft(project.key, found.slug, replyCommentId(threadId), { iid: mr.iid, draftId: draft.id, body, mrUrl: mr.web_url, url: mr.web_url, threadId, resolve });
     refreshState(project, mr, gitlab);
     broadcast();
-    return c.json(posted[key], 200);
+    return c.json(entry, 200);
   }));
 }

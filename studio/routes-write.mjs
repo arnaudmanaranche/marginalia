@@ -1,7 +1,6 @@
 // @ts-check
 import { z } from '@hono/zod-openapi';
-import { postedKey } from '../lib/state-shape.mjs';
-import { loadPosted, savePosted } from '../lib/posted.mjs';
+import { posted } from '../lib/posted.mjs';
 import { loadState } from '../lib/state.mjs';
 import { reviewerStateFor } from '../lib/review-actions.mjs';
 import { gitlab as defaultGitlab } from '../lib/gitlab-api.mjs';
@@ -29,9 +28,8 @@ export function writeRoutes(app, gitlab = defaultGitlab) {
     const found = await locate(slug);
     if (!found?.mr) return gone(c);
     const { project, mr } = found;
-    const posted = await loadPosted();
-    const key = postedKey(project.key, found.slug, commentId);
-    if (posted[key]) return c.json({ error: 'already posted', posted: posted[key] }, 409);
+    const already = posted.find(project.key, found.slug, commentId);
+    if (already) return c.json({ error: 'already posted', posted: already }, 409);
     const hasTarget = path !== undefined || line !== undefined;
     let draft;
     let text = body;
@@ -53,11 +51,10 @@ export function writeRoutes(app, gitlab = defaultGitlab) {
     } catch (err) {
       return c.json({ error: shortMessage(err) }, 502);
     }
-    posted[key] = { at: new Date().toISOString(), iid: mr.iid, state: 'draft', draftId: draft.id, body: text, mrUrl: mr.web_url, url: mr.web_url, inline: hasTarget ? inline : undefined };
-    await savePosted(posted);
+    const entry = posted.recordDraft(project.key, found.slug, commentId, { iid: mr.iid, draftId: draft.id, body: text, mrUrl: mr.web_url, url: mr.web_url, inline: hasTarget ? inline : undefined });
     refreshState(project, mr, gitlab);
     broadcast();
-    return c.json(posted[key], 200);
+    return c.json(entry, 200);
   }));
 
   // Publishes the drafts of one review as a real GitLab review, with an optional summary note and
@@ -73,8 +70,7 @@ export function writeRoutes(app, gitlab = defaultGitlab) {
     const found = await locate(slug);
     if (!found?.mr) return gone(c);
     const { project, mr } = found;
-    const posted = await loadPosted();
-    const drafts = Object.entries(posted).filter(([key, info]) => key.startsWith(`${slug}:`) && info.state === 'draft');
+    const drafts = posted.draftsOf(project.key, found.slug);
     const text = summary?.trim();
     // Approving or requesting changes needs no comment: the verdict is the review.
     if (!drafts.length && !text && action === 'comment') return c.json({ error: 'nothing to submit' }, 400);
@@ -95,17 +91,15 @@ export function writeRoutes(app, gitlab = defaultGitlab) {
         approveError = shortMessage(err);
       }
     }
-    for (const [key, info] of drafts) {
+    for (const { key, info } of drafts) {
       let noteId = null;
       try {
         noteId = await gitlab.findPublishedNoteId(project, info.iid, info.body);
       } catch {
         /* the review is out; only the deep link is missing */
       }
-      const { draftId, ...rest } = info;
-      posted[key] = { ...rest, state: 'published', at: new Date().toISOString(), url: noteId ? `${info.mrUrl}#note_${noteId}` : info.mrUrl };
+      posted.publish(key, noteId ? `${info.mrUrl}#note_${noteId}` : info.mrUrl);
     }
-    await savePosted(posted);
     refreshState(project, mr, gitlab);
     broadcast();
     // The comments are out either way: say so, so the user does not submit them twice.
@@ -130,13 +124,8 @@ export function writeRoutes(app, gitlab = defaultGitlab) {
       return c.json({ error: shortMessage(err) }, / -> 404:/.test(String(err.message)) ? 404 : 502);
     }
     // Keep the local record in step: a deleted draft can be added again, an edited one keeps its new text for matching.
-    const posted = await loadPosted();
-    const entry = Object.entries(posted).find(([key, info]) => key.startsWith(`${project.key}/`) && info.state === 'draft' && info.draftId === draftId && info.iid === mr.iid);
-    if (entry) {
-      if (edit) posted[entry[0]] = { ...entry[1], body: text };
-      else delete posted[entry[0]];
-      await savePosted(posted);
-    }
+    if (edit) posted.editDraft(project.key, draftId, mr.iid, text);
+    else posted.forgetDraft(project.key, draftId, mr.iid);
     refreshState(project, mr, gitlab);
     broadcast();
     return c.json({ ok: true }, 200);

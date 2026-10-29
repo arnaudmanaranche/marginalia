@@ -14,7 +14,7 @@ Object.assign(process.env, {
 const { PROJECTS } = await import('../lib/projects.mjs');
 const { createApp } = await import('../studio/app.mjs');
 const { memoryGitlab } = await import('./support/memory-gitlab.mjs');
-const { loadPosted } = await import('../lib/posted.mjs');
+const { posted: postedRecord } = await import('../lib/posted.mjs');
 const { saveState } = await import('../lib/state.mjs');
 
 const key = PROJECTS[0].key;
@@ -55,7 +55,7 @@ test('submitting publishes the drafts as one review and approves', async () => {
   assert.equal(fake.drafts.length, 0);
   assert.equal(fake.reviews.at(-1).drafts, 3);
   assert.deepEqual(fake.approvedBy, ['me']);
-  const posted = Object.values(await loadPosted());
+  const posted = Object.values(postedRecord.all());
   assert.ok(posted.every((p) => p.state === 'published' && /#note_\d+$/.test(p.url)));
 });
 

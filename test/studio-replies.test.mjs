@@ -14,7 +14,7 @@ Object.assign(process.env, {
 });
 const { createApp } = await import('../studio/app.mjs');
 const { PROJECTS } = await import('../lib/projects.mjs');
-const { savePosted } = await import('../lib/posted.mjs');
+const { posted } = await import('../lib/posted.mjs');
 const { reviewsDir } = PROJECTS[0];
 await mkdir(reviewsDir, { recursive: true });
 const tracked = (iid, kind, file) => ({ project: 'demo', iid, kind, reviewPath: join(reviewsDir, `${file}.md`), web_url: `https://git.example.com/group/demo/-/merge_requests/${iid}`, source_branch: 'x' });
@@ -45,9 +45,9 @@ test('the fixes of a triage are read from their own route, not answered with the
 });
 
 test('a thread gets one reply', async () => {
-  await savePosted({ [`demo/mr-comments-mine:reply-${THREAD}`]: { at: 'now', iid: 1, url: 'u', state: 'draft', draftId: 5 } });
+  posted.recordDraft('demo', 'mr-comments-mine', `reply-${THREAD}`, { iid: 1, url: 'u', draftId: 5 });
   assert.equal((await send('POST', '/api/replies', reply)).status, 409);
-  await savePosted({});
+  posted.forget(`demo/mr-comments-mine:reply-${THREAD}`);
 });
 
 test('submitting is open on my own MR without ALLOW_POSTING, and still closed on someone else\'s', async () => {
