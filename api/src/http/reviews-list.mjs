@@ -2,113 +2,19 @@
 import { readFile, readdir, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import { ALLOW_POSTING, JIRA_BASE_URL } from '../config.mjs';
-import { PROJECTS, projectByKey } from '../projects.mjs';
+import { PROJECTS } from '../projects.mjs';
 import { reviewId } from '../review-id.mjs';
-import { TRIAGE_FILE_PREFIX } from '../paths.mjs';
 import { posted } from '../posted.mjs';
 import { artifactAt } from '../artifact.mjs';
 import { listFields } from '../findings.mjs';
 import { byPriorityThenDate } from '../jira.mjs';
 import { envDefaults, loadSettings } from '../settings.mjs';
 import { parseAcrossLayers } from '../stack.mjs';
-import { gitlab } from '../gitlab-api.mjs';
-import { broadcast, newerState, postQueue, readStatus, stateOverrides } from './context.mjs';
-
-export function kindOf(slug) {
-  return slug.startsWith(TRIAGE_FILE_PREFIX) ? 'comments' : 'review';
-}
-
-// Forgets posted comments that were deleted on GitLab, so they can be posted
-// again and lose their "Posted" badge. Throttled (the client polls every 30 s),
-// serialized with posting, and a failed check never drops anything.
-let lastReconcile = 0;
-async function reconcilePosted() {
-  if (Date.now() - lastReconcile < 15_000) return;
-  lastReconcile = Date.now();
-  await postQueue(async () => {
-    let changed = false;
-    for (const { key, projectKey, info } of posted.entries()) {
-      // A project that left the config is left alone.
-      const project = projectByKey(projectKey);
-      // With posting off, only the replies on my own MRs (which carry their thread) can exist.
-      if (!info.iid || !project || (ALLOW_POSTING !== 'true' && !info.threadId)) continue;
-      try {
-        if (info.state === 'draft') {
-          if (await gitlab.draftNoteExists(project, info.iid, info.draftId)) continue;
-          // Gone from the drafts: published from GitLab itself, or deleted there.
-          const noteId = info.body ? await gitlab.findPublishedNoteId(project, info.iid, info.body) : null;
-          if (noteId) {
-            posted.publish(key, `${info.mrUrl}#note_${noteId}`, info.at);
-          } else posted.forget(key);
-          changed = true;
-          continue;
-        }
-        const noteId = info.url?.match(/#note_(\d+)$/)?.[1];
-        if (noteId && !(await gitlab.mergeRequestNoteExists(project, info.iid, noteId))) {
-          posted.forget(key);
-          changed = true;
-        }
-      } catch {
-        /* GitLab unreachable: keep it for now */
-      }
-    }
-    if (changed) broadcast();
-  }).catch(() => {});
-}
-
-// Stacks of 2+ MRs from status.json, layers bottom to top. A layer without a
-// review file yet has slug null.
-function buildStacks(status) {
-  const byId = new Map();
-  for (const mr of status?.mrs ?? []) {
-    if (mr.kind !== 'review' || !mr.stack) continue;
-    const id = `${mr.project}/${mr.stack.id}`;
-    if (!byId.has(id)) byId.set(id, { id, baseBranch: mr.stack.baseBranch, layers: [] });
-    byId.get(id).layers.push({
-      iid: mr.iid,
-      title: mr.title,
-      webUrl: mr.web_url,
-      slug: mr.reviewPath ? `${mr.project}/${mr.reviewPath.split('/').pop().replace(/\.md$/, '')}` : null,
-      status: mr.status,
-      parentIid: mr.stack.parentIid,
-      position: mr.stack.position,
-    });
-  }
-  return [...byId.values()].map((st) => ({ ...st, layers: st.layers.sort((a, b) => a.position - b.position) }));
-}
-
-// The bot statuses of an MR it is about to review, or failed to, before any report exists.
-const AWAITING = new Set(['pending', 'reviewing', 'failed', 'skipped']);
-
-// An MR the poll just picked up has no report yet: it is listed at once, `awaiting` its first one,
-// so it arrives in the queue when the bot finds it rather than minutes later.
-export function awaitingItem(project, mr) {
-  const fileSlug = mr.reviewPath.split('/').pop().replace(/\.md$/, '');
-  const at = mr.updatedAt ?? new Date().toISOString();
-  return {
-    slug: reviewId(project, fileSlug),
-    project: project.key,
-    kind: mr.kind ?? kindOf(fileSlug),
-    title: mr.title ?? fileSlug,
-    iid: mr.iid,
-    author: mr.author ?? null,
-    webUrl: mr.web_url ?? null,
-    branch: mr.sourceBranch ?? null,
-    verdict: null, risk: null, critical: 0, important: 0, summary: null, highlights: [], postable: 0,
-    contract: { source: 'none', warnings: [] },
-    stackId: mr.stack?.id ? `${project.key}/${mr.stack.id}` : null,
-    crossLayer: [],
-    stale: false,
-    mtime: at,
-    reviewedAt: at,
-    tracked: true,
-    jira: mr.jira ?? null,
-    myState: newerState(mr.myState ?? null, stateOverrides.get(`${project.key}:${mr.iid}`) ?? null),
-    // Reviewing shows from the bot's live status; here, whether the first review is still to come.
-    awaiting: mr.status === 'failed' ? 'failed' : 'queued',
-    failure: mr.status === 'failed' ? mr.failure ?? null : null,
-  };
-}
+import { newerState, readStatus, stateOverrides } from './context.mjs';
+import { kindOf } from './review-kind.mjs';
+import { reconcilePosted } from './reviews-reconcile.mjs';
+import { buildStacks } from './reviews-stacks.mjs';
+import { AWAITING, awaitingItem } from './reviews-awaiting.mjs';
 
 async function listProjectReviews(project, status) {
   const mrs = (status?.mrs ?? []).filter((m) => m.project === project.key);
@@ -173,3 +79,4 @@ export async function listReviews() {
     posted: posted.all(),
   };
 }
+

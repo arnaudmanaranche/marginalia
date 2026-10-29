@@ -22,7 +22,6 @@ const GUARDED_DIRS = ['api/src', 'packages/contract/src'];
 
 export const OVER_LIMIT = [
   'api/src/http/routes-actions.mjs',
-  'api/src/http/reviews-list.mjs',
 ];
 
 // api/src/foo.mjs, also inside a worktree of this repo (.claude/worktrees/<name>/api/src/foo.mjs).

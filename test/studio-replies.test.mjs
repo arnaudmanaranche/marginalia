@@ -60,7 +60,7 @@ test('submitting is open on my own MR without ALLOW_POSTING, and still closed on
 });
 
 test('an MR the bot just picked up is listed before its first report, awaiting it', async () => {
-  const { awaitingItem } = await import('../api/src/http/reviews-list.mjs');
+  const { awaitingItem } = await import('../api/src/http/reviews-awaiting.mjs');
   const item = awaitingItem(PROJECTS[0], { ...tracked(7, 'review', 'feat-new'), title: 'feat: new', status: 'pending', sourceBranch: 'feat/new' });
   assert.equal(item.slug, 'demo/feat-new');
   assert.equal(item.awaiting, 'queued');
