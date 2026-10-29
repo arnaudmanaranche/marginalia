@@ -4,7 +4,7 @@ import { loadShape } from '../lib/findings.mjs';
 import { askAboutStop } from '../lib/chat.mjs';
 import { buildChatPrompt, parseChatInput } from '../lib/chat-prompt.mjs';
 import { filesForPatterns, toDiffFile } from '../lib/mr-diff.mjs';
-import { listMergeRequestDiffs } from '../lib/gitlab.mjs';
+import { gitlab } from '../lib/gitlab-api.mjs';
 import { fixesStatus, pushFixes } from '../lib/fixes.mjs';
 import { pushOneFix } from '../lib/fixes-push.mjs';
 import { envDefaults, saveSettings } from '../lib/settings.mjs';
@@ -61,7 +61,7 @@ export function actionRoutes(app) {
     if (chatBusy) return c.json({ error: 'another question is being answered, try again in a moment' }, 429);
     chatBusy = true;
     try {
-      const files = filesForPatterns((await listMergeRequestDiffs(project, mr.iid)).map(toDiffFile), stop.files);
+      const files = filesForPatterns((await gitlab.listMergeRequestDiffs(project, mr.iid)).map(toDiffFile), stop.files);
       const prompt = buildChatPrompt({ title: mr.title, shape, stop, files, history, question });
       return c.json({ answer: await askAboutStop({ project, iid: mr.iid, prompt }) }, 200);
     } catch (err) {

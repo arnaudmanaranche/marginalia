@@ -19,8 +19,8 @@ const DESCRIPTION = `The contract between the studio server and the React app. G
 **Posting is opt-in on other people's merge requests.** Everything that touches GitLab drafts or posting answers \`403\` there unless the server runs with \`ALLOW_POSTING=true\`. On your own merge requests (a \`comments\` triage) replying to the threads, submitting those replies and pushing the triage's fixes are always available. The merge request is always resolved server-side from \`status.json\` using the review id, never taken from a request.`;
 
 // `hosts` returns the Host values that count as the studio itself (default: from STUDIO_PORT).
-/** @param {{ hosts?: () => Set<string> }} [options] */
-export function createApp({ hosts } = {}) {
+/** @param {{ hosts?: () => Set<string>, gitlab?: any }} [options] */
+export function createApp({ hosts, gitlab } = {}) {
   const app = new OpenAPIHono({ defaultHook: validationHook });
   app.onError(errorHandler);
 
@@ -30,9 +30,9 @@ export function createApp({ hosts } = {}) {
   app.use('/api/drafts/*', requirePosting);
 
   readRoutes(app);
-  writeRoutes(app);
+  writeRoutes(app, gitlab);
   actionRoutes(app);
-  replyRoutes(app);
+  replyRoutes(app, gitlab);
   runRoutes(app);
   liveRoutes(app);
 

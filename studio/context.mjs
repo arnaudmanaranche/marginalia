@@ -64,8 +64,8 @@ export const postQueue = serialQueue();
 // waiting for the next poll. The newer of the two readings is the one shown.
 export const stateOverrides = new Map();
 export const newerState = (a, b) => (a && b ? (Date.parse(a.computedAt) >= Date.parse(b.computedAt) ? a : b) : a ?? b ?? null);
-export function refreshState(project, mr) {
-  fetchReviewState(project, mr)
+export function refreshState(project, mr, gitlab) {
+  fetchReviewState(project, mr, gitlab)
     .then((state) => {
       stateOverrides.set(`${project.key}:${mr.iid}`, state);
       broadcast();

@@ -10,8 +10,7 @@ import { loadShape, listFields } from '../lib/findings.mjs';
 import { byPriorityThenDate } from '../lib/jira.mjs';
 import { envDefaults, loadSettings } from '../lib/settings.mjs';
 import { parseAcrossLayers } from '../lib/stack.mjs';
-import { findPublishedNoteId, mergeRequestNoteExists } from '../lib/gitlab.mjs';
-import { draftNoteExists } from '../lib/gitlab-drafts.mjs';
+import { gitlab } from '../lib/gitlab-api.mjs';
 import { broadcast, newerState, postQueue, readStatus, stateOverrides } from './context.mjs';
 
 export function kindOf(slug) {
@@ -35,9 +34,9 @@ async function reconcilePosted() {
       if (!info.iid || !project || (ALLOW_POSTING !== 'true' && !info.threadId)) continue;
       try {
         if (info.state === 'draft') {
-          if (await draftNoteExists(project, info.iid, info.draftId)) continue;
+          if (await gitlab.draftNoteExists(project, info.iid, info.draftId)) continue;
           // Gone from the drafts: published from GitLab itself, or deleted there.
-          const noteId = info.body ? await findPublishedNoteId(project, info.iid, info.body) : null;
+          const noteId = info.body ? await gitlab.findPublishedNoteId(project, info.iid, info.body) : null;
           if (noteId) {
             posted[key] = { ...info, state: 'published', url: `${info.mrUrl}#note_${noteId}` };
             delete posted[key].draftId;
@@ -46,7 +45,7 @@ async function reconcilePosted() {
           continue;
         }
         const noteId = info.url?.match(/#note_(\d+)$/)?.[1];
-        if (noteId && !(await mergeRequestNoteExists(project, info.iid, noteId))) {
+        if (noteId && !(await gitlab.mergeRequestNoteExists(project, info.iid, noteId))) {
           delete posted[key];
           changed = true;
         }

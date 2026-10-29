@@ -4,8 +4,7 @@ import { postedKey } from '../lib/state-shape.mjs';
 import { loadPosted, savePosted } from '../lib/posted.mjs';
 import { loadState } from '../lib/state.mjs';
 import { reviewerStateFor } from '../lib/review-actions.mjs';
-import { findPublishedNoteId, approveMergeRequest } from '../lib/gitlab.mjs';
-import { createDraftNote, createInlineDraftNote, listDraftNotes, updateDraftNote, deleteDraftNote, publishDraftNotes } from '../lib/gitlab-drafts.mjs';
+import { gitlab as defaultGitlab } from '../lib/gitlab-api.mjs';
 import { warn } from '../lib/log.mjs';
 import { AddToReviewRequest, DraftEdit, Ok, PostedInfo, ReviewId, SubmitRequest, Submitted } from './schemas.mjs';
 import { jsonBody, jsonOf, route } from './route-kit.mjs';
@@ -15,7 +14,8 @@ const gone = (c, status = 404) => c.json({ error: 'no tracked merge request for 
 
 // Comments go up as GitLab draft notes (the "pending review"): private to the token's owner until
 // submitted. The MR is always resolved server-side from status.json, never taken from the request.
-export function writeRoutes(app) {
+// `gitlab` is what the routes ask of GitLab (lib/gitlab-api.mjs); a test passes the in-memory one.
+export function writeRoutes(app, gitlab = defaultGitlab) {
   // Posts one comment: inline on path:line when given, else (or if GitLab refuses the anchor)
   // as a general comment.
   app.openapi(route({
@@ -39,7 +39,7 @@ export function writeRoutes(app) {
     try {
       if (hasTarget) {
         try {
-          draft = await createInlineDraftNote(project, mr.iid, text, path, line);
+          draft = await gitlab.createInlineDraftNote(project, mr.iid, text, path, line);
           inline = true;
         } catch (err) {
           // Typically a line outside the diff (400): keep the comment, drop the anchor.
@@ -48,14 +48,14 @@ export function writeRoutes(app) {
       }
       if (!inline) {
         if (hasTarget) text = `\`${path}${line ? `:${line}` : ''}\`\n\n${text}`;
-        draft = await createDraftNote(project, mr.iid, text);
+        draft = await gitlab.createDraftNote(project, mr.iid, text);
       }
     } catch (err) {
       return c.json({ error: shortMessage(err) }, 502);
     }
     posted[key] = { at: new Date().toISOString(), iid: mr.iid, state: 'draft', draftId: draft.id, body: text, mrUrl: mr.web_url, url: mr.web_url, inline: hasTarget ? inline : undefined };
     await savePosted(posted);
-    refreshState(project, mr);
+    refreshState(project, mr, gitlab);
     broadcast();
     return c.json(posted[key], 200);
   }));
@@ -79,10 +79,10 @@ export function writeRoutes(app) {
     // Approving or requesting changes needs no comment: the verdict is the review.
     if (!drafts.length && !text && action === 'comment') return c.json({ error: 'nothing to submit' }, 400);
     try {
-      if (text) await createDraftNote(project, mr.iid, text);
+      if (text) await gitlab.createDraftNote(project, mr.iid, text);
       // Drafts started in GitLab itself are not in the posted record: ask GitLab.
-      const pending = drafts.length > 0 || Boolean(text) || (await listDraftNotes(project, mr.iid)).length > 0;
-      if (pending || action === 'request_changes') await publishDraftNotes(project, mr.iid, reviewerStateFor(action));
+      const pending = drafts.length > 0 || Boolean(text) || (await gitlab.listDraftNotes(project, mr.iid)).length > 0;
+      if (pending || action === 'request_changes') await gitlab.publishDraftNotes(project, mr.iid, reviewerStateFor(action));
     } catch (err) {
       return c.json({ error: shortMessage(err) }, 502);
     }
@@ -90,7 +90,7 @@ export function writeRoutes(app) {
     let approveError = null;
     if (action === 'approve') {
       try {
-        await approveMergeRequest(project, mr.iid, (await loadState(project))[mr.iid]);
+        await gitlab.approveMergeRequest(project, mr.iid, (await loadState(project))[mr.iid]);
       } catch (err) {
         approveError = shortMessage(err);
       }
@@ -98,7 +98,7 @@ export function writeRoutes(app) {
     for (const [key, info] of drafts) {
       let noteId = null;
       try {
-        noteId = await findPublishedNoteId(project, info.iid, info.body);
+        noteId = await gitlab.findPublishedNoteId(project, info.iid, info.body);
       } catch {
         /* the review is out; only the deep link is missing */
       }
@@ -106,7 +106,7 @@ export function writeRoutes(app) {
       posted[key] = { ...rest, state: 'published', at: new Date().toISOString(), url: noteId ? `${info.mrUrl}#note_${noteId}` : info.mrUrl };
     }
     await savePosted(posted);
-    refreshState(project, mr);
+    refreshState(project, mr, gitlab);
     broadcast();
     // The comments are out either way: say so, so the user does not submit them twice.
     if (approveError) return c.json({ error: `Comments published, but the approval failed: ${approveError}` }, 502);
@@ -124,8 +124,8 @@ export function writeRoutes(app) {
     const { project, mr } = found;
     const text = edit ? c.req.valid('json').body : null;
     try {
-      if (edit) await updateDraftNote(project, mr.iid, draftId, text);
-      else await deleteDraftNote(project, mr.iid, draftId);
+      if (edit) await gitlab.updateDraftNote(project, mr.iid, draftId, text);
+      else await gitlab.deleteDraftNote(project, mr.iid, draftId);
     } catch (err) {
       return c.json({ error: shortMessage(err) }, / -> 404:/.test(String(err.message)) ? 404 : 502);
     }
@@ -137,7 +137,7 @@ export function writeRoutes(app) {
       else delete posted[entry[0]];
       await savePosted(posted);
     }
-    refreshState(project, mr);
+    refreshState(project, mr, gitlab);
     broadcast();
     return c.json({ ok: true }, 200);
   });

@@ -11,8 +11,7 @@ import { buildShape, loadShape } from '../lib/findings.mjs';
 import { filesForPatterns, toDiffFile } from '../lib/mr-diff.mjs';
 import { diffSincePush, reviewDiff, reviewPushes } from '../lib/review-diff.mjs';
 import { reviewThreads } from '../lib/review-threads.mjs';
-import { listMergeRequestDiffs } from '../lib/gitlab.mjs';
-import { listDraftNotes } from '../lib/gitlab-drafts.mjs';
+import { gitlab } from '../lib/gitlab-api.mjs';
 import { Diff, Drafts, Pushes, ReviewContent, ReviewId, ReviewsPayload, Threads, Version, Versions } from './schemas.mjs';
 import { jsonOf, route } from './route-kit.mjs';
 import { locate, shortMessage } from './context.mjs';
@@ -88,7 +87,7 @@ export function readRoutes(app) {
           : await diffSincePush(project, mr, found.slug, { from, stopId });
         return c.json(body, status);
       }
-      let files = (await listMergeRequestDiffs(project, mr.iid)).map(toDiffFile);
+      let files = (await gitlab.listMergeRequestDiffs(project, mr.iid)).map(toDiffFile);
       if (stopId) {
         const shape = await loadShape(project.reviewsDir, found.slug, '');
         const stop = (shape.tour ?? []).find((s) => s.id === stopId);
@@ -146,7 +145,7 @@ export function readRoutes(app) {
     const found = await tracked(c, c.req.valid('param').slug);
     if (found.reply) return found.reply;
     try {
-      return c.json({ drafts: await listDraftNotes(found.project, found.mr.iid) }, 200);
+      return c.json({ drafts: await gitlab.listDraftNotes(found.project, found.mr.iid) }, 200);
     } catch (err) {
       return c.json({ error: shortMessage(err) }, 502);
     }
