@@ -8,6 +8,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 process.env.MR_REVIEW_BOT_SKIP_CONFIG_CHECK = '1';
+// The fixes below are committed as t@t, as an older bot or an agent would: they go up as me.
+process.env.MARGINALIA_GIT_NAME = 'Me';
+process.env.MARGINALIA_GIT_EMAIL = 'me@worldia.com';
 const { fixesStatus } = await import('../lib/fixes.mjs');
 const { pushOneFix } = await import('../lib/fixes-push.mjs');
 
@@ -50,6 +53,8 @@ test('one fix pushed alone lands on the MR; the others still wait on top of it',
   assert.deepEqual(out.status.landed.map((l) => l.thread), ['thread-b']);
   assert.equal(run(origin, 'show', 'feat/x:b.txt'), 'b.txt fixed');
   assert.equal(run(origin, 'show', 'feat/x:a.txt'), 'a', 'the older fix was not pushed with it');
+  assert.equal(run(origin, 'log', '-1', '--format=%an <%ae> / %cn <%ce>', 'feat/x'), 'Me <me@worldia.com> / Me <me@worldia.com>', 'pushed as me, not as whoever committed it');
+  assert.equal(run(repo, 'log', '--format=%ce', `${out.status.remoteSha}..${out.status.fixesSha}`), 'me@worldia.com\nme@worldia.com', 'the fixes left are mine too');
   assert.equal(out.status.state, 'ready');
   assert.deepEqual(out.status.commits.map((c) => c.thread), ['thread-c', 'thread-a']);
   assert.equal(run(repo, 'worktree', 'list').split('\n').length, 1, 'the throwaway worktree is gone');

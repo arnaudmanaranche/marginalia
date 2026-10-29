@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { blockedError, branchCheck, checkLine, claudeCheck, gitlabCheck, jiraCheck, pushCheck } from '../lib/preflight-checks.mjs';
 import { failureKind, needsDoctor } from '../lib/failure-kind.mjs';
+import { identityOf } from '../lib/git-identity.mjs';
 
 test('Claude: logged in goes on, logged out stops the run, an old CLI that cannot tell goes on', () => {
   assert.equal(claudeCheck({ stdout: '{"loggedIn":true,"authMethod":"claude.ai"}' }).level, 'ok');
@@ -44,4 +45,12 @@ test('a blocked preflight is sorted like the failure it is, and needs no doctor'
   assert.equal(needsDoctor(failureKind(error)), false);
   assert.equal(needsDoctor(failureKind('no report')), true);
   assert.equal(needsDoctor(failureKind('ECONNRESET')), false, 'a transient failure is retried, not diagnosed');
+});
+
+test('fixes are committed as the GitLab user, unless an identity of your own is set', () => {
+  const user = { name: 'Arnaud', username: 'am', email: 'am@worldia.com', commit_email: 'commit@worldia.com' };
+  assert.deepEqual(identityOf({}, user), { name: 'Arnaud', email: 'commit@worldia.com' });
+  assert.deepEqual(identityOf({ MARGINALIA_GIT_EMAIL: 'marginalia@localhost', MARGINALIA_GIT_NAME: 'Marginalia' }, user), { name: 'Arnaud', email: 'commit@worldia.com' }, 'the container default is no choice');
+  assert.deepEqual(identityOf({ MARGINALIA_GIT_EMAIL: 'bot@worldia.com', MARGINALIA_GIT_NAME: 'Bot' }, user), { name: 'Bot', email: 'bot@worldia.com' });
+  assert.equal(identityOf({}, null), null);
 });

@@ -13,6 +13,9 @@ const repo = join(root, 'repo');
 const other = join(root, 'other');
 process.env.MR_REVIEW_BOT_SKIP_CONFIG_CHECK = '1';
 process.env.REPO_LOCAL_PATH = repo;
+// The fixes are committed as t@t, the identity they are pushed as: nothing to rewrite.
+process.env.MARGINALIA_GIT_NAME = 't';
+process.env.MARGINALIA_GIT_EMAIL = 't@t';
 
 const git = (cwd, ...args) => execFileSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@t', '-c', 'commit.gpgsign=false', ...args], { cwd, encoding: 'utf8' }).trim();
 git(root, 'init', '--quiet', '--bare', '-b', 'main', origin);
