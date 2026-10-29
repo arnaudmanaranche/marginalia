@@ -8,7 +8,7 @@ import { gitlab } from '../gitlab-api.mjs';
 import { fixesStatus, pushFixes } from '../fixes.mjs';
 import { pushOneFix } from '../fixes-push.mjs';
 import { envDefaults, saveSettings } from '../settings.mjs';
-import { BotState, ChatAnswer, ChatRequest, FixesStatus, Ok, PushRequest, Rerun, ReviewId, SettingsAnswer, SettingsPatch, SlugBody } from './schemas.mjs';
+import { BotState, ChatAnswer, ChatRequest, FixesStatus, Ok, PushRequest, Rerun, ReviewId, SettingsAnswer, SettingsPatch, SlugBody } from '@worldia/marginalia-contract';
 import { z } from '@hono/zod-openapi';
 import { jsonBody, jsonOf, route } from './route-kit.mjs';
 import { locate, readStatus, serialQueue, shortMessage } from './context.mjs';

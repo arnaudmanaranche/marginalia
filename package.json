@@ -10,6 +10,8 @@
   "files": [
     "bin",
     "api/src",
+    "packages/contract/src",
+    "packages/contract/package.json",
     "scripts/*.mjs",
     "!scripts/check-file-size.mjs",
     "poll.mjs",
@@ -19,6 +21,12 @@
     "examples",
     "swiftbar",
     ".env.example"
+  ],
+  "workspaces": [
+    "packages/*"
+  ],
+  "bundleDependencies": [
+    "@worldia/marginalia-contract"
   ],
   "publishConfig": {
     "access": "restricted"

@@ -1,6 +1,6 @@
 // @ts-check
 import { createRoute } from '@hono/zod-openapi';
-import { ErrorBody } from './schemas.mjs';
+import { ErrorBody } from '@worldia/marginalia-contract';
 
 // Small helpers so a route reads as what it takes and what it gives.
 export const jsonOf = (schema, description) => ({ description, content: { 'application/json': { schema } } });

@@ -1,0 +1,12 @@
+{
+  "name": "@worldia/marginalia-contract",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The contract between the Marginalia bot and its studio: zod schemas for the HTTP API and the review shape.",
+  "main": "src/index.mjs",
+  "exports": { ".": "./src/index.mjs" },
+  "dependencies": {
+    "@hono/zod-openapi": "^1.6.3"
+  }
+}

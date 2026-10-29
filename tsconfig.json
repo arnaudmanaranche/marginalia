@@ -14,6 +14,6 @@
     "skipLibCheck": true,
     "resolveJsonModule": true
   },
-  "include": ["api/src/**/*.mjs", "bin/*.mjs", "poll.mjs"],
+  "include": ["api/src/**/*.mjs", "packages/contract/src/**/*.mjs", "bin/*.mjs", "poll.mjs"],
   "exclude": ["node_modules", "ui"]
 }

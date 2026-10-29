@@ -1,7 +1,7 @@
 // @ts-check
 import { posted } from '../posted.mjs';
 import { gitlab as defaultGitlab } from '../gitlab-api.mjs';
-import { PostedInfo, ReplyRequest } from './schemas.mjs';
+import { PostedInfo, ReplyRequest } from '@worldia/marginalia-contract';
 import { jsonBody, jsonOf, route } from './route-kit.mjs';
 import { broadcast, locate, postQueue, refreshState, shortMessage } from './context.mjs';
 

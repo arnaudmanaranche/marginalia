@@ -12,7 +12,7 @@ import { filesForPatterns, toDiffFile } from '../mr-diff.mjs';
 import { diffSincePush, reviewDiff, reviewPushes } from '../review-diff.mjs';
 import { reviewThreads } from '../review-threads.mjs';
 import { gitlab } from '../gitlab-api.mjs';
-import { Diff, Drafts, Pushes, ReviewContent, ReviewId, ReviewsPayload, Threads, Version, Versions } from './schemas.mjs';
+import { Diff, Drafts, Pushes, ReviewContent, ReviewId, ReviewsPayload, Threads, Version, Versions } from '@worldia/marginalia-contract';
 import { jsonOf, route } from './route-kit.mjs';
 import { locate, shortMessage } from './context.mjs';
 import { kindOf, listReviews } from './reviews-list.mjs';

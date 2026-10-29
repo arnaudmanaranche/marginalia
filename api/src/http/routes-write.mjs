@@ -5,7 +5,7 @@ import { loadState } from '../state.mjs';
 import { reviewerStateFor } from '../review-actions.mjs';
 import { gitlab as defaultGitlab } from '../gitlab-api.mjs';
 import { warn } from '../log.mjs';
-import { AddToReviewRequest, DraftEdit, Ok, PostedInfo, ReviewId, SubmitRequest, Submitted } from './schemas.mjs';
+import { AddToReviewRequest, DraftEdit, Ok, PostedInfo, ReviewId, SubmitRequest, Submitted } from '@worldia/marginalia-contract';
 import { jsonBody, jsonOf, route } from './route-kit.mjs';
 import { broadcast, locate, postQueue, refreshState, shortMessage } from './context.mjs';
 

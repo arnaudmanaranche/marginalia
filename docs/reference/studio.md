@@ -53,7 +53,7 @@ follow the OS, as in the app. `npm --prefix ui run build-storybook` builds a sta
 (`ui/storybook-static`, gitignored).
 
 **API contract.** The server is a Hono app (`api/src/http/app.mjs`, routes in `api/src/http/routes-*.mjs`).
-Every request body is validated with the zod schemas in `api/src/http/schemas.mjs`, and the OpenAPI 3.1
+Every request body is validated with the zod schemas in `packages/contract/src` (`@worldia/marginalia-contract`), and the OpenAPI 3.1
 document is generated from those same schemas: with the studio running, read it at
 <http://localhost:4477/openapi.json>, rendered at <http://localhost:4477/api-docs.html> (read-only:
 "Try it out" is off, since the write endpoints post to GitLab as you). To change an endpoint, change

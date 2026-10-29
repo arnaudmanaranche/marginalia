@@ -5,7 +5,7 @@ import { parseReviewId } from '../review-id.mjs';
 import { listTraces, readRunPart, readTrace } from '../run-journal.mjs';
 import { startDoctor } from '../doctor.mjs';
 import { fixSource, pushFix, startFix } from '../doctor-fix.mjs';
-import { Ok, ReviewId, RunTrace, Runs } from './schemas.mjs';
+import { Ok, ReviewId, RunTrace, Runs } from '@worldia/marginalia-contract';
 import { broadcast } from './context.mjs';
 import { jsonOf, route } from './route-kit.mjs';
 

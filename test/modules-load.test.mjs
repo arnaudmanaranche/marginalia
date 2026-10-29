@@ -19,3 +19,8 @@ test('every module of api/src loads', async () => {
     await assert.doesNotReject(import(file), file);
   }
 });
+
+test('every module of the contract package loads', async () => {
+  const dir = join(root, 'packages', 'contract', 'src');
+  for (const f of readdirSync(dir).filter((n) => n.endsWith('.mjs'))) await assert.doesNotReject(import(join(dir, f)), f);
+});

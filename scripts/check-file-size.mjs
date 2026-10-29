@@ -17,24 +17,27 @@ export const countLines = (text) => text.split('\n').length - (text.endsWith('\n
 
 // Files that came into api/src over the limit when the studio server moved there. This list only
 // shrinks: split a file, then remove it here. Never add to it.
+// Where the size rule applies.
+const GUARDED_DIRS = ['api/src', 'packages/contract/src'];
+
 export const OVER_LIMIT = [
   'api/src/http/routes-actions.mjs',
   'api/src/http/routes-read.mjs',
   'api/src/http/reviews-list.mjs',
-  'api/src/http/schemas.mjs',
 ];
 
 // api/src/foo.mjs, also inside a worktree of this repo (.claude/worktrees/<name>/api/src/foo.mjs).
 export function isGuarded(path, root = ROOT) {
   const rel = relative(root, path).split(sep).join('/').replace(/^\.claude\/worktrees\/[^/]+\//, '');
-  return /^api\/src\/.+\.mjs$/.test(rel) && !OVER_LIMIT.includes(rel);
+  return GUARDED_DIRS.some((dir) => rel.startsWith(`${dir}/`)) && rel.endsWith('.mjs') && !OVER_LIMIT.includes(rel);
 }
 
 export function oversized(root = ROOT) {
-  return readdirSync(join(root, 'api', 'src'), { recursive: true })
-    .filter((f) => f.endsWith('.mjs') && !OVER_LIMIT.includes(`api/src/${f}`))
-    .map((f) => ({ file: `api/src/${f}`, lines: countLines(readFileSync(join(root, 'api', 'src', f), 'utf8')) }))
-    .filter(({ lines }) => lines > MAX_LINES);
+  return GUARDED_DIRS.flatMap((dir) => readdirSync(join(root, dir), { recursive: true })
+    .map((f) => `${dir}/${String(f).split(sep).join('/')}`)
+    .filter((file) => file.endsWith('.mjs') && !OVER_LIMIT.includes(file))
+    .map((file) => ({ file, lines: countLines(readFileSync(join(root, file), 'utf8')) }))
+    .filter(({ lines }) => lines > MAX_LINES));
 }
 
 const advice = `Split it into focused modules (pure logic apart from I/O, so it can be unit-tested) instead of compacting the code.`;

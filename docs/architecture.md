@@ -1,6 +1,6 @@
 # Architecture
 
-Target architecture for V2. Terms are defined in `GLOSSARY.md`; the reasons are in `docs/adr/`. Step 2 of the delivery order has moved the code into `api/src` (with the HTTP routes in `api/src/http`) and `ui/`. `packages/contract` and the `.ts` migration are not done yet; where this file says so, it describes where the code is going.
+Target architecture for V2. Terms are defined in `GLOSSARY.md`; the reasons are in `docs/adr/`. Step 2 of the delivery order has moved the code into `api/src` (with the HTTP routes in `api/src/http`) and `ui/`. `packages/contract` is in place as a workspace (the schemas, split in eight modules) but `api/` and `ui/` are not yet workspaces, and the `.ts` migration is not done; where this file says so, it describes where the code is going.
 
 ## Packages
 
