@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { withTrust } from '../lib/claude-trust.mjs';
+import { withTrust } from '../api/src/claude-trust.mjs';
 
 test('the listed repos become trusted, everything else in the file is kept', () => {
   const before = { numStartups: 4, projects: { '/other': { hasTrustDialogAccepted: false, allowedTools: ['x'] } } };

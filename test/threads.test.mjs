@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { threadsForFile } from '../studio/src/lib/threads.ts';
+import { threadsForFile } from '../ui/src/lib/threads.ts';
 
 const file = {
   path: 'a.ts', oldPath: null,

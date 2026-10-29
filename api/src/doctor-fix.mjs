@@ -62,7 +62,7 @@ async function prepare({ trace, doctor, save }) {
     const base = await head(SOURCE_DIR);
     await source.run('worktree', 'add', '-B', branch, dir, base);
     // The tests need the dependencies; the worktree borrows the clone's.
-    for (const sub of ['node_modules', 'studio/node_modules']) {
+    for (const sub of ['node_modules', 'ui/node_modules']) {
       if (existsSync(join(SOURCE_DIR, sub))) await symlink(join(SOURCE_DIR, sub), join(dir, sub)).catch(() => {});
     }
     const args = claudeArgs({ prompt: fixPrompt({ trace, doctor }), tools: FIX_TOOLS, systemPrompt: SYSTEM });

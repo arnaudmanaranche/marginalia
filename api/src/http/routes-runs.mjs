@@ -1,10 +1,10 @@
 // @ts-check
 import { z } from '@hono/zod-openapi';
-import { PROJECTS } from '../lib/projects.mjs';
-import { parseReviewId } from '../lib/review-id.mjs';
-import { listTraces, readRunPart, readTrace } from '../lib/run-journal.mjs';
-import { startDoctor } from '../lib/doctor.mjs';
-import { fixSource, pushFix, startFix } from '../lib/doctor-fix.mjs';
+import { PROJECTS } from '../projects.mjs';
+import { parseReviewId } from '../review-id.mjs';
+import { listTraces, readRunPart, readTrace } from '../run-journal.mjs';
+import { startDoctor } from '../doctor.mjs';
+import { fixSource, pushFix, startFix } from '../doctor-fix.mjs';
 import { Ok, ReviewId, RunTrace, Runs } from './schemas.mjs';
 import { broadcast } from './context.mjs';
 import { jsonOf, route } from './route-kit.mjs';

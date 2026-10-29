@@ -10,11 +10,11 @@
 # --- the React app, built once
 FROM node:22-bookworm-slim AS studio
 WORKDIR /studio
-COPY studio/package.json studio/package-lock.json ./
+COPY ui/package.json ui/package-lock.json ./
 RUN npm ci
-COPY studio/index.html studio/tsconfig.json studio/vite.config.ts ./
-COPY studio/public ./public
-COPY studio/src ./src
+COPY ui/index.html ui/tsconfig.json ui/vite.config.ts ./
+COPY ui/public ./public
+COPY ui/src ./src
 RUN npm run build
 
 # --- production dependencies of the server side
@@ -38,13 +38,12 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY package.json poll.mjs .env.example ./
 COPY bin ./bin
-COPY lib ./lib
+COPY api ./api
 COPY scripts ./scripts
 COPY docker ./docker
 COPY skills ./skills
 COPY examples ./examples
-COPY studio/*.mjs ./studio/
-COPY --from=studio /studio/dist ./studio/dist
+COPY --from=studio /studio/dist ./ui/dist
 RUN chmod +x docker/entrypoint.sh docker/git-https.mjs \
  && mkdir -p /data /home/node/.claude /repos \
  && chown node:node /data /home/node/.claude /repos

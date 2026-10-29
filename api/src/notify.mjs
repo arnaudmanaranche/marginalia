@@ -7,7 +7,7 @@ import { notifyCommands, openCommand } from './notify-commands.mjs';
 import { logger } from './logger.mjs';
 
 // Same mark as the studio favicon, rasterised: terminal-notifier can't read SVG.
-const LOGO_PATH = join(dirname(fileURLToPath(import.meta.url)), '..', 'studio', 'public', 'logo.png');
+const LOGO_PATH = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'ui', 'public', 'logo.png');
 
 // openPath, when given, makes the notification clickable where the platform allows
 // it (terminal-notifier on macOS): clicking opens the review in the local studio

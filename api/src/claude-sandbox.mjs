@@ -15,7 +15,7 @@ const SHELL_FILES = ['.zshrc', '.zprofile', '.zshenv', '.bashrc', '.bash_profile
 const TRUSTED_CLAUDE_DIRS = ['commands', 'agents', 'skills', 'hooks'];
 const TRUSTED_CLAUDE_FILES = ['settings.json', 'settings.local.json'];
 // The bot's own code and secrets. Its worktree may live under it, so no blanket rule.
-const BOT_PATHS = ['lib/**', 'scripts/**', 'swiftbar/**', 'poll.mjs', '.env'];
+const BOT_PATHS = ['api/**', 'scripts/**', 'swiftbar/**', 'poll.mjs', '.env'];
 
 // Permission rules: `//` is an absolute path, `~/` the home directory.
 const absolute = (path) => `/${path}`;

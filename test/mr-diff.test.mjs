@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { filesForPatterns, globToRegExp, parseDiff, toDiffFile } from '../lib/mr-diff.mjs';
+import { filesForPatterns, globToRegExp, parseDiff, toDiffFile } from '../api/src/mr-diff.mjs';
 
 const DIFF = '@@ -1,3 +1,4 @@ fn\n a\n-b\n+B\n+c\n d\n\\ No newline at end of file\n';
 

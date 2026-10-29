@@ -1,7 +1,7 @@
 // `npm run autostart` (install and start), `-- --uninstall`, `-- --status`: the same as
 // `marginalia service install|uninstall|status`, kept for the README's older command.
 // Logic lives in service.mjs (launchd on macOS, systemd --user on Linux).
-import '../lib/node-check.mjs';
+import '../api/src/node-check.mjs';
 import { runService } from './service.mjs';
 
 const arg = process.argv[2];

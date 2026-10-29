@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { raisedElsewhere } from '../studio/src/lib/raisedElsewhere.ts';
+import { raisedElsewhere } from '../ui/src/lib/raisedElsewhere.ts';
 
 const note = (over = {}) => ({ id: 1, author: 'alice', authorName: 'Alice', mine: false, bot: false, body: 'Null check?', at: '2026-10-01T10:00:00Z', ...over });
 const thread = (id, over = {}, opener = {}) => ({ id, path: 'a.ts', line: 10, side: 'new', resolved: false, resolvable: true, outdated: false, notes: [note(opener)], ...over });

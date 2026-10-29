@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
 process.env.MR_REVIEW_BOT_SKIP_CONFIG_CHECK = '1';
-const { parseRunOutput } = await import('../lib/claude-cli.mjs');
+const { parseRunOutput } = await import('../api/src/claude-cli.mjs');
 
 test('the final event gives the final message and the run cost', () => {
   const stdout = JSON.stringify({ type: 'result', result: '# Report', total_cost_usd: 1.25, num_turns: 12, duration_ms: 9000, usage: { output_tokens: 3400 }, session_id: 's-1' });
@@ -15,12 +15,12 @@ test('anything else is kept as plain text', () => {
 });
 
 test('the run never gets the API key, and is marked as a bot run', async () => {
-  const { claudeEnv } = await import('../lib/claude-cli.mjs');
+  const { claudeEnv } = await import('../api/src/claude-cli.mjs');
   assert.deepEqual(claudeEnv({ ANTHROPIC_API_KEY: 'sk-x', PATH: '/bin' }), { PATH: '/bin', MR_REVIEW_BOT: '1' });
 });
 
 test('the allowed tools go as one space-separated argument', async () => {
-  const { claudeArgs } = await import('../lib/claude-cli.mjs');
+  const { claudeArgs } = await import('../api/src/claude-cli.mjs');
   const args = claudeArgs({ prompt: '/code-review MR !1', tools: ['Read', 'Bash(git:*)'], systemPrompt: 'contract' });
   assert.equal(args[args.indexOf('--allowedTools') + 1], 'Read Bash(git:*)');
   assert.equal(args[args.indexOf('-p') + 1], '/code-review MR !1');

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { groupOf, groupReviews, standingOf, waitingOnYou } from '../studio/src/lib/dashboard.ts';
+import { groupOf, groupReviews, standingOf, waitingOnYou } from '../ui/src/lib/dashboard.ts';
 
 const state = (over = {}) => ({
   requested: false, decision: null, reviewed: false, drafts: 0, myActivityAt: null, lastPushAt: null,

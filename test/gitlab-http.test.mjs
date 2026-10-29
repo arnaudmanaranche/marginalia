@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createGitlabClient } from '../lib/gitlab-http.mjs';
+import { createGitlabClient } from '../api/src/gitlab-http.mjs';
 
 const reply = (status, body, headers = {}) => ({
   ok: status >= 200 && status < 300,

@@ -1,18 +1,18 @@
-import './lib/node-check.mjs';
+import './api/src/node-check.mjs';
 import { mkdir } from 'node:fs/promises';
 import { watch } from 'node:fs';
-import { ROOT, ensureDataDir } from './lib/config.mjs';
-import { PROJECTS } from './lib/projects.mjs';
-import { loadSettings, pollIntervalMs } from './lib/settings.mjs';
-import { startStudio } from './studio/server.mjs';
-import { isFancyTerminal, c } from './lib/log.mjs';
-import { logger } from './lib/logger.mjs';
-import { RETRY_AFTER_MS, failureKind } from './lib/failure-kind.mjs';
-import { status, statusSink, writeStatus } from './lib/status.mjs';
-import { notify } from './lib/notify.mjs';
-import { ensureBotWorktree } from './lib/worktree.mjs';
-import { passOver } from './lib/poll-pass.mjs';
-import { passDeps } from './lib/poll-pass-deps.mjs';
+import { ROOT, ensureDataDir } from './api/src/config.mjs';
+import { PROJECTS } from './api/src/projects.mjs';
+import { loadSettings, pollIntervalMs } from './api/src/settings.mjs';
+import { startStudio } from './api/src/http/server.mjs';
+import { isFancyTerminal, c } from './api/src/log.mjs';
+import { logger } from './api/src/logger.mjs';
+import { RETRY_AFTER_MS, failureKind } from './api/src/failure-kind.mjs';
+import { status, statusSink, writeStatus } from './api/src/status.mjs';
+import { notify } from './api/src/notify.mjs';
+import { ensureBotWorktree } from './api/src/worktree.mjs';
+import { passOver } from './api/src/poll-pass.mjs';
+import { passDeps } from './api/src/poll-pass-deps.mjs';
 
 // A failure that passes by itself (GitLab unreachable, Claude overloaded) brings the next poll closer.
 let retrySoon = false;

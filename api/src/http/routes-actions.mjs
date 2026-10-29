@@ -1,13 +1,13 @@
 // @ts-check
-import { loadState, saveState } from '../lib/state.mjs';
-import { artifactAt } from '../lib/artifact.mjs';
-import { askAboutStop } from '../lib/chat.mjs';
-import { buildChatPrompt, parseChatInput } from '../lib/chat-prompt.mjs';
-import { filesForPatterns, toDiffFile } from '../lib/mr-diff.mjs';
-import { gitlab } from '../lib/gitlab-api.mjs';
-import { fixesStatus, pushFixes } from '../lib/fixes.mjs';
-import { pushOneFix } from '../lib/fixes-push.mjs';
-import { envDefaults, saveSettings } from '../lib/settings.mjs';
+import { loadState, saveState } from '../state.mjs';
+import { artifactAt } from '../artifact.mjs';
+import { askAboutStop } from '../chat.mjs';
+import { buildChatPrompt, parseChatInput } from '../chat-prompt.mjs';
+import { filesForPatterns, toDiffFile } from '../mr-diff.mjs';
+import { gitlab } from '../gitlab-api.mjs';
+import { fixesStatus, pushFixes } from '../fixes.mjs';
+import { pushOneFix } from '../fixes-push.mjs';
+import { envDefaults, saveSettings } from '../settings.mjs';
 import { BotState, ChatAnswer, ChatRequest, FixesStatus, Ok, PushRequest, Rerun, ReviewId, SettingsAnswer, SettingsPatch, SlugBody } from './schemas.mjs';
 import { z } from '@hono/zod-openapi';
 import { jsonBody, jsonOf, route } from './route-kit.mjs';

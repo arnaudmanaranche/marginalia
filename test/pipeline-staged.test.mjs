@@ -45,11 +45,11 @@ Object.assign(process.env, {
   CLAUDE_BIN: join(here, 'fixtures', 'fake-claude.mjs'),
   GITLAB_BASE_URL: `http://127.0.0.1:${server.address().port}`, GITLAB_TOKEN: 't', GITLAB_USERNAME: 'me', GITLAB_PROJECT_ID: 'group/demo',
 });
-const { stagedReview } = await import('../lib/pipeline/review.mjs');
-const { stagedTriage } = await import('../lib/pipeline/triage.mjs');
-const { followRun } = await import('../lib/run-tracker.mjs');
-const { buildShape } = await import('../lib/findings.mjs');
-const { RUNS_DIR } = await import('../lib/run-journal.mjs');
+const { stagedReview } = await import('../api/src/pipeline/review.mjs');
+const { stagedTriage } = await import('../api/src/pipeline/triage.mjs');
+const { followRun } = await import('../api/src/run-tracker.mjs');
+const { buildShape } = await import('../api/src/findings.mjs');
+const { RUNS_DIR } = await import('../api/src/run-journal.mjs');
 
 const project = { key: 'demo', encodedId: encodeURIComponent('group/demo'), worktreeDir: repo, repoPath: repo, reviewsDir: join(tmp, 'reviews') };
 const mr = { iid: 7, title: 'feat: coupons at checkout', description: 'Coupons.', source_branch: 'feat/coupons', target_branch: 'develop', project, author: { username: 'alice' }, web_url: null };

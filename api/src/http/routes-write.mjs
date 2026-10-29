@@ -1,10 +1,10 @@
 // @ts-check
 import { z } from '@hono/zod-openapi';
-import { posted } from '../lib/posted.mjs';
-import { loadState } from '../lib/state.mjs';
-import { reviewerStateFor } from '../lib/review-actions.mjs';
-import { gitlab as defaultGitlab } from '../lib/gitlab-api.mjs';
-import { warn } from '../lib/log.mjs';
+import { posted } from '../posted.mjs';
+import { loadState } from '../state.mjs';
+import { reviewerStateFor } from '../review-actions.mjs';
+import { gitlab as defaultGitlab } from '../gitlab-api.mjs';
+import { warn } from '../log.mjs';
 import { AddToReviewRequest, DraftEdit, Ok, PostedInfo, ReviewId, SubmitRequest, Submitted } from './schemas.mjs';
 import { jsonBody, jsonOf, route } from './route-kit.mjs';
 import { broadcast, locate, postQueue, refreshState, shortMessage } from './context.mjs';

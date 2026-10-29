@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { pluginName, planTeamPlugin, teamDenyRules, teamRunPlan, withTeamDeny } from '../lib/team-plugin.mjs';
-import { teamChecks } from '../lib/team-doctor.mjs';
+import { pluginName, planTeamPlugin, teamDenyRules, teamRunPlan, withTeamDeny } from '../api/src/team-plugin.mjs';
+import { teamChecks } from '../api/src/team-doctor.mjs';
 
 test('the plugin name is a slug of the team name, with a fallback', () => {
   assert.equal(pluginName('Acme Frontend Team!'), 'acme-frontend-team');

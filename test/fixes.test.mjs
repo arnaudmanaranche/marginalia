@@ -24,7 +24,7 @@ git(repo, 'commit', '--quiet', '--allow-empty', '-m', 'base');
 git(repo, 'push', '--quiet', 'origin', 'HEAD:refs/heads/feat/x');
 git(root, 'clone', '--quiet', '-b', 'feat/x', origin, other);
 
-const { fixesStatus, pushFixes } = await import('../lib/fixes.mjs');
+const { fixesStatus, pushFixes } = await import('../api/src/fixes.mjs');
 const project = { key: 'demo', repoPath: repo, worktreeDir: repo };
 const mr = { iid: 7, source_branch: 'feat/x', project };
 const fix = (msg) => {

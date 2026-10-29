@@ -3,9 +3,9 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { parseConfig } from '../lib/config-schema.mjs';
-import { configFromEnv, envFromConfig } from '../lib/config-env.mjs';
-import { readConfigFile } from '../lib/config-file.mjs';
+import { parseConfig } from '../api/src/config-schema.mjs';
+import { configFromEnv, envFromConfig } from '../api/src/config-env.mjs';
+import { readConfigFile } from '../api/src/config-file.mjs';
 
 const ENV = {
   GITLAB_BASE_URL: 'https://git.example.com/', GITLAB_USERNAME: 'me', GITLAB_TOKEN: 'glpat-x',
@@ -75,7 +75,7 @@ test('config.json: absent gives null, valid gives the config, invalid throws wit
 });
 
 test('a container can still set the global settings: real environment variables beat config.json\'s defaults', async () => {
-  const { envOverrides } = await import('../lib/config-env.mjs');
+  const { envOverrides } = await import('../api/src/config-env.mjs');
   const fromFile = envFromConfig(parseConfig(configFromEnv(ENV)).config);
   assert.equal(fromFile.CLAUDE_SANDBOX, 'true', 'the file alone says true (the schema default)');
   const env = { ...fromFile, ...envOverrides({ CLAUDE_SANDBOX: 'false', STUDIO_PORT: '', NOTIFICATIONS: undefined, GITLAB_TOKEN: 'ignored' }) };

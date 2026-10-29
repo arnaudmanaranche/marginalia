@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { sandboxStatus, notifierAdvice } from '../lib/platform-support.mjs';
-import { updatePlan } from '../lib/update-plan.mjs';
+import { sandboxStatus, notifierAdvice } from '../api/src/platform-support.mjs';
+import { updatePlan } from '../api/src/update-plan.mjs';
 
 test('macOS is sandboxed unless CLAUDE_SANDBOX is off', () => {
   assert.equal(sandboxStatus({ platform: 'darwin', sandboxEnabled: true }).level, 'ok');

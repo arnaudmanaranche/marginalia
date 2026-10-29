@@ -3,9 +3,9 @@ import assert from 'node:assert/strict';
 import { mkdtemp, readdir, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { artifactAt, artifactOf } from '../lib/artifact.mjs';
-import { buildShape } from '../lib/findings.mjs';
-import { versionTime } from '../lib/history.mjs';
+import { artifactAt, artifactOf } from '../api/src/artifact.mjs';
+import { buildShape } from '../api/src/findings.mjs';
+import { versionTime } from '../api/src/history.mjs';
 
 // The review artifact across its interface only, on a real temp dir.
 const reviews = () => mkdtemp(join(tmpdir(), 'marginalia-artifact-'));

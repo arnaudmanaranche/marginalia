@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { plistXml, botPlistKeys, swiftbarPlistKeys, systemdUnit, manualInstructions, servicePlatform } from '../lib/service-units.mjs';
+import { plistXml, botPlistKeys, swiftbarPlistKeys, systemdUnit, manualInstructions, servicePlatform } from '../api/src/service-units.mjs';
 
 const bot = { nodePath: '/usr/bin/node', script: '/opt/m/poll.mjs', workingDir: '/opt/m', path: '/usr/bin:/bin', logFile: '/h/marginalia.log' };
 

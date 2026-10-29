@@ -3,7 +3,7 @@
 > Reference for the V1 behavior as shipped. V2 changes are in `../architecture.md` and `../adr/`; where they differ, those win.
 
 The bot appends instructions to every run (`--append-system-prompt`, see
-`lib/report.mjs`): never post/push, write the final report to
+`api/src/report.mjs`): never post/push, write the final report to
 `./.marginalia-report.md` in the working directory, or else print it in a
 `<<<REVIEW_FILE path="...">>> ... <<<END_REVIEW_FILE>>>` block. `MR_REVIEW_BOT=1`
 is also set, for commands written against the original contract. The report is
@@ -20,7 +20,7 @@ A tool refused in headless mode fails the run with a message pointing at
 
 **Studio format (optional).** The studio works with any markdown, and gives the
 same experience whatever command wrote it. The bot turns every report into one
-normalized shape (`lib/findings.mjs`), stored next to it as `<slug>.findings.json`:
+normalized shape (`api/src/findings.mjs`), stored next to it as `<slug>.findings.json`:
 a verdict, a summary, and findings (`id`, `severity`, `title`, `path`, `line`,
 `body`, `comment`). The studio lists, counts and posts from that shape, never from
 the report's wording. It is read, in order of preference, from:

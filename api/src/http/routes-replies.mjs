@@ -1,6 +1,6 @@
 // @ts-check
-import { posted } from '../lib/posted.mjs';
-import { gitlab as defaultGitlab } from '../lib/gitlab-api.mjs';
+import { posted } from '../posted.mjs';
+import { gitlab as defaultGitlab } from '../gitlab-api.mjs';
 import { PostedInfo, ReplyRequest } from './schemas.mjs';
 import { jsonBody, jsonOf, route } from './route-kit.mjs';
 import { broadcast, locate, postQueue, refreshState, shortMessage } from './context.mjs';

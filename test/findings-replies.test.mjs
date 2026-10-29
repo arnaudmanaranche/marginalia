@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { normalizeReplies } from '../lib/findings-replies.mjs';
-import { buildShape } from '../lib/findings.mjs';
+import { normalizeReplies } from '../api/src/findings-replies.mjs';
+import { buildShape } from '../api/src/findings.mjs';
 
 const THREAD = '0123456789abcdef0123456789abcdef01234567';
 
@@ -41,13 +41,13 @@ test('a triage with only replies is a valid findings file, and a review has no r
 });
 
 test('a tour stop keeps the ids of the threads it answers, and drops what is not an id', async () => {
-  const { buildTour } = await import('../lib/findings-walkthrough.mjs');
+  const { buildTour } = await import('../api/src/findings-walkthrough.mjs');
   const { tour } = buildTour([{ title: 'Doctor scripts opt out of telemetry', summary: 's', files: ['package.json'], threads: [THREAD, 'nope'] }], []);
   assert.deepEqual(tour[0].threadIds, [THREAD]);
 });
 
 test('a stop the bot could not review keeps that mark; the others carry none', async () => {
-  const { buildTour } = await import('../lib/findings-walkthrough.mjs');
+  const { buildTour } = await import('../api/src/findings-walkthrough.mjs');
   const { tour } = buildTour([{ title: 'Coupons', summary: 's', unreviewed: true }, { title: 'Tests', summary: 's', unreviewed: 'yes' }], []);
   assert.deepEqual(tour.map((s) => s.unreviewed), [true, undefined]);
 });

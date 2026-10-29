@@ -3,15 +3,15 @@
 // PostHog keeps one event per id. Without --send it only reads the database and prints what it would send.
 //   npm run posthog:backfill            what would be sent
 //   npm run posthog:backfill -- --send  send it (needs POSTHOG_HOST and POSTHOG_KEY)
-import '../lib/node-check.mjs';
+import '../api/src/node-check.mjs';
 
 process.env.MR_REVIEW_BOT_SKIP_CONFIG_CHECK = '1';
-const { GITLAB_USERNAME } = await import('../lib/config.mjs');
-const { RUNNING_VERSION } = await import('../lib/config-team.mjs');
-const { getDb } = await import('../lib/store.mjs');
-const { readRuns } = await import('../lib/db-store.mjs');
-const { eventsFromRuns } = await import('../lib/run-events.mjs');
-const { createPosthogClient } = await import('../lib/posthog.mjs');
+const { GITLAB_USERNAME } = await import('../api/src/config.mjs');
+const { RUNNING_VERSION } = await import('../api/src/config-team.mjs');
+const { getDb } = await import('../api/src/store.mjs');
+const { readRuns } = await import('../api/src/db-store.mjs');
+const { eventsFromRuns } = await import('../api/src/run-events.mjs');
+const { createPosthogClient } = await import('../api/src/posthog.mjs');
 
 const send = process.argv.includes('--send');
 const rows = readRuns(getDb());

@@ -9,13 +9,12 @@
   },
   "files": [
     "bin",
-    "lib",
+    "api/src",
     "scripts/*.mjs",
     "!scripts/check-file-size.mjs",
     "poll.mjs",
-    "studio/*.mjs",
-    "studio/public/logo.png",
-    "studio/dist",
+    "ui/public/logo.png",
+    "ui/dist",
     "skills",
     "examples",
     "swiftbar",
@@ -25,7 +24,7 @@
     "access": "restricted"
   },
   "scripts": {
-    "prepack": "npm --prefix studio ci && npm --prefix studio run build",
+    "prepack": "npm --prefix ui ci && npm --prefix ui run build",
     "start": "node poll.mjs",
     "dev": "concurrently -k -n api,studio -c blue,magenta \"npm start\" \"npm run studio:dev\"",
     "setup": "npm install && npm run studio:install && npm run studio:build && npm run init",
@@ -36,10 +35,10 @@
     "check:size": "node scripts/check-file-size.mjs",
     "typecheck": "tsc -p .",
     "posthog:backfill": "node scripts/posthog-backfill.mjs",
-    "studio:install": "npm --prefix studio install",
-    "studio:build": "npm --prefix studio run build",
-    "studio:dev": "npm --prefix studio run dev",
-    "studio:storybook": "npm --prefix studio run storybook"
+    "studio:install": "npm --prefix ui install",
+    "studio:build": "npm --prefix ui run build",
+    "studio:dev": "npm --prefix ui run dev",
+    "studio:storybook": "npm --prefix ui run storybook"
   },
   "engines": {
     "node": ">=22"

@@ -8,7 +8,7 @@ import { mergeTeam } from './team-merge.mjs';
 // the rest of config loading; the async view of the same copy is loadTeam() in team-sync.mjs,
 // which doctor uses to say what is wrong. A team copy that is missing, invalid or needs a newer
 // Marginalia is simply not applied here: the bot runs on the dev's own config.
-export const RUNNING_VERSION = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version;
+export const RUNNING_VERSION = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8')).version;
 
 export function readTeamSync(dataDir, running = RUNNING_VERSION) {
   try {

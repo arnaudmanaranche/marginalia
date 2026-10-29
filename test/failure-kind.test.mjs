@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { failureKind } from '../lib/failure-kind.mjs';
+import { failureKind } from '../api/src/failure-kind.mjs';
 
 // Messages real runs printed (container logs, October 2026).
 const SEEN = {

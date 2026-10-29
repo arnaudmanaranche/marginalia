@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { resolveDataDir } from '../lib/paths-home.mjs';
+import { resolveDataDir } from '../api/src/paths-home.mjs';
 
 const none = () => false;
 const base = { home: '/home/dev', root: '/opt/marginalia', exists: none };

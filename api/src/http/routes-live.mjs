@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { streamSSE } from 'hono/streaming';
 import { subscribe } from './context.mjs';
 
-const DIST = join(dirname(fileURLToPath(import.meta.url)), 'dist');
+const DIST = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', 'ui', 'dist');
 const MIME = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
@@ -16,7 +16,7 @@ const MIME = {
   '.ico': 'image/x-icon',
 };
 
-// The built React app (studio/dist); the SPA's index for any path that is not a file, and a
+// The built React app (ui/dist); the SPA's index for any path that is not a file, and a
 // plain notice when the app isn't built yet.
 export async function serveStatic(c) {
   const rel = normalize(c.req.path === '/' ? '/index.html' : c.req.path);

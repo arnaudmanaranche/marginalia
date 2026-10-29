@@ -2,14 +2,14 @@
 // ~/.config/systemd/user/marginalia.service, `systemctl --user enable --now`.
 // Side effects only go through `ctx` (see service.mjs); the unit text is lib/service-units.mjs.
 import { join } from 'node:path';
-import { systemdUnit } from '../lib/service-units.mjs';
+import { systemdUnit } from '../api/src/service-units.mjs';
 
 const UNIT = 'marginalia.service';
 export const unitPath = (ctx) => join(ctx.dir ?? join(ctx.xdgConfig ?? join(ctx.home, '.config'), 'systemd', 'user'), UNIT);
 const systemctl = (ctx, ...args) => ctx.exec('systemctl', ['--user', ...args]);
 
 export function installSystemd(ctx) {
-  if (!ctx.exists(join(ctx.root, 'studio', 'dist'))) ctx.warn('! Studio not built, http://localhost:4477 will show 503 (a packaged install ships it).');
+  if (!ctx.exists(join(ctx.root, 'ui', 'dist'))) ctx.warn('! Studio not built, http://localhost:4477 will show 503 (a packaged install ships it).');
   ctx.write(unitPath(ctx), systemdUnit({ nodePath: ctx.nodePath, script: join(ctx.root, 'poll.mjs'), workingDir: ctx.root, path: ctx.path, env: ctx.unitEnv }));
   systemctl(ctx, 'daemon-reload');
   systemctl(ctx, 'enable', '--now', UNIT);

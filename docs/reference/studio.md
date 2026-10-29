@@ -4,7 +4,7 @@
 
 **Marginalia** is the local reader for the generated reviews, at `http://localhost:4477`
 (`STUDIO_PORT`, bound to `127.0.0.1`, read-only). Vite + React + Tailwind
-front end (`studio/`), served as static files by `studio/server.mjs`, which
+front end (`ui/`), served as static files by `api/src/http/server.mjs`, which
 `poll.mjs` starts at boot. Home lists the reviews as rows grouped by whose turn it is, read from GitLab and not from what this
 browser has opened: *Needs your first review* (you have not reviewed it on GitLab), *Returned to you*
 (the author pushed or answered after your review), *Review to send* (your comments wait in a pending
@@ -18,7 +18,7 @@ a `⌘K` search. It refreshes live when a review file or `status.json` changes.
 
 ```bash
 npm run studio:install   # once
-npm run studio:build     # after any change under studio/src
+npm run studio:build     # after any change under ui/src
 npm run studio:dev       # Vite dev server with hot reload (bot must be running)
 npm run dev              # bot + Vite dev server in one terminal; Ctrl+C stops both
 ```
@@ -49,15 +49,15 @@ Your own MRs are not behind the flag: there you reply and push (see the triage a
 **Design system (Scholia).** The studio's UI is documented in Storybook:
 `npm run studio:storybook` (port 6006). It holds the foundations from `DESIGN.md`
 (colours, type, radii, spacing) and a story per presentational component. Light and dark
-follow the OS, as in the app. `npm --prefix studio run build-storybook` builds a static copy
-(`studio/storybook-static`, gitignored).
+follow the OS, as in the app. `npm --prefix ui run build-storybook` builds a static copy
+(`ui/storybook-static`, gitignored).
 
-**API contract.** The server is a Hono app (`studio/app.mjs`, routes in `studio/routes-*.mjs`).
-Every request body is validated with the zod schemas in `studio/schemas.mjs`, and the OpenAPI 3.1
+**API contract.** The server is a Hono app (`api/src/http/app.mjs`, routes in `api/src/http/routes-*.mjs`).
+Every request body is validated with the zod schemas in `api/src/http/schemas.mjs`, and the OpenAPI 3.1
 document is generated from those same schemas: with the studio running, read it at
 <http://localhost:4477/openapi.json>, rendered at <http://localhost:4477/api-docs.html> (read-only:
 "Try it out" is off, since the write endpoints post to GitLab as you). To change an endpoint, change
-its route and schema; keep `studio/src/lib/api.ts` in step with the schemas.
+its route and schema; keep `ui/src/lib/api.ts` in step with the schemas.
 
 The "Review ready" notification and the SwiftBar menu open the studio (the
 notification falls back to VS Code if the studio isn't listening).

@@ -2,7 +2,7 @@
 // LaunchAgents, no sudo. Side effects only go through `ctx` (see service.mjs), so a
 // dry run can record them. The plist text is lib/service-units.mjs.
 import { join } from 'node:path';
-import { plistXml, botPlistKeys, swiftbarPlistKeys } from '../lib/service-units.mjs';
+import { plistXml, botPlistKeys, swiftbarPlistKeys } from '../api/src/service-units.mjs';
 
 const BOT = 'com.marginalia.bot';
 const MENUBAR = 'com.marginalia.swiftbar';
@@ -41,7 +41,7 @@ const swiftbarPluginLinked = (ctx) => {
 };
 
 export function installLaunchd(ctx) {
-  if (!ctx.exists(join(ctx.root, 'studio', 'dist'))) ctx.warn('! Studio not built (npm run studio:build), http://localhost:4477 will show 503.');
+  if (!ctx.exists(join(ctx.root, 'ui', 'dist'))) ctx.warn('! Studio not built (npm run studio:build), http://localhost:4477 will show 503.');
   const logFile = launchdLog(ctx);
   ctx.mkdir(join(ctx.home, 'Library', 'Logs'));
   install(ctx, BOT, botPlistKeys({ nodePath: ctx.nodePath, script: join(ctx.root, 'poll.mjs'), workingDir: ctx.root, path: ctx.path, logFile, env: ctx.unitEnv }));

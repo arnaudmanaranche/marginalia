@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { computeReviewState } from '../lib/review-state.mjs';
+import { computeReviewState } from '../api/src/review-state.mjs';
 
 const note = (user, body, at, over = {}) => ({ id: Math.random(), body, system: false, created_at: at, author: { username: user }, ...over });
 const sys = (user, body, at) => note(user, body, at, { system: true });

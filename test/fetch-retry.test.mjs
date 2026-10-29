@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { HttpError, fetchJson } from '../studio/src/lib/fetchRetry.ts';
+import { HttpError, fetchJson } from '../ui/src/lib/fetchRetry.ts';
 
 const answer = (status, body) => ({ ok: status >= 200 && status < 300, status, json: async () => body });
 function stubFetch(...steps) {

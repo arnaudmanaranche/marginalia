@@ -1,15 +1,15 @@
 // Interactive first-time setup: `marginalia init` (or `npm run init`). Asks the few
 // things that can't be guessed, checks each answer live, and writes config.json in the
 // data directory. An existing config.json or .env only supplies the defaults.
-import '../lib/node-check.mjs';
+import '../api/src/node-check.mjs';
 import { existsSync, readFileSync, writeFileSync, mkdirSync, chmodSync, copyFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as p from '@clack/prompts';
-import { resolveDataDir } from '../lib/paths-home.mjs';
-import { readConfigFile, CONFIG_FILENAME } from '../lib/config-file.mjs';
-import { parseEnv, defaultsFromEnv, projectFromAnswers, buildConfig } from '../lib/init-config.mjs';
+import { resolveDataDir } from '../api/src/paths-home.mjs';
+import { readConfigFile, CONFIG_FILENAME } from '../api/src/config-file.mjs';
+import { parseEnv, defaultsFromEnv, projectFromAnswers, buildConfig } from '../api/src/init-config.mjs';
 import { checkToken, checkProject, checkRepo, findCommands, copyStarters, expandHome, findEnvFile } from './init-checks.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');

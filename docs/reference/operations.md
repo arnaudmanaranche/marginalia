@@ -9,7 +9,7 @@ coloured only in a terminal so `tail -f ~/Library/Logs/marginalia.log` stays rea
 `MARGINALIA_LOG_LEVEL` (`debug`, `info`, `warn`, `error`; default `info`) to change the verbosity.
 The `npm run doctor` / `init` / `marginalia` command output is plain console text, not the log.
 
-`npm run typecheck` runs `tsc` over `lib/` and the studio server (`tsconfig.json`: strict, but
+`npm run typecheck` runs `tsc` over `api/src/` and the studio server (`tsconfig.json`: strict, but
 without `noImplicitAny`, so parameters need no annotation). A module opts in with `// @ts-check`
 on its first line, and CI fails if one stops passing; start every new module with it. `poll.mjs`,
 `bin/` and `scripts/` are not opted in yet.

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { migrateState, projectState, migratePosted, postedKey } from '../lib/state-shape.mjs';
+import { migrateState, projectState, migratePosted, postedKey } from '../api/src/state-shape.mjs';
 
 test('a single-project state file moves under the first project', () => {
   const file = migrateState({ 12: 'sha', mineComments: { 3: 't' }, stackBelow: {} }, 'back');

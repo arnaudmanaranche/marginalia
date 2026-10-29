@@ -11,8 +11,8 @@ process.env.MR_REVIEW_BOT_SKIP_CONFIG_CHECK = '1';
 // The fixes below are committed as t@t, as an older bot or an agent would: they go up as me.
 process.env.MARGINALIA_GIT_NAME = 'Me';
 process.env.MARGINALIA_GIT_EMAIL = 'me@worldia.com';
-const { fixesStatus } = await import('../lib/fixes.mjs');
-const { pushOneFix } = await import('../lib/fixes-push.mjs');
+const { fixesStatus } = await import('../api/src/fixes.mjs');
+const { pushOneFix } = await import('../api/src/fixes-push.mjs');
 
 const tmp = await mkdtemp(join(tmpdir(), 'marginalia-push-test-'));
 const origin = join(tmp, 'origin.git');
@@ -65,7 +65,7 @@ test('the oldest fix is pushed as it is, and pushing all lands every thread', as
   const a = before.commits.find((c) => c.thread === 'thread-a');
   const out = await pushOneFix(project, mr, a.sha);
   assert.equal(out.status.landed.find((l) => l.thread === 'thread-a').sha, a.sha, 'no replay, same commit');
-  const { pushFixes } = await import('../lib/fixes.mjs');
+  const { pushFixes } = await import('../api/src/fixes.mjs');
   const all = await pushFixes(project, mr);
   assert.equal(all.status.state, 'pushed');
   assert.deepEqual(all.status.landed.map((l) => l.thread).sort(), ['thread-a', 'thread-b', 'thread-c']);

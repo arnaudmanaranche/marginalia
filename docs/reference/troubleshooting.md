@@ -16,12 +16,12 @@
 - `GITLAB_TOKEN` lives in `.env`, never committed (already covered by
   `.gitignore`).
 - Runs are contained, not isolated in a VM. Each `claude -p` gets `--settings` built in
-  `lib/claude-sandbox.mjs`: the sandbox confines Bash (writes to the bot worktree, the
+  `api/src/claude-sandbox.mjs`: the sandbox confines Bash (writes to the bot worktree, the
   repo's `.git` and the reviews dir only; network to the GitLab host only; no read of
   `~/.ssh`, `~/.aws`, the bot's `.env`), and deny rules keep the Read/Edit/Write tools
   away from secrets, shell rc files and the trusted `.claude/{commands,agents,skills,hooks}`
   of your checkout (the sandbox does not cover those tools). Git is allowed one
-  subcommand at a time (`lib/allowed-tools.mjs`), never `git config`, `git -c` or
+  subcommand at a time (`api/src/allowed-tools.mjs`), never `git config`, `git -c` or
   `git push`, and credential-looking env vars are not passed (`CLAUDE_ENV_PASSTHROUGH`).
   A command refused by the sandbox or the allow-list fails the run with its name in the
   error. Git over SSH does not work *inside* the sandbox on macOS: the bot's own fetches
@@ -41,7 +41,7 @@
   name(s) that server exposes for discussions aren't documented anywhere in
   the command files — if a triage run fails with a "tool not allowed" error,
   check the error for the tool name and add it to
-  `CLAUDE_MR_COMMENTS_ALLOWED_TOOLS` in `lib/allowed-tools.mjs`.
+  `CLAUDE_MR_COMMENTS_ALLOWED_TOOLS` in `api/src/allowed-tools.mjs`.
 - Fixes the triage command applies are committed locally in the bot worktree and
   never pushed by the bot — review them, then push them from the studio
   or yourself from the `marginalia/<branch-slug>` local

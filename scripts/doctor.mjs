@@ -1,14 +1,14 @@
 // Read-only preflight: `marginalia doctor` (or `npm run doctor`), and
 // `doctor --dry-run <iid> [--project <key>]` to run the real review chain on one MR
 // and write the result to a temp file.
-import '../lib/node-check.mjs';
+import '../api/src/node-check.mjs';
 import { existsSync } from 'node:fs';
 import { tmpdir, homedir } from 'node:os';
 import { join } from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
-import { sandboxStatus, notifierAdvice } from '../lib/platform-support.mjs';
+import { sandboxStatus, notifierAdvice } from '../api/src/platform-support.mjs';
 
 const run = promisify(execFile);
 
@@ -28,8 +28,8 @@ export async function runDoctor(argv = process.argv.slice(2)) {
   let cfg;
   let projectsMod;
   try {
-    cfg = await import('../lib/config.mjs');
-    projectsMod = await import('../lib/projects.mjs');
+    cfg = await import('../api/src/config.mjs');
+    projectsMod = await import('../api/src/projects.mjs');
   } catch (err) {
     console.log('Environment');
     bad(err.message.split('\n')[0], 'fix or remove that file, then `marginalia doctor` again (`marginalia init` rewrites it)');
@@ -46,7 +46,7 @@ export async function runDoctor(argv = process.argv.slice(2)) {
   else bad('No config.json or .env', 'marginalia init');
   const missing = cfg.missingConfig();
   missing.length ? bad(`Missing in the config: ${missing.join(', ')}`, 'marginalia init') : ok('Required config values present');
-  existsSync(join(cfg.ROOT, 'studio', 'dist')) ? ok('Studio built') : warnMsg('Studio not built (http://localhost shows 503): npm run setup');
+  existsSync(join(cfg.ROOT, 'ui', 'dist')) ? ok('Studio built') : warnMsg('Studio not built (http://localhost shows 503): npm run setup');
   const sandbox = sandboxStatus({ platform: process.platform, sandboxEnabled: cfg.CLAUDE_SANDBOX !== 'false', container: process.env.MARGINALIA_CONTAINER === '1' });
   sandbox.level === 'ok' ? ok(sandbox.message) : warnMsg(sandbox.message);
 
@@ -59,7 +59,7 @@ export async function runDoctor(argv = process.argv.slice(2)) {
 
   console.log('\nGitLab');
   if (!missing.length) {
-    const { currentUser, getProject } = await import('../lib/gitlab.mjs');
+    const { currentUser, getProject } = await import('../api/src/gitlab.mjs');
     await step('GitLab token', async () => {
       const me = await currentUser();
       me.username === cfg.GITLAB_USERNAME ? ok(`Token belongs to ${me.username}`) : bad(`Token belongs to "${me.username}" but GITLAB_USERNAME is "${cfg.GITLAB_USERNAME}"`);
@@ -84,7 +84,7 @@ export async function runDoctor(argv = process.argv.slice(2)) {
     });
     await step(`${project.key} worktrees`, async () => {
       // In the container image: a checkout that the host also uses has worktrees we cannot see (see lib/worktree-guard.mjs).
-      const { containerRepoProblem } = await import('../lib/worktree.mjs');
+      const { containerRepoProblem } = await import('../api/src/worktree.mjs');
       const problem = await containerRepoProblem(project.repoPath);
       if (problem) bad(problem);
     });
@@ -96,11 +96,11 @@ export async function runDoctor(argv = process.argv.slice(2)) {
 
   console.log('\nTeam');
   await step('team', async () => {
-    const { loadTeam, readMarker, teamRepoUrl } = await import('../lib/team-sync.mjs');
-    const { commitsBehind } = await import('../lib/team-git.mjs');
-    const { teamChecks } = await import('../lib/team-doctor.mjs');
-    const { mergeTeam } = await import('../lib/team-merge.mjs');
-    const { RUNNING_VERSION } = await import('../lib/config-team.mjs');
+    const { loadTeam, readMarker, teamRepoUrl } = await import('../api/src/team-sync.mjs');
+    const { commitsBehind } = await import('../api/src/team-git.mjs');
+    const { teamChecks } = await import('../api/src/team-doctor.mjs');
+    const { mergeTeam } = await import('../api/src/team-merge.mjs');
+    const { RUNNING_VERSION } = await import('../api/src/config-team.mjs');
     const loaded = await loadTeam(cfg.DATA_DIR, RUNNING_VERSION);
     const dev = { projects: PROJECTS.map((p) => ({ gitlabProjectId: p.gitlabProjectId })) };
     for (const c of teamChecks({
@@ -130,9 +130,9 @@ export async function runDoctor(argv = process.argv.slice(2)) {
     const project = keyIdx === -1 ? PROJECTS[0] : projectByKey(argv[keyIdx + 1]);
     if (!project) bad(`No project "${argv[keyIdx + 1]}"`, `known: ${PROJECTS.map((p) => p.key).join(', ')}`);
     console.log(`\nDry run on MR !${iid} [${project?.key}]`);
-    const { getMergeRequest } = await import('../lib/gitlab.mjs');
-    const { ensureBotWorktree } = await import('../lib/worktree.mjs');
-    const { runReview } = await import('../lib/claude-runner.mjs');
+    const { getMergeRequest } = await import('../api/src/gitlab.mjs');
+    const { ensureBotWorktree } = await import('../api/src/worktree.mjs');
+    const { runReview } = await import('../api/src/claude-runner.mjs');
     await step('dry run', async () => {
       const mr = { ...(await getMergeRequest(project, iid)), project };
       await ensureBotWorktree(project);

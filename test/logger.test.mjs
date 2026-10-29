@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Writable } from 'node:stream';
-import { createLogger, stripAnsi } from '../lib/logger.mjs';
+import { createLogger, stripAnsi } from '../api/src/logger.mjs';
 
 const sink = () => {
   const chunks = [];

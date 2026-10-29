@@ -8,7 +8,7 @@ import { readConfigFile } from './config-file.mjs';
 import { envFromConfig, envOverrides } from './config-env.mjs';
 import { readTeamSync, teamEnv } from './config-team.mjs';
 
-export const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
+export const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 // Where the bot keeps its own files (see lib/paths-home.mjs): the install folder
 // for an existing clone, ~/.marginalia for a packaged install.
 export const DATA_DIR = resolveDataDir({ root: ROOT });

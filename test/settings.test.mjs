@@ -12,8 +12,8 @@ const dir = await mkdtemp(join(tmpdir(), 'marginalia-settings-'));
 process.env.REPO_LOCAL_PATH = dir;
 process.env.SETTINGS_FILE = join(dir, 'settings.json');
 
-const { SETTINGS_FILE } = await import('../lib/config.mjs');
-const { loadSettings, saveSettings, allowedTargets, excludedAuthors, staleAfterDays } = await import('../lib/settings.mjs');
+const { SETTINGS_FILE } = await import('../api/src/config.mjs');
+const { loadSettings, saveSettings, allowedTargets, excludedAuthors, staleAfterDays } = await import('../api/src/settings.mjs');
 
 // What a project says in the config: the default of the lists until the studio overrides them.
 const project = { allowedTargetBranches: ['develop', 'main'], excludeAuthors: ['Alice'] };

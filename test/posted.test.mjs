@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { openDatabase } from '../lib/db.mjs';
-import { postedRecord } from '../lib/posted.mjs';
+import { openDatabase } from '../api/src/db.mjs';
+import { postedRecord } from '../api/src/posted.mjs';
 
 // The posted record across its interface only, on an in-memory database.
 const fresh = () => {

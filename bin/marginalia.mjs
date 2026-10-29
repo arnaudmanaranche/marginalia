@@ -2,13 +2,13 @@
 // The `marginalia` command: one entry point for setup, checks, running and the
 // background service. Each subcommand imports its script lazily, so `--help` stays fast
 // and a missing config only matters to the commands that read it.
-import '../lib/node-check.mjs';
+import '../api/src/node-check.mjs';
 import { existsSync, readFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { Command } from 'commander';
-import { updatePlan } from '../lib/update-plan.mjs';
+import { updatePlan } from '../api/src/update-plan.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));

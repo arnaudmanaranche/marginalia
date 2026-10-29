@@ -11,11 +11,10 @@ process.env.MR_REVIEW_BOT_SKIP_CONFIG_CHECK = '1';
 process.env.MARGINALIA_DB = ':memory:';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const modules = [
-  ...readdirSync(join(root, 'lib'), { recursive: true }).map(String).filter((f) => f.endsWith('.mjs')).map((f) => join(root, 'lib', f)),
-  ...readdirSync(join(root, 'studio')).filter((f) => f.endsWith('.mjs')).map((f) => join(root, 'studio', f)),
+  ...readdirSync(join(root, 'api', 'src'), { recursive: true }).map(String).filter((f) => f.endsWith('.mjs')).map((f) => join(root, 'api', 'src', f)),
 ];
 
-test('every module of lib/ and of the studio server loads', async () => {
+test('every module of api/src loads', async () => {
   for (const file of modules) {
     await assert.doesNotReject(import(file), file);
   }

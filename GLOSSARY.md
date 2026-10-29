@@ -16,7 +16,7 @@ The words below are the only ones the code, the docs and the studio use for thes
 
 **Run**: one execution of the agent for one invocation on one MR, in its own ephemeral worktree. Ends with a review or a visible failure.
 
-**Pass**: one project's turn in a poll. Lists its open MRs, decides what each needs (review, triage, nothing), shows where each stands, does the work one MR at a time and records it in the state. `passOver()` in `api/src/poll-pass.ts`; a poll is one pass per project.
+**Pass**: one project's turn in a poll. Lists its open MRs, decides what each needs (review, triage, nothing), shows where each stands, does the work one MR at a time and records it in the state. `passOver()` in `api/src/poll-pass.mjs`; a poll is one pass per project.
 
 **Review**: the validated result of a run on an MR, in the shape of the contract. Never a free-form report.
 

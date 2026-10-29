@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { commentsEntry } from '../lib/poll-status.mjs';
+import { commentsEntry } from '../api/src/poll-status.mjs';
 
 test('a triage of my own MR records its branch, which the studio checks and pushes the fixes to', () => {
   const mr = { project: { key: 'webapp' }, iid: 3994, title: 't', web_url: 'u', author: { username: 'me' }, source_branch: 'chore/x', target_branch: 'develop', updated_at: 'now' };

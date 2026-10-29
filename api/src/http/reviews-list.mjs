@@ -1,17 +1,17 @@
 // @ts-check
 import { readFile, readdir, stat } from 'node:fs/promises';
 import { join } from 'node:path';
-import { ALLOW_POSTING, JIRA_BASE_URL } from '../lib/config.mjs';
-import { PROJECTS, projectByKey } from '../lib/projects.mjs';
-import { reviewId } from '../lib/review-id.mjs';
-import { TRIAGE_FILE_PREFIX } from '../lib/paths.mjs';
-import { posted } from '../lib/posted.mjs';
-import { artifactAt } from '../lib/artifact.mjs';
-import { listFields } from '../lib/findings.mjs';
-import { byPriorityThenDate } from '../lib/jira.mjs';
-import { envDefaults, loadSettings } from '../lib/settings.mjs';
-import { parseAcrossLayers } from '../lib/stack.mjs';
-import { gitlab } from '../lib/gitlab-api.mjs';
+import { ALLOW_POSTING, JIRA_BASE_URL } from '../config.mjs';
+import { PROJECTS, projectByKey } from '../projects.mjs';
+import { reviewId } from '../review-id.mjs';
+import { TRIAGE_FILE_PREFIX } from '../paths.mjs';
+import { posted } from '../posted.mjs';
+import { artifactAt } from '../artifact.mjs';
+import { listFields } from '../findings.mjs';
+import { byPriorityThenDate } from '../jira.mjs';
+import { envDefaults, loadSettings } from '../settings.mjs';
+import { parseAcrossLayers } from '../stack.mjs';
+import { gitlab } from '../gitlab-api.mjs';
 import { broadcast, newerState, postQueue, readStatus, stateOverrides } from './context.mjs';
 
 export function kindOf(slug) {

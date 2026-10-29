@@ -6,14 +6,14 @@
 //
 //   node scripts/team-sync.mjs
 //   import teamSync from './scripts/team-sync.mjs'; await teamSync({ dataDir, env, log })
-import '../lib/node-check.mjs';
+import '../api/src/node-check.mjs';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { resolveDataDir } from '../lib/paths-home.mjs';
-import { readConfigFile } from '../lib/config-file.mjs';
-import { mergeTeam } from '../lib/team-merge.mjs';
-import { loadTeam, syncTeam, teamRepoUrl } from '../lib/team-sync.mjs';
+import { resolveDataDir } from '../api/src/paths-home.mjs';
+import { readConfigFile } from '../api/src/config-file.mjs';
+import { mergeTeam } from '../api/src/team-merge.mjs';
+import { loadTeam, syncTeam, teamRepoUrl } from '../api/src/team-sync.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 export const runningVersion = () => JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')).version;

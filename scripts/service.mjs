@@ -8,7 +8,7 @@ import { homedir, userInfo } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
-import { manualInstructions, servicePlatform } from '../lib/service-units.mjs';
+import { manualInstructions, servicePlatform } from '../api/src/service-units.mjs';
 import { installLaunchd, uninstallLaunchd, statusLaunchd } from './service-launchd.mjs';
 import { installSystemd, uninstallSystemd, statusSystemd } from './service-systemd.mjs';
 

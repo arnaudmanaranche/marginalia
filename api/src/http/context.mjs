@@ -1,11 +1,11 @@
 // @ts-check
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { STATUS_FILE } from '../lib/config.mjs';
-import { PROJECTS } from '../lib/projects.mjs';
-import { parseReviewId } from '../lib/review-id.mjs';
-import { warn } from '../lib/log.mjs';
-import { fetchReviewState } from '../lib/mr-state.mjs';
+import { STATUS_FILE } from '../config.mjs';
+import { PROJECTS } from '../projects.mjs';
+import { parseReviewId } from '../review-id.mjs';
+import { warn } from '../log.mjs';
+import { fetchReviewState } from '../mr-state.mjs';
 
 // What the route modules share: the bot's status, review-id resolution, the live-update
 // channel, and the queue that keeps two writes to GitLab from racing.

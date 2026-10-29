@@ -1,6 +1,6 @@
 # Architecture
 
-Target architecture for V2. Terms are defined in `GLOSSARY.md`; the reasons are in `docs/adr/`. Until the restructure lands (see "Delivery order"), the code still lives in `lib/` and `studio/`; this file describes where it is going.
+Target architecture for V2. Terms are defined in `GLOSSARY.md`; the reasons are in `docs/adr/`. Step 2 of the delivery order has moved the code into `api/src` (with the HTTP routes in `api/src/http`) and `ui/`. `packages/contract` and the `.ts` migration are not done yet; where this file says so, it describes where the code is going.
 
 ## Packages
 
@@ -57,7 +57,7 @@ SQLite on a persistent volume, one instance. Postgres is the step if more than o
 
 ## Delivery order
 
-1. Docs and rules. 2. Mechanical restructure (workspaces, `lib/` to `api/`, `studio/` to `ui/`, `.mjs` to `.ts`), no behavior change. 3. `tsc` build and strict typing. 4. Contract, guardrails and catalog, with evals from here on. 5. Mention intake: polling, then webhook, then bot replies. 6. Hosted: OAuth, click-to-post, Docker/HTTPS recipe. A migration covers the V1 `.env`, `posted.json`, `runs.jsonl`, `state.json` and `marginalia.db`.
+1. Docs and rules. 2. Mechanical restructure, no behavior change: `lib/` to `api/src`, the studio server to `api/src/http`, `studio/` to `ui/` (done); workspaces and `packages/contract` (next). 3. `.mjs` to `.ts` together with the `tsc` build and strict typing, since Node cannot run `.ts` without the build. 4. Contract, guardrails and catalog, with evals from here on. 5. Mention intake: polling, then webhook, then bot replies. 6. Hosted: OAuth, click-to-post, Docker/HTTPS recipe. A migration covers the V1 `.env`, `posted.json`, `runs.jsonl`, `state.json` and `marginalia.db`.
 
 ## Tests
 

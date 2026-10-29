@@ -11,11 +11,11 @@ Object.assign(process.env, {
   MR_REVIEW_BOT_SKIP_CONFIG_CHECK: '1', MARGINALIA_DB: ':memory:', MARGINALIA_HOME: home, ALLOW_POSTING: 'true',
   GITLAB_BASE_URL: 'https://git.example.com', GITLAB_USERNAME: 'me', GITLAB_TOKEN: 't', GITLAB_PROJECT_ID: 'group/demo', REPO_LOCAL_PATH: home,
 });
-const { PROJECTS } = await import('../lib/projects.mjs');
-const { createApp } = await import('../studio/app.mjs');
+const { PROJECTS } = await import('../api/src/projects.mjs');
+const { createApp } = await import('../api/src/http/app.mjs');
 const { memoryGitlab } = await import('./support/memory-gitlab.mjs');
-const { posted: postedRecord } = await import('../lib/posted.mjs');
-const { saveState } = await import('../lib/state.mjs');
+const { posted: postedRecord } = await import('../api/src/posted.mjs');
+const { saveState } = await import('../api/src/state.mjs');
 
 const key = PROJECTS[0].key;
 const SLUG = `${key}/feat-x`;
@@ -84,7 +84,7 @@ test('on my own MR a reply goes up as a draft in the reviewer thread, once', asy
 });
 
 test('where an MR stands is read through the adapter, with the optional reads failing soft', async () => {
-  const { fetchReviewState } = await import('../lib/mr-state.mjs');
+  const { fetchReviewState } = await import('../api/src/mr-state.mjs');
   const broken = { ...fake.gitlab, listReviewers: async () => { throw new Error('boom'); }, getApprovals: async () => { throw new Error('boom'); } };
   const state = await fetchReviewState(PROJECTS[0], { iid: 7, author: 'alice' }, broken);
   assert.ok(state.computedAt);

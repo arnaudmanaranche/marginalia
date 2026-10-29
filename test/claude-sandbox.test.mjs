@@ -2,9 +2,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
 process.env.MR_REVIEW_BOT_SKIP_CONFIG_CHECK = '1';
-const { claudeSettings, denyRules } = await import('../lib/claude-sandbox.mjs');
-const { claudeEnv, claudeArgs } = await import('../lib/claude-cli.mjs');
-const { CLAUDE_ALLOWED_TOOLS, CLAUDE_MR_COMMENTS_ALLOWED_TOOLS } = await import('../lib/allowed-tools.mjs');
+const { claudeSettings, denyRules } = await import('../api/src/claude-sandbox.mjs');
+const { claudeEnv, claudeArgs } = await import('../api/src/claude-cli.mjs');
+const { CLAUDE_ALLOWED_TOOLS, CLAUDE_MR_COMMENTS_ALLOWED_TOOLS } = await import('../api/src/allowed-tools.mjs');
 
 const paths = {
   rootDir: '/bot',
@@ -38,7 +38,7 @@ test('the tools that read secrets or rewrite trusted config are denied, in both 
     'Read(~/.ssh/**)',
     'Read(//bot/.env)',
     'Edit(~/.zshrc)',
-    'Edit(//bot/lib/**)',
+    'Edit(//bot/api/**)',
     'Edit(//repo/.claude/commands/**)',
     'Edit(//bot/worktree/.claude/commands/**)',
     'Edit(//repo/.claude/settings.json)',

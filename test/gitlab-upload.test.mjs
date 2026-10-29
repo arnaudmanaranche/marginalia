@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { uploadFetchPath } from '../lib/gitlab-upload.mjs';
+import { uploadFetchPath } from '../api/src/gitlab-upload.mjs';
 
 const BASE = 'https://gitlab.example.com';
 const SECRET = 'a1b2c3d4e5f60718293a4b5c6d7e8f90';

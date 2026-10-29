@@ -1,7 +1,7 @@
 // @ts-check
 import { HTTPException } from 'hono/http-exception';
 import { bodyLimit } from 'hono/body-limit';
-import { STUDIO_PORT, STUDIO_ALLOWED_HOSTS, ALLOW_POSTING } from '../lib/config.mjs';
+import { STUDIO_PORT, STUDIO_ALLOWED_HOSTS, ALLOW_POSTING } from '../config.mjs';
 import { locate } from './context.mjs';
 
 // Write endpoints are guarded against other web pages hitting localhost: Host must be us

@@ -3,10 +3,10 @@ import assert from 'node:assert/strict';
 import { mkdtemp, writeFile, readdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { MAX_STEPS, addStep, enterStage, finishTrace, liveSummary, runSummary, startTrace } from '../lib/run-trace.mjs';
+import { MAX_STEPS, addStep, enterStage, finishTrace, liveSummary, runSummary, startTrace } from '../api/src/run-trace.mjs';
 
 process.env.MR_REVIEW_BOT_SKIP_CONFIG_CHECK = '1';
-const { listTraces, pruneTraces, readTrace, readTranscript, runId, saveTrace } = await import('../lib/run-journal.mjs');
+const { listTraces, pruneTraces, readTrace, readTranscript, runId, saveTrace } = await import('../api/src/run-journal.mjs');
 
 const start = (kind = 'review') => startTrace({ id: 'r1', slug: 'webapp/feat-x', project: 'webapp', iid: 12, kind, command: '/code-review', at: 't0' });
 const states = (trace) => trace.stages.map((s) => `${s.id}:${s.state}`);
@@ -83,7 +83,7 @@ test('a run id sorts by time and is safe as a file name', () => {
 });
 
 test('a staged run plans the stages it learns, and runs some side by side', async () => {
-  const { planStages, beginStage, endStage } = await import('../lib/run-trace.mjs');
+  const { planStages, beginStage, endStage } = await import('../api/src/run-trace.mjs');
   let t = startTrace({ id: 'r2', slug: 'webapp/feat-x', project: 'webapp', iid: 12, kind: 'review', command: 'marginalia', at: 't0', plan: 'staged-review' });
   t = enterStage(t, 'map', 't1');
   t = planStages(t, 'map', [['chapter-1', 'Review: coupons'], ['chapter-2', 'Review: tests'], ['map', 'dup']]);

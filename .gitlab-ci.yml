@@ -40,22 +40,22 @@ typecheck:
   script:
     - npm run typecheck
 
-studio:test:
+ui:test:
   extends: .node
   stage: test
   script:
-    - npm --prefix studio ci --cache .npm --prefer-offline
-    - npm --prefix studio test
+    - npm --prefix ui ci --cache .npm --prefer-offline
+    - npm --prefix ui test
 
-studio:build:
+ui:build:
   extends: .node
   stage: build
   script:
-    - npm --prefix studio ci --cache .npm --prefer-offline
-    - npm run studio:build # tsc --noEmit, then vite build into studio/dist
+    - npm --prefix ui ci --cache .npm --prefer-offline
+    - npm run ui:build # tsc --noEmit, then vite build into ui/dist
   artifacts:
     paths:
-      - studio/dist
+      - ui/dist
     expire_in: 1 week
 
 # The container image (see "Run in a container" in the README), built with kaniko so the runner
@@ -75,7 +75,7 @@ image:
     - echo "{\"auths\":{\"${CI_REGISTRY}\":{\"auth\":\"$(printf '%s:%s' "${CI_REGISTRY_USER}" "${CI_REGISTRY_PASSWORD}" | base64 | tr -d '\n')\"}}}" > /kaniko/.docker/config.json
     - /kaniko/executor --context "${CI_PROJECT_DIR}" --dockerfile Dockerfile --destination "${CI_REGISTRY_IMAGE}:${CI_COMMIT_TAG}" --destination "${CI_REGISTRY_IMAGE}:latest"
 
-# The studio is built by `prepack`, so the tarball ships studio/dist.
+# The studio is built by `prepack`, so the tarball ships ui/dist.
 publish:
   extends: .node
   stage: publish
@@ -84,7 +84,7 @@ publish:
   needs:
     - test
     - typecheck
-    - studio:test
+    - ui:test
   script:
     - test "v$(node -p "require('./package.json').version")" = "${CI_COMMIT_TAG%%-*}" || { echo "tag $CI_COMMIT_TAG does not match package.json version"; exit 1; }
     - echo "${NPM_SCOPE}:registry=${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/npm/" > .npmrc

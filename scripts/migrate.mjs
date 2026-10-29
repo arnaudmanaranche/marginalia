@@ -3,9 +3,9 @@
 import { existsSync, readFileSync, writeFileSync, mkdirSync, chmodSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { resolveDataDir } from '../lib/paths-home.mjs';
-import { CONFIG_FILENAME } from '../lib/config-file.mjs';
-import { parseEnv, migrateEnv } from '../lib/init-config.mjs';
+import { resolveDataDir } from '../api/src/paths-home.mjs';
+import { CONFIG_FILENAME } from '../api/src/config-file.mjs';
+import { parseEnv, migrateEnv } from '../api/src/init-config.mjs';
 import { findEnvFile } from './init-checks.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');

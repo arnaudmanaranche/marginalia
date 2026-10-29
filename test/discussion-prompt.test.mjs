@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { discussionPrompt, triageDiscussionPrompt } from '../lib/discussion-prompt.mjs';
+import { discussionPrompt, triageDiscussionPrompt } from '../api/src/discussion-prompt.mjs';
 
 test('the conversation prompt carries replies and says who spoke', () => {
   assert.equal(discussionPrompt([]), '');

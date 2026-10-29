@@ -1,6 +1,6 @@
 # Guidelines: `ui/`
 
-Applies to the studio (`studio/src` today, `ui/` after the restructure). How it looks is in `DESIGN.md`; the words it uses are in `GLOSSARY.md`.
+Applies to the studio (`ui/`). How it looks is in `DESIGN.md`; the words it uses are in `GLOSSARY.md`.
 
 ## Data
 

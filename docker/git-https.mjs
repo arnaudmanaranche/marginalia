@@ -7,10 +7,10 @@
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { credentialResponse, httpsRewrites } from '../lib/git-https.mjs';
+import { credentialResponse, httpsRewrites } from '../api/src/git-https.mjs';
 
 process.env.MR_REVIEW_BOT_SKIP_CONFIG_CHECK = '1';
-const { GITLAB_BASE_URL, GITLAB_TOKEN } = await import('../lib/config.mjs');
+const { GITLAB_BASE_URL, GITLAB_TOKEN } = await import('../api/src/config.mjs');
 const [action] = process.argv.slice(2);
 
 if (GITLAB_BASE_URL && GITLAB_TOKEN) {

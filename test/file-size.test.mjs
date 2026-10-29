@@ -1,19 +1,24 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { MAX_LINES, countLines, isGuarded, oversized } from '../scripts/check-file-size.mjs';
+import { readFileSync } from 'node:fs';
+import { MAX_LINES, OVER_LIMIT, countLines, isGuarded, oversized } from '../scripts/check-file-size.mjs';
 
-test(`every module of lib/ stays under ${MAX_LINES} lines`, () => {
+test(`every module of api/src stays under ${MAX_LINES} lines`, () => {
   assert.deepEqual(oversized(), [], `split these modules: ${oversized().map((o) => `${o.file} (${o.lines})`).join(', ')}`);
 });
 
-test('the guard covers lib/ modules, in the repo and in its worktrees', () => {
-  assert.equal(isGuarded('/r/lib/gitlab.mjs', '/r'), true);
-  assert.equal(isGuarded('/r/.claude/worktrees/x/lib/a.mjs', '/r'), true);
-  assert.equal(isGuarded('/r/studio/src/lib/api.ts', '/r'), false);
+test('the guard covers api/src modules, in the repo and in its worktrees', () => {
+  assert.equal(isGuarded('/r/api/src/gitlab.mjs', '/r'), true);
+  assert.equal(isGuarded('/r/.claude/worktrees/x/api/src/a.mjs', '/r'), true);
+  assert.equal(isGuarded('/r/ui/src/lib/api.ts', '/r'), false);
   assert.equal(isGuarded('/r/poll.mjs', '/r'), false);
 });
 
 test('a trailing newline is not a line', () => {
   assert.equal(countLines('a\nb\n'), 2);
   assert.equal(countLines('a\nb'), 2);
+});
+
+test('the files exempt from the limit really are over it, so the list can only shrink', () => {
+  for (const file of OVER_LIMIT) assert.ok(countLines(readFileSync(file, 'utf8')) > MAX_LINES, `${file} fits now: remove it from OVER_LIMIT`);
 });

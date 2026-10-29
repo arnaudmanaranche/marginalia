@@ -11,7 +11,7 @@ Object.assign(process.env, {
 const realFetch = globalThis.fetch;
 after(() => { globalThis.fetch = realFetch; });
 
-const { gitlab } = await import('../lib/gitlab-api.mjs');
+const { gitlab } = await import('../api/src/gitlab-api.mjs');
 const { createDraftNote, createInlineDraftNote, publishDraftNotes, updateDraftNote, deleteDraftNote, draftNoteExists, listDraftNotes, approveMergeRequest, mergeRequestNoteExists } = gitlab;
 
 const reply = (status, body, headers = {}) => ({

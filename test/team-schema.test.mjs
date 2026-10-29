@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { parseTeam, compareSemver, satisfiesMin } from '../lib/team-schema.mjs';
+import { parseTeam, compareSemver, satisfiesMin } from '../api/src/team-schema.mjs';
 
 const example = JSON.parse(readFileSync(new URL('../examples/team/team.json', import.meta.url), 'utf8'));
 const MIN = { version: 1, name: 'Acme' };

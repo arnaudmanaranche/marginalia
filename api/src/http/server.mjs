@@ -7,10 +7,10 @@
 import { mkdirSync, watch } from 'node:fs';
 import { dirname } from 'node:path';
 import { serve } from '@hono/node-server';
-import { STATUS_FILE, STUDIO_HOST, STUDIO_PORT } from '../lib/config.mjs';
-import { PROJECTS } from '../lib/projects.mjs';
-import { RUNS_DIR } from '../lib/run-journal.mjs';
-import { logger } from '../lib/logger.mjs';
+import { STATUS_FILE, STUDIO_HOST, STUDIO_PORT } from '../config.mjs';
+import { PROJECTS } from '../projects.mjs';
+import { RUNS_DIR } from '../run-journal.mjs';
+import { logger } from '../logger.mjs';
 import { createApp } from './app.mjs';
 import { broadcast } from './context.mjs';
 import { endLiveStreams } from './routes-live.mjs';

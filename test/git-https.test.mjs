@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { credentialResponse, httpsRewrites } from '../lib/git-https.mjs';
-import { sandboxStatus } from '../lib/platform-support.mjs';
+import { credentialResponse, httpsRewrites } from '../api/src/git-https.mjs';
+import { sandboxStatus } from '../api/src/platform-support.mjs';
 
 const BASE = 'https://git.example.com';
 

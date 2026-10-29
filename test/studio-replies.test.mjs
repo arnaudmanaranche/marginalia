@@ -12,9 +12,9 @@ Object.assign(process.env, {
   GITLAB_BASE_URL: 'https://git.example.com', GITLAB_USERNAME: 'me', GITLAB_TOKEN: 't', GITLAB_PROJECT_ID: 'group/demo',
   REPO_LOCAL_PATH: dir, MARGINALIA_HOME: dir,
 });
-const { createApp } = await import('../studio/app.mjs');
-const { PROJECTS } = await import('../lib/projects.mjs');
-const { posted } = await import('../lib/posted.mjs');
+const { createApp } = await import('../api/src/http/app.mjs');
+const { PROJECTS } = await import('../api/src/projects.mjs');
+const { posted } = await import('../api/src/posted.mjs');
 const { reviewsDir } = PROJECTS[0];
 await mkdir(reviewsDir, { recursive: true });
 const tracked = (iid, kind, file) => ({ project: 'demo', iid, kind, reviewPath: join(reviewsDir, `${file}.md`), web_url: `https://git.example.com/group/demo/-/merge_requests/${iid}`, source_branch: 'x' });
@@ -60,7 +60,7 @@ test('submitting is open on my own MR without ALLOW_POSTING, and still closed on
 });
 
 test('an MR the bot just picked up is listed before its first report, awaiting it', async () => {
-  const { awaitingItem } = await import('../studio/reviews-list.mjs');
+  const { awaitingItem } = await import('../api/src/http/reviews-list.mjs');
   const item = awaitingItem(PROJECTS[0], { ...tracked(7, 'review', 'feat-new'), title: 'feat: new', status: 'pending', sourceBranch: 'feat/new' });
   assert.equal(item.slug, 'demo/feat-new');
   assert.equal(item.awaiting, 'queued');

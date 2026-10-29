@@ -1,10 +1,11 @@
 # Guidelines: `api/`
 
-Applies to the bot (`lib/` today, `api/` after the restructure) and to `packages/contract`. Words follow `GLOSSARY.md`.
+Applies to the bot (`api/src`) and to `packages/contract`. Words follow `GLOSSARY.md`.
 
 ## Module size
 
 - No module may exceed **150 lines** (`MAX_LINES` in `scripts/check-file-size.mjs`). Enforced by a `PostToolUse` hook, `test/file-size.test.mjs` and `npm run check:size`.
+- `OVER_LIMIT` in that script lists the four HTTP files that arrived over the limit (`routes-actions`, `routes-read`, `reviews-list`, `schemas`). It only shrinks; never add to it.
 - Near the limit, split by responsibility; never compact. Do not raise the limit to make a change fit.
 
 ## Shape of a module

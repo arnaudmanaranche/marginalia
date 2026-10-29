@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-// Keeps every module of lib/ under MAX_LINES, so each one stays small enough to
+// Keeps every module of api/src under MAX_LINES, so each one stays small enough to
 // read in one go and to test on its own. Split a module that grows past it.
 //
-//   node scripts/check-file-size.mjs          checks all of lib/, exits 1 on any excess
+//   node scripts/check-file-size.mjs          checks all of api/src, exits 1 on any excess
 //   node scripts/check-file-size.mjs --hook   Claude Code PostToolUse hook: reads the
 //                                             hook's JSON on stdin, checks the edited
 //                                             file only, exits 2 so Claude sees why
@@ -15,16 +15,25 @@ const ROOT = join(fileURLToPath(import.meta.url), '..', '..');
 
 export const countLines = (text) => text.split('\n').length - (text.endsWith('\n') ? 1 : 0);
 
-// lib/foo.mjs, also inside a worktree of this repo (.claude/worktrees/<name>/lib/foo.mjs).
+// Files that came into api/src over the limit when the studio server moved there. This list only
+// shrinks: split a file, then remove it here. Never add to it.
+export const OVER_LIMIT = [
+  'api/src/http/routes-actions.mjs',
+  'api/src/http/routes-read.mjs',
+  'api/src/http/reviews-list.mjs',
+  'api/src/http/schemas.mjs',
+];
+
+// api/src/foo.mjs, also inside a worktree of this repo (.claude/worktrees/<name>/api/src/foo.mjs).
 export function isGuarded(path, root = ROOT) {
   const rel = relative(root, path).split(sep).join('/').replace(/^\.claude\/worktrees\/[^/]+\//, '');
-  return /^lib\/.+\.mjs$/.test(rel);
+  return /^api\/src\/.+\.mjs$/.test(rel) && !OVER_LIMIT.includes(rel);
 }
 
 export function oversized(root = ROOT) {
-  return readdirSync(join(root, 'lib'), { recursive: true })
-    .filter((f) => f.endsWith('.mjs'))
-    .map((f) => ({ file: `lib/${f}`, lines: countLines(readFileSync(join(root, 'lib', f), 'utf8')) }))
+  return readdirSync(join(root, 'api', 'src'), { recursive: true })
+    .filter((f) => f.endsWith('.mjs') && !OVER_LIMIT.includes(`api/src/${f}`))
+    .map((f) => ({ file: `api/src/${f}`, lines: countLines(readFileSync(join(root, 'api', 'src', f), 'utf8')) }))
     .filter(({ lines }) => lines > MAX_LINES);
 }
 
@@ -41,7 +50,7 @@ function runHook() {
     return 0;
   }
   if (lines <= MAX_LINES) return 0;
-  console.error(`${path} has ${lines} lines, over the ${MAX_LINES}-line limit for lib/ modules. ${advice}`);
+  console.error(`${path} has ${lines} lines, over the ${MAX_LINES}-line limit for api/src modules. ${advice}`);
   return 2;
 }
 
