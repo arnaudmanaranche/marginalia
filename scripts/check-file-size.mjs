@@ -22,7 +22,6 @@ const GUARDED_DIRS = ['api/src', 'packages/contract/src'];
 
 export const OVER_LIMIT = [
   'api/src/http/routes-actions.mjs',
-  'api/src/http/routes-read.mjs',
   'api/src/http/reviews-list.mjs',
 ];
 

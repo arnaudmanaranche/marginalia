@@ -2,33 +2,16 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { z } from '@hono/zod-openapi';
-import { GITLAB_BASE_URL, GITLAB_TOKEN } from '../config.mjs';
 import { PROJECTS } from '../projects.mjs';
-import { parseReviewId, projectOfUpload } from '../review-id.mjs';
-import { uploadFetchPath } from '../gitlab-upload.mjs';
+import { parseReviewId } from '../review-id.mjs';
 import { artifactAt } from '../artifact.mjs';
 import { buildShape } from '../findings.mjs';
-import { filesForPatterns, toDiffFile } from '../mr-diff.mjs';
-import { diffSincePush, reviewDiff, reviewPushes } from '../review-diff.mjs';
-import { reviewThreads } from '../review-threads.mjs';
-import { gitlab } from '../gitlab-api.mjs';
-import { Diff, Drafts, Pushes, ReviewContent, ReviewId, ReviewsPayload, Threads, Version, Versions } from '@worldia/marginalia-contract';
+import { ReviewContent, ReviewId, ReviewsPayload, Version, Versions } from '@worldia/marginalia-contract';
 import { jsonOf, route } from './route-kit.mjs';
-import { locate, shortMessage } from './context.mjs';
 import { kindOf, listReviews } from './reviews-list.mjs';
-
-const slug = z.object({ slug: ReviewId });
-const badSlug = (c) => c.json({ error: 'bad slug' }, 400);
-const notTracked = (c) => c.json({ error: 'no tracked merge request for this review' }, 404);
-
-// The tracked MR of a review id ({ project, slug, mr }), or `{ reply }`: the answer to give instead.
-/** @returns {Promise<any>} */
-async function tracked(c, id) {
-  const found = await locate(id);
-  if (!found) return { reply: badSlug(c) };
-  if (!found.mr) return { reply: notTracked(c) };
-  return found;
-}
+import { badSlug, slug } from './read-kit.mjs';
+import { mrReadRoutes } from './routes-read-mr.mjs';
+import { imageRoute } from './routes-read-image.mjs';
 
 export function readRoutes(app) {
   app.openapi(route({
@@ -55,66 +38,6 @@ export function readRoutes(app) {
   });
 
   app.openapi(route({
-    method: 'get', path: '/api/reviews/{slug}/threads', tags: ['Reviews'], operationId: 'getThreads',
-    summary: 'Threads on lines of code', description: 'The MR\'s discussion threads that sit on a line, for the diff, or with `scope=all` every thread (general comments too). `outdated` is a thread opened on an earlier version of the MR.',
-    request: { params: slug, query: z.object({ scope: z.enum(['lines', 'all']).optional() }) }, responses: { 200: jsonOf(Threads, 'The threads.') }, errors: [400, 404, 502],
-  }), async (c) => {
-    const found = await tracked(c, c.req.valid('param').slug);
-    if (found.reply) return found.reply;
-    try {
-      return c.json({ threads: await reviewThreads(found.project, found.mr, { all: c.req.valid('query').scope === 'all' }) }, 200);
-    } catch (err) {
-      return c.json({ error: shortMessage(err) }, 502);
-    }
-  });
-
-  app.openapi(route({
-    method: 'get', path: '/api/reviews/{slug}/diff', tags: ['Reviews'], operationId: 'getDiff',
-    summary: 'The MR diff',
-    description: 'Live diff of the MR, or of one tour stop. With `version`, the diff as an earlier review saw it; with `from` (the head commit of one of the MR\'s pushes), what changed after that push up to the head now.',
-    request: { params: slug, query: z.object({ version: z.string().regex(/^[\w-]+$/).optional(), from: z.string().regex(/^[0-9a-f]{7,64}$/).optional(), stop: z.string().optional() }) },
-    responses: { 200: jsonOf(Diff, 'The changed files.') }, errors: [400, 404, 502],
-  }), async (c) => {
-    const found = await tracked(c, c.req.valid('param').slug);
-    if (found.reply) return found.reply;
-    const { project, mr } = found;
-    const { version: versionId = null, from = null, stop: stopId = null } = c.req.valid('query');
-    try {
-      // The live diff, unless it is about what an earlier review saw or what changed after a push.
-      if (versionId || from) {
-        const { status, ...body } = versionId
-          ? await reviewDiff(project, mr, found.slug, { versionId, stopId })
-          : await diffSincePush(project, mr, found.slug, { from, stopId });
-        return c.json(body, status);
-      }
-      let files = (await gitlab.listMergeRequestDiffs(project, mr.iid)).map(toDiffFile);
-      if (stopId) {
-        const shape = await artifactAt(project.reviewsDir, found.slug).readShape();
-        const stop = (shape.tour ?? []).find((s) => s.id === stopId);
-        files = stop ? filesForPatterns(files, stop.files) : [];
-      }
-      return c.json({ files }, 200);
-    } catch (err) {
-      return c.json({ error: shortMessage(err) }, 502);
-    }
-  });
-
-  app.openapi(route({
-    method: 'get', path: '/api/reviews/{slug}/pushes', tags: ['Reviews'], operationId: 'getPushes',
-    summary: 'The MR\'s pushes',
-    description: 'Oldest first, each with the commits it added, and where your last review on GitLab and the bot\'s reports sit. `defaultFrom` is where to start reading: after the push you last reviewed.',
-    request: { params: slug }, responses: { 200: jsonOf(Pushes, 'The pushes.') }, errors: [400, 404, 502],
-  }), async (c) => {
-    const found = await tracked(c, c.req.valid('param').slug);
-    if (found.reply) return found.reply;
-    try {
-      return c.json(await reviewPushes(found.project, found.mr, found.slug), 200);
-    } catch (err) {
-      return c.json({ error: shortMessage(err) }, 502);
-    }
-  });
-
-  app.openapi(route({
     method: 'get', path: '/api/history/{slug}', tags: ['Reviews'], operationId: 'listHistory',
     summary: 'Earlier versions of a review', request: { params: slug },
     responses: { 200: jsonOf(Versions, 'Versions, newest first.') }, errors: [400],
@@ -137,41 +60,6 @@ export function readRoutes(app) {
     return c.json({ slug: id, id: versionId, markdown: version.markdown, shape: version.shape ?? buildShape({ markdown: version.markdown }) }, 200);
   });
 
-  app.openapi(route({
-    method: 'get', path: '/api/drafts/{slug}', tags: ['Pending review'], operationId: 'listDrafts',
-    summary: 'Your pending drafts on the MR', description: 'Includes drafts started in GitLab itself. Requires `ALLOW_POSTING=true`.',
-    request: { params: slug }, responses: { 200: jsonOf(Drafts, 'The drafts.') }, errors: [400, 403, 404, 502],
-  }), async (c) => {
-    const found = await tracked(c, c.req.valid('param').slug);
-    if (found.reply) return found.reply;
-    try {
-      return c.json({ drafts: await gitlab.listDraftNotes(found.project, found.mr.iid) }, 200);
-    } catch (err) {
-      return c.json({ error: shortMessage(err) }, 502);
-    }
-  });
-
-  // An image a GitLab note embeds, fetched with the token (the browser has no GitLab login).
-  app.openapi(route({
-    method: 'get', path: '/api/gitlab-image', tags: ['Reviews'], operationId: 'getGitlabImage',
-    summary: 'An image uploaded to a GitLab note', request: { query: z.object({ src: z.string().default('') }) },
-    responses: { 200: { description: 'The image.', content: { 'image/*': { schema: z.string().openapi({ format: 'binary' }) } } } }, errors: [400, 404, 502],
-  }), async (c) => {
-    const { src } = c.req.valid('query');
-    /** @type {any} */
-    let project = null;
-    try {
-      project = projectOfUpload(new URL(src, GITLAB_BASE_URL).pathname, PROJECTS);
-    } catch { /* not a URL: uploadFetchPath refuses it below */ }
-    const path = project && uploadFetchPath(src, GITLAB_BASE_URL, project.encodedId);
-    if (!path) return c.json({ error: 'not a GitLab upload' }, 400);
-    try {
-      const upstream = await fetch(`${GITLAB_BASE_URL}${path}`, { headers: { 'PRIVATE-TOKEN': GITLAB_TOKEN }, redirect: 'follow' });
-      const type = upstream.headers.get('content-type') ?? '';
-      if (!upstream.ok || !/^image\/(png|jpe?g|gif|webp|avif|bmp)/i.test(type)) return c.json({ error: 'image unavailable' }, 404);
-      return c.body(await upstream.arrayBuffer(), 200, { 'content-type': type, 'cache-control': 'private, max-age=3600', 'x-content-type-options': 'nosniff' });
-    } catch {
-      return c.json({ error: 'image unavailable' }, 502);
-    }
-  });
+  mrReadRoutes(app);
+  imageRoute(app);
 }
