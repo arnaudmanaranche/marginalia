@@ -59,14 +59,14 @@ export async function runDoctor(argv = process.argv.slice(2)) {
 
   console.log('\nGitLab');
   if (!missing.length) {
-    const { gitlabRequest } = await import('../lib/gitlab.mjs');
+    const { currentUser, getProject } = await import('../lib/gitlab.mjs');
     await step('GitLab token', async () => {
-      const me = await gitlabRequest('/user');
+      const me = await currentUser();
       me.username === cfg.GITLAB_USERNAME ? ok(`Token belongs to ${me.username}`) : bad(`Token belongs to "${me.username}" but GITLAB_USERNAME is "${cfg.GITLAB_USERNAME}"`);
     });
     for (const project of PROJECTS) {
       await step(`GitLab project ${project.key}`, async () => {
-        const p = await gitlabRequest(`/projects/${project.encodedId}`);
+        const p = await getProject(project);
         ok(`[${project.key}] ${p.path_with_namespace} reachable`);
       });
     }
@@ -130,11 +130,11 @@ export async function runDoctor(argv = process.argv.slice(2)) {
     const project = keyIdx === -1 ? PROJECTS[0] : projectByKey(argv[keyIdx + 1]);
     if (!project) bad(`No project "${argv[keyIdx + 1]}"`, `known: ${PROJECTS.map((p) => p.key).join(', ')}`);
     console.log(`\nDry run on MR !${iid} [${project?.key}]`);
-    const { gitlabRequest } = await import('../lib/gitlab.mjs');
+    const { getMergeRequest } = await import('../lib/gitlab.mjs');
     const { ensureBotWorktree } = await import('../lib/worktree.mjs');
     const { runReview } = await import('../lib/claude-runner.mjs');
     await step('dry run', async () => {
-      const mr = { ...(await gitlabRequest(`/projects/${project.encodedId}/merge_requests/${iid}`)), project };
+      const mr = { ...(await getMergeRequest(project, iid)), project };
       await ensureBotWorktree(project);
       const out = join(tmpdir(), `marginalia-dry-run-${iid}.md`);
       const outcome = await runReview(mr, out);
