@@ -20,5 +20,5 @@ node /app/api/docker/trust.mjs || true
 
 case "${1:-}" in
   claude|git|sh|bash|node) exec "$@" ;;
-  *) exec node /app/api/bin/marginalia.mjs "$@" ;;
+  *) exec node /app/api/dist/bin/marginalia.js "$@" ;;
 esac

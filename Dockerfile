@@ -18,6 +18,18 @@ RUN npm ci --workspace ui --include-workspace-root=false
 COPY ui ui
 RUN npm --workspace ui run build
 
+# --- the bot and the contract, compiled (tsc: packages/contract/dist and api/dist)
+FROM node:22-bookworm-slim AS build
+WORKDIR /src
+COPY package.json package-lock.json ./
+COPY api/package.json api/
+COPY ui/package.json ui/
+COPY packages/contract/package.json packages/contract/
+RUN npm ci --workspace api --workspace packages/contract --include-workspace-root
+COPY packages/contract packages/contract
+COPY api api
+RUN npm run build
+
 # --- production dependencies of the bot (and the contract package it links to)
 FROM node:22-bookworm-slim AS deps
 WORKDIR /app
@@ -44,6 +56,8 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY package.json ./
 COPY packages/contract ./packages/contract
 COPY api ./api
+COPY --from=build /src/packages/contract/dist ./packages/contract/dist
+COPY --from=build /src/api/dist ./api/dist
 COPY --from=studio /src/ui/dist ./api/ui-dist
 RUN chmod +x api/docker/entrypoint.sh api/docker/git-https.mjs \
  && mkdir -p /data /home/node/.claude /repos \

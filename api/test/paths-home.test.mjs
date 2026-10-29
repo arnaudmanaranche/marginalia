@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { findCloneRoot, resolveDataDir } from '../src/paths-home.mjs';
+import { findCloneRoot, resolveDataDir } from '../dist/src/paths-home.js';
 
 const none = () => false;
 const base = { home: '/home/dev', root: '/opt/marginalia', exists: none };

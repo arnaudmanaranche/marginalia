@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { diffRange, resolveReviewedVersion } from '../src/review-version.mjs';
+import { diffRange, resolveReviewedVersion } from '../dist/src/review-version.js';
 
 const v = (id, head, base, created_at) => ({ id, head_commit_sha: head, base_commit_sha: base, created_at });
 const versions = [v(3, 'c3', 'b', '2026-03-01T10:00:00Z'), v(2, 'c2', 'b', '2026-02-01T10:00:00Z'), v(1, 'c1', 'b', '2026-01-01T10:00:00Z')];

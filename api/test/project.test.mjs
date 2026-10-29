@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildProjects, deriveKey } from '../src/project.mjs';
+import { buildProjects, deriveKey } from '../dist/src/project.js';
 
 const base = { reviewCommand: '/r', triageCommand: '', allowedTargetBranches: [], excludeAuthors: [] };
 const build = (projects) => buildProjects({ projects: projects.map((p) => ({ ...base, ...p })) }, { dataDir: '/data', legacyWorktreeDir: '/legacy/wt' });

@@ -7,8 +7,8 @@ test(`every module of api/src stays under ${MAX_LINES} lines`, () => {
 });
 
 test('the guard covers api/src modules, in the repo and in its worktrees', () => {
-  assert.equal(isGuarded('/r/api/src/gitlab.mjs', '/r'), true);
-  assert.equal(isGuarded('/r/.claude/worktrees/x/api/src/a.mjs', '/r'), true);
+  assert.equal(isGuarded('/r/api/src/gitlab.ts', '/r'), true);
+  assert.equal(isGuarded('/r/.claude/worktrees/x/api/src/a.ts', '/r'), true);
   assert.equal(isGuarded('/r/ui/src/lib/api.ts', '/r'), false);
   assert.equal(isGuarded('/r/poll.mjs', '/r'), false);
 });

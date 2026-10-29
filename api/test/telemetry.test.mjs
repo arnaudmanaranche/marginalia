@@ -5,11 +5,11 @@ Object.assign(process.env, {
   MR_REVIEW_BOT_SKIP_CONFIG_CHECK: '1', MARGINALIA_DB: ':memory:',
   GITLAB_BASE_URL: 'https://git.example.com', GITLAB_USERNAME: 'dev1', GITLAB_TOKEN: 't', GITLAB_PROJECT_ID: 'group/demo', REPO_LOCAL_PATH: '/tmp/none',
 });
-const { eventUuid, runEvent, failureEvent, errorKind, eventsFromRuns } = await import('../src/run-events.mjs');
-const { createPosthogClient, posthogFromEnv } = await import('../src/posthog.mjs');
-const { openDatabase } = await import('../src/db.mjs');
-const { insertRun, countRuns } = await import('../src/db-store.mjs');
-const { trackRun, trackFailure } = await import('../src/telemetry.mjs');
+const { eventUuid, runEvent, failureEvent, errorKind, eventsFromRuns } = await import('../dist/src/run-events.js');
+const { createPosthogClient, posthogFromEnv } = await import('../dist/src/posthog.js');
+const { openDatabase } = await import('../dist/src/db.js');
+const { insertRun, countRuns } = await import('../dist/src/db-store.js');
+const { trackRun, trackFailure } = await import('../dist/src/telemetry.js');
 
 const run = { at: '2026-10-21T10:00:00.000Z', project: 'webapp', iid: 3979, kind: 'review', command: '/code-review', costUsd: 1.15234567, outputTokens: 9347, turns: 21, durationMs: 210_000 };
 const ctx = { reviewer: 'dev1', version: '2.0.0', container: false };

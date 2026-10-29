@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildPushes, isPushHead } from '../src/mr-pushes.mjs';
+import { buildPushes, isPushHead } from '../dist/src/mr-pushes.js';
 
 const v = (id, head, base, created_at) => ({ id, head_commit_sha: head, base_commit_sha: base, created_at });
 // Newest first, as GitLab answers.

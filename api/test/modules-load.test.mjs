@@ -11,7 +11,7 @@ process.env.MR_REVIEW_BOT_SKIP_CONFIG_CHECK = '1';
 process.env.MARGINALIA_DB = ':memory:';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const modules = [
-  ...readdirSync(join(root, 'src'), { recursive: true }).map(String).filter((f) => f.endsWith('.mjs')).map((f) => join(root, 'src', f)),
+  ...readdirSync(join(root, 'dist', 'src'), { recursive: true }).map(String).filter((f) => f.endsWith('.js')).map((f) => join(root, 'dist', 'src', f)),
 ];
 
 test('every module of the api package loads', async () => {
@@ -21,6 +21,6 @@ test('every module of the api package loads', async () => {
 });
 
 test('every module of the contract package loads', async () => {
-  const dir = join(root, '..', 'packages', 'contract', 'src');
-  for (const f of readdirSync(dir).filter((n) => n.endsWith('.mjs'))) await assert.doesNotReject(import(join(dir, f)), f);
+  const dir = join(root, '..', 'packages', 'contract', 'dist');
+  for (const f of readdirSync(dir).filter((n) => n.endsWith('.js'))) await assert.doesNotReject(import(join(dir, f)), f);
 });

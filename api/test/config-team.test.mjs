@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { applyTeam, readTeamSync, teamEnv } from '../src/config-team.mjs';
-import { readConfigFile } from '../src/config-file.mjs';
+import { applyTeam, readTeamSync, teamEnv } from '../dist/src/config-team.js';
+import { readConfigFile } from '../dist/src/config-file.js';
 
 // A data dir holding a synced copy of the shipped example team.
 function dataDirWithTeam() {

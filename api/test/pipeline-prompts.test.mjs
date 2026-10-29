@@ -1,12 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { contextText, parseMergeTree, parseNumstat } from '../src/pipeline/context-text.mjs';
-import { jsonAnswer, matchesPattern } from '../src/pipeline/json-answer.mjs';
-import { chapterPrompt, mapPrompt, parseChapter, parseMap } from '../src/pipeline/review-prompts.mjs';
-import { mergeReview } from '../src/pipeline/review-merge.mjs';
-import { renderReview } from '../src/pipeline/report-render.mjs';
-import { conflictPrompt, judgePrompt, parseConflict, parseFix, parseJudge } from '../src/pipeline/triage-prompts.mjs';
-import { landedByThread, parseFixLog } from '../src/fixes-log.mjs';
+import { contextText, parseMergeTree, parseNumstat } from '../dist/src/pipeline/context-text.js';
+import { jsonAnswer, matchesPattern } from '../dist/src/pipeline/json-answer.js';
+import { chapterPrompt, mapPrompt, parseChapter, parseMap } from '../dist/src/pipeline/review-prompts.js';
+import { mergeReview } from '../dist/src/pipeline/review-merge.js';
+import { renderReview } from '../dist/src/pipeline/report-render.js';
+import { conflictPrompt, judgePrompt, parseConflict, parseFix, parseJudge } from '../dist/src/pipeline/triage-prompts.js';
+import { landedByThread, parseFixLog } from '../dist/src/fixes-log.js';
 
 const ctx = {
   mr: { iid: 12, title: 'feat: coupons', author: 'alice', description: 'Adds coupons.', source: 'feat/coupons', target: 'develop', url: null },

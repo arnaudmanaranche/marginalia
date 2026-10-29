@@ -3,9 +3,9 @@ import assert from 'node:assert/strict';
 import { mkdtemp, writeFile, access } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { FINDINGS_FILE } from '../src/findings.mjs';
-import { REPORT_FILE, buildReport, clearStaleReport } from '../src/report.mjs';
-import { contractPrompt } from '../src/run-contract.mjs';
+import { FINDINGS_FILE } from '../dist/src/findings.js';
+import { REPORT_FILE, buildReport, clearStaleReport } from '../dist/src/report.js';
+import { contractPrompt } from '../dist/src/run-contract.js';
 
 const exists = (p) => access(p).then(() => true, () => false);
 

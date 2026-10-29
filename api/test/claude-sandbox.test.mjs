@@ -2,9 +2,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
 process.env.MR_REVIEW_BOT_SKIP_CONFIG_CHECK = '1';
-const { claudeSettings, denyRules } = await import('../src/claude-sandbox.mjs');
-const { claudeEnv, claudeArgs } = await import('../src/claude-cli.mjs');
-const { CLAUDE_ALLOWED_TOOLS, CLAUDE_MR_COMMENTS_ALLOWED_TOOLS } = await import('../src/allowed-tools.mjs');
+const { claudeSettings, denyRules } = await import('../dist/src/claude-sandbox.js');
+const { claudeEnv, claudeArgs } = await import('../dist/src/claude-cli.js');
+const { CLAUDE_ALLOWED_TOOLS, CLAUDE_MR_COMMENTS_ALLOWED_TOOLS } = await import('../dist/src/allowed-tools.js');
 
 const paths = {
   rootDir: '/bot',

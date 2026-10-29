@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { doctorPrompt, parseDoctorAnswer } from '../src/doctor-prompt.mjs';
+import { doctorPrompt, parseDoctorAnswer } from '../dist/src/doctor-prompt.js';
 
 const trace = {
   id: 'r1', kind: 'review', iid: 12, project: 'webapp', command: '/code-review',

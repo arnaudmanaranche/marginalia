@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
 process.env.MR_REVIEW_BOT_SKIP_CONFIG_CHECK = '1';
-const { jiraKeyOf, byPriorityThenDate } = await import('../src/jira.mjs');
+const { jiraKeyOf, byPriorityThenDate } = await import('../dist/src/jira.js');
 
 test('ticket key from title, branch or description', () => {
   assert.equal(jiraKeyOf({ title: 'feat(ABC-971): font search', source_branch: 'x' }), 'ABC-971');
@@ -23,7 +23,7 @@ test('most urgent first, unknown last, newest first on ties', () => {
 });
 
 test('a ticket description reads as plain text, lists and paragraphs on their own lines', async () => {
-  const { adfText } = await import('../src/jira.mjs');
+  const { adfText } = await import('../dist/src/jira.js');
   const doc = { type: 'doc', content: [
     { type: 'heading', content: [{ type: 'text', text: 'Acceptance criteria' }] },
     { type: 'bulletList', content: [

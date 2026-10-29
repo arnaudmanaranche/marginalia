@@ -17,19 +17,19 @@ const repo = await mkdtemp(join(tmpdir(), 'marginalia-api-'));
 process.env.REPO_LOCAL_PATH = repo;
 Object.assign(process.env, { GITLAB_BASE_URL: 'https://git.example.com', GITLAB_USERNAME: 'me', GITLAB_TOKEN: 't', GITLAB_PROJECT_ID: 'group/demo' });
 
-const { PROJECTS } = await import('../src/projects.mjs');
+const { PROJECTS } = await import('../dist/src/projects.js');
 const REVIEWS_DIR = PROJECTS[0].reviewsDir;
 // A review is addressed as <project key>/<slug>.
 const idOf = (name) => `${PROJECTS[0].key}/${name}`;
-const { FINDINGS_FILE } = await import('../src/findings.mjs');
-const { artifactAt } = await import('../src/artifact.mjs');
-const { REPORT_FILE, buildReport } = await import('../src/report.mjs');
-const { startStudio } = await import('../src/http/server.mjs');
+const { FINDINGS_FILE } = await import('../dist/src/findings.js');
+const { artifactAt } = await import('../dist/src/artifact.js');
+const { REPORT_FILE, buildReport } = await import('../dist/src/report.js');
+const { startStudio } = await import('../dist/src/http/server.js');
 
 const here = dirname(fileURLToPath(import.meta.url));
 const FIXTURES = join(here, 'fixtures', 'skills');
 // The contract is generated from the schemas the routes validate with.
-const { createApp } = await import('../src/http/app.mjs');
+const { createApp } = await import('../dist/src/http/app.js');
 const doc = await (await createApp().request('/openapi.json')).json();
 
 // `required` keys of one schema of the generated OpenAPI document.

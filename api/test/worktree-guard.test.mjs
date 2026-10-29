@@ -10,8 +10,8 @@ import { join } from 'node:path';
 import { execFileSync } from 'node:child_process';
 
 process.env.MR_REVIEW_BOT_SKIP_CONFIG_CHECK = '1';
-const { parseWorktrees, foreignWorktrees, botWorktreeProblem } = await import('../src/worktree-guard.mjs');
-const { ensureBotWorktree, assertBotWorktree, checkoutMergeRequest } = await import('../src/worktree.mjs');
+const { parseWorktrees, foreignWorktrees, botWorktreeProblem } = await import('../dist/src/worktree-guard.js');
+const { ensureBotWorktree, assertBotWorktree, checkoutMergeRequest } = await import('../dist/src/worktree.js');
 
 const git = (cwd, ...args) => execFileSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@t', '-c', 'commit.gpgsign=false', ...args], { cwd, encoding: 'utf8' }).trim();
 async function repoWithWorktree() {

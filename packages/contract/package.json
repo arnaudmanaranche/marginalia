@@ -3,17 +3,26 @@
   "version": "2.0.0",
   "type": "module",
   "description": "The contract between the Marginalia bot and its studio: zod schemas for the HTTP API and the review shape.",
-  "main": "src/index.mjs",
+  "main": "dist/index.js",
   "exports": {
-    ".": "./src/index.mjs"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
   },
   "dependencies": {
     "@hono/zod-openapi": "^1.6.3"
   },
   "files": [
-    "src"
+    "dist"
   ],
   "publishConfig": {
     "access": "restricted"
+  },
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p .",
+    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
+    "prepack": "tsc -p ."
   }
 }

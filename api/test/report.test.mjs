@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { extractReport, REPORT_FILE } from '../src/report.mjs';
+import { extractReport, REPORT_FILE } from '../dist/src/report.js';
 
 const dir = () => mkdtemp(join(tmpdir(), 'mrbot-'));
 const long = 'x'.repeat(300);

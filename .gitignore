@@ -28,3 +28,7 @@ compose.override.yaml
 
 # built studio copied next to the code by `prepack`
 api/ui-dist/
+
+packages/contract/dist/
+api/dist/
+*.tsbuildinfo

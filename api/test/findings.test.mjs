@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   SEVERITIES, buildShape, findingId, listFields, normalizeSeverity, normalizeVerdict, parseFindingsJson, parseVerdict,
-} from '../src/findings.mjs';
+} from '../dist/src/findings.js';
 
 test('verdicts are understood in the ways a command writes them', () => {
   for (const [text, expected] of [
@@ -161,7 +161,7 @@ test('tests, database and generated files are read last, whatever order the tour
 });
 
 test('chapters and overview that name code are flagged, plain ones and brand names are not', async () => {
-  const { technicalWord } = await import('../src/plain-words.mjs');
+  const { technicalWord } = await import('../dist/src/plain-words.js');
   for (const text of ['Replaces TrainsHelper.getJourneyTime', 'keyed on resource.type', 'the iata_code field', 'see src/app/a.ts', 'call getRate() first', 'uses `name`']) {
     assert.ok(technicalWord(text), text);
   }

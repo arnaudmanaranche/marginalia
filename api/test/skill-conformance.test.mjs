@@ -14,9 +14,9 @@ import { mkdtemp, readdir, readFile, writeFile, access } from 'node:fs/promises'
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { artifactAt } from '../src/artifact.mjs';
-import { FINDINGS_FILE, NO_FINDINGS_WARNING, SEVERITIES, VERDICTS, listFields } from '../src/findings.mjs';
-import { REPORT_FILE, buildReport } from '../src/report.mjs';
+import { artifactAt } from '../dist/src/artifact.js';
+import { FINDINGS_FILE, NO_FINDINGS_WARNING, SEVERITIES, VERDICTS, listFields } from '../dist/src/findings.js';
+import { REPORT_FILE, buildReport } from '../dist/src/report.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), 'fixtures', 'skills');
 const read = (path) => readFile(path, 'utf8').catch(() => null);

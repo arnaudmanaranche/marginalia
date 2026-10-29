@@ -1,8 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { draftsOf } from '../src/gitlab-draft-ops.mjs';
-import { readsOf } from '../src/gitlab-reads.mjs';
-import { versionsOf } from '../src/gitlab-version-ops.mjs';
+import { draftsOf } from '../dist/src/gitlab-draft-ops.js';
+import { readsOf } from '../dist/src/gitlab-reads.js';
+import { versionsOf } from '../dist/src/gitlab-version-ops.js';
 import { memoryGitlab } from './support/memory-gitlab.mjs';
 
 const project = { key: 'app', encodedId: 'group%2Fapp' };

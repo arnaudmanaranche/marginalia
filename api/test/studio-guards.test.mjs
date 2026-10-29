@@ -12,7 +12,7 @@ Object.assign(process.env, {
   GITLAB_BASE_URL: 'https://git.example.com', GITLAB_USERNAME: 'me', GITLAB_TOKEN: 't', GITLAB_PROJECT_ID: 'group/demo',
   REPO_LOCAL_PATH: dir, SETTINGS_FILE: join(dir, 'settings.json'),
 });
-const { createApp } = await import('../src/http/app.mjs');
+const { createApp } = await import('../dist/src/http/app.js');
 const app = createApp();
 
 const OWN = { host: 'localhost:4477', 'content-type': 'application/json' };
@@ -77,7 +77,7 @@ test('the generated OpenAPI document covers every API route', async () => {
 });
 
 test('extra Host values (a container published on another port) are accepted only when listed', async () => {
-  const { ownHosts } = await import('../src/http/guards.mjs');
+  const { ownHosts } = await import('../dist/src/http/guards.js');
   assert.deepEqual([...ownHosts('4477', '')].sort(), ['127.0.0.1:4477', 'localhost:4477']);
   const more = ownHosts('4477', ' localhost:8080 , ,studio.internal:4477');
   assert.ok(more.has('localhost:8080') && more.has('studio.internal:4477') && more.has('localhost:4477'));

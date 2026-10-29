@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { analyzeStacks, layersAbove, stackPrompt, parseAcrossLayers } from '../src/stack.mjs';
+import { analyzeStacks, layersAbove, stackPrompt, parseAcrossLayers } from '../dist/src/stack.js';
 
 const mr = (iid, source, target) => ({ iid, title: `MR ${iid}`, source_branch: source, target_branch: target });
 const chain = [mr(3, 'c', 'b'), mr(1, 'a', 'main'), mr(2, 'b', 'a'), mr(9, 'solo', 'main')];

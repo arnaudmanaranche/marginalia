@@ -16,6 +16,11 @@ moving the code into `api/` (bot), `ui/` (studio) and `packages/contract`. Read 
 - `ui/` never imports from `api/`; the link is `packages/contract` and HTTP.
 - Mechanical changes (renames, moves) never share a commit with behavior changes.
 
+## Build
+
+`api/` and `packages/contract` are TypeScript compiled by `tsc` to `dist/`: `npm run build`. `npm start`,
+`npm test` and `npm run typecheck` build first. Tests are `.mjs` and import from `dist`.
+
 ## Module size
 
 - No module in `api/src` may exceed **150 lines** (`MAX_LINES` in

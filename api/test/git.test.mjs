@@ -7,9 +7,9 @@ import { makeRepo } from './support/git-repo.mjs';
 process.env.MR_REVIEW_BOT_SKIP_CONFIG_CHECK = '1';
 process.env.MARGINALIA_GIT_NAME = 'Me';
 process.env.MARGINALIA_GIT_EMAIL = 'me@worldia.com';
-const { gitIn } = await import('../src/git.mjs');
-const { cleanWorktree, deleteRef, fetchMrHead, head, isAncestor, refSha, resetHard, updateRef } = await import('../src/git-refs.mjs');
-const { addWorktree, listWorktrees, worktreeTop } = await import('../src/git-worktree.mjs');
+const { gitIn } = await import('../dist/src/git.js');
+const { cleanWorktree, deleteRef, fetchMrHead, head, isAncestor, refSha, resetHard, updateRef } = await import('../dist/src/git-refs.js');
+const { addWorktree, listWorktrees, worktreeTop } = await import('../dist/src/git-worktree.js');
 
 test('run gives trimmed output, ok and exit say how it went without throwing', async () => {
   const { repo, git } = await makeRepo();

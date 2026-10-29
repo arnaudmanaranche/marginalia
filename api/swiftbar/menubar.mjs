@@ -7,7 +7,7 @@
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { resolveDataDir } from '../src/paths-home.mjs';
+import { resolveDataDir } from '../dist/src/paths-home.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const DATA_DIR = resolveDataDir({ root: ROOT });

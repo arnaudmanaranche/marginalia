@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, writeFileSync, readFileSync, existsSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { runMigrate } from '../scripts/migrate.mjs';
-import { runService } from '../scripts/service.mjs';
+import { runMigrate } from '../dist/scripts/migrate.js';
+import { runService } from '../dist/scripts/service.js';
 
 const tmp = () => mkdtempSync(join(tmpdir(), 'marginalia-test-'));
 const ENV = 'GITLAB_BASE_URL=https://git.example.com\nGITLAB_PROJECT_ID=g/p\nGITLAB_TOKEN=glpat-1\nGITLAB_USERNAME=me\nREPO_LOCAL_PATH=/code/p\n';
@@ -57,7 +57,7 @@ test('service install on Linux, dry run into a folder: writes the unit there, ru
   const out = collect();
   assert.equal(runService('install', { platform: 'linux', dryRun: true, dir, log: out.log, warn: () => {}, env: { HOME: dir, PATH: '/usr/bin' } }), 0);
   const unit = readFileSync(join(dir, 'marginalia.service'), 'utf8');
-  assert.match(unit, /ExecStart=".*node" ".*poll\.mjs"/);
+  assert.match(unit, /ExecStart=".*node" ".*poll\.js"/);
   const text = out.lines.join('\n');
   assert.match(text, /\[dry-run\] systemctl --user daemon-reload/);
   assert.match(text, /\[dry-run\] systemctl --user enable --now marginalia\.service/);

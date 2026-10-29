@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { planMergeRequests, needsTriage, triageSignal, recordBelow, pruneState } from '../src/poll-plan.mjs';
+import { planMergeRequests, needsTriage, triageSignal, recordBelow, pruneState } from '../dist/src/poll-plan.js';
 
 const mr = (iid, source, target, author = 'alice', sha = `sha${iid}`) => ({ iid, sha, title: `MR ${iid}`, source_branch: source, target_branch: target, author: { username: author } });
 const fresh = () => ({ mineComments: {}, stackBelow: {} });

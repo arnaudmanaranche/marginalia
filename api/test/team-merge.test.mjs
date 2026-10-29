@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mergeTeam } from '../src/team-merge.mjs';
-import { parseConfig } from '../src/config-schema.mjs';
+import { mergeTeam } from '../dist/src/team-merge.js';
+import { parseConfig } from '../dist/src/config-schema.js';
 
 const dev = (projects, extra = {}) => ({ gitlabBaseUrl: 'https://g.example', gitlabUsername: 'me', gitlabToken: 't', projects, ...extra });
 const team = (defaults, projects = []) => ({ defaults, projects });

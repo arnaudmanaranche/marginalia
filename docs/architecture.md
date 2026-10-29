@@ -1,6 +1,6 @@
 # Architecture
 
-Target architecture for V2. Terms are defined in `GLOSSARY.md`; the reasons are in `docs/adr/`. Step 2 of the delivery order is done: the repo is an npm workspace of `packages/contract` (the HTTP schemas, in eight modules), `api/` (the bot: `src`, `src/http`, `bin`, `scripts`, `docker`, `skills`, `examples`, `swiftbar`, `test`) and `ui/`. `scripts/check-file-size.mjs` stays at the root as repo tooling. The `.ts` migration (step 3) is not done; where this file says so, it describes where the code is going.
+Target architecture for V2. Terms are defined in `GLOSSARY.md`; the reasons are in `docs/adr/`. Step 2 of the delivery order is done: the repo is an npm workspace of `packages/contract` (the HTTP schemas, in eight modules), `api/` (the bot: `src`, `src/http`, `bin`, `scripts`, `docker`, `skills`, `examples`, `swiftbar`, `test`) and `ui/`. `scripts/check-file-size.mjs` stays at the root as repo tooling. The `.ts` migration (step 3) is under way: the code is TypeScript and builds to `dist/`, with `strictNullChecks` and `noImplicitAny` still to turn on.
 
 ## Packages
 
@@ -57,7 +57,7 @@ SQLite on a persistent volume, one instance. Postgres is the step if more than o
 
 ## Delivery order
 
-1. Docs and rules. 2. Mechanical restructure, no behavior change: `lib/` to `api/src`, the studio server to `api/src/http`, `studio/` to `ui/` and the three workspaces with their own `package.json` (done). A clone keeps its `.env` and state files at the repo root. The contract is published as `@worldia/marginalia-contract` next to the bot, with the same version. 3. `.mjs` to `.ts` together with the `tsc` build and strict typing, since Node cannot run `.ts` without the build. 4. Contract, guardrails and catalog, with evals from here on. 5. Mention intake: polling, then webhook, then bot replies. 6. Hosted: OAuth, click-to-post, Docker/HTTPS recipe. A migration covers the V1 `.env`, `posted.json`, `runs.jsonl`, `state.json` and `marginalia.db`.
+1. Docs and rules. 2. Mechanical restructure, no behavior change: `lib/` to `api/src`, the studio server to `api/src/http`, `studio/` to `ui/` and the three workspaces with their own `package.json` (done). A clone keeps its `.env` and state files at the repo root. The contract is published as `@worldia/marginalia-contract` next to the bot, with the same version. 3. `.mjs` to `.ts` together with the `tsc` build (renamed and building), then `strictNullChecks` and `noImplicitAny`, since Node cannot run `.ts` without the build. 4. Contract, guardrails and catalog, with evals from here on. 5. Mention intake: polling, then webhook, then bot replies. 6. Hosted: OAuth, click-to-post, Docker/HTTPS recipe. A migration covers the V1 `.env`, `posted.json`, `runs.jsonl`, `state.json` and `marginalia.db`.
 
 ## Tests
 

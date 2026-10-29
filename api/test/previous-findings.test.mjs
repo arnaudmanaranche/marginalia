@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { previousFindingsPrompt } from '../src/previous-findings.mjs';
+import { previousFindingsPrompt } from '../dist/src/previous-findings.js';
 
 test('the previous findings are listed with their ids, for a re-run to keep them', () => {
   const text = previousFindingsPrompt([

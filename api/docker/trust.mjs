@@ -3,13 +3,13 @@
 // and with MARGINALIA_TRUST_REPOS=0.
 import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { withTrust } from '../src/claude-trust.mjs';
+import { withTrust } from '../dist/src/claude-trust.js';
 
 process.env.MR_REVIEW_BOT_SKIP_CONFIG_CHECK = '1';
 const file = join(process.env.CLAUDE_CONFIG_DIR ?? join(process.env.HOME ?? '', '.claude'), '.claude.json');
 
 if (process.env.MARGINALIA_TRUST_REPOS !== '0' && existsSync(file)) {
-  const { PROJECTS } = await import('../src/projects.mjs');
+  const { PROJECTS } = await import('../dist/src/projects.js');
   const { config, added } = withTrust(JSON.parse(readFileSync(file, 'utf8')), PROJECTS.map((p) => p.repoPath));
   if (added.length) {
     writeFileSync(`${file}.tmp`, JSON.stringify(config, null, 2), { mode: 0o600 });

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { reviewId, parseReviewId, projectOfUpload } from '../src/review-id.mjs';
+import { reviewId, parseReviewId, projectOfUpload } from '../dist/src/review-id.js';
 
 const projects = [{ key: 'back', gitlabProjectId: 'g/back' }, { key: 'front', gitlabProjectId: 'g/front' }];
 

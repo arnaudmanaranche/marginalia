@@ -1,8 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { blockedError, branchCheck, checkLine, claudeCheck, gitlabCheck, jiraCheck, pushCheck } from '../src/preflight-checks.mjs';
-import { failureKind, needsDoctor } from '../src/failure-kind.mjs';
-import { identityOf } from '../src/git-identity.mjs';
+import { blockedError, branchCheck, checkLine, claudeCheck, gitlabCheck, jiraCheck, pushCheck } from '../dist/src/preflight-checks.js';
+import { failureKind, needsDoctor } from '../dist/src/failure-kind.js';
+import { identityOf } from '../dist/src/git-identity.js';
 
 test('Claude: logged in goes on, logged out stops the run, an old CLI that cannot tell goes on', () => {
   assert.equal(claudeCheck({ stdout: '{"loggedIn":true,"authMethod":"claude.ai"}' }).level, 'ok');

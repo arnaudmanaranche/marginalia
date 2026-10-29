@@ -4,10 +4,10 @@ import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
-import { openDatabase, transaction } from '../src/db.mjs';
-import { MIGRATIONS } from '../src/db-schema.mjs';
-import { readProjectState, writeProjectState, readPosted, writePosted, insertRun, readRuns } from '../src/db-store.mjs';
-import { importLegacyFiles } from '../src/db-import.mjs';
+import { openDatabase, transaction } from '../dist/src/db.js';
+import { MIGRATIONS } from '../dist/src/db-schema.js';
+import { readProjectState, writeProjectState, readPosted, writePosted, insertRun, readRuns } from '../dist/src/db-store.js';
+import { importLegacyFiles } from '../dist/src/db-import.js';
 
 const fresh = () => openDatabase(':memory:');
 

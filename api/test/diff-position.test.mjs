@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { positionForLine } from '../src/diff-position.mjs';
+import { positionForLine } from '../dist/src/diff-position.js';
 
 const diff = [
   '@@ -1,4 +1,5 @@',

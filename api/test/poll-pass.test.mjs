@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { passOver } from '../src/poll-pass.mjs';
+import { passOver } from '../dist/src/poll-pass.js';
 
 // passOver() across its interface only: fake deps, a recording sink, plain-object state.
 const project = { key: 'p', reviewCommand: 'marginalia', triageCommand: 'marginalia' };

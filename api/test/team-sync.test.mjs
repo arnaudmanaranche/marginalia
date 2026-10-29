@@ -6,10 +6,10 @@ import { cp, mkdtemp, readdir, readFile, rename, writeFile, lstat, realpath } fr
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { execFileSync } from 'node:child_process';
-import { syncTeam, loadTeam, teamRepoUrl, readMarker } from '../src/team-sync.mjs';
-import { teamRunExtras, teamPaths } from '../src/team-claude.mjs';
-import { commitsBehind } from '../src/team-git.mjs';
-import teamSync from '../scripts/team-sync.mjs';
+import { syncTeam, loadTeam, teamRepoUrl, readMarker } from '../dist/src/team-sync.js';
+import { teamRunExtras, teamPaths } from '../dist/src/team-claude.js';
+import { commitsBehind } from '../dist/src/team-git.js';
+import teamSync from '../dist/scripts/team-sync.js';
 
 const root = await mkdtemp(join(tmpdir(), 'marginalia-team-'));
 const origin = join(root, 'origin.git');

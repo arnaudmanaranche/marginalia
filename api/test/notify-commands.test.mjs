@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { notifyCommands, openCommand } from '../src/notify-commands.mjs';
+import { notifyCommands, openCommand } from '../dist/src/notify-commands.js';
 
 const base = { title: 'Review "ready"', message: 'MR !12', logoPath: '/l/logo.png' };
 

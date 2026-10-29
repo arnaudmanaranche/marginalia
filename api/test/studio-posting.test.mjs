@@ -12,8 +12,8 @@ Object.assign(process.env, {
   GITLAB_BASE_URL: 'https://git.example.com', GITLAB_USERNAME: 'me', GITLAB_TOKEN: 't', GITLAB_PROJECT_ID: 'group/demo',
   REPO_LOCAL_PATH: dir, MARGINALIA_HOME: dir,
 });
-const { createApp } = await import('../src/http/app.mjs');
-const { PROJECTS } = await import('../src/projects.mjs');
+const { createApp } = await import('../dist/src/http/app.js');
+const { PROJECTS } = await import('../dist/src/projects.js');
 await mkdir(PROJECTS[0].reviewsDir, { recursive: true });
 await writeFile(join(dir, 'status.json'), JSON.stringify({ pid: 1, phase: 'idle', mrs: [] }));
 const app = createApp();

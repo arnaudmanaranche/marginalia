@@ -3,15 +3,12 @@
   "version": "2.0.0",
   "type": "module",
   "description": "Bot that runs Claude Code reviews on GitLab merge requests, with a studio to read them.",
-  "main": "poll.mjs",
+  "main": "dist/poll.js",
   "bin": {
-    "marginalia": "bin/marginalia.mjs"
+    "marginalia": "dist/bin/marginalia.js"
   },
   "files": [
-    "bin",
-    "src",
-    "scripts",
-    "poll.mjs",
+    "dist",
     "ui-dist",
     "skills",
     "examples",
@@ -22,14 +19,15 @@
     "access": "restricted"
   },
   "scripts": {
-    "prepack": "node scripts/bundle-ui.mjs",
-    "start": "node poll.mjs",
-    "init": "node scripts/init.mjs",
-    "doctor": "node scripts/doctor.mjs",
-    "autostart": "node scripts/autostart.mjs",
+    "build": "tsc -p .",
+    "prepack": "npm --workspace @worldia/marginalia-contract run build && tsc -p . && node dist/scripts/bundle-ui.js",
+    "start": "node dist/poll.js",
+    "init": "node dist/scripts/init.js",
+    "doctor": "node dist/scripts/doctor.js",
+    "autostart": "node dist/scripts/autostart.js",
     "test": "node --test test/*.test.mjs",
-    "typecheck": "tsc -p .",
-    "posthog:backfill": "node scripts/posthog-backfill.mjs"
+    "typecheck": "tsc -p . --noEmit",
+    "posthog:backfill": "node dist/scripts/posthog-backfill.js"
   },
   "engines": {
     "node": ">=22"

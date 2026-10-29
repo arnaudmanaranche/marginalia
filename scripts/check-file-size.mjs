@@ -21,13 +21,13 @@ const GUARDED_DIRS = ['api/src', 'packages/contract/src'];
 // api/src/foo.mjs, also inside a worktree of this repo (.claude/worktrees/<name>/api/src/foo.mjs).
 export function isGuarded(path, root = ROOT) {
   const rel = relative(root, path).split(sep).join('/').replace(/^\.claude\/worktrees\/[^/]+\//, '');
-  return GUARDED_DIRS.some((dir) => rel.startsWith(`${dir}/`)) && rel.endsWith('.mjs');
+  return GUARDED_DIRS.some((dir) => rel.startsWith(`${dir}/`)) && rel.endsWith('.ts');
 }
 
 export function oversized(root = ROOT) {
   return GUARDED_DIRS.flatMap((dir) => readdirSync(join(root, dir), { recursive: true })
     .map((f) => `${dir}/${String(f).split(sep).join('/')}`)
-    .filter((file) => file.endsWith('.mjs'))
+    .filter((file) => file.endsWith('.ts'))
     .map((file) => ({ file, lines: countLines(readFileSync(join(root, file), 'utf8')) }))
     .filter(({ lines }) => lines > MAX_LINES));
 }

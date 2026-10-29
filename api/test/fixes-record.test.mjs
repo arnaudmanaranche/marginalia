@@ -21,7 +21,7 @@ git(worktree, 'commit', '--quiet', '--allow-empty', '-m', 'base');
 git(worktree, 'push', '--quiet', 'origin', 'HEAD:refs/heads/feat/x');
 git(root, 'clone', '--quiet', '-b', 'feat/x', origin, other);
 
-const { recordFixes } = await import('../src/fixes.mjs');
+const { recordFixes } = await import('../dist/src/fixes.js');
 const project = { key: 'demo', repoPath: worktree, worktreeDir: worktree };
 const mr = { iid: 7, source_branch: 'feat/x', title: 't', project };
 const baseSha = git(worktree, 'rev-parse', 'HEAD');

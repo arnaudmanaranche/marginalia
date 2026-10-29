@@ -4,7 +4,7 @@
 // discussions), approvals at a head sha, and the refusals they branch on (404 for a note that is
 // gone, 400 for a line outside the diff, 409 for a moved head). Reads GitLab would paginate
 // return what was seeded; everything else answers an empty value.
-import { findNoteIdByBody, latestPeerNoteAt, toDiscussions, toDraft } from '../../src/gitlab-notes.mjs';
+import { findNoteIdByBody, latestPeerNoteAt, toDiscussions, toDraft } from '../../dist/src/gitlab-notes.js';
 
 const refusal = (status, what) => new Error(`GitLab API /${what} -> ${status}: {"message":"${status}"}`);
 

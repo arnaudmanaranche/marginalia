@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseEnv, projectFromAnswers, buildConfig, defaultsFromEnv, migrateEnv } from '../src/init-config.mjs';
-import { parseConfig } from '../src/config-schema.mjs';
+import { parseEnv, projectFromAnswers, buildConfig, defaultsFromEnv, migrateEnv } from '../dist/src/init-config.js';
+import { parseConfig } from '../dist/src/config-schema.js';
 
 const shared = { gitlabBaseUrl: 'https://git.example.com/', gitlabUsername: 'me', gitlabToken: 'glpat-abc' };
 

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { diffPosition, findNoteIdByBody, isNotFound, latestPeerNoteAt, toDiscussions, toDraft } from '../src/gitlab-notes.mjs';
+import { diffPosition, findNoteIdByBody, isNotFound, latestPeerNoteAt, toDiscussions, toDraft } from '../dist/src/gitlab-notes.js';
 
 const note = (id, username, at, extra = {}) => ({ id, author: { username, name: username.toUpperCase() }, body: `note ${id}`, created_at: at, updated_at: at, ...extra });
 

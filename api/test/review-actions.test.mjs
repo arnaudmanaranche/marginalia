@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseReviewAction, reviewerStateFor } from '../src/review-actions.mjs';
+import { parseReviewAction, reviewerStateFor } from '../dist/src/review-actions.js';
 
 test('no action means a plain comment, as before the choice existed', () => {
   assert.equal(parseReviewAction(undefined), 'comment');

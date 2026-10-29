@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { MAX_QUESTION, MAX_TURNS, buildChatPrompt, diffToText, parseChatInput } from '../src/chat-prompt.mjs';
-import { toDiffFile } from '../src/mr-diff.mjs';
+import { MAX_QUESTION, MAX_TURNS, buildChatPrompt, diffToText, parseChatInput } from '../dist/src/chat-prompt.js';
+import { toDiffFile } from '../dist/src/mr-diff.js';
 
 const file = toDiffFile({ new_path: 'src/a.ts', old_path: 'src/a.ts', diff: '@@ -1,2 +1,2 @@\n a\n-b\n+B\n' });
 const shape = {
