@@ -19,7 +19,7 @@ export const CHAT_SYSTEM = [
 ].join('\n');
 
 // The body of POST /api/chat, or { error }.
-export function parseChatInput(body) {
+export function parseChatInput(body: any) {
   if (!body || typeof body !== 'object') return { error: 'expected a JSON object' };
   const { slug, stopId, question, history } = body;
   if (typeof slug !== 'string' || !slug) return { error: 'slug is required' };
@@ -34,21 +34,21 @@ export function parseChatInput(body) {
 
 // Files of the stop as text, each line numbered by its new-file line, cut at a size
 // the prompt can carry (it says so when it cuts).
-export function diffToText(files) {
+export function diffToText(files: any[]) {
   let out = '';
   for (const f of files) {
     out += `\n=== ${f.path} (${f.status}, +${f.additions} -${f.deletions})\n`;
     if (f.omitted) out += '(GitLab left this diff out)\n';
     for (const l of f.lines) {
-      out += l.t === 'hunk' ? `${l.text}\n` : `${String(l.new ?? '').padStart(5)} ${{ add: '+', del: '-', ctx: ' ' }[l.t]} ${l.text}\n`;
+      out += l.t === 'hunk' ? `${l.text}\n` : `${String(l.new ?? '').padStart(5)} ${({ add: '+', del: '-', ctx: ' ' } as Record<string, string>)[l.t]} ${l.text}\n`;
     }
     if (out.length > MAX_DIFF_CHARS) return `${out.slice(0, MAX_DIFF_CHARS)}\n[diff cut here: ${files.length} file(s), ask to see the rest by path]\n`;
   }
   return out;
 }
 
-export function buildChatPrompt({ title, shape, stop, files, history, question }) {
-  const findings = shape.findings.filter((f) => stop.findingIds.includes(f.id));
+export function buildChatPrompt({ title, shape, stop, files, history, question }: { title: string, shape: any, stop: any, files: any[], history: any[], question: string }) {
+  const findings = shape.findings.filter((f: any) => stop.findingIds.includes(f.id));
   const lines = [
     `Merge request: ${title}`,
     `Review verdict: ${shape.verdict ?? 'none'}. Risk: ${shape.risk ? `${shape.risk.level}, ${shape.risk.rationale ?? ''}` : 'not assessed'}.`,
@@ -58,12 +58,12 @@ export function buildChatPrompt({ title, shape, stop, files, history, question }
     stop.summary ?? '',
     '',
     'Findings the review attached to this stop:',
-    ...(findings.length ? findings.map((f) => `- [${f.severity}] ${f.title}${f.path ? ` (${f.path}${f.line ? `:${f.line}` : ''})` : ''}: ${f.body}`) : ['(none)']),
+    ...(findings.length ? findings.map((f: any) => `- [${f.severity}] ${f.title}${f.path ? ` (${f.path}${f.line ? `:${f.line}` : ''})` : ''}: ${f.body}`) : ['(none)']),
     '',
     'Diff of the stop:',
     diffToText(files),
   ];
-  if (history.length) lines.push('', 'Conversation so far:', ...history.map((m) => `${m.role === 'user' ? 'Reader' : 'You'}: ${m.text}`));
+  if (history.length) lines.push('', 'Conversation so far:', ...history.map((m: any) => `${m.role === 'user' ? 'Reader' : 'You'}: ${m.text}`));
   lines.push('', `Reader's question: ${question}`);
   return lines.join('\n');
 }

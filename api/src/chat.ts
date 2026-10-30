@@ -12,7 +12,7 @@ const TIMEOUT_MS = 180_000;
 // One question to a headless, read-only Claude about a stop of a review. Same
 // sandbox, deny rules and environment scrubbing as the review runs; the answer
 // is returned, never posted. Runs in the bot's checkout when there is one.
-export async function askAboutStop({ project, iid, prompt }) {
+export async function askAboutStop({ project, iid, prompt }: { project: any; iid: any; prompt: string }) {
   const cwd = existsSync(project.worktreeDir) ? project.worktreeDir : tmpdir();
   const { stdout } = await runStreaming(
     CLAUDE_BIN,

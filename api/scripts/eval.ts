@@ -43,7 +43,7 @@ async function evaluate(name: string, catalog: Awaited<ReturnType<typeof assembl
   const report = await buildReport({ worktreeDir: dir, stdout: parseRunOutput(stdout).text });
   const problems: string[] = [];
   try { enforceContract('review', report.findingsRaw); } catch (err) { problems.push((err as Error).message); }
-  const serious = report.shape.findings.filter((f: any) => f.severity === 'critical' || f.severity === 'important');
+  const serious = (report.shape.findings ?? []).filter((f: any) => f.severity === 'critical' || f.severity === 'important');
   if (expect.planted) {
     const [from, to] = expect.planted.lines;
     if (!serious.some((f: any) => f.path === expect.planted.path && f.line >= from - 2 && f.line <= to + 2)) problems.push(`the planted problem was not found at ${expect.planted.path}:${from}-${to}`);

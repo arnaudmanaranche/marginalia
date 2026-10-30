@@ -5,11 +5,11 @@ const TESTS = /(^|\/)(__tests__|__mocks__|__snapshots__|tests?|specs?|e2e|cypres
 const DATABASE = /(^|\/)(migrations?|seeds?|prisma|fixtures?)\/|\.sql$/i;
 const GENERATED = /(^|\/)(generated|__generated__|dist|build|\.next)\/|(^|\/)[^/]*generated[^/]*$|\.gen\.[a-z]+$|\.min\.(js|css)$|(^|\/)(package-lock\.json|pnpm-lock\.yaml|yarn\.lock|bun\.lockb?|Cargo\.lock|composer\.lock|Gemfile\.lock|poetry\.lock)$/i;
 
-export const isSupportingPath = (path) => TESTS.test(path) || DATABASE.test(path) || GENERATED.test(path);
+export const isSupportingPath = (path: string) => TESTS.test(path) || DATABASE.test(path) || GENERATED.test(path);
 
 // A stop is supporting when it has files and every one of them is. A stop that mixes core
 // and supporting files is core: it carries an idea of the change.
-export const isSupportingStop = (files) => files.length > 0 && files.every(isSupportingPath);
+export const isSupportingStop = (files: string[]) => files.length > 0 && files.every(isSupportingPath);
 
 // The core stops first, the supporting ones after, each group in the order given.
-export const coreFirst = (stops) => [...stops.filter((s) => !s.supporting), ...stops.filter((s) => s.supporting)];
+export const coreFirst = (stops: any[]) => [...stops.filter((s: any) => !s.supporting), ...stops.filter((s: any) => s.supporting)];

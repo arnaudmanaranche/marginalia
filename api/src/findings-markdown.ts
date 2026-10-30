@@ -6,7 +6,7 @@ import { assignIds, clip, locate, plain } from './findings-text.ts';
 // Tolerates "**Verdict:**", "**Verdict :**", "**Verdict**:" and French labels.
 const VERDICT_LINE = /\*\*\s*(?:verdict|d[ée]cision|conclusion)\s*:?\s*\*\*\s*:?\s*([^\n]+)/i;
 
-export function parseVerdict(md) {
+export function parseVerdict(md: string) {
   const m = md.match(VERDICT_LINE);
   return m ? normalizeVerdict(m[1]) : null;
 }
@@ -21,14 +21,14 @@ const HEADING_SEVERITIES: [RegExp, string][] = [
 const NOTHING = /^[-*]\s+(none|no\b|n\/a|nothing|rien|aucun)/i;
 
 // Short text shown on cards: the "Overview" line, else the first real paragraph.
-export function extractSummary(md) {
+export function extractSummary(md: string) {
   const overview = md.match(/\*\*(?:Overview|Summary|R[ée]sum[ée])\s*:\s*\*\*\s*([^\n]+)/i)?.[1];
   if (overview) return clip(plain(overview), 400);
-  const para = md.split(/\n\s*\n/).map((p) => p.trim()).find((p) => p.length > 40 && !/^[#|>\-*`]/.test(p));
+  const para = md.split(/\n\s*\n/).map((p: string) => p.trim()).find((p: string) => p.length > 40 && !/^[#|>\-*`]/.test(p));
   return para ? clip(plain(para), 400) : null;
 }
 
-function toFinding(severity, lines) {
+function toFinding(severity: string, lines: string[]) {
   const quote: string[] = [];
   const rest: string[] = [];
   for (const l of lines) {
@@ -54,7 +54,7 @@ function toFinding(severity, lines) {
 // Findings under "Critical / Important / Suggestions"-style headings: each
 // top-level bullet is one finding, and a blockquote under it is its comment.
 // A blockquote with no bullet above it is a finding of its own.
-export function findingsFromMarkdown(md) {
+export function findingsFromMarkdown(md: string) {
   const out: any[] = [];
   let severity: string | null = null;
   let fence = false;
@@ -89,7 +89,7 @@ export function findingsFromMarkdown(md) {
   return out;
 }
 
-export function deriveFromMarkdown(md) {
+export function deriveFromMarkdown(md: string) {
   return {
     verdict: parseVerdict(md),
     summary: extractSummary(md),

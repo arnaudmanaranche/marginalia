@@ -9,7 +9,7 @@ const MAX_FILES = 300;
 
 // `git diff --numstat` as [{ path, added, removed }] (a binary file counts 0 and 0).
 /** @param {string} out */
-export function parseNumstat(out) {
+export function parseNumstat(out: string) {
   return out.split('\n').filter(Boolean).map((line) => {
     const [a, r, ...rest] = line.split('\t');
     const raw = rest.join('\t');
@@ -38,11 +38,11 @@ export function parseMergeTree(out: string): string[] {
  */
 
 /** @param {Context} ctx */
-export function contextText(ctx) {
+export function contextText(ctx: any) {
   const { mr, files } = ctx;
-  const added = files.reduce((n, f) => n + f.added, 0);
-  const removed = files.reduce((n, f) => n + f.removed, 0);
-  const listed = files.slice(0, MAX_FILES).map((f) => `- ${f.path} (+${f.added} -${f.removed})`);
+  const added = files.reduce((n: number, f: any) => n + f.added, 0);
+  const removed = files.reduce((n: number, f: any) => n + f.removed, 0);
+  const listed = files.slice(0, MAX_FILES).map((f: any) => `- ${f.path} (+${f.added} -${f.removed})`);
   return [
     '## The merge request',
     `!${mr.iid} "${mr.title}"${mr.author ? ` by ${mr.author}` : ''}: ${mr.source} → ${mr.target}`,

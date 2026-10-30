@@ -12,7 +12,7 @@ import { runInScope } from './request-scope.ts';
 const OPEN = new Set(['/api/logout']);
 
 export function sessionMiddleware({ config, db, fetchFn = fetch, now = () => Date.now() }: { config: AuthConfig; db: any; fetchFn?: typeof fetch; now?: () => number }) {
-  return async (c, next) => {
+  return async (c: any, next: any) => {
     const path = c.req.path;
     if (OPEN.has(path) || !(path.startsWith('/api/') || path === '/events')) return next();
     const id = getCookie(c, SESSION_COOKIE);

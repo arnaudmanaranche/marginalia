@@ -5,7 +5,7 @@
 const UPLOAD_PATH = /^\/(?:-\/project\/\d+\/)?(?:[^?#]*?\/)?uploads\/([0-9a-f]{16,64})\/([^/?#]+)$/i;
 
 // The API-side path of an uploaded file, or null when `src` is not an upload of this GitLab.
-export function uploadFetchPath(src, baseUrl, projectId) {
+export function uploadFetchPath(src: string, baseUrl: string, projectId: string) {
   let path;
   try {
     const url = new URL(src, baseUrl);

@@ -50,7 +50,7 @@ export const MAX_STEPS = 2000;
 /**
  * @param {{ id: string, slug: string, project: string, iid: number | string, kind: 'review' | 'triage', command: string, at: string, plan?: keyof typeof STAGES }} input
  */
-export function startTrace({ id, slug, project, iid, kind, command, at, plan = kind }) {
+export function startTrace({ id, slug, project, iid, kind, command, at, plan = kind }: { id: string, slug: string, project: string, iid: number | string, kind: 'review' | 'triage', command: string, at: string, plan?: keyof typeof STAGES }) {
   return {
     id, slug, project, iid, kind, command,
     startedAt: at,
@@ -68,14 +68,14 @@ export function startTrace({ id, slug, project, iid, kind, command, at, plan = k
 
 /** @typedef {ReturnType<typeof startTrace>} Trace */
 
-const running = (trace) => trace.stages.find((s) => s.state === 'running') ?? null;
+const running = (trace: any) => trace.stages.find((s: any) => s.state === 'running') ?? null;
 
 // Moves the run on to stage `id`: the stage it was on is done, any it jumped over were skipped.
 /** @param {Trace} trace @param {string} id @param {string} at */
-export function enterStage(trace, id, at) {
-  const index = trace.stages.findIndex((s) => s.id === id);
+export function enterStage(trace: any, id: string, at: string) {
+  const index = trace.stages.findIndex((s: any) => s.id === id);
   if (index < 0) return trace;
-  const stages = trace.stages.map((s, i) => {
+  const stages = trace.stages.map((s: any, i: number) => {
     if (i < index && s.state === 'running') return { ...s, state: /** @type {StageState} */ ('done'), endedAt: at };
     if (i < index && s.state === 'pending') return { ...s, state: /** @type {StageState} */ ('skipped') };
     if (i === index) return { ...s, state: /** @type {StageState} */ ('running'), startedAt: at, endedAt: null };
@@ -86,24 +86,24 @@ export function enterStage(trace, id, at) {
 
 // Stages learnt while running (the chapters a map found, the threads to fix), inserted after `after`.
 /** @param {Trace} trace @param {string} after @param {[string, string][]} list */
-export function planStages(trace, after, list) {
-  const index = trace.stages.findIndex((s) => s.id === after);
-  const fresh = list.filter(([id]) => !trace.stages.some((s) => s.id === id)).map(([id, label]) => /** @type {Stage} */ ({ id, label, state: 'pending', startedAt: null, endedAt: null }));
+export function planStages(trace: any, after: string, list: [string, string][]) {
+  const index = trace.stages.findIndex((s: any) => s.id === after);
+  const fresh = list.filter(([id]) => !trace.stages.some((s: any) => s.id === id)).map(([id, label]) => /** @type {Stage} */ ({ id, label, state: 'pending', startedAt: null, endedAt: null }));
   return { ...trace, stages: [...trace.stages.slice(0, index + 1), ...fresh, ...trace.stages.slice(index + 1)] };
 }
 
 // Stages that run side by side (chapters reviewed in parallel): each starts and ends on its own.
 /** @param {Trace} trace @param {string} id @param {string} at */
-export function beginStage(trace, id, at) {
-  return { ...trace, stages: trace.stages.map((s) => (s.id === id ? { ...s, state: /** @type {StageState} */ ('running'), startedAt: at, endedAt: null } : s)) };
+export function beginStage(trace: any, id: string, at: string) {
+  return { ...trace, stages: trace.stages.map((s: any) => (s.id === id ? { ...s, state: /** @type {StageState} */ ('running'), startedAt: at, endedAt: null } : s)) };
 }
 /** @param {Trace} trace @param {string} id @param {string} at @param {StageState} [state] */
-export function endStage(trace, id, at, state = 'done') {
-  return { ...trace, stages: trace.stages.map((s) => (s.id === id ? { ...s, state, endedAt: at } : s)) };
+export function endStage(trace: any, id: string, at: string, state = 'done') {
+  return { ...trace, stages: trace.stages.map((s: any) => (s.id === id ? { ...s, state, endedAt: at } : s)) };
 }
 
 /** @param {Trace} trace @param {string} text @param {string} at @param {{ sub?: boolean, stage?: string }} [opts] */
-export function addStep(trace, text, at, { sub = false, stage }: { sub?: boolean; stage?: string } = {}) {
+export function addStep(trace: any, text: string, at: string, { sub = false, stage }: { sub?: boolean; stage?: string } = {}) {
   if (trace.steps.length >= MAX_STEPS) return { ...trace, droppedSteps: trace.droppedSteps + 1 };
   return { ...trace, steps: [...trace.steps, { at, text, stage: stage ?? running(trace)?.id ?? null, sub }] };
 }
@@ -111,8 +111,8 @@ export function addStep(trace, text, at, { sub = false, stage }: { sub?: boolean
 // How the run ended. A failure marks the stages it happened in (all that were running: several run
 // side by side); a success closes the last one; a skip leaves what never started as skipped.
 /** @param {Trace} trace @param {Exclude<Outcome, 'running'>} outcome @param {string} at @param {string | null} [error] */
-export function finishTrace(trace, outcome: 'reviewed' | 'skipped' | 'failed', at: string, error: string | null = null) {
-  const stages = trace.stages.map((s) => {
+export function finishTrace(trace: any, outcome: 'reviewed' | 'skipped' | 'failed', at: string, error: string | null = null) {
+  const stages = trace.stages.map((s: any) => {
     if (s.state === 'running') return { ...s, state: /** @type {StageState} */ (outcome === 'failed' ? 'failed' : outcome === 'skipped' ? 'skipped' : 'done'), endedAt: at };
     if (s.state === 'pending') return { ...s, state: /** @type {StageState} */ ('skipped') };
     return s;
@@ -124,19 +124,19 @@ export function finishTrace(trace, outcome: 'reviewed' | 'skipped' | 'failed', a
 // to say where it is without reading the trace file. The full step log is read from the trace.
 export const LIVE_STEPS = 8;
 /** @param {Trace} trace */
-export function liveSummary(trace) {
+export function liveSummary(trace: any) {
   return {
     runId: trace.id,
     slug: trace.slug,
-    stages: trace.stages.map(({ id, label, state }) => ({ id, label, state })),
-    progress: trace.steps.slice(-LIVE_STEPS).map((s) => s.text),
+    stages: trace.stages.map(({ id, label, state }: any) => ({ id, label, state })),
+    progress: trace.steps.slice(-LIVE_STEPS).map((s: any) => s.text),
     stepCount: trace.steps.length + trace.droppedSteps,
   };
 }
 
 // A run as a line of an MR's run history: the trace without its steps.
 /** @param {Trace} trace */
-export function runSummary(trace) {
+export function runSummary(trace: any) {
   const { steps, ...rest } = trace;
   return { ...rest, stepCount: steps.length + trace.droppedSteps };
 }

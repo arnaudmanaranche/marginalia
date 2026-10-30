@@ -35,8 +35,7 @@ export async function fixSource() {
 
 const running = new Set();
 
-/** @param {{ project: any, fileSlug: string, runId: string }} input */
-export async function startFix({ project, fileSlug, runId }) {
+export async function startFix({ project, fileSlug, runId }: { project: any, fileSlug: string, runId: string }) {
   const key = `${project.key}/${fileSlug}/${runId}`;
   if (running.has(key)) return { ok: false, status: 409, error: 'the fix is already being prepared' };
   const [trace, doctor, source] = await Promise.all([readTrace(project.key, fileSlug, runId), readRunPart(project.key, fileSlug, runId, 'doctor'), fixSource()]);
@@ -45,13 +44,13 @@ export async function startFix({ project, fileSlug, runId }) {
   if (!source.available) return { ok: false, status: 409, error: source.why };
   running.add(key);
   const startedAt = new Date().toISOString();
-  const save = (data) => saveRunPart(project.key, fileSlug, runId, 'fix', { startedAt, ...data });
+  const save = (data: any) => saveRunPart(project.key, fileSlug, runId, 'fix', { startedAt, ...data });
   await save({ state: 'running' });
   void prepare({ trace, doctor, save }).finally(() => running.delete(key));
   return { ok: true };
 }
 
-async function prepare({ trace, doctor, save }) {
+async function prepare({ trace, doctor, save }: { trace: any, doctor: any, save: (data: any) => Promise<any> }) {
   const branch = `doctor/${trace.id.toLowerCase()}`;
   const dir = join(FIXES_DIR, trace.id);
   try {
@@ -86,8 +85,7 @@ async function prepare({ trace, doctor, save }) {
 
 // Pushes the doctor's branch, on the person's word. The remote's answer (with its "create a merge
 // request" link) is kept to show; the worktree goes, the branch stays.
-/** @param {{ project: any, fileSlug: string, runId: string }} input */
-export async function pushFix({ project, fileSlug, runId }) {
+export async function pushFix({ project, fileSlug, runId }: { project: any, fileSlug: string, runId: string }) {
   const fix = await readRunPart(project.key, fileSlug, runId, 'fix');
   if (fix?.state !== 'ready') return { ok: false, status: 409, error: 'no fix ready to push' };
   try {

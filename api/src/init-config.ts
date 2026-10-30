@@ -4,15 +4,15 @@ import { parseConfig } from './config-schema.ts';
 // Pure mapping between what `marginalia init` / `migrate` read or ask and the
 // config.json shape. No prompt, disk or network here, so it is tested on plain objects.
 
-export const parseEnv = (text) => Object.fromEntries(
-  text.split('\n').map((l) => l.match(/^([A-Z_]+)=(.*)$/)).filter(Boolean).map((m) => [m[1], m[2]]),
+export const parseEnv = (text: string) => Object.fromEntries(
+  text.split('\n').map((l: string) => l.match(/^([A-Z_]+)=(.*)$/)).filter(Boolean).map((m: any) => [m[1], m[2]]),
 );
 
-const csv = (v) => String(v ?? '').split(',').map((s) => s.trim()).filter(Boolean);
+const csv = (v: unknown) => String(v ?? '').split(',').map((s) => s.trim()).filter(Boolean);
 
 // One project entry from the answers of the prompts. Empty answers are left out
 // (the schema's defaults apply), except the triage command, where empty means "off".
-export function projectFromAnswers(a) {
+export function projectFromAnswers(a: any) {
   const entry: Record<string, any> = {
     gitlabProjectId: String(a.gitlabProjectId ?? '').trim(),
     repoLocalPath: String(a.repoLocalPath ?? '').trim(),
@@ -30,7 +30,7 @@ export function projectFromAnswers(a) {
 
 // The validated config for `config.json`: shared settings from `shared`, and the
 // projects. Keeps what an existing file says (`previous`) for the keys init doesn't ask.
-export function buildConfig({ shared, projects, previous = {} }) {
+export function buildConfig({ shared, projects, previous = {} }: { shared: any; projects: any; previous?: Record<string, any> }) {
   const raw = {
     ...previous,
     gitlabBaseUrl: shared.gitlabBaseUrl,
@@ -45,7 +45,7 @@ export function buildConfig({ shared, projects, previous = {} }) {
 
 // The defaults the prompts start from: an existing .env (legacy single project) or
 // config.json. Never throws on a missing key.
-export function defaultsFromEnv(env = {}) {
+export function defaultsFromEnv(env: Record<string, any> = {}) {
   const c = configFromEnv(env);
   const [p] = c.projects;
   return {
@@ -66,7 +66,7 @@ export const ENV_ONLY = [
 ];
 
 // `migrate`: the single-project config.json that does what the .env does today.
-export function migrateEnv(env) {
+export function migrateEnv(env: Record<string, any>) {
   const raw = JSON.parse(JSON.stringify(configFromEnv(env))); // drops the undefined keys
   const result = parseConfig(raw);
   if (!result.ok) return { ok: false as const, errors: result.errors };

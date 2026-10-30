@@ -7,12 +7,12 @@ import { mtimeOrNull, reviewOutputPath } from './paths.ts';
 // review file is newer than the last push. The calls themselves are gitlab-api.ts's.
 
 // Each MR comes back with its `project`, so what is done with it needs nothing else.
-export async function listOpenMergeRequests(project) {
-  const mrs = (await gitlab.openMergeRequests(project)).map((mr) => ({ ...mr, project }));
+export async function listOpenMergeRequests(project: any) {
+  const mrs = (await gitlab.openMergeRequests(project)).map((mr: any) => ({ ...mr, project }));
   const staleDays = staleAfterDays();
   const excluded = excludedAuthors(project);
   const staleCutoff = Date.now() - staleDays * 24 * 60 * 60 * 1000;
-  return mrs.filter((mr) => {
+  return mrs.filter((mr: any) => {
     if (mr.draft) return false;
     if (excluded.has(mr.author.username.toLowerCase())) return false;
     if (new Date(mr.updated_at).getTime() < staleCutoff) {
@@ -23,7 +23,7 @@ export async function listOpenMergeRequests(project) {
   });
 }
 
-export async function reviewFileCoversLastPush(mr) {
+export async function reviewFileCoversLastPush(mr: any) {
   const mtime = await mtimeOrNull(reviewOutputPath(mr));
   if (mtime === null) return false;
   const pushedAt = await gitlab.lastPushAt(mr);

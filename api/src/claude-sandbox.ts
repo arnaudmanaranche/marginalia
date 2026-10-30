@@ -20,7 +20,7 @@ const BOT_PATHS = ['src/**', 'bin/**', 'scripts/**', 'dist/**', 'swiftbar/**', '
 const ENV_FILES = ['.env', '../.env'];
 
 // Permission rules: `//` is an absolute path, `~/` the home directory.
-const absolute = (path) => `/${path}`;
+const absolute = (path: string) => `/${path}`;
 
 // Git subcommands that can run arbitrary code or leave the machine.
 const DENIED_GIT = ['git config', 'git -c', 'git push'];

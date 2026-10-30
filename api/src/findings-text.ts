@@ -2,17 +2,17 @@ import { createHash } from 'node:crypto';
 
 // Text helpers shared by the JSON and markdown readers of findings.
 
-export const plain = (t) => t
+export const plain = (t: string) => t
   .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
   .replace(/[*`>]/g, '')
   .replace(/\s+/g, ' ')
   .trim();
-export const clip = (t, n) => (t.length > n ? `${t.slice(0, n - 1).trimEnd()}…` : t);
+export const clip = (t: string, n: number) => (t.length > n ? `${t.slice(0, n - 1).trimEnd()}…` : t);
 
 // A repo-relative path (it has a slash and an extension), with an optional line.
 const PATH_IN_TEXT = /(?<![\w/.:@-])((?:\.\/)?(?:[\w@.~-]+\/)+[\w@.~-]+\.[A-Za-z0-9]+)(?::(\d+)(?:-\d+)?)?/;
 
-export function cleanPath(path) {
+export function cleanPath(path: unknown) {
   if (typeof path !== 'string') return null;
   const p = path.trim().replace(/^(\.\/|[ab]\/)/, '');
   return p && p.length <= 500 && !p.includes('\0') ? p : null;
@@ -23,22 +23,22 @@ export function cleanPath(path) {
 const ROOT_FILE_IN_TEXT = /(?<![\w/.:@-])(\.?[\w@-]+(?:\.[\w@-]+)*\.(?:tsx?|mjs|cjs|json|ya?ml|md|toml|lock|sh))(?::(\d+)(?:-\d+)?)?(?![\w/])/;
 
 // A path with a directory is a surer anchor than a bare file name.
-export function locate(text) {
+export function locate(text: string) {
   const m = text.match(PATH_IN_TEXT) ?? text.match(ROOT_FILE_IN_TEXT);
   if (!m) return { path: null, line: null };
   return { path: cleanPath(m[1]), line: m[2] ? Number(m[2]) : null };
 }
 
-const normTitle = (s) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+const normTitle = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
 
 // Stable across re-runs: it names the place and the point, not the wording of
 // the comment, so a reworded comment is still the same finding.
-export function findingId({ path, title, body }) {
+export function findingId({ path, title, body }: any) {
   const subject = normTitle(title || body || '').slice(0, 80);
   return createHash('sha1').update(`${path ?? ''}|${subject}`).digest('hex').slice(0, 10);
 }
 
-export function assignIds(findings) {
+export function assignIds(findings: any[]) {
   const seen = new Set();
   return findings.map((f) => {
     const base = f.id ?? findingId(f);
@@ -49,4 +49,4 @@ export function assignIds(findings) {
   });
 }
 
-export const str = (v, max) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : null);
+export const str = (v: unknown, max: number) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : null);

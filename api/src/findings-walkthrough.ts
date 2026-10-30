@@ -16,19 +16,19 @@ const RISK_ALIASES: [RegExp, string][] = [
   [/^(high|major|risky|critical|severe|dangerous)$/, 'high'],
 ];
 
-export function normalizeRiskLevel(value) {
+export function normalizeRiskLevel(value: unknown) {
   const key = String(value ?? '').trim().toLowerCase();
   return RISK_ALIASES.find(([re]) => re.test(key))?.[1] ?? null;
 }
 
 // { level, rationale, factors } or null. A bare string ("high") is accepted.
-export function normalizeRisk(raw) {
+export function normalizeRisk(raw: any) {
   const level = normalizeRiskLevel(raw && typeof raw === 'object' ? raw.level ?? raw.risk : raw);
   if (!level) return null;
   const obj = raw && typeof raw === 'object' ? raw : {};
   const rationale = str(obj.rationale ?? obj.reason ?? obj.why, 1000);
   const factors = (Array.isArray(obj.factors) ? obj.factors : [])
-    .map((f) => str(f, 200))
+    .map((f: any) => str(f, 200))
     .filter(Boolean)
     .slice(0, 6);
   return { level, rationale: rationale ? clip(plain(rationale), 400) : null, factors };
@@ -36,9 +36,9 @@ export function normalizeRisk(raw) {
 
 // The before and after of the change, in plain words: { before, after } or null. Both are
 // needed (one alone explains nothing); a half-written overview is a warning, not a crash.
-export function normalizeOverview(raw) {
+export function normalizeOverview(raw: any) {
   if (raw === undefined || raw === null) return { overview: null };
-  const part = (v) => { const t = str(v, 1000); return t ? clip(plain(t), 500) : null; };
+  const part = (v: any) => { const t = str(v, 1000); return t ? clip(plain(t), 500) : null; };
   const before = part(raw?.before);
   const after = part(raw?.after);
   if (!before || !after) return { overview: null, warning: 'the overview needs both "before" and "after"' };
@@ -52,10 +52,10 @@ export function normalizeOverview(raw) {
 // stop claimed. `threadIds` are the MR's discussion threads the stop is about (a triage
 // answers them there); `unreviewed` marks a chapter the bot could not review. Returns
 // { tour, warnings }; a stop with no title and no summary is dropped.
-export function buildTour(raw, findings) {
+export function buildTour(raw: any, findings: any[]) {
   if (raw === undefined || raw === null) return { tour: [], warnings: [] };
   if (!Array.isArray(raw)) return { tour: [], warnings: ['"tour" is not an array'] };
-  const known = new Set(findings.map((f) => f.id));
+  const known = new Set(findings.map((f: any) => f.id));
   const claimed = new Set<string>();
   const warnings: string[] = [];
   const stops: Record<string, any>[] = [];
@@ -66,11 +66,11 @@ export function buildTour(raw, findings) {
       warnings.push(`tour stop #${i + 1} has no title or summary`);
       return;
     }
-    const files = (Array.isArray(s.files) ? s.files : []).map((f) => cleanPath(typeof f === 'object' ? f?.path : f)).filter(Boolean);
-    const ids = (Array.isArray(s.findings) ? s.findings : []).filter((id) => known.has(id));
-    ids.forEach((id) => claimed.add(id));
-    const threadIds = (Array.isArray(s.threads) ? s.threads : []).map((t) => String(t).trim()).filter((t) => DISCUSSION_ID.test(t));
-    stops.push({ title: title ?? clip(plain(summary), 80), summary: summary ?? null, files, findingIds: ids, threadIds, supporting: isSupportingStop(files), ...(s.unreviewed === true && { unreviewed: true }) });
+    const files = (Array.isArray(s.files) ? s.files : []).map((f: any) => cleanPath(typeof f === 'object' ? f?.path : f)).filter(Boolean);
+    const ids = (Array.isArray(s.findings) ? s.findings : []).filter((id: any) => known.has(id));
+    ids.forEach((id: any) => claimed.add(id));
+    const threadIds = (Array.isArray(s.threads) ? s.threads : []).map((t: any) => String(t).trim()).filter((t: string) => DISCUSSION_ID.test(t));
+    stops.push({ title: title ?? clip(plain(summary as string), 80), summary: summary ?? null, files, findingIds: ids, threadIds, supporting: isSupportingStop(files), ...(s.unreviewed === true && { unreviewed: true }) });
   });
   for (const f of findings) {
     if (claimed.has(f.id) || !f.path) continue;

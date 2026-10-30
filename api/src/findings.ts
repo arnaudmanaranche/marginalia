@@ -51,7 +51,7 @@ export function buildShape({ markdown, findingsRaw = null }: { markdown: string;
     const parsed = parseFindingsJson(findingsRaw);
     if (!parsed.ok) {
       warnings.push(`The findings file was ignored: ${parsed.error}.`);
-    } else if (!parsed.findings.length && !parsed.verdict && !parsed.replies?.length) {
+    } else if (!parsed.findings!.length && !parsed.verdict && !parsed.replies?.length) {
       warnings.push('The findings file was ignored: it has no findings, no replies and no verdict.');
     } else {
       warnings.push(...(parsed.warnings ?? []).map((w) => `Findings file: ${w}.`));
@@ -86,11 +86,11 @@ export function buildShape({ markdown, findingsRaw = null }: { markdown: string;
 }
 
 // What the studio's review list shows, from a shape.
-export function listFields(shape) {
-  const count = (s) => shape.findings.filter((f) => f.severity === s).length;
+export function listFields(shape: any) {
+  const count = (s: string) => shape.findings.filter((f: any) => f.severity === s).length;
   const highlights: { severity: string, text: string }[] = [];
   for (const severity of ['critical', 'important']) {
-    for (const f of shape.findings.filter((x) => x.severity === severity).slice(0, 2)) {
+    for (const f of shape.findings.filter((x: any) => x.severity === severity).slice(0, 2)) {
       highlights.push({ severity, text: clip(plain(f.body), 150) });
     }
   }
@@ -101,7 +101,7 @@ export function listFields(shape) {
     important: count('important'),
     summary: shape.summary,
     highlights,
-    postable: shape.findings.filter((f) => f.comment).length,
+    postable: shape.findings.filter((f: any) => f.comment).length,
     contract: { source: shape.source, warnings: shape.warnings },
   };
 }

@@ -12,8 +12,7 @@ const DEFAULT_EMAIL = 'marginalia@localhost';
 type Identity = { name: string; email: string };
 
 // Pure: the identity from the environment and GitLab's /user, in that order.
-/** @param {Record<string, string | undefined>} env @param {any} user @returns {Identity | null} */
-export function identityOf(env, user) {
+export function identityOf(env: Record<string, string | undefined>, user: any): Identity | null {
   const email = env.MARGINALIA_GIT_EMAIL;
   if (email && email !== DEFAULT_EMAIL) return { name: env.MARGINALIA_GIT_NAME || email, email };
   const fromGitlab = user?.commit_email || user?.email || user?.public_email;
@@ -32,7 +31,7 @@ let cached: Promise<Identity | null> | null = null;
 // Read once per process; a GitLab that can't be read now is asked again next time.
 /** @returns {Promise<Identity | null>} */
 export function commitIdentity(): Promise<Identity | null> {
-  cached ??= gitlab.currentUser().then((user) => identityOf(process.env, user), (err) => {
+  cached ??= gitlab.currentUser().then((user: any) => identityOf(process.env, user), (err: Error) => {
     logger.warn(`Could not read the GitLab user for the commit identity: ${err.message}`);
     cached = null;
     return identityOf(process.env, null);

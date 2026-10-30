@@ -5,7 +5,7 @@ import { normalizeReplies } from './findings-replies.ts';
 
 // A finding as written by a command (any extra field is ignored). Returns
 // { finding } or { warning }.
-function normalizeFinding(raw, index) {
+function normalizeFinding(raw: any, index: number) {
   if (!raw || typeof raw !== 'object') return { warning: `finding #${index + 1} is not an object` };
   const body = str(raw.body ?? raw.description ?? raw.details ?? raw.text, 10_000);
   const title = str(raw.title ?? raw.summary ?? raw.name, 300) ?? (body ? clip(plain(body.split('\n')[0]), 120) : null);
@@ -33,12 +33,12 @@ function normalizeFinding(raw, index) {
 
 // Validates and normalizes what a command put in .marginalia-findings.json.
 // Lenient: it keeps what it can and says what it dropped.
-export function normalizeFindingsData(data) {
+export function normalizeFindingsData(data: any) {
   const warnings: string[] = [];
   if (!data || typeof data !== 'object' || Array.isArray(data)) return { ok: false, error: 'the file is not a JSON object' };
   if (data.findings !== undefined && !Array.isArray(data.findings)) return { ok: false, error: '"findings" is not an array' };
   const findings: any[] = [];
-  (data.findings ?? []).forEach((raw, i) => {
+  (data.findings ?? []).forEach((raw: any, i: number) => {
     const r = normalizeFinding(raw, i) as any;
     if (r.warning) warnings.push(r.warning);
     if (r.finding) findings.push(r.finding);
@@ -63,7 +63,7 @@ export function normalizeFindingsData(data) {
 }
 
 // The command may wrap the JSON in a code fence.
-export function parseFindingsJson(raw) {
+export function parseFindingsJson(raw: unknown) {
   let text = String(raw).trim();
   const fenced = text.match(/^```(?:json)?\s*\n([\s\S]*?)\n```$/);
   if (fenced) text = fenced[1];

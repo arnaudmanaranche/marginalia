@@ -12,7 +12,7 @@ const SECRET_NAME = /(TOKEN|SECRET|PASSWORD|PASSWD|API_?KEY|CREDENTIAL|PRIVATE_?
 // never reach this subprocess even if it's still set. MR_REVIEW_BOT=1 stays
 // for commands written against the original contract. `passthrough` lists the
 // secret-looking names a command really needs (CLAUDE_ENV_PASSTHROUGH).
-export function claudeEnv(env, passthrough: string[] = []) {
+export function claudeEnv(env: Record<string, string | undefined>, passthrough: string[] = []) {
   const keep = new Set(passthrough);
   const clean = Object.fromEntries(Object.entries(env).filter(([name]) => (
     name !== 'ANTHROPIC_API_KEY'
@@ -37,7 +37,7 @@ export function claudeArgs({ prompt, tools, systemPrompt, settings = null, resum
 
 // The final `result` event of the run carries the final message, with the
 // run's cost and usage. Anything else is treated as plain text.
-export function parseRunOutput(stdout) {
+export function parseRunOutput(stdout: string) {
   try {
     const out = JSON.parse(stdout);
     if (typeof out?.result !== 'string') return { text: stdout, stats: null, sessionId: null };

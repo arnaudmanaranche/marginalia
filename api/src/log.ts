@@ -16,8 +16,8 @@ export const c: Record<'reset' | 'bold' | 'dim' | 'red' | 'green' | 'yellow' | '
 
 // What the bot says about one MR: the project and iid ride along as fields, so a line reads
 // `[webapp] [MR !123] ...` and JSON logs can be filtered on them.
-const forMr = (mr) => logger.child({ project: mr.project?.key, iid: mr.iid });
+const forMr = (mr: any) => logger.child({ project: mr.project?.key, iid: mr.iid });
 
-export const log = (mr, msg) => forMr(mr).info(stripAnsi(msg));
-export const warn = (mr, msg) => forMr(mr).warn(stripAnsi(msg));
-export const logError = (mr, msg, err) => forMr(mr).error({ err }, stripAnsi(msg));
+export const log = (mr: any, msg: string) => forMr(mr).info(stripAnsi(msg));
+export const warn = (mr: any, msg: string) => forMr(mr).warn(stripAnsi(msg));
+export const logError = (mr: any, msg: string, err: unknown) => forMr(mr).error({ err }, stripAnsi(msg));

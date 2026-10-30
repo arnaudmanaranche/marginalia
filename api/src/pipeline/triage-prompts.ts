@@ -9,10 +9,10 @@ const VOICE = 'Write each reply as me, the author, answering a teammate on my ow
 
 // One thread as the agents see it: where it is, who said what, and the code it is about at head.
 /** @param {any} t */
-export function threadText(t) {
+export function threadText(t: any) {
   return [
     `### Thread ${t.id}${t.path ? ` on ${t.path}${t.line ? `:${t.line}` : ''}` : ' (general comment)'}`,
-    ...t.notes.map((n) => `${n.mine ? 'me' : n.author}: ${n.body.trim()}`),
+    ...t.notes.map((n: any) => `${n.mine ? 'me' : n.author}: ${n.body.trim()}`),
     ...(t.code ? ['Code at head:', '```', t.code, '```'] : []),
   ].join('\n');
 }
@@ -20,7 +20,7 @@ export function threadText(t) {
 export const JUDGE_VERDICTS = ['fix', 'already_fixed', 'not_relevant', 'wrong', 'answer'];
 
 /** @param {{ context: string, threads: any[] }} input */
-export function judgePrompt({ context, threads }) {
+export function judgePrompt({ context, threads }: { context: string; threads: any[] }) {
   return [
     'Your stage: weigh each open reviewer comment on my MR. Do not change any file in this stage.',
     '', context, '',
@@ -40,7 +40,7 @@ export function judgePrompt({ context, threads }) {
 }
 
 /** @param {string} answer @param {string[]} ids the threads asked about */
-export function parseJudge(answer, ids) {
+export function parseJudge(answer: string, ids: string[]) {
   const json = jsonAnswer(answer);
   if (!json.ok) return json;
   if (!Array.isArray(json.value.threads)) return { ok: false, error: '"threads" must be an array' };
@@ -54,13 +54,13 @@ export function parseJudge(answer, ids) {
     if (entry.verdict !== 'fix' && !entry.reply) return { ok: false, error: `thread ${id.slice(0, 8)} has no "reply"` };
     out.push(entry);
   }
-  const missing = ids.filter((id) => !out.some((o) => o.thread === id));
-  if (missing.length) return { ok: false, error: `no verdict for thread(s) ${missing.map((m) => m.slice(0, 8)).join(', ')}` };
+  const missing = ids.filter((id: string) => !out.some((o) => o.thread === id));
+  if (missing.length) return { ok: false, error: `no verdict for thread(s) ${missing.map((m: string) => m.slice(0, 8)).join(', ')}` };
   return { ok: true, value: out };
 }
 
 /** @param {{ context: string, thread: any, plan: string }} input */
-export function fixPrompt({ context, thread, plan }) {
+export function fixPrompt({ context, thread, plan }: { context: string; thread: any; plan: string }) {
   return [
     'Your stage: fix one reviewer comment on my MR, in this working tree.',
     '', context, '',
@@ -77,7 +77,7 @@ export function fixPrompt({ context, thread, plan }) {
 }
 
 /** @param {string} answer */
-export function parseFix(answer) {
+export function parseFix(answer: string) {
   const json = jsonAnswer(answer);
   if (!json.ok) return json;
   const reply = text(json.value.reply, 3000);
@@ -88,11 +88,11 @@ export function parseFix(answer) {
 // Settling the conflicts of merging the target branch into mine. The bot started the merge and
 // commits it: the agent only edits the conflicted files.
 /** @param {{ context: string, target: string, files: string[] }} input */
-export function conflictPrompt({ context, target, files }) {
+export function conflictPrompt({ context, target, files }: { context: string; target: string; files: string[] }) {
   return [
     `Your stage: settle the conflicts of merging ${target} into my MR's branch. The bot started the merge; the conflicted files hold git's conflict markers.`,
     '', context, '',
-    '## The conflicted files', ...files.map((f) => `- ${f}`), '',
+    '## The conflicted files', ...files.map((f: string) => `- ${f}`), '',
     `- For each file, read both sides (\`git diff\`, \`git log --oneline -5 MERGE_HEAD -- <file>\` for what ${target} changed and why) and write the version that keeps both intents. Follow the repo's rules files.`,
     '- Remove every conflict marker. Change nothing outside these files. Do not run git add, commit or merge: the bot does.',
     '- If a conflict cannot be settled without a decision only I can make, leave that file as it is and say so.',
@@ -103,7 +103,7 @@ export function conflictPrompt({ context, target, files }) {
 }
 
 /** @param {string} answer */
-export function parseConflict(answer) {
+export function parseConflict(answer: string) {
   const json = jsonAnswer(answer);
   if (!json.ok) return json;
   const how = text(json.value.how, 1200);

@@ -10,20 +10,20 @@ import { contextText } from './context-text.ts';
 import { renderTriage } from './report-render.ts';
 import { TRIAGE_SYSTEM, fixPrompt, judgePrompt, parseFix, parseJudge } from './triage-prompts.ts';
 
-const place = (t) => (t?.path ? `${t.path}${t.line ? `:${t.line}` : ''}` : 'general comment');
-const VERDICT = { already_fixed: 'already_fixed', not_relevant: 'not_relevant', wrong: 'wrong', answer: 'answered' };
+const place = (t: any) => (t?.path ? `${t.path}${t.line ? `:${t.line}` : ''}` : 'general comment');
+const VERDICT: Record<string, string> = { already_fixed: 'already_fixed', not_relevant: 'not_relevant', wrong: 'wrong', answer: 'answered' };
 
 // Marginalia's own triage of my MR, in stages a person can follow: the bot gathers the open
 // reviewer threads with the code they are about, merges the target in when the MR conflicts with
 // it, one agent weighs the threads, then one agent per thread to fix makes that fix, which the bot
 // commits on its own, so each fix can be pushed and answered thread by thread.
 /** @param {{ mr: any, run: any, settings: object | null }} input */
-export async function stagedTriage({ mr, run, settings }) {
+export async function stagedTriage({ mr, run, settings }: { mr: any; run: any; settings: object | null }) {
   const cwd = mr.project.worktreeDir;
   await run.stage('context');
   const { context, threads } = await gatherContext(mr, { outputPath: mrCommentsOutputPath(mr) });
-  const open = threads.filter((t) => !t.resolved && t.notes.length && !t.notes[0].mine && !t.notes[0].bot);
-  for (const t of open) t.code = await codeAround(cwd, t.path, t.line);
+  const open = threads.filter((t: any) => !t.resolved && t.notes.length && !t.notes[0].mine && !t.notes[0].bot);
+  for (const t of open as any[]) t.code = await codeAround(cwd, t.path, t.line);
   run.step(`${open.length} open reviewer thread(s), ${context.files.length} changed files`, { stage: 'context' });
   // The threads are listed on their own, with their ids: the conversation would say them twice.
   const text = contextText({ ...context, conversation: '', previous: '' });
@@ -37,17 +37,17 @@ export async function stagedTriage({ mr, run, settings }) {
   }
 
   await run.stage('judge');
-  const verdicts = await agentStage({ run, stage: 'judge', prompt: judgePrompt({ context: text, threads: open }), system: TRIAGE_SYSTEM, tools: STAGE_READ_TOOLS, cwd, settings, parse: (t) => parseJudge(t, open.map((x) => x.id)) });
-  for (const v of verdicts) run.step(`${place(open.find((t) => t.id === v.thread))}: ${v.verdict.replace('_', ' ')}. ${v.why}`, { stage: 'judge' });
-  const toFix = verdicts.filter((v) => v.verdict === 'fix');
-  const ids = toFix.map((_, i) => `fix-${i + 1}`);
-  await run.plan('judge', toFix.map((v, i) => [ids[i], `Fix: ${place(open.find((t) => t.id === v.thread))}`]));
+  const verdicts = await agentStage({ run, stage: 'judge', prompt: judgePrompt({ context: text, threads: open }), system: TRIAGE_SYSTEM, tools: STAGE_READ_TOOLS, cwd, settings, parse: (t: string) => parseJudge(t, open.map((x: any) => x.id)) });
+  for (const v of verdicts) run.step(`${place(open.find((t: any) => t.id === v.thread))}: ${v.verdict.replace('_', ' ')}. ${v.why}`, { stage: 'judge' });
+  const toFix = verdicts.filter((v: any) => v.verdict === 'fix');
+  const ids = toFix.map((_: any, i: number) => `fix-${i + 1}`);
+  await run.plan('judge', toFix.map((v: any, i: number) => [ids[i], `Fix: ${place(open.find((t: any) => t.id === v.thread))}`]));
   await run.end('judge');
 
-  const replies = verdicts.filter((v) => v.verdict !== 'fix').map((v) => ({ thread: v.thread, verdict: VERDICT[v.verdict], reply: v.reply, resolve: v.verdict === 'already_fixed', why: v.why }));
+  const replies = verdicts.filter((v: any) => v.verdict !== 'fix').map((v: any) => ({ thread: v.thread, verdict: VERDICT[v.verdict], reply: v.reply, resolve: v.verdict === 'already_fixed', why: v.why }));
   // One after the other: they change the same tree, and each commit must hold one fix only.
   for (const [i, v] of toFix.entries()) {
-    const thread = open.find((t) => t.id === v.thread);
+    const thread: any = open.find((t: any) => t.id === v.thread);
     await run.begin(ids[i]);
     const git = gitIn(cwd);
     const before = await head(cwd);
@@ -75,7 +75,7 @@ export async function stagedTriage({ mr, run, settings }) {
   }
 
   await run.stage('report');
-  const fixed = replies.filter((r) => r.verdict === 'fixed').length;
+  const fixed = replies.filter((r: any) => r.verdict === 'fixed').length;
   const data = { summary: `${replies.length} of ${open.length} threads answered, ${fixed} fixed in their own commit.`, replies };
   return { content: renderTriage(mrInfo, open, data, conflicts), findingsRaw: JSON.stringify(data), warnings };
 }

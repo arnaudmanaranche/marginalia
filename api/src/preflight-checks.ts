@@ -6,10 +6,10 @@
 
 /** @typedef {{ label: string, level: 'ok' | 'warn' | 'block', detail: string }} Check */
 
-const ok = (label, detail) => /** @type {Check} */ ({ label, level: 'ok', detail });
-const warn = (label, detail) => /** @type {Check} */ ({ label, level: 'warn', detail });
-const block = (label, detail) => /** @type {Check} */ ({ label, level: 'block', detail });
-const firstLine = (text) => String(text ?? '').trim().split('\n').find(Boolean)?.slice(0, 200) ?? '';
+const ok = (label: string, detail: string) => /** @type {Check} */ ({ label, level: 'ok', detail });
+const warn = (label: string, detail: string) => /** @type {Check} */ ({ label, level: 'warn', detail });
+const block = (label: string, detail: string) => /** @type {Check} */ ({ label, level: 'block', detail });
+const firstLine = (text: any) => String(text ?? '').trim().split('\n').find(Boolean)?.slice(0, 200) ?? '';
 
 // `claude auth status` prints JSON. An older CLI without the command can't tell: the run goes on.
 /** @param {{ stdout?: string, error?: string | null }} probe */
@@ -66,12 +66,12 @@ export function jiraCheck({ key, enabled, error = null }: { key: string | null, 
 
 const ICON = { ok: '✓', warn: '!', block: '✗' };
 /** @param {Check} c */
-export const checkLine = (c) => `${ICON[c.level]} ${c.label}: ${c.detail}`;
+export const checkLine = (c: any) => `${(ICON as Record<string, string>)[c.level]} ${c.label}: ${c.detail}`;
 
 // The error a blocked preflight stops the run with. Each blocking check's own words are kept, so
 // failure-kind.ts sorts it (a refused token, a login, the network) like any other failure.
 /** @param {Check[]} checks */
-export function blockedError(checks) {
-  const blocked = checks.filter((c) => c.level === 'block');
-  return blocked.length ? `Preflight: ${blocked.map((c) => `${c.label}: ${c.detail}`).join('; ')}` : null;
+export function blockedError(checks: any) {
+  const blocked = checks.filter((c: any) => c.level === 'block');
+  return blocked.length ? `Preflight: ${blocked.map((c: any) => `${c.label}: ${c.detail}`).join('; ')}` : null;
 }

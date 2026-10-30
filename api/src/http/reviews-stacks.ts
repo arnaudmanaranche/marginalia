@@ -1,7 +1,7 @@
 
 // Stacks of 2+ MRs from status.json, layers bottom to top. A layer without a
 // review file yet has slug null.
-export function buildStacks(status) {
+export function buildStacks(status: any) {
   const byId = new Map();
   for (const mr of status?.mrs ?? []) {
     if (mr.kind !== 'review' || !mr.stack) continue;
@@ -17,5 +17,5 @@ export function buildStacks(status) {
       position: mr.stack.position,
     });
   }
-  return [...byId.values()].map((st) => ({ ...st, layers: st.layers.sort((a, b) => a.position - b.position) }));
+  return [...byId.values()].map((st) => ({ ...st, layers: st.layers.sort((a: any, b: any) => a.position - b.position) }));
 }

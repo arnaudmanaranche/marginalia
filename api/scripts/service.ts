@@ -14,12 +14,12 @@ import { installLaunchd, uninstallLaunchd, statusLaunchd } from './service-launc
 import { installSystemd, uninstallSystemd, statusSystemd } from './service-systemd.ts';
 
 const ROOT = PACKAGE_ROOT;
-const sleep = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+const sleep = (ms: number) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
 
 export function makeContext({ platform = process.platform, dryRun = false, dir, log = console.log, warn = console.warn, env = process.env }: { platform?: NodeJS.Platform; dryRun?: boolean; dir?: string; log?: (msg: string) => void; warn?: (msg: string) => void; env?: NodeJS.ProcessEnv } = {}) {
   const home = env.HOME || homedir();
   const swiftbarApp = () => ['/Applications', join(home, 'Applications')].map((d) => join(d, 'SwiftBar.app')).find((a) => existsSync(a));
-  const dry = (what) => log(`[dry-run] ${what}`);
+  const dry = (what: string) => log(`[dry-run] ${what}`);
   return {
     platform, home, dir, log, warn,
     root: ROOT,
@@ -31,29 +31,29 @@ export function makeContext({ platform = process.platform, dryRun = false, dir, 
     exists: existsSync,
     swiftbarApp,
     sleep: dryRun ? () => {} : sleep,
-    mkdir: (p) => (dryRun && !dir ? dry(`mkdir ${p}`) : mkdirSync(p, { recursive: true })),
+    mkdir: (p: string) => (dryRun && !dir ? dry(`mkdir ${p}`) : mkdirSync(p, { recursive: true })),
     exec: dryRun
-      ? (cmd, args) => { dry(`${cmd} ${args.join(' ')}`); if (args[0] === 'print') throw new Error('not loaded'); return ''; }
-      : (cmd, args) => execFileSync(cmd, args, { stdio: 'pipe' }).toString(),
-    write(file, text) {
+      ? (cmd: string, args: string[]) => { dry(`${cmd} ${args.join(' ')}`); if (args[0] === 'print') throw new Error('not loaded'); return ''; }
+      : (cmd: string, args: string[]) => execFileSync(cmd, args, { stdio: 'pipe' }).toString(),
+    write(file: string, text: string) {
       if (dryRun && !dir) { dry(`write ${file}:\n${text}`); return; }
       mkdirSync(dirname(file), { recursive: true });
       writeFileSync(file, text);
     },
-    remove(file) {
+    remove(file: string) {
       if (dryRun && !dir) { dry(`remove ${file}`); return; }
       if (existsSync(file)) unlinkSync(file);
     },
   };
 }
 
-const BY_PLATFORM = {
+const BY_PLATFORM: Record<string, Record<string, (ctx: any) => void>> = {
   launchd: { install: installLaunchd, uninstall: uninstallLaunchd, status: statusLaunchd },
   systemd: { install: installSystemd, uninstall: uninstallSystemd, status: statusSystemd },
 };
 
 // Returns an exit code.
-export function runService(action, options = {}) {
+export function runService(action: string, options = {}) {
   const ctx = makeContext(options);
   const handlers = BY_PLATFORM[servicePlatform(ctx.platform)];
   if (!handlers) {
@@ -64,7 +64,7 @@ export function runService(action, options = {}) {
   try {
     handlers[action](ctx);
     return 0;
-  } catch (err) {
+  } catch (err: any) {
     console.error(`service ${action} failed: ${String(err.stderr ?? '').trim() || err.message}`);
     return 1;
   }

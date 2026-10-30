@@ -8,12 +8,12 @@ import { AddToReviewRequest, DraftEdit, Ok, PostedInfo, ReviewId, SubmitRequest,
 import { jsonBody, jsonOf, route } from './route-kit.ts';
 import { broadcast, locate, postQueue, refreshState, shortMessage } from './context.ts';
 
-const gone = (c, status = 404) => c.json({ error: 'no tracked merge request for this review' }, status);
+const gone = (c: any, status = 404) => c.json({ error: 'no tracked merge request for this review' }, status);
 
 // Comments go up as GitLab draft notes (the "pending review"): private to the token's owner until
 // submitted. The MR is always resolved server-side from status.json, never taken from the request.
 // `gitlab` is what the routes ask of GitLab (src/gitlab-api.ts); a test passes the in-memory one.
-export function writeRoutes(app, gitlab = defaultGitlab) {
+export function writeRoutes(app: any, gitlab = defaultGitlab) {
   // Posts one comment: inline on path:line when given, else (or if GitLab refuses the anchor)
   // as a general comment.
   app.openapi(route({
@@ -22,7 +22,7 @@ export function writeRoutes(app, gitlab = defaultGitlab) {
     description: 'Requires `ALLOW_POSTING=true`. A GitLab draft note, invisible to others until the review is submitted. The same comment cannot be added twice.',
     request: { body: jsonBody(AddToReviewRequest) },
     responses: { 200: jsonOf(PostedInfo, 'The comment as recorded.') }, errors: [400, 403, 404, 409, 415, 502],
-  }), (c) => postQueue(async () => {
+  }), (c: any) => postQueue(async () => {
     const { slug, commentId, body, path, line } = c.req.valid('json');
     const found = await locate(slug);
     if (!found?.mr) return gone(c);
@@ -64,7 +64,7 @@ export function writeRoutes(app, gitlab = defaultGitlab) {
     description: 'Requires `ALLOW_POSTING=true`. Publishes every pending draft of the MR (including ones started in GitLab) as one review. `approve` also approves the MR at the reviewed commit.',
     request: { body: jsonBody(SubmitRequest) },
     responses: { 200: jsonOf(Submitted, 'What was submitted.') }, errors: [400, 403, 404, 415, 502],
-  }), (c) => postQueue(async () => {
+  }), (c: any) => postQueue(async () => {
     const { slug, summary, action } = c.req.valid('json');
     const found = await locate(slug);
     if (!found?.mr) return gone(c);
@@ -84,7 +84,7 @@ export function writeRoutes(app, gitlab = defaultGitlab) {
     let approveError: string | null = null;
     if (action === 'approve') {
       try {
-        await gitlab.approveMergeRequest(project, mr.iid, (await loadState(project))[mr.iid]);
+        await gitlab.approveMergeRequest(project, mr.iid, (await loadState(project) as Record<string, any>)[mr.iid]);
       } catch (err) {
         approveError = shortMessage(err);
       }
@@ -109,7 +109,7 @@ export function writeRoutes(app, gitlab = defaultGitlab) {
 
   // Edits or deletes one pending draft, addressed under the MR resolved from status.json, so it
   // can't reach another MR's drafts.
-  const mutate = (c, { edit }) => postQueue(async () => {
+  const mutate = (c: any, { edit }: { edit: boolean }) => postQueue(async () => {
     const { slug, id: draftId } = c.req.valid('param');
     const found = await locate(slug);
     if (!found?.mr) return gone(c);
@@ -134,11 +134,11 @@ export function writeRoutes(app, gitlab = defaultGitlab) {
     summary: 'Edit a pending draft', description: 'Requires `ALLOW_POSTING=true`.',
     request: { params: draftParams, body: jsonBody(DraftEdit) },
     responses: { 200: jsonOf(Ok, 'Done.') }, errors: [400, 403, 404, 415, 502],
-  }), (c) => mutate(c, { edit: true }));
+  }), (c: any) => mutate(c, { edit: true }));
 
   app.openapi(route({
     method: 'delete', path: '/api/drafts/{slug}/{id}', tags: ['Pending review'], operationId: 'deleteDraft',
     summary: 'Delete a pending draft', description: 'Requires `ALLOW_POSTING=true`.',
     request: { params: draftParams }, responses: { 200: jsonOf(Ok, 'Done.') }, errors: [400, 403, 404, 502],
-  }), (c) => mutate(c, { edit: false }));
+  }), (c: any) => mutate(c, { edit: false }));
 }

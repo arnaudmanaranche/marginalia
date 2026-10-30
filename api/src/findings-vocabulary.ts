@@ -12,14 +12,14 @@ const SEVERITY_ALIASES: [RegExp, string][] = [
   [/^(info|note|question|praise|positive|fyi)$/, 'info'],
 ];
 
-export function normalizeSeverity(value) {
+export function normalizeSeverity(value: unknown) {
   const key = String(value ?? '').trim().toLowerCase();
   return SEVERITY_ALIASES.find(([re]) => re.test(key))?.[1] ?? null;
 }
 
-const strip = (t) => String(t).normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase();
+const strip = (t: unknown) => String(t).normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase();
 
-export function normalizeVerdict(value) {
+export function normalizeVerdict(value: unknown) {
   if (value === null || value === undefined) return null;
   const v = strip(value).replace(/[*_`]/g, '').trim();
   if (!v) return null;

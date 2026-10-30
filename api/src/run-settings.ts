@@ -5,7 +5,7 @@ import { claudeSettings } from './claude-sandbox.ts';
 // Sandbox + deny rules for every headless run (see claude-sandbox.ts): the
 // reviews, the triage and the studio's chat all get the same confinement, around
 // the repo, worktree and reviews dir of the project the run is about.
-export const runSettings = (project) => claudeSettings({
+export const runSettings = (project: any) => claudeSettings({
   sandbox: CLAUDE_SANDBOX !== 'false',
   rootDir: ROOT,
   repoPath: project.repoPath,

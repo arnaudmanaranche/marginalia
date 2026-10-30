@@ -11,21 +11,21 @@ import { notTracked } from './read-kit.ts';
 // One chat question at a time: each is a Claude run with a cost.
 let chatBusy = false;
 
-export function chatRoute(app) {
+export function chatRoute(app: any) {
   app.openapi(route({
     method: 'post', path: '/api/chat', tags: ['Reviews'], operationId: 'askAboutStop',
     summary: 'Ask about a stop of the tour',
     description: 'One question to a headless, read-only Claude, with the stop\'s diff in its prompt. Costs a run; one at a time.',
     request: { body: jsonBody(ChatRequest) }, responses: { 200: jsonOf(ChatAnswer, 'The answer. Never posted.') }, errors: [400, 403, 404, 415, 429, 502],
-  }), async (c) => {
-    const parsed = parseChatInput(c.req.valid('json'));
+  }), async (c: any) => {
+    const parsed: any = parseChatInput(c.req.valid('json'));
     if (parsed.error) return c.json({ error: parsed.error }, 400);
     const { slug, stopId, question, history } = parsed;
     const found = await locate(slug);
     if (!found?.mr) return notTracked(c);
     const { project, mr } = found;
     const shape = await artifactAt(project.reviewsDir, found.slug).readShape();
-    const stop = (shape.tour ?? []).find((s) => s.id === stopId);
+    const stop = (shape.tour ?? []).find((s: any) => s.id === stopId);
     if (!stop) return c.json({ error: 'no such stop in this review' }, 404);
     if (chatBusy) return c.json({ error: 'another question is being answered, try again in a moment' }, 429);
     chatBusy = true;

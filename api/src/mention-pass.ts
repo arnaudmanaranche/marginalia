@@ -22,26 +22,26 @@ const REFUSAL = {
 const startOfDay = (d: Date) => new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())).toISOString();
 
 type Ctx = { deps: any; seen: Set<number>; levels: Map<string, number>; started: Date; failureTitle: (err: unknown) => string };
-const context = (project, deps, failureTitle): Ctx => ({ deps, failureTitle, started: deps.now(), seen: deps.store.seen(project.key), levels: new Map() });
+const context = (project: any, deps: any, failureTitle: (err: unknown) => string): Ctx => ({ deps, failureTitle, started: deps.now(), seen: deps.store.seen(project.key), levels: new Map() });
 
-export async function intakePass(project, deps, failureTitle: (err: unknown) => string = () => 'something went wrong') {
+export async function intakePass(project: any, deps: any, failureTitle: (err: unknown) => string = () => 'something went wrong') {
   const since = deps.store.cursor(project.key);
   // The first pass only sets the starting point: what was said before the bot came is not replayed.
   if (!since) return deps.store.setCursor(project.key, deps.now().toISOString());
   const ctx = context(project, deps, failureTitle);
-  for (const mr of (await deps.openMergeRequests(project)).filter((x) => x.updated_at > since)) {
+  for (const mr of (await deps.openMergeRequests(project)).filter((x: any) => x.updated_at > since)) {
     await handleMentions(project, mr, findMentions(await deps.listRawDiscussions(project, mr.iid), { bot: deps.bot, since: Date.parse(since) }), ctx);
   }
   deps.store.setCursor(project.key, ctx.started.toISOString());
 }
 
 // The webhook intake: one note GitLab announced, handled like the same note found by polling.
-export async function intakeNote(project, mr, noteId: number, deps, failureTitle: (err: unknown) => string = () => 'something went wrong') {
+export async function intakeNote(project: any, mr: any, noteId: number, deps: any, failureTitle: (err: unknown) => string = () => 'something went wrong') {
   const found = findMentions(await deps.listRawDiscussions(project, mr.iid), { bot: deps.bot }).filter((m) => m.noteId === noteId);
   await handleMentions(project, mr, found, context(project, deps, failureTitle));
 }
 
-async function handleMentions(project, mr, all: Mention[], ctx: Ctx) {
+async function handleMentions(project: any, mr: any, all: Mention[], ctx: Ctx) {
   const { deps, seen, levels, started, failureTitle } = ctx;
   const mark = (m: Mention, outcome: string) => { seen.add(m.noteId); deps.store.mark(project.key, { noteId: m.noteId, at: deps.now().toISOString(), outcome }); };
   const mentions = all.filter((m) => !seen.has(m.noteId));
@@ -66,7 +66,7 @@ async function handleMentions(project, mr, all: Mention[], ctx: Ctx) {
 }
 
 // What the bot says back. A failure is told by its kind, never by the raw error.
-async function respond({ mr, mention }, deps, failureTitle) {
+async function respond({ mr, mention }: any, deps: any, failureTitle: (err: unknown) => string) {
   const { invocation } = mention;
   try {
     if (invocation.kind === 'review') {

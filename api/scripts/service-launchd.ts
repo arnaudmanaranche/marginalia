@@ -7,32 +7,32 @@ import { plistXml, botPlistKeys, swiftbarPlistKeys } from '../src/service-units.
 
 const BOT = 'com.marginalia.bot';
 const MENUBAR = 'com.marginalia.swiftbar';
-const plistPath = (ctx, label) => join(ctx.dir ?? join(ctx.home, 'Library', 'LaunchAgents'), `${label}.plist`);
-export const launchdLog = (ctx) => join(ctx.home, 'Library', 'Logs', 'marginalia.log');
-const domain = (ctx) => `gui/${ctx.uid}`;
+const plistPath = (ctx: any, label: string) => join(ctx.dir ?? join(ctx.home, 'Library', 'LaunchAgents'), `${label}.plist`);
+export const launchdLog = (ctx: any) => join(ctx.home, 'Library', 'Logs', 'marginalia.log');
+const domain = (ctx: any) => `gui/${ctx.uid}`;
 
-const loaded = (ctx, label) => { try { ctx.exec('launchctl', ['print', `${domain(ctx)}/${label}`]); return true; } catch { return false; } };
+const loaded = (ctx: any, label: string) => { try { ctx.exec('launchctl', ['print', `${domain(ctx)}/${label}`]); return true; } catch { return false; } };
 // bootout returns before the job is gone, and bootstrapping it again meanwhile
 // fails with "5: Input/output error": wait until launchd has let it go.
-const unload = (ctx, label) => {
+const unload = (ctx: any, label: string) => {
   if (!loaded(ctx, label)) return;
   try { ctx.exec('launchctl', ['bootout', `${domain(ctx)}/${label}`]); } catch { /* already going away */ }
   for (let i = 0; i < 50 && loaded(ctx, label); i += 1) ctx.sleep(200);
 };
 
-const install = (ctx, label, keys) => {
+const install = (ctx: any, label: string, keys: any) => {
   ctx.write(plistPath(ctx, label), plistXml(label, keys));
   unload(ctx, label);
   ctx.exec('launchctl', ['bootstrap', domain(ctx), plistPath(ctx, label)]);
 };
 
-const remove = (ctx, label) => {
+const remove = (ctx: any, label: string) => {
   unload(ctx, label);
   ctx.remove(plistPath(ctx, label));
 };
 
 // The plugin is only picked up if it sits in SwiftBar's plugin folder.
-const swiftbarPluginLinked = (ctx) => {
+const swiftbarPluginLinked = (ctx: any) => {
   try {
     const dir = ctx.exec('defaults', ['read', 'com.ameba.SwiftBar', 'PluginDirectory']).trim();
     return ctx.exists(join(dir, 'marginalia.10s.sh'));
@@ -41,7 +41,7 @@ const swiftbarPluginLinked = (ctx) => {
   }
 };
 
-export function installLaunchd(ctx) {
+export function installLaunchd(ctx: any) {
   if (!uiDist(ctx.root, ctx.exists)) ctx.warn('! Studio not built (npm run studio:build), http://localhost:4477 will show 503.');
   const logFile = launchdLog(ctx);
   ctx.mkdir(join(ctx.home, 'Library', 'Logs'));
@@ -58,13 +58,13 @@ Re-run \`marginalia service install\` after changing Node version (it pins ${ctx
   if (!swiftbarPluginLinked(ctx)) ctx.warn('! The marginalia plugin is not in SwiftBar\'s plugin folder: see "Menu bar icon" in the README.');
 }
 
-export function uninstallLaunchd(ctx) {
+export function uninstallLaunchd(ctx: any) {
   remove(ctx, BOT);
   remove(ctx, MENUBAR);
   ctx.log('Autostart removed. The bot is stopped (SwiftBar keeps running until you quit it).');
 }
 
-export function statusLaunchd(ctx) {
+export function statusLaunchd(ctx: any) {
   try {
     const out = ctx.exec('launchctl', ['print', `${domain(ctx)}/${BOT}`]);
     const state = out.match(/^\s*state = (.+)$/m)?.[1] ?? 'unknown';

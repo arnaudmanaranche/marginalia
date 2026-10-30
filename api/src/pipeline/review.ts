@@ -15,7 +15,7 @@ const CHECKLIST = '.claude/agents/code-reviewer.md';
 // reviews it, and the bot weighs the findings into the report. Returns the report and its
 // findings file, as a review command would have written them.
 /** @param {{ mr: any, run: any, outputPath: string, stack?: any, settings: object | null }} input */
-export async function stagedReview({ mr, run, outputPath, stack = null, settings }) {
+export async function stagedReview({ mr, run, outputPath, stack = null, settings }: { mr: any; run: any; outputPath: string; stack?: any; settings: object | null }) {
   const cwd = mr.project.worktreeDir;
   await run.stage('context');
   const { context } = await gatherContext(mr, { outputPath, stack });
@@ -23,10 +23,10 @@ export async function stagedReview({ mr, run, outputPath, stack = null, settings
   const text = contextText(context);
 
   await run.stage('map');
-  const changed = context.files.map((f) => f.path);
-  const map = await agentStage({ run, stage: 'map', prompt: mapPrompt(text), system: REVIEW_SYSTEM, tools: STAGE_READ_TOOLS, cwd, settings, parse: (t) => parseMap(t, changed) });
-  const ids = map.chapters.map((_, i) => `chapter-${i + 1}`);
-  await run.plan('map', map.chapters.map((c, i) => [ids[i], `Review: ${c.title}`]));
+  const changed = context.files.map((f: any) => f.path);
+  const map = await agentStage({ run, stage: 'map', prompt: mapPrompt(text), system: REVIEW_SYSTEM, tools: STAGE_READ_TOOLS, cwd, settings, parse: (t: string) => parseMap(t, changed) });
+  const ids = map.chapters.map((_: any, i: number) => `chapter-${i + 1}`);
+  await run.plan('map', map.chapters.map((c: any, i: number) => [ids[i], `Review: ${c.title}`]));
   await run.end('map');
 
   const checklist = context.guidance.includes(CHECKLIST) ? CHECKLIST : null;

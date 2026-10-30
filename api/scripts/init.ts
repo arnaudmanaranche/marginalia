@@ -16,7 +16,7 @@ import { checkToken, checkProject, checkRepo, findCommands, copyStarters, expand
 const ROOT = PACKAGE_ROOT;
 
 // A prompt answer, or exit cleanly when the user cancels (Ctrl-C).
-const ask = async (promise) => {
+const ask = async (promise: any) => {
   const value = await promise;
   if (p.isCancel(value)) { p.cancel('Aborted, nothing written.'); process.exit(1); }
   return value;
@@ -34,12 +34,12 @@ async function until(message: string, initial: string | undefined, check: (value
   }
 }
 
-const envDefaults = (dataDir) => {
+const envDefaults = (dataDir: string) => {
   const file = findEnvFile(dataDir, ROOT);
   return file ? defaultsFromEnv(parseEnv(readFileSync(file, 'utf8'))) : { project: {} };
 };
 
-async function askCommands(repoPath, d) {
+async function askCommands(repoPath: string, d: any) {
   let found = findCommands(repoPath);
   if (!found.length) {
     p.log.warn('No slash commands found in the repo\'s .claude/ or ~/.claude/.');
@@ -79,7 +79,7 @@ async function askProject(shared: Record<string, any>, d: Record<string, any> = 
   return projectFromAnswers({ gitlabProjectId: gitlabProjectId.value.trim(), repoLocalPath: repo.result, kind, ...commands, allowedTargetBranches, key: d.key, excludeAuthors: d.excludeAuthors });
 }
 
-async function askShared(d) {
+async function askShared(d: any) {
   p.log.info('Token: personal access token with the "api" scope (GitLab > Preferences > Access tokens).');
   const gitlabBaseUrl = (await text('GitLab URL', d.gitlabBaseUrl || 'https://gitlab.com')).trim().replace(/\/+$/, '');
   for (;;) {

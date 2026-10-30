@@ -17,11 +17,11 @@ const running = new Set();
 
 // Where the instructions a run followed live: the reviewed repo's .claude, in the user's clone and
 // in the bot's worktree.
-const agentDirs = (project) => [project.repoPath, project.worktreeDir].filter(Boolean).map((d) => join(d, '.claude')).filter((d) => existsSync(d));
+const agentDirs = (project: any) => [project.repoPath, project.worktreeDir].filter(Boolean).map((d) => join(d, '.claude')).filter((d) => existsSync(d));
 
 // A failure the doctor already explained on one of the last runs of this review (same error):
 // its diagnosis is reused rather than paid for again, the MR being retried every poll.
-async function sameAsBefore(project, fileSlug, trace) {
+async function sameAsBefore(project: any, fileSlug: string, trace: any) {
   const key = String(trace.error ?? '').slice(0, 300);
   for (const r of (await listTraces(project.key, fileSlug, { limit: 4 })).filter((r) => r.id !== trace.id)) {
     if (r.outcome !== 'failed' || String(r.error ?? '').slice(0, 300) !== key) continue;
@@ -34,7 +34,7 @@ async function sameAsBefore(project, fileSlug, trace) {
 // Starts the doctor on a failed run, in the background; its answer lands in <id>.doctor.json.
 // `auto`: started by the poller after a failure, so a repeat of a known one reuses its diagnosis.
 /** @param {{ project: any, fileSlug: string, runId: string, auto?: boolean }} input */
-export async function startDoctor({ project, fileSlug, runId, auto = false }) {
+export async function startDoctor({ project, fileSlug, runId, auto = false }: { project: any; fileSlug: string; runId: string; auto?: boolean }) {
   const key = `${project.key}/${fileSlug}/${runId}`;
   if (running.has(key)) return { ok: false, status: 409, error: 'the doctor is already on this run' };
   const trace = await readTrace(project.key, fileSlug, runId);
@@ -53,9 +53,9 @@ export async function startDoctor({ project, fileSlug, runId, auto = false }) {
   return { ok: true };
 }
 
-async function diagnose(project, fileSlug, trace) {
+async function diagnose(project: any, fileSlug: string, trace: any) {
   const startedAt = new Date().toISOString();
-  const save = (data) => saveRunPart(project.key, fileSlug, trace.id, 'doctor', { startedAt, endedAt: new Date().toISOString(), ...data });
+  const save = (data: any) => saveRunPart(project.key, fileSlug, trace.id, 'doctor', { startedAt, endedAt: new Date().toISOString(), ...data });
   try {
     const dirs = agentDirs(project);
     const prompt = doctorPrompt({ trace, transcript: await readTranscript(project.key, fileSlug, trace.id, { maxBytes: 60_000 }), sourceDir: ROOT, agentDirs: dirs });

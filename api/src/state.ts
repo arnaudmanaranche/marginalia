@@ -4,10 +4,10 @@ import { readProjectState, writeProjectState } from './db-store.ts';
 // What was reviewed, per project: { <iid>: sha, mineComments: {}, stackBelow: {} }, as it
 // was in state.json. Stored in SQLite (see db-store.ts); each save replaces one project's
 // rows in a transaction, so a crash never leaves half a state.
-export async function loadState(project) {
+export async function loadState(project: any) {
   return readProjectState(getDb(), project.key);
 }
 
-export async function saveState(project, state) {
+export async function saveState(project: any, state: any) {
   writeProjectState(getDb(), project.key, state);
 }

@@ -16,14 +16,14 @@ import { GUIDANCE_FILES, parseNumstat } from './context-text.ts';
 // the branch left its target, the ticket, the repo's rules files, the conversation and the last
 // report. A source that fails (GitLab, Jira) is left out with a warning, never fatal.
 /** @param {any} mr @param {{ outputPath: string, stack?: any }} opts */
-export async function gatherContext(mr, { outputPath, stack = null }: { outputPath: string, stack?: any }) {
+export async function gatherContext(mr: any, { outputPath, stack = null }: { outputPath: string, stack?: any }) {
   const cwd = mr.project.worktreeDir;
   const git = gitIn(cwd);
   const base = await git.run('merge-base', `origin/${mr.target_branch}`, 'HEAD');
   const [head, numstat, threads, ticket, previous, stackText] = await Promise.all([
     headOf(cwd),
     git.run('diff', '--numstat', base, 'HEAD'),
-    gitlab.listDiscussions(mr.project, mr.iid).catch((err) => {
+    gitlab.listDiscussions(mr.project, mr.iid).catch((err: Error) => {
       warn(mr, `Could not read the MR discussions: ${err.message}`);
       return [];
     }),
@@ -49,7 +49,7 @@ export async function gatherContext(mr, { outputPath, stack = null }: { outputPa
 // The lines around `line` of a file at head, numbered, for a reviewer thread to be judged with the
 // code it is about. Null when the file or the line is gone.
 /** @param {string} cwd @param {string | null} path @param {number | null} line */
-export async function codeAround(cwd, path, line, around = 8) {
+export async function codeAround(cwd: string, path: string | null, line: number | null, around = 8) {
   if (!path || !line) return null;
   try {
     const lines = (await readFile(join(cwd, path), 'utf8')).split('\n');

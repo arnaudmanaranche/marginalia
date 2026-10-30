@@ -3,7 +3,7 @@
 // first) and `commitsByVersion` the commits each of those versions holds, so this is tested on
 // plain fixtures.
 
-const at = (iso) => (iso ? Date.parse(iso) : NaN);
+const at = (iso: any) => (iso ? Date.parse(iso) : NaN);
 
 /**
  * Oldest push first: { n, headSha, baseSha, at, commits, rebased, youReviewed, reports, head }.
@@ -39,4 +39,4 @@ export function buildPushes({ versions, commitsByVersion, myReviewAt = null, rep
 }
 
 // Whether `from` is the head of one of the MR's pushes (the only places a diff may start from).
-export const isPushHead = (versions, from) => versions.some((v) => v.head_commit_sha === from);
+export const isPushHead = (versions: any, from: any) => versions.some((v: any) => v.head_commit_sha === from);

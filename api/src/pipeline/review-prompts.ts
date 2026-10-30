@@ -8,7 +8,7 @@ export const REVIEW_SYSTEM = "You are a senior engineer reviewing a colleague's 
 const PLAIN = 'Write for someone who has not seen the code: name behaviour a user or a teammate would recognise, not functions or files. Names of code may come later in a summary, never in a title or in the overview.';
 
 /** @param {string} context */
-export function mapPrompt(context) {
+export function mapPrompt(context: any) {
   return [
     'Your stage: map the change, so the reviewers after you and the person reading the review grasp it without opening every file. Do not look for bugs yet.',
     '', context, '',
@@ -27,7 +27,7 @@ const RISKS = ['low', 'medium', 'high'];
 // The map, checked: every changed file lands in a chapter (the ones the agent left out go to a last
 // one, said in `warnings`).
 /** @param {string} answer @param {string[]} changed */
-export function parseMap(answer, changed) {
+export function parseMap(answer: any, changed: any) {
   const json = jsonAnswer(answer);
   if (!json.ok) return json;
   const { overview, risk, chapters } = json.value;
@@ -35,12 +35,12 @@ export function parseMap(answer, changed) {
   if (!RISKS.includes(risk?.level)) return { ok: false, error: 'risk.level must be low, medium or high' };
   if (!Array.isArray(chapters) || !chapters.length) return { ok: false, error: '"chapters" must be a non-empty array' };
   const kept = chapters
-    .map((c) => ({ title: text(c?.title, 200), summary: text(c?.summary, 1500) ?? '', check: text(c?.check, 1500) ?? '', files: (Array.isArray(c?.files) ? c.files : []).map((f) => text(f, 300)).filter(Boolean) }))
+    .map((c) => ({ title: text(c?.title, 200), summary: text(c?.summary, 1500) ?? '', check: text(c?.check, 1500) ?? '', files: (Array.isArray(c?.files) ? c.files : []).map((f: any) => text(f, 300)).filter(Boolean) }))
     .filter((c) => c.title && c.files.length)
     .slice(0, 12);
   if (!kept.length) return { ok: false, error: 'no chapter has a title and files' };
   const warnings: string[] = [];
-  const left = changed.filter((p) => !kept.some((c) => c.files.some((f) => matchesPattern(f, p))));
+  const left = changed.filter((p: any) => !kept.some((c) => c.files.some((f: any) => matchesPattern(f, p))));
   if (left.length) {
     kept.push({ title: 'The rest of the change', summary: 'Files the map did not place in a chapter.', check: 'Whatever these files change on their own.', files: left });
     warnings.push(`${left.length} changed file(s) were in no chapter of the map: reviewed in a last one`);
@@ -49,7 +49,7 @@ export function parseMap(answer, changed) {
     ok: true,
     value: {
       overview: { before: text(overview.before, 600), after: text(overview.after, 600) },
-      risk: { level: risk.level, rationale: text(risk.rationale, 400) ?? '', factors: (Array.isArray(risk.factors) ? risk.factors : []).map((f) => text(f, 120)).filter(Boolean).slice(0, 8) },
+      risk: { level: risk.level, rationale: text(risk.rationale, 400) ?? '', factors: (Array.isArray(risk.factors) ? risk.factors : []).map((f: any) => text(f, 120)).filter(Boolean).slice(0, 8) },
       chapters: kept,
       warnings,
     },
@@ -57,8 +57,8 @@ export function parseMap(answer, changed) {
 }
 
 /** @param {{ context: string, map: any, chapter: any, index: number, checklist: string | null }} input */
-export function chapterPrompt({ context, map, chapter, index, checklist }) {
-  const others = map.chapters.map((c, i) => `${i + 1}. ${c.title}${i === index ? ' (yours)' : ''}`).join('\n');
+export function chapterPrompt({ context, map, chapter, index, checklist }: any) {
+  const others = map.chapters.map((c: any, i: any) => `${i + 1}. ${c.title}${i === index ? ' (yours)' : ''}`).join('\n');
   return [
     `Your stage: review chapter ${index + 1} of ${map.chapters.length}, "${chapter.title}". Other agents review the other chapters at the same time: stay on your files, read anything else only to understand them.`,
     '', context, '',
@@ -81,13 +81,13 @@ export function chapterPrompt({ context, map, chapter, index, checklist }) {
 const SEVERITIES = ['critical', 'important', 'suggestion', 'info'];
 
 /** @param {string} answer */
-export function parseChapter(answer) {
+export function parseChapter(answer: any) {
   const json = jsonAnswer(answer);
   if (!json.ok) return json;
   if (!Array.isArray(json.value.findings)) return { ok: false, error: '"findings" must be an array' };
   const findings = json.value.findings
-    .filter((f) => f && text(f.title) && SEVERITIES.includes(f.severity))
-    .map((f) => ({
+    .filter((f: any) => f && text(f.title) && SEVERITIES.includes(f.severity))
+    .map((f: any) => ({
       id: typeof f.id === 'string' && /^[a-z0-9-]{2,40}$/.test(f.id) ? f.id : null,
       severity: f.severity, title: text(f.title, 200), body: text(f.body, 6000) ?? text(f.title, 200),
       path: text(f.path, 300), line: Number.isInteger(f.line) && f.line > 0 ? f.line : null, comment: text(f.comment, 3000),

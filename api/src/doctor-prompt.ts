@@ -6,7 +6,7 @@ export const DOCTOR_TOOLS = ['Read', 'Grep', 'Glob'];
 
 export const WHERE = ['bot', 'agent', 'environment', 'gitlab', 'claude', 'repo'];
 
-const WHERE_TEXT = {
+const WHERE_TEXT: Record<string, string> = {
   bot: "Marginalia's own code (poller, runner, report parsing, studio)",
   agent: 'the review or triage instructions the run followed (command, agent, skill, output contract)',
   environment: 'the machine or container (network, disk, login, config)',
@@ -18,9 +18,9 @@ const WHERE_TEXT = {
 /**
  * @param {{ trace: any, transcript: string | null, sourceDir: string, agentDirs: string[] }} input
  */
-export function doctorPrompt({ trace, transcript, sourceDir, agentDirs }) {
-  const stages = trace.stages.map((s) => `- ${s.label}: ${s.state}${s.startedAt ? ` (${s.startedAt} → ${s.endedAt ?? '…'})` : ''}`).join('\n');
-  const steps = trace.steps.slice(-80).map((s) => `${s.at} [${s.stage ?? '-'}]${s.sub ? ' (sub-agent)' : ''} ${s.text}`).join('\n');
+export function doctorPrompt({ trace, transcript, sourceDir, agentDirs }: any) {
+  const stages = trace.stages.map((s: any) => `- ${s.label}: ${s.state}${s.startedAt ? ` (${s.startedAt} → ${s.endedAt ?? '…'})` : ''}`).join('\n');
+  const steps = trace.steps.slice(-80).map((s: any) => `${s.at} [${s.stage ?? '-'}]${s.sub ? ' (sub-agent)' : ''} ${s.text}`).join('\n');
   return [
     `A Marginalia run failed. Find out why, from evidence, and say where the fix belongs.`,
     '',
@@ -54,11 +54,11 @@ export function doctorPrompt({ trace, transcript, sourceDir, agentDirs }) {
   ].filter((l) => l !== null).join('\n');
 }
 
-const str = (v, max = 2000) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : null);
+const str = (v: unknown, max = 2000) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : null);
 
 // The doctor's answer, checked; null when it is not one.
 /** @param {string} text */
-export function parseDoctorAnswer(text) {
+export function parseDoctorAnswer(text: unknown) {
   const block = String(text ?? '').match(/```json\s*([\s\S]*?)```/)?.[1] ?? String(text ?? '').match(/\{[\s\S]*\}/)?.[0];
   if (!block) return null;
   let raw;
@@ -76,12 +76,12 @@ export function parseDoctorAnswer(text) {
     cause,
     where: WHERE.includes(raw.where) ? raw.where : 'bot',
     confidence: ['high', 'medium', 'low'].includes(raw.confidence) ? raw.confidence : 'low',
-    evidence: (Array.isArray(raw.evidence) ? raw.evidence : []).map((e) => str(e, 400)).filter(Boolean).slice(0, 12),
+    evidence: (Array.isArray(raw.evidence) ? raw.evidence : []).map((e: unknown) => str(e, 400)).filter(Boolean).slice(0, 12),
     retryWillWork: raw.retryWillWork === true,
     fix: {
       inBot: fix.inBot === true,
       what: str(fix.what),
-      files: (Array.isArray(fix.files) ? fix.files : []).map((f) => str(f, 200)).filter(Boolean).slice(0, 20),
+      files: (Array.isArray(fix.files) ? fix.files : []).map((f: unknown) => str(f, 200)).filter(Boolean).slice(0, 20),
     },
   };
 }
@@ -91,7 +91,7 @@ export function parseDoctorAnswer(text) {
 export const FIX_TOOLS = ['Read', 'Edit', 'Write', 'Grep', 'Glob', 'Bash(npm test:*)', 'Bash(node --test:*)', 'Bash(npm run check:size)', 'Bash(git status:*)', 'Bash(git diff:*)', 'Bash(git add:*)', 'Bash(git commit:*)'];
 
 /** @param {{ trace: any, doctor: any }} input */
-export function fixPrompt({ trace, doctor }) {
+export function fixPrompt({ trace, doctor }: any) {
   return [
     `A Marginalia run failed, and the diagnosis says the fix belongs in Marginalia. You are in a worktree of Marginalia's source, on a branch of its own. Make the fix.`,
     '',
@@ -100,7 +100,7 @@ export function fixPrompt({ trace, doctor }) {
     `Diagnosis: ${doctor.summary}`, doctor.cause, '',
     doctor.fix?.what ? `Proposed change: ${doctor.fix.what}` : '',
     doctor.fix?.files?.length ? `Files: ${doctor.fix.files.join(', ')}` : '',
-    doctor.evidence?.length ? `Evidence:\n${doctor.evidence.map((e) => `- ${e}`).join('\n')}` : '',
+    doctor.evidence?.length ? `Evidence:\n${doctor.evidence.map((e: unknown) => `- ${e}`).join('\n')}` : '',
     '',
     'Rules:',
     '- Read CLAUDE.md first and follow it (module size, pure logic apart from I/O, comment style).',

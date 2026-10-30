@@ -90,7 +90,7 @@ async function runPoll() {
 
 // The next poll is due `interval` after the previous one *finished* (`from`), sooner after a failure
 // that passes by itself.
-function scheduleNextPoll(from) {
+function scheduleNextPoll(from: any) {
   const interval = retrySoon ? Math.min(pollIntervalMs(), RETRY_AFTER_MS) : pollIntervalMs();
   retrySoon = false;
   const delay = Math.max(from + interval - Date.now(), 1000);

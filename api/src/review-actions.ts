@@ -8,12 +8,12 @@ export const REVIEW_ACTIONS = ['comment', 'approve', 'request_changes'];
 
 // Absent means "comment", the behaviour before the choice existed. Anything
 // else that is not an action is refused (null), never guessed.
-export function parseReviewAction(value) {
+export function parseReviewAction(value: any) {
   if (value === undefined || value === null) return 'comment';
   return REVIEW_ACTIONS.includes(value) ? value : null;
 }
 
 // The `reviewer_state` of draft_notes/bulk_publish, if the action sets one.
-export function reviewerStateFor(action) {
+export function reviewerStateFor(action: any) {
   return action === 'request_changes' ? 'requested_changes' : undefined;
 }

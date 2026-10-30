@@ -20,10 +20,10 @@ export const mentionDeps = {
   listRawDiscussions: gitlab.listRawDiscussions,
   memberAccessLevel: gitlab.memberAccessLevel,
   replyToDiscussion: gitlab.replyToDiscussion,
-  run: { review: (mr) => runReview(mr), triage: runMrComments, answer: answerMention },
+  run: { review: (mr: any) => runReview(mr), triage: runMrComments, answer: answerMention },
   store: {
     seen: (project: string) => seenMentionIds(getDb(), project),
-    mark: (project: string, rec) => markMention(getDb(), project, rec),
+    mark: (project: string, rec: any) => markMention(getDb(), project, rec),
     runsSince: (iso: string) => mentionRunsSince(getDb(), iso),
     cursor: (project: string) => readCursor(getDb(), project),
     setCursor: (project: string, iso: string) => writeCursor(getDb(), project, iso),

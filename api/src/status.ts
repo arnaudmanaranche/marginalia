@@ -12,7 +12,7 @@ export const status = {
   current: null as any, // MR being reviewed right now
   lastPoll: null as { at: string; ok: boolean; error: string | null } | null,
   nextPollAt: null as string | null,
-  projects: PROJECTS.map((p) => ({ key: p.key, kind: p.kind, reviewsDir: p.reviewsDir })),
+  projects: PROJECTS.map((p: any) => ({ key: p.key, kind: p.kind, reviewsDir: p.reviewsDir })),
   mrs: [] as any[],
 };
 
@@ -32,9 +32,9 @@ export function writeStatus() {
 }
 
 // An MR is told apart by its project: iids repeat from one GitLab project to the next.
-export const sameMr = (entry, mr) => entry.iid === mr.iid && entry.project === mr.project.key;
+export const sameMr = (entry: any, mr: any) => entry.iid === mr.iid && entry.project === mr.project.key;
 
-export function setMrStatus(mr, patch) {
+export function setMrStatus(mr: any, patch: any) {
   const entry = status.mrs.find((m) => sameMr(m, mr));
   if (entry) Object.assign(entry, patch);
   return writeStatus();
@@ -43,7 +43,7 @@ export function setMrStatus(mr, patch) {
 // What a pass over a project (poll-pass.ts) shows through: marks the bot busy on one MR, then
 // back to polling.
 export const statusSink = {
-  async begin(mr) {
+  async begin(mr: any) {
     status.phase = 'reviewing';
     status.current = { project: mr.project.key, iid: mr.iid, title: mr.title, web_url: mr.web_url, startedAt: new Date().toISOString() };
     await setMrStatus(mr, { status: 'reviewing' });
@@ -54,8 +54,8 @@ export const statusSink = {
     status.current = null;
     await writeStatus();
   },
-  entriesOf: (project) => status.mrs.filter((m) => m.project === project.key),
-  async setEntries(project, entries) {
+  entriesOf: (project: any) => status.mrs.filter((m) => m.project === project.key),
+  async setEntries(project: any, entries: any[]) {
     status.mrs = [...status.mrs.filter((m) => m.project !== project.key), ...entries];
     await writeStatus();
   },

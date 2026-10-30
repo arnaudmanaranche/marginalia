@@ -1,7 +1,7 @@
 // GitLab only accepts a diff note on a line shown in the diff: an added line
 // needs new_line, an unchanged context line needs both old_line and new_line.
 // Returns null when the line is outside every hunk of this file's diff.
-export function positionForLine(diff, newLine) {
+export function positionForLine(diff: string, newLine: number) {
   let oldNo = 0;
   let newNo = 0;
   for (const line of diff.split('\n')) {

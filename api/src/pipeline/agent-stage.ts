@@ -15,8 +15,8 @@ const TIMEOUT_MS = 20 * 60_000;
  *   settings?: object | null, addDirs?: string[], parse: (text: string) => { ok: boolean, value?: T, error?: string } }} input
  * @returns {Promise<T>}
  */
-export async function agentStage({ run, stage, prompt, system, tools, cwd, settings = null, addDirs = [], parse }) {
-  const call = async (text, resume) => {
+export async function agentStage({ run, stage, prompt, system, tools, cwd, settings = null, addDirs = [], parse }: { run: any; stage: string; prompt: string; system: string; tools: string[]; cwd: string; settings?: object | null; addDirs?: string[]; parse: (text: string) => { ok: boolean; value?: any; error?: string } }) {
+  const call = async (text: string, resume: string | null) => {
     const args = [...claudeArgs({ prompt: text, tools, systemPrompt: system, settings, resume }), ...addDirs.flatMap((d) => ['--add-dir', d])];
     const { stdout } = await runStreaming(
       CLAUDE_BIN, args, { cwd, timeout: TIMEOUT_MS, env: runEnv() },

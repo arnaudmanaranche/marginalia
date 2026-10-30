@@ -14,7 +14,7 @@ import { updatePlan } from '../src/update-plan.ts';
 const ROOT = PACKAGE_ROOT;
 const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));
 const program = new Command('marginalia').description(pkg.description).version(pkg.version);
-const done = (code) => { process.exitCode = code; };
+const done = (code: number) => { process.exitCode = code; };
 
 program.command('init').description('interactive setup: GitLab, repos and commands, written to config.json')
   .action(async () => done(await (await import('../scripts/init.ts')).runInit()));

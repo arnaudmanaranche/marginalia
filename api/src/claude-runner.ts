@@ -19,7 +19,7 @@ import { isStaged, stagedRun } from './pipeline/staged.ts';
 // comments). The work is done by the project's command (command-run.ts) or, when it is
 // `marginalia`, by Marginalia's staged pipeline (pipeline/). Every run is traced (run-tracker.ts),
 // stage by stage, so it can be followed live and read again when it failed.
-async function runCommand(mr, opts) {
+async function runCommand(mr: any, opts: any) {
   const run = await followRun(mr, { ...opts, plan: isStaged(opts.command) ? `staged-${opts.kind}` : opts.kind });
   try {
     const outcome = await runStages(mr, opts, run);
@@ -33,7 +33,7 @@ async function runCommand(mr, opts) {
   }
 }
 
-async function runStages(mr, { kind, command, tools, outputPath, label, stack = /** @type {any} */ (null) }, run) {
+async function runStages(mr: any, { kind, command, tools, outputPath, label, stack = null }: any, run: any) {
   const { worktreeDir: BOT_WORKTREE_DIR, reviewsDir: REVIEWS_DIR } = mr.project;
   log(mr, `Starting ${label}: ${c.bold}"${mr.title}"${c.reset} (${mr.source_branch} -> ${mr.target_branch})`);
 
@@ -65,7 +65,7 @@ async function runStages(mr, { kind, command, tools, outputPath, label, stack = 
   return 'reviewed';
 }
 
-export function runReview(mr, outputPath = reviewOutputPath(mr), stack = /** @type {any} */ (null)) {
+export function runReview(mr: any, outputPath = reviewOutputPath(mr), stack = /** @type {any} */ (null)) {
   return runCommand(mr, {
     stack,
     kind: 'review',
@@ -76,7 +76,7 @@ export function runReview(mr, outputPath = reviewOutputPath(mr), stack = /** @ty
   });
 }
 
-export function runMrComments(mr) {
+export function runMrComments(mr: any) {
   return runCommand(mr, {
     kind: 'triage',
     command: mr.project.triageCommand,

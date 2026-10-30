@@ -4,7 +4,7 @@
 // or put in the environment (where it would reach the Claude runs). Pure: strings in, strings out.
 
 /** @param {string} baseUrl e.g. https://git.example.com or https://git.example.com:8443 */
-export function httpsRewrites(baseUrl) {
+export function httpsRewrites(baseUrl: string) {
   const url = new URL(baseUrl);
   const https = `${url.origin}/`;
   // The SSH forms of the same host: scp-like and ssh://, with or without a port.
@@ -20,7 +20,7 @@ export function httpsRewrites(baseUrl) {
  * other host (so it is never sent elsewhere). `input` is git's `key=value` lines.
  * @param {string} input @param {string} baseUrl @param {string} token
  */
-export function credentialResponse(input, baseUrl, token) {
+export function credentialResponse(input: string, baseUrl: string, token: string) {
   const asked = Object.fromEntries(input.split('\n').filter((l) => l.includes('=')).map((l) => [l.slice(0, l.indexOf('=')), l.slice(l.indexOf('=') + 1)]));
   const gitlab = new URL(baseUrl);
   if (asked.protocol !== 'https' || asked.host !== gitlab.host || !token) return '';

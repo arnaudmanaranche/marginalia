@@ -8,12 +8,12 @@
 // as one stack ordered by depth, then iid.
 export function analyzeStacks(mrs: Record<string, any>[]) {
   const bySource = new Map(mrs.map((mr) => [mr.source_branch, mr]));
-  const parentOf = (mr) => {
+  const parentOf = (mr: any) => {
     const p = bySource.get(mr.target_branch);
     return p && p.iid !== mr.iid ? p : null;
   };
 
-  const root = (mr) => {
+  const root = (mr: any) => {
     const seen = new Set([mr.iid]);
     let cur = mr;
     for (let p = parentOf(cur); p && !seen.has(p.iid); p = parentOf(cur)) {
@@ -22,7 +22,7 @@ export function analyzeStacks(mrs: Record<string, any>[]) {
     }
     return cur;
   };
-  const depth = (mr) => {
+  const depth = (mr: any) => {
     const seen = new Set([mr.iid]);
     let d = 0;
     for (let p = parentOf(mr); p && !seen.has(p.iid); p = parentOf(p)) {
@@ -41,16 +41,16 @@ export function analyzeStacks(mrs: Record<string, any>[]) {
 
   const out = new Map<number | string, Record<string, any>>();
   for (const { root: r, members } of groups.values()) {
-    members.sort((a, b) => a.depth - b.depth || a.mr.iid - b.mr.iid);
-    const layers = members.map(({ mr, depth: d }) => ({ iid: mr.iid, title: mr.title, source_branch: mr.source_branch, depth: d }));
-    members.forEach(({ mr, depth: d }, i) => {
+    members.sort((a: any, b: any) => a.depth - b.depth || a.mr.iid - b.mr.iid);
+    const layers = members.map(({ mr, depth: d }: any) => ({ iid: mr.iid, title: mr.title, source_branch: mr.source_branch, depth: d }));
+    members.forEach(({ mr, depth: d }: any, i: number) => {
       out.set(mr.iid, {
         id: r.source_branch,
         depth: d,
         position: i + 1,
         size: members.length,
         parentIid: parentOf(mr)?.iid ?? null,
-        childIids: members.filter((m) => parentOf(m.mr)?.iid === mr.iid).map((m) => m.mr.iid),
+        childIids: members.filter((m: any) => parentOf(m.mr)?.iid === mr.iid).map((m: any) => m.mr.iid),
         baseBranch: r.target_branch,
         layers,
       });
@@ -60,7 +60,7 @@ export function analyzeStacks(mrs: Record<string, any>[]) {
 }
 
 // Every layer above `iid`, nearest first, from the map analyzeStacks() returned.
-export function layersAbove(stacks, iid) {
+export function layersAbove(stacks: Map<any, any>, iid: number | string) {
   const out: any[] = [];
   const seen = new Set<any>([iid]);
   const queue = [...(stacks.get(iid)?.childIids ?? [])];
@@ -76,11 +76,11 @@ export function layersAbove(stacks, iid) {
 
 // Instructions appended to the review run for a layer of a stack.
 // `reviewPaths` maps iid -> path of that layer's existing review, when there is one.
-export function stackPrompt(mr, info, { reviewPaths = {}, upperRefs = {} } = {}) {
+export function stackPrompt(mr: any, info: any, { reviewPaths = {}, upperRefs = {} }: { reviewPaths?: Record<string, string>; upperRefs?: Record<string, string> } = {}) {
   const lines = [
     `Stack context: this MR (!${mr.iid}) is layer ${info.position} of ${info.size} in a stacked series on ${info.baseBranch}. Each layer targets the branch of the layer below it.`,
     'Layers, bottom to top:',
-    ...info.layers.map((l) => {
+    ...info.layers.map((l: any) => {
       const bits = [`${l.iid === mr.iid ? '-> ' : '   '}!${l.iid} "${l.title}" (${l.source_branch})`];
       if (reviewPaths[l.iid]) bits.push(`review: ${reviewPaths[l.iid]}`);
       return bits.join('  ');
@@ -110,7 +110,7 @@ export function stackPrompt(mr, info, { reviewPaths = {}, upperRefs = {} } = {})
 const CROSS_RE = /^-\s*\[(settled-later|belongs-lower|assumes-upper)\s+!(\d+)\]\s*(.+)$/;
 
 // The `### Across layers` bullets of a review: [{ kind, iid, text }].
-export function parseAcrossLayers(md) {
+export function parseAcrossLayers(md: string) {
   const out: any[] = [];
   let inside = false;
   let fence = false;

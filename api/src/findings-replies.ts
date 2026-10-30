@@ -17,7 +17,7 @@ const RESOLVED_BY_DEFAULT = new Set(['fixed', 'already_fixed']);
 
 const DISCUSSION_ID = /^[0-9a-f]{8,64}$/i;
 
-function normalizeVerdict(raw) {
+function normalizeVerdict(raw: unknown) {
   const v = String(raw ?? '').trim().toLowerCase().replace(/[\s-]+/g, '_');
   if (REPLY_VERDICTS.includes(v)) return v;
   if (v === 'relevant') return 'fixed';
@@ -27,7 +27,7 @@ function normalizeVerdict(raw) {
 }
 
 // Lenient, like the findings: keeps what it can and says what it dropped. One reply per thread.
-export function normalizeReplies(raw) {
+export function normalizeReplies(raw: any) {
   if (raw === undefined || raw === null) return { replies: [], warnings: [] };
   if (!Array.isArray(raw)) return { replies: [], warnings: ['"replies" is not an array'] };
   const replies: Record<string, any>[] = [];

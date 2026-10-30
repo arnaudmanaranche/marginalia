@@ -22,29 +22,29 @@ export async function readStatus() {
   const keep = new Set(scope.projects);
   return {
     ...status,
-    mrs: (status.mrs ?? []).filter((m) => keep.has(m.project)),
-    projects: (status.projects ?? []).filter((p) => keep.has(p.key)),
+    mrs: (status.mrs ?? []).filter((m: any) => keep.has(m.project)),
+    projects: (status.projects ?? []).filter((p: any) => keep.has(p.key)),
     current: status.current && keep.has(status.current.project) ? status.current : null,
   };
 }
 
 // Resolves a review id (`<project>/<slug>`): { project, slug, mr, status }, where mr is the MR
 // tracked in status.json for it (undefined when none), or null for an id that is not valid.
-export async function locate(id) {
+export async function locate(id: string) {
   const parsed = parseReviewId(id, visibleProjects());
   if (!parsed) return null;
   const status = await readStatus();
-  const mr = (status?.mrs ?? []).find((m) => m.project === parsed.project.key && m.reviewPath === join(parsed.project.reviewsDir, `${parsed.slug}.md`));
+  const mr = (status?.mrs ?? []).find((m: any) => m.project === parsed.project.key && m.reviewPath === join(parsed.project.reviewsDir, `${parsed.slug}.md`));
   return { ...parsed, mr, status };
 }
 
 // GitLab errors are shown to the person, but never at length.
-export const shortMessage = (err) => String(err.message ?? err).slice(0, 300);
+export const shortMessage = (err: any) => String(err.message ?? err).slice(0, 300);
 
 // Live updates: each open page subscribes (see routes-live.ts); a change in a review file,
 // status.json, settings.json or after an action here wakes them all, debounced.
 const listeners = new Set<() => void>();
-export function subscribe(listener) {
+export function subscribe(listener: () => void) {
   listeners.add(listener);
   return () => listeners.delete(listener);
 }
@@ -59,7 +59,7 @@ export function broadcast() {
 // One at a time, in order; a failure of one never blocks the next.
 export function serialQueue() {
   let tail = Promise.resolve();
-  return (task) => {
+  return (task: () => any) => {
     const run = tail.then(task);
     tail = run.catch(() => {});
     return run;
@@ -72,8 +72,8 @@ export const postQueue = serialQueue();
 // submitted review, a deleted draft) that one MR is read again at once, so Home moves it without
 // waiting for the next poll. The newer of the two readings is the one shown.
 export const stateOverrides = new Map();
-export const newerState = (a, b) => (a && b ? (Date.parse(a.computedAt) >= Date.parse(b.computedAt) ? a : b) : a ?? b ?? null);
-export function refreshState(project, mr, gitlab) {
+export const newerState = (a: any, b: any) => (a && b ? (Date.parse(a.computedAt) >= Date.parse(b.computedAt) ? a : b) : a ?? b ?? null);
+export function refreshState(project: any, mr: any, gitlab: any) {
   fetchReviewState(project, mr, gitlab)
     .then((state) => {
       stateOverrides.set(`${project.key}:${mr.iid}`, state);

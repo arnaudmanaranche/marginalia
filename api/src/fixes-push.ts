@@ -13,11 +13,11 @@ import { ownFixes } from './fixes-identity.ts';
 // pushed fast-forward only; the fixes left are replayed on top of it, so they still sit on the
 // MR head for later. The oldest fix needs no replay: it already sits on the head.
 // -> { pushed, status, error? }: `error` says, in a person's words, why nothing was pushed.
-export async function pushOneFix(project, mr, sha) {
+export async function pushOneFix(project: any, mr: any, sha: string) {
   let before = await fixesStatus(project, mr);
   if (before.state !== 'ready') return { pushed: false, status: before, error: `nothing to push (${before.state})` };
   // Committed as me first (fixes-identity.ts): the fix keeps its place in line, not its sha.
-  const at = before.commits.findIndex((c) => c.sha === sha);
+  const at = before.commits.findIndex((c: any) => c.sha === sha);
   if (at >= 0 && (await ownFixes(project, before))) {
     before = await fixesStatus(project, mr);
     sha = before.commits[at]?.sha ?? sha;
@@ -37,7 +37,7 @@ export async function pushOneFix(project, mr, sha) {
     await addWorktree(project.repoPath, work, String(before.remoteSha));
     // The commits keep their author; the committer is whoever committed them (the bot's identity),
     // since this machine may have none configured. No hook of the repo runs on the replay.
-    const pick = async (commit) => {
+    const pick = async (commit: any) => {
       const [name, email] = (await gitIn(work).run('log', '-1', '--format=%cn%x00%ce', commit)).split('\0');
       await gitIn(work, { hooks: false, env: { GIT_COMMITTER_NAME: name, GIT_COMMITTER_EMAIL: email } }).run('cherry-pick', '--allow-empty', commit);
     };

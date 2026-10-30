@@ -3,7 +3,7 @@ import { basename } from 'node:path';
 
 // One readable line per step of a run, for the studio's live panel: what the
 // run says it is doing, and the tools it calls.
-export function describeStep(block) {
+export function describeStep(block: any) {
   if (block.type === 'text') {
     const sentence = block.text.trim().split(/(?<=[.!?:])\s|\n/)[0]?.trim();
     return sentence ? sentence.slice(0, 140) : null;
@@ -54,7 +54,7 @@ export function runStreaming(
     let stderr = '';
     /** @type {any} */
     let result: any = null;
-    const handle = (line) => {
+    const handle = (line: string) => {
       if (line.trim()) onEvent(line);
       let event;
       try {

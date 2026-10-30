@@ -5,7 +5,7 @@ import { subscribe } from './context.ts';
 import { uiDist, uiDistCandidates } from '../ui-assets.ts';
 
 const DIST = uiDist() ?? uiDistCandidates()[1];
-const MIME = {
+const MIME: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
@@ -17,7 +17,7 @@ const MIME = {
 
 // The built React app (ui/dist); the SPA's index for any path that is not a file, and a
 // plain notice when the app isn't built yet.
-export async function serveStatic(c) {
+export async function serveStatic(c: any) {
   const rel = normalize(c.req.path === '/' ? '/index.html' : c.req.path);
   const file = join(DIST, rel);
   if (!file.startsWith(DIST)) return c.json({ error: 'bad path' }, 400);
@@ -39,8 +39,8 @@ export const endLiveStreams = () => {
   for (const end of open) end();
 };
 
-export function liveRoutes(app) {
-  app.get('/events', (c) => {
+export function liveRoutes(app: any) {
+  app.get('/events', (c: any) => {
     c.header('cache-control', 'no-store');
     return streamSSE(c, async (stream) => {
       await stream.write('retry: 3000\n\n');

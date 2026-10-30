@@ -17,7 +17,7 @@ const LANDED_DEPTH = 200;
 // is the merge that settled the conflicts. `landed` are the fixes already on the MR branch, by
 // thread, pushed together or one at a time: the commit each "fixed" reply names.
 // `mr` needs { iid, source_branch }.
-export async function fixesStatus(project, mr) {
+export async function fixesStatus(project: any, mr: any) {
   const ref = fixesRef(mr);
   const cwd = project.repoPath;
   const git = gitIn(cwd);
@@ -40,11 +40,11 @@ export async function fixesStatus(project, mr) {
 // Pushes the fixes to the MR branch, fast-forward only: checked here first for a clear
 // answer, and enforced by git itself (no --force) if the branch moves in between. They go up
 // committed as me (fixes-identity.ts).
-export async function pushFixes(project, mr) {
+export async function pushFixes(project: any, mr: any) {
   let before = await fixesStatus(project, mr);
   if (before.state !== 'ready') return { pushed: false, status: before };
   if (await ownFixes(project, before)) before = await fixesStatus(project, mr);
-  await pushTo(project.repoPath, before.fixesSha, mr.source_branch);
+  await pushTo(project.repoPath, before.fixesSha as string, mr.source_branch);
   return { pushed: true, status: await fixesStatus(project, mr) };
 }
 
@@ -53,7 +53,7 @@ export async function pushFixes(project, mr) {
 // older head, so the old ref is moved aside (recoverable) rather than left to push.
 // Then checks the MR didn't move while the run was going: fixes made on top of an
 // old head can't be pushed as they are.
-export async function recordFixes(mr, baseSha) {
+export async function recordFixes(mr: any, baseSha: any) {
   const ref = `refs/heads/${fixesRef(mr)}`;
   const BOT_WORKTREE_DIR = mr.project.worktreeDir;
   if ((await head(BOT_WORKTREE_DIR)) !== baseSha) {

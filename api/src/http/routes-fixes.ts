@@ -8,14 +8,14 @@ import { locate, serialQueue, shortMessage } from './context.ts';
 // Two clicks must not race on the same push.
 const pushQueue = serialQueue();
 
-export function fixesRoutes(app) {
+export function fixesRoutes(app: any) {
   // Where the local fixes of one triage stand against its MR branch on origin.
   app.openapi(route({
     method: 'get', path: '/api/fixes/{slug}', tags: ['Triage fixes'], operationId: 'getFixes',
     summary: 'Where a triage\'s fixes stand', description: '`ready` (on top of the MR head, can be pushed), `pushed`, `outdated` (the branch moved since) or `none`.',
     request: { params: z.object({ slug: ReviewId }) },
     responses: { 200: jsonOf(FixesStatus, 'The fixes against the MR branch.') }, errors: [400, 404, 502],
-  }), async (c) => {
+  }), async (c: any) => {
     const found = await locate(c.req.valid('param').slug);
     const mr = found?.mr;
     if (!found || mr?.kind !== 'comments' || !mr.sourceBranch) return c.json({ error: 'no tracked triage for this slug' }, 404);
@@ -33,7 +33,7 @@ export function fixesRoutes(app) {
     summary: 'Push a triage\'s fixes to the MR branch', description: 'Only on your own merge request (a `comments` triage). Fast-forward only. With `sha`, that one fix alone: the others are replayed on top of it, still to push.',
     request: { body: jsonBody(PushRequest) },
     responses: { 200: jsonOf(FixesStatus, 'Pushed; the status after the push.') }, errors: [400, 403, 404, 409, 415, 502],
-  }), (c) => pushQueue(async () => {
+  }), (c: any) => pushQueue(async () => {
     const { slug, sha } = c.req.valid('json');
     const found = await locate(slug);
     const mr = found?.mr;

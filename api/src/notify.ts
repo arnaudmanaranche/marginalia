@@ -17,7 +17,7 @@ export function notify(title: string, message: string, openPath?: string | null,
   const attempts = notifyCommands({ platform, title, message, logoPath: LOGO_PATH, click });
   const logOnly = () => logger.info(`[notify] ${title}: ${message}`);
   if (!attempts.length) { logOnly(); return; }
-  const next = (i) => execFile(...(attempts[i] as [string, string[]]), (err) => {
+  const next = (i: number): unknown => execFile(...(attempts[i] as [string, string[]]), (err) => {
     if (!err) return;
     if (i + 1 < attempts.length) next(i + 1);
     else logOnly();

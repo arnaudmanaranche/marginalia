@@ -5,13 +5,13 @@ import { projectOfUpload } from '../review-id.ts';
 import { uploadFetchPath } from '../gitlab-upload.ts';
 import { route } from './route-kit.ts';
 
-export function imageRoute(app) {
+export function imageRoute(app: any) {
   // An image a GitLab note embeds, fetched with the token (the browser has no GitLab login).
   app.openapi(route({
     method: 'get', path: '/api/gitlab-image', tags: ['Reviews'], operationId: 'getGitlabImage',
     summary: 'An image uploaded to a GitLab note', request: { query: z.object({ src: z.string().default('') }) },
     responses: { 200: { description: 'The image.', content: { 'image/*': { schema: z.string().openapi({ format: 'binary' }) } } } }, errors: [400, 404, 502],
-  }), async (c) => {
+  }), async (c: any) => {
     const { src } = c.req.valid('query');
     let project: any = null;
     try {

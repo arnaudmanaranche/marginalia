@@ -7,7 +7,7 @@ import { currentScope } from './request-scope.ts';
 // Write endpoints are guarded against other web pages hitting localhost: Host must be us
 // (DNS rebinding), Origin must be us when present, and a body must be JSON (a cross-origin
 // JSON request needs a CORS preflight we don't answer).
-const forbidden = (c) => c.json({ error: 'forbidden' }, 403);
+const forbidden = (c: any) => c.json({ error: 'forbidden' }, 403);
 
 // Resolved per request: the port is only known once a test binds port 0.
 export function ownHosts(port = STUDIO_PORT, extra = STUDIO_ALLOWED_HOSTS) {
@@ -17,7 +17,7 @@ export function ownHosts(port = STUDIO_PORT, extra = STUDIO_ALLOWED_HOSTS) {
 
 export function writeGuard(hosts = ownHosts) {
   const tooLarge = bodyLimit({ maxSize: 20_000, onError: (c) => c.json({ error: 'too large' }, 413) });
-  return async (c, next) => {
+  return async (c: any, next: any) => {
     if (c.req.method === 'GET' || c.req.method === 'HEAD') return next();
     const own = hosts();
     const origin = c.req.header('origin');
@@ -30,7 +30,7 @@ export function writeGuard(hosts = ownHosts) {
 }
 
 // The review id a request is about: in the path (/api/drafts/<id>[/<draft>]) or the JSON body.
-async function reviewIdOf(c) {
+async function reviewIdOf(c: any) {
   const inPath = c.req.path.match(/^\/api\/drafts\/([^/]+)/)?.[1];
   if (inPath) return decodeURIComponent(inPath);
   const body = await c.req.json().catch(() => null);
@@ -38,26 +38,26 @@ async function reviewIdOf(c) {
 }
 
 // My own MR (a triage of the reviewers' comments): answering them is mine to do, no switch needed.
-export async function isOwnMr(id) {
+export async function isOwnMr(id: string) {
   const found = id ? await locate(id).catch(() => null) : null;
   return found?.mr?.kind === 'comments';
 }
 
 // Posting on someone else's MR needs ALLOW_POSTING=true (or a signed-in person); on my own MR it is always allowed.
 // Signed in (hosted), the click is the person's own and the comment goes up under their token.
-export const requirePosting = async (c, next) => (currentScope() || ALLOW_POSTING === 'true' || (await isOwnMr(await reviewIdOf(c)))
+export const requirePosting = async (c: any, next: any) => (currentScope() || ALLOW_POSTING === 'true' || (await isOwnMr(await reviewIdOf(c)))
   ? next()
   : c.json({ error: 'posting on other people\'s merge requests is disabled (ALLOW_POSTING=false)' }, 403));
 
 // Bad input answers { error } (400), whatever library found it.
-export const validationHook = (result, c) => {
+export const validationHook = (result: any, c: any) => {
   if (result.success) return undefined;
   const issue = result.error.issues?.[0];
   const where = issue?.path?.length ? `${issue.path.join('.')}: ` : '';
   return c.json({ error: `${where}${issue?.message ?? 'invalid input'}` }, 400);
 };
 
-export function errorHandler(err, c) {
+export function errorHandler(err: any, c: any) {
   if (err instanceof HTTPException) return c.json({ error: err.message }, err.status);
   return c.json({ error: String(err.message ?? err) }, 500);
 }

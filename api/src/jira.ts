@@ -7,7 +7,7 @@ const KEY_RE = /\b([A-Z][A-Z0-9]+-\d+)\b/;
 
 // The ticket key is looked for in the title, then the branch, then the
 // description: teams name it in different places.
-export function jiraKeyOf(mr) {
+export function jiraKeyOf(mr: any) {
   for (const text of [mr.title, mr.source_branch?.toUpperCase(), mr.description]) {
     const m = KEY_RE.exec(text ?? '');
     if (m) return m[1];
@@ -30,13 +30,13 @@ async function jiraRequest(path: string): Promise<any> {
 /** @type {Promise<Map<string, number>> | null} */
 let ranks: Promise<Map<string, number>> | null = null;
 async function priorityRanks() {
-  ranks ??= jiraRequest('/priority').then((list) => new Map(list.map((p, i) => [p.id, i])));
+  ranks ??= jiraRequest('/priority').then((list: any) => new Map(list.map((p: any, i: number) => [p.id, i])));
   return ranks;
 }
 
 // { key, priority, rank } for the MR's ticket, or null when Jira isn't
 // configured, the MR names no ticket, or the lookup fails (logged, never fatal).
-export async function jiraPriorityOf(mr) {
+export async function jiraPriorityOf(mr: any) {
   if (!jiraEnabled) return null;
   const key = jiraKeyOf(mr);
   if (!key) return null;
@@ -52,7 +52,7 @@ export async function jiraPriorityOf(mr) {
 
 // Jira's rich text (Atlassian Document Format) as plain text: paragraphs, list items and headings
 // on their own lines. Pure.
-export function adfText(node) {
+export function adfText(node: any) {
   if (!node || typeof node !== 'object') return '';
   if (node.type === 'text') return node.text ?? '';
   const inner = (node.content ?? []).map(adfText).join('');
@@ -63,11 +63,11 @@ export function adfText(node) {
 }
 
 // Whether the bot can read ticket `key` (a run's preflight): throws when it cannot.
-export const jiraCanRead = (key) => jiraRequest(`/issue/${key}?fields=summary`);
+export const jiraCanRead = (key: string) => jiraRequest(`/issue/${key}?fields=summary`);
 
 // The MR's ticket as a reviewer reads it: summary and description (acceptance criteria included),
 // or null when Jira isn't configured or the MR names no ticket. `{ key, error }` when it failed.
-export async function jiraTicketOf(mr) {
+export async function jiraTicketOf(mr: any) {
   const key = jiraKeyOf(mr);
   if (!jiraEnabled || !key) return key ? { key, summary: null, text: null } : null;
   try {
@@ -81,7 +81,7 @@ export async function jiraTicketOf(mr) {
 
 // Most urgent ticket first, MRs without a known priority last; ties keep the
 // newest review first.
-export function byPriorityThenDate(a, b) {
+export function byPriorityThenDate(a: any, b: any) {
   const ra = a.jira?.rank ?? Infinity;
   const rb = b.jira?.rank ?? Infinity;
   if (ra !== rb) return ra - rb;

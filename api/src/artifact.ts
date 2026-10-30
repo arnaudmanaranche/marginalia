@@ -7,7 +7,7 @@ import { historyIn } from './history.ts';
 // normalized shape, with the head commit the run read) and the earlier versions of both under
 // .history/<slug>/. This is the one place that knows those names and the order they are written
 // in; the runner and the studio both go through it.
-export function artifactAt(reviewsDir, slug) {
+export function artifactAt(reviewsDir: string, slug: string) {
   const markdownPath = join(reviewsDir, `${slug}.md`);
   const shapePath = join(reviewsDir, `${slug}.findings.json`);
   const history = historyIn(join(reviewsDir, '.history', slug), markdownPath, shapePath);
@@ -47,4 +47,4 @@ export function artifactAt(reviewsDir, slug) {
 }
 
 // The artifact whose markdown is at `outputPath` (reviewOutputPath, mrCommentsOutputPath).
-export const artifactOf = (outputPath) => artifactAt(dirname(outputPath), basename(outputPath, '.md'));
+export const artifactOf = (outputPath: string) => artifactAt(dirname(outputPath), basename(outputPath, '.md'));

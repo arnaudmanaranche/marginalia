@@ -4,7 +4,7 @@ import { MIGRATIONS } from './db-schema.ts';
 // One SQLite file holds what the bot remembers: what it reviewed, what was posted from
 // the studio, what each run cost. The poller and the studio share this process, so a
 // single connection is enough; WAL keeps a reader (a second tool, the sqlite3 shell) off the writer.
-export function openDatabase(file) {
+export function openDatabase(file: string) {
   const db = new DatabaseSync(file);
   if (file !== ':memory:') db.exec('PRAGMA journal_mode = WAL');
   const version = Number((db.prepare('PRAGMA user_version').get() as { user_version: number }).user_version);
@@ -23,7 +23,7 @@ export function openDatabase(file) {
 // All or nothing; the error of `fn` is rethrown after the rollback. Nested calls become
 // savepoints, so a function that is a transaction on its own can run inside another.
 const depths = new WeakMap();
-export function transaction(db, fn) {
+export function transaction(db: any, fn: any) {
   const depth = depths.get(db) ?? 0;
   const name = `sp${depth}`;
   db.exec(depth === 0 ? 'BEGIN IMMEDIATE' : `SAVEPOINT ${name}`);

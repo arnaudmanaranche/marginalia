@@ -10,7 +10,7 @@ import { PACKAGE_ROOT } from './package-root.ts';
 // Marginalia is simply not applied here: the bot runs on the dev's own config.
 export const RUNNING_VERSION = JSON.parse(readFileSync(join(PACKAGE_ROOT, 'package.json'), 'utf8')).version;
 
-export function readTeamSync(dataDir, running = RUNNING_VERSION) {
+export function readTeamSync(dataDir: string, running = RUNNING_VERSION) {
   try {
     const parsed = parseTeam(JSON.parse(readFileSync(join(dataDir, 'team', 'team.json'), 'utf8')), running);
     return parsed.ok ? parsed.team : null;
@@ -20,11 +20,11 @@ export function readTeamSync(dataDir, running = RUNNING_VERSION) {
 }
 
 // The raw config with the team under it; unchanged without a team.
-export const applyTeam = (raw, team, env = process.env) => (team ? mergeTeam(raw, team, { env }).config : raw);
+export const applyTeam = (raw: any, team: any, env = process.env) => (team ? mergeTeam(raw, team, { env }).config : raw);
 
 // The two settings that live in the environment: the team's extra tools are added to the dev's,
 // and the dev's REVIEW_PROMPT_EXTRA wins over the team's.
-export function teamEnv(team, env = process.env) {
+export function teamEnv(team: any, env = process.env) {
   if (!team) return {};
   const { globals } = mergeTeam({ projects: [] }, team, { env });
   return { CLAUDE_EXTRA_ALLOWED_TOOLS: globals.claudeExtraAllowedTools.join(' '), REVIEW_PROMPT_EXTRA: globals.reviewPromptExtra };

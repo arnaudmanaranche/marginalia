@@ -7,7 +7,7 @@ export const AWAITING = new Set(['pending', 'reviewing', 'failed', 'skipped']);
 
 // An MR the poll just picked up has no report yet: it is listed at once, `awaiting` its first one,
 // so it arrives in the queue when the bot finds it rather than minutes later.
-export function awaitingItem(project, mr) {
+export function awaitingItem(project: any, mr: any) {
   const fileSlug = mr.reviewPath.split('/').pop().replace(/\.md$/, '');
   const at = mr.updatedAt ?? new Date().toISOString();
   return {

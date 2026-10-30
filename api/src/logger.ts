@@ -7,7 +7,7 @@ import pretty from 'pino-pretty';
 // anything that parses logs; MARGINALIA_LOG_LEVEL (default info) turns it up or down.
 // Fields (`project`, `iid`, `err`) are structured in JSON and folded into the line when pretty.
 const ANSI = /\x1b\[[0-9;]*m|\x1b\]8;;[^\x07]*\x07/g;
-export const stripAnsi = (text) => String(text).replace(ANSI, '');
+export const stripAnsi = (text: string) => String(text).replace(ANSI, '');
 
 /** @param {{ json?: boolean, level?: string, destination?: NodeJS.WritableStream, colorize?: boolean }} [options] */
 export function createLogger({ json = false, level = 'info', destination = process.stdout, colorize = Boolean(process.stdout.isTTY) && !process.env.NO_COLOR } = {}) {

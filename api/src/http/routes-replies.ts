@@ -5,19 +5,19 @@ import { jsonBody, jsonOf, route } from './route-kit.ts';
 import { broadcast, locate, postQueue, refreshState, shortMessage } from './context.ts';
 
 // The comment id a reply is recorded under: one reply per thread.
-export const replyCommentId = (threadId) => `reply-${threadId}`;
+export const replyCommentId = (threadId: string) => `reply-${threadId}`;
 
 // On my own MR I answer the reviewers inside their threads. A reply goes up as a GitLab draft
 // note in that thread, like the review comments: nobody sees it until the replies are submitted
 // (POST /api/submit-review), which also resolves the threads it was asked to.
-export function replyRoutes(app, gitlab = defaultGitlab) {
+export function replyRoutes(app: any, gitlab = defaultGitlab) {
   app.openapi(route({
     method: 'post', path: '/api/replies', tags: ['Replies'], operationId: 'addReply',
     summary: 'Reply in a reviewer thread of your own MR',
     description: 'Only on your own merge request (a `comments` triage). A draft note in the thread, sent with the other drafts on submit. One reply per thread.',
     request: { body: jsonBody(ReplyRequest) },
     responses: { 200: jsonOf(PostedInfo, 'The reply as recorded.') }, errors: [400, 403, 404, 409, 415, 502],
-  }), (c) => postQueue(async () => {
+  }), (c: any) => postQueue(async () => {
     const { slug, threadId, body, resolve } = c.req.valid('json');
     const found = await locate(slug);
     if (!found?.mr) return c.json({ error: 'no tracked merge request for this review' }, 404);
@@ -28,7 +28,7 @@ export function replyRoutes(app, gitlab = defaultGitlab) {
     let draft;
     try {
       draft = await gitlab.createReplyDraftNote(project, mr.iid, threadId, body, resolve);
-    } catch (err) {
+    } catch (err: any) {
       return c.json({ error: shortMessage(err) }, / -> 404:/.test(String(err.message)) ? 404 : 502);
     }
     const entry = posted.recordDraft(project.key, found.slug, replyCommentId(threadId), { iid: mr.iid, draftId: draft.id, body, mrUrl: mr.web_url, url: mr.web_url, threadId, resolve });

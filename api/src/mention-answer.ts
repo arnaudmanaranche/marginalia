@@ -12,14 +12,14 @@ const TIMEOUT_MS = 240_000;
 
 // One question or follow-up in a thread: a headless, read-only Claude on the MR branch, under the
 // same sandbox and environment scrubbing as a review. The answer is returned; the intake posts it.
-export async function answerMention(mr, mention: Mention): Promise<string> {
+export async function answerMention(mr: any, mention: Mention): Promise<string> {
   if (await branchCheckedOutElsewhere(mr.project, mr.source_branch)) throw new Error(`Branch "${mr.source_branch}" is checked out in another worktree`);
   await checkoutMergeRequest(mr);
-  const thread = (await gitlab.listDiscussions(mr.project, mr.iid)).find((d) => d.id === mention.discussionId)?.notes ?? [];
+  const thread = (await gitlab.listDiscussions(mr.project, mr.iid)).find((d: any) => d.id === mention.discussionId)?.notes ?? [];
   const text = mention.invocation.kind === 'question' || mention.invocation.kind === 'followup' ? mention.invocation.text : '';
   const { stdout } = await runStreaming(
     CLAUDE_BIN,
-    claudeArgs({ prompt: mentionPrompt(mr, thread.map((n) => ({ author: n.author ?? '?', body: n.body })), text), tools: MENTION_TOOLS, systemPrompt: MENTION_SYSTEM, settings: runSettings(mr.project) }),
+    claudeArgs({ prompt: mentionPrompt(mr, thread.map((n: any) => ({ author: n.author ?? '?', body: n.body })), text), tools: MENTION_TOOLS, systemPrompt: MENTION_SYSTEM, settings: runSettings(mr.project) }),
     { cwd: mr.project.worktreeDir, timeout: TIMEOUT_MS, env: runEnv() },
   );
   const { text: answer, stats } = parseRunOutput(stdout);

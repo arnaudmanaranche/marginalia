@@ -6,7 +6,7 @@ import { TEAM_DIRS, planTeamPlugin, teamRunPlan } from './team-plugin.ts';
 // The I/O half of team-plugin.ts: builds <dataDir>/team-plugin (a manifest and
 // symlinks into the team clone) and tells a run whether to use it.
 
-export const teamPaths = (dataDir) => ({
+export const teamPaths = (dataDir: string) => ({
   teamDir: join(dataDir, 'team'),
   pluginDir: join(dataDir, 'team-plugin'),
   markerFile: join(dataDir, 'team-sync.json'),
@@ -14,7 +14,7 @@ export const teamPaths = (dataDir) => ({
 
 // Each file is replaced atomically (write a temp, rename over), so a review starting
 // during a sync sees the old plugin or the new one, never a gap.
-export async function assemblePlugin({ teamDir, pluginDir }, teamName) {
+export async function assemblePlugin({ teamDir, pluginDir }: { teamDir: string; pluginDir: string }, teamName: string) {
   const present: string[] = [];
   for (const d of TEAM_DIRS) if (await fileExists(join(teamDir, d))) present.push(d);
   const plan = planTeamPlugin({ teamDir, pluginDir, teamName, present });
@@ -34,19 +34,19 @@ export async function assemblePlugin({ teamDir, pluginDir }, teamName) {
 
 // What to add to a headless run: `--plugin-dir` and the deny rules, or nothing when
 // the dev has no team (or none synced yet).
-export async function teamRunExtras(dataDir) {
+export async function teamRunExtras(dataDir: string) {
   const paths = teamPaths(dataDir);
   const assembled = await fileExists(join(paths.pluginDir, '.claude-plugin', 'plugin.json'));
   return teamRunPlan({ ...paths, assembled });
 }
 
 // Names of the skills (folders with a SKILL.md), commands and agents (*.md) of a team clone.
-export async function listTeamContent(teamDir) {
-  const names = async (dir, keep) => (await readdir(join(teamDir, dir), { withFileTypes: true }).catch(() => []))
-    .filter(keep).map((e) => e.name.replace(/\.md$/, '')).sort();
-  const md = (e) => e.isFile() && e.name.endsWith('.md');
+export async function listTeamContent(teamDir: string) {
+  const names = async (dir: string, keep: (e: any) => boolean) => (await readdir(join(teamDir, dir), { withFileTypes: true }).catch(() => []))
+    .filter(keep).map((e: any) => e.name.replace(/\.md$/, '')).sort();
+  const md = (e: any) => e.isFile() && e.name.endsWith('.md');
   const skills: string[] = [];
-  for (const name of await names('skills', (e) => e.isDirectory())) {
+  for (const name of await names('skills', (e: any) => e.isDirectory())) {
     if (await fileExists(join(teamDir, 'skills', name, 'SKILL.md'))) skills.push(name);
   }
   return { skills, commands: await names('commands', md), agents: await names('agents', md) };

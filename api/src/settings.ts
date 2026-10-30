@@ -6,9 +6,9 @@ export const MIN_POLL_MINUTES = 1;
 export const MAX_POLL_MINUTES = 1440;
 export const MAX_STALE_DAYS = 365;
 
-const clamp = (n, min, max) => Math.min(max, Math.max(min, Math.round(n)));
-const toList = (v) => (Array.isArray(v) ? v : String(v ?? '').split(',')).map((s) => String(s).trim()).filter(Boolean);
-const number = (v, fallback) => (Number.isFinite(Number(v)) && v !== '' && v !== null ? Number(v) : fallback);
+const clamp = (n: number, min: number, max: number) => Math.min(max, Math.max(min, Math.round(n)));
+const toList = (v: unknown) => (Array.isArray(v) ? v : String(v ?? '').split(',')).map((s) => String(s).trim()).filter(Boolean);
+const number = (v: unknown, fallback: any) => (Number.isFinite(Number(v)) && v !== '' && v !== null ? Number(v) : fallback);
 
 // What .env says: the default of every setting.
 export const envDefaults = () => ({
@@ -47,25 +47,25 @@ export function loadSettings() {
 export const pollIntervalMs = () => loadSettings().pollIntervalMinutes * 60 * 1000;
 export const staleAfterDays = () => loadSettings().staleAfterDays;
 // The studio's settings (when set) apply to every project; otherwise each project's own list.
-export const allowedTargets = (project) => (readOverrides().allowedTargetBranches === undefined ? project.allowedTargetBranches : loadSettings().allowedTargetBranches);
-export const excludedAuthors = (project) => new Set((readOverrides().excludeAuthors === undefined ? project.excludeAuthors : loadSettings().excludeAuthors).map((s) => s.toLowerCase()));
+export const allowedTargets = (project: any) => (readOverrides().allowedTargetBranches === undefined ? project.allowedTargetBranches : loadSettings().allowedTargetBranches);
+export const excludedAuthors = (project: any) => new Set((readOverrides().excludeAuthors === undefined ? project.excludeAuthors : loadSettings().excludeAuthors).map((s: string) => s.toLowerCase()));
 
-const integerIn = (key, min, max) => (v) => {
+const integerIn = (key: string, min: number, max: number) => (v: any) => {
   const n = Number(v);
   if (v === '' || v === null || !Number.isInteger(n) || n < min || n > max) throw new Error(`${key} must be an integer between ${min} and ${max}`);
   return n;
 };
-const listOf = (key) => (v) => {
+const listOf = (key: string) => (v: any) => {
   if (!Array.isArray(v) || v.some((s) => typeof s !== 'string')) throw new Error(`${key} must be a list of strings`);
   const items = toList(v);
   if (items.some((s) => /[\s,]/.test(s))) throw new Error(`${key} entries cannot contain spaces or commas`);
   return [...new Set(items)];
 };
-const booleanOf = (key) => (v) => {
+const booleanOf = (key: string) => (v: any) => {
   if (typeof v !== 'boolean') throw new Error(`${key} must be true or false`);
   return v;
 };
-const VALIDATORS = {
+const VALIDATORS: Record<string, (v: any) => any> = {
   pollIntervalMinutes: integerIn('pollIntervalMinutes', MIN_POLL_MINUTES, MAX_POLL_MINUTES),
   staleAfterDays: integerIn('staleAfterDays', 1, MAX_STALE_DAYS),
   allowedTargetBranches: listOf('allowedTargetBranches'),
@@ -75,7 +75,7 @@ const VALIDATORS = {
 
 // A key set to null goes back to its .env default. Throws on invalid input so
 // callers can answer 400; nothing is written then.
-export async function saveSettings(patch) {
+export async function saveSettings(patch: any) {
   if (!patch || typeof patch !== 'object' || Array.isArray(patch)) throw new Error('expected an object of settings');
   const unknown = Object.keys(patch).filter((k) => !(k in VALIDATORS));
   if (unknown.length) throw new Error(`unknown setting: ${unknown.join(', ')}`);

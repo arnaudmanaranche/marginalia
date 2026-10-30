@@ -6,17 +6,17 @@ import { recordBelow } from './poll-plan.ts';
 // The work on one MR inside a pass (see poll-pass.ts). Review and triage share one skeleton:
 // mark the MR busy, run, record what was done, notify; on a failure, say why and try again next
 // poll. What differs is this table.
-const KINDS = {
+const KINDS: Record<string, any> = {
   review: {
     label: 'Review',
     ready: 'Review ready',
-    command: (mr) => mr.project.reviewCommand,
-    path: (deps, mr) => deps.reviewPath(mr),
-    run: (deps, mr, { plan }) => {
+    command: (mr: any) => mr.project.reviewCommand,
+    path: (deps: any, mr: any) => deps.reviewPath(mr),
+    run: (deps: any, mr: any, { plan }: any) => {
       const info = plan.stackInfo(mr);
       return deps.runReview(mr, deps.reviewPath(mr), info && { stacks: plan.stacks, info });
     },
-    record: (state, mr, { plan }) => {
+    record: (state: any, mr: any, { plan }: any) => {
       state[mr.iid] = mr.sha;
       recordBelow(state, mr, plan.parentOf(mr));
     },
@@ -24,10 +24,10 @@ const KINDS = {
   triage: {
     label: 'Comment triage',
     ready: 'Comments triaged',
-    command: (mr) => mr.project.triageCommand,
-    path: (deps, mr) => deps.commentsPath(mr),
-    run: (deps, mr) => deps.runMrComments(mr),
-    record: (state, mr, { signal }) => {
+    command: (mr: any) => mr.project.triageCommand,
+    path: (deps: any, mr: any) => deps.commentsPath(mr),
+    run: (deps: any, mr: any) => deps.runMrComments(mr),
+    record: (state: any, mr: any, { signal }: any) => {
       state.mineComments[mr.iid] = signal;
     },
   },
@@ -36,20 +36,20 @@ const KINDS = {
 // A failure that passes by itself (GitLab unreachable, Claude overloaded) brings the next poll
 // closer and raises no alarm; any other one is notified and handed to the doctor, which explains it
 // in the studio.
-async function failed(mr, label, err, { deps, sink, outcome }) {
+async function failed(mr: any, label: string, err: any, { deps, sink, outcome }: any) {
   const failure = failureKind(err.message);
   await sink.setMr(mr, { status: 'failed', error: err.message, failure });
   if (failure.transient) outcome.retrySoon = true;
   else deps.notify(`${label} failed: ${failure.title}`, `!${mr.iid} ${mr.title}`);
   if (needsDoctor(failure) && err.run) {
     void deps.startDoctor({ project: mr.project, fileSlug: err.run.fileSlug, runId: err.run.id, auto: true })
-      .catch((e) => logger.warn({ err: e }, 'Could not start the doctor'));
+      .catch((e: any) => logger.warn({ err: e }, 'Could not start the doctor'));
   }
 }
 
 // `ctx` is what the kind needs of the pass: { plan } for a review, { signal } for a triage.
 // `pass` is { deps, sink, state, outcome }.
-export async function workOnMr(kind, mr, ctx, pass) {
+export async function workOnMr(kind: string, mr: any, ctx: any, pass: any) {
   const { deps, sink, state } = pass;
   const spec = KINDS[kind];
   await sink.begin(mr);
@@ -78,7 +78,7 @@ export async function workOnMr(kind, mr, ctx, pass) {
 // /code-review, or by a previous run of this bot before the state existed) and is newer than the
 // last push, trust it and don't redo the work. A file older than the last push predates some
 // commits, so it falls through to a real review. True when it was trusted.
-export async function trustExistingReview(mr, plan, { deps, sink, state }) {
+export async function trustExistingReview(mr: any, plan: any, { deps, sink, state }: any) {
   if (state[mr.iid] !== undefined || !(await deps.reviewFileCoversLastPush(mr))) return false;
   log(mr, `A review file newer than the last push already exists at ${deps.reviewPath(mr)}, assuming it covers this commit. Skipping.`);
   state[mr.iid] = mr.sha;

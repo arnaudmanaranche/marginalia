@@ -16,13 +16,13 @@ import { join } from 'node:path';
 export const TEAM_DIRS = ['skills', 'commands', 'agents'];
 
 // "Acme Frontend Team" -> "acme-frontend-team"; the namespace of the team's commands.
-export function pluginName(teamName) {
+export function pluginName(teamName?: string | null) {
   const slug = String(teamName ?? '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
   return slug || 'team';
 }
 
 // `present` is the subset of TEAM_DIRS the team repo actually has.
-export function planTeamPlugin({ teamDir, pluginDir, teamName, present }) {
+export function planTeamPlugin({ teamDir, pluginDir, teamName, present }: { teamDir: string, pluginDir: string, teamName?: string | null, present: string[] }) {
   return {
     manifest: {
       path: join(pluginDir, '.claude-plugin', 'plugin.json'),
@@ -38,18 +38,18 @@ export function planTeamPlugin({ teamDir, pluginDir, teamName, present }) {
 // The headless run gets the team files read-only, like the dev's own trusted
 // .claude/{commands,agents,skills,hooks}: a prompt-injected run must not rewrite
 // instructions every later review of the team will follow. `//` is an absolute path.
-export function teamDenyRules({ teamDir, pluginDir }) {
+export function teamDenyRules({ teamDir, pluginDir }: { teamDir: string, pluginDir: string }) {
   return [teamDir, pluginDir].map((dir) => `Edit(/${join(dir)}/**)`);
 }
 
 // Flags and settings to add to a run; empty when no plugin dir was assembled.
-export function teamRunPlan({ pluginDir, teamDir, assembled }) {
+export function teamRunPlan({ pluginDir, teamDir, assembled }: { pluginDir: string, teamDir: string, assembled: boolean }) {
   if (!assembled) return { args: [], deny: [] };
   return { args: ['--plugin-dir', pluginDir], deny: teamDenyRules({ teamDir, pluginDir }) };
 }
 
 // Adds the team's deny rules to the settings object of a run (`claudeSettings` output).
-export function withTeamDeny(settings, plan) {
+export function withTeamDeny(settings: any, plan: { deny: string[] }) {
   if (!plan.deny.length) return settings;
   return { ...settings, permissions: { ...settings.permissions, deny: [...new Set([...(settings.permissions?.deny ?? []), ...plan.deny])] } };
 }

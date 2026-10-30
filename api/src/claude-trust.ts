@@ -10,7 +10,7 @@
  * @param {string[]} paths folders to mark as trusted
  * @returns {{ config: Record<string, any>, added: string[] }}
  */
-export function withTrust(claudeJson, paths) {
+export function withTrust(claudeJson: any, paths: any) {
   const projects = { ...(claudeJson.projects ?? {}) };
   const added: string[] = [];
   for (const path of paths) {

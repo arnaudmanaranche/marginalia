@@ -1,9 +1,9 @@
 // Maps the legacy .env variables to the config shape, as a single project, so an
 // existing install keeps working untouched. Pure: takes the env, returns an object.
-const csv = (v) => String(v ?? '').split(',').map((s) => s.trim()).filter(Boolean);
+const csv = (v: unknown) => String(v ?? '').split(',').map((s) => s.trim()).filter(Boolean);
 
-export function configFromEnv(env) {
-  const command = (value, fallback) => (value === undefined ? fallback : value.trim());
+export function configFromEnv(env: any) {
+  const command = (value: string | undefined, fallback: any) => (value === undefined ? fallback : value.trim());
   return {
     gitlabBaseUrl: env.GITLAB_BASE_URL,
     gitlabUsername: env.GITLAB_USERNAME,
@@ -25,7 +25,7 @@ export function configFromEnv(env) {
 
 // The reverse mapping, for a config.json: the variables the rest of the code
 // still reads, taken from the first project until the poller is multi-project.
-export function envFromConfig(config) {
+export function envFromConfig(config: any) {
   const [project] = config.projects;
   return {
     GITLAB_BASE_URL: config.gitlabBaseUrl,
@@ -49,4 +49,4 @@ export function envFromConfig(config) {
 // environment even when the file never mentions them: `docker run -e CLAUDE_SANDBOX=false`
 // would be ignored. Everything else (GitLab, projects, commands) is config.json's.
 export const ENV_OVERRIDES = ['CLAUDE_BIN', 'CLAUDE_SANDBOX', 'NOTIFICATIONS', 'STUDIO_PORT'];
-export const envOverrides = (env) => Object.fromEntries(ENV_OVERRIDES.filter((k) => env[k] !== undefined && env[k] !== '').map((k) => [k, env[k]]));
+export const envOverrides = (env: any) => Object.fromEntries(ENV_OVERRIDES.filter((k) => env[k] !== undefined && env[k] !== '').map((k) => [k, env[k]]));

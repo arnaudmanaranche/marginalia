@@ -1,8 +1,8 @@
 // The status.json entries of one poll (what the studio's Home and the menu bar
 // list). Pure: paths and timestamps are looked up by the caller.
-const iso = (ms) => (ms === null ? null : new Date(ms).toISOString());
+const iso = (ms: number | null) => (ms === null ? null : new Date(ms).toISOString());
 
-export function reviewEntry(mr, { plan, reviewPath, reviewedAtMs, jira, myState }) {
+export function reviewEntry(mr: any, { plan, reviewPath, reviewedAtMs, jira, myState }: any) {
   const info = plan.stackInfo(mr);
   return {
     project: mr.project.key,
@@ -24,7 +24,7 @@ export function reviewEntry(mr, { plan, reviewPath, reviewedAtMs, jira, myState 
   };
 }
 
-export function commentsEntry(mr, { pending, reviewPath, reviewedAtMs, myState }) {
+export function commentsEntry(mr: any, { pending, reviewPath, reviewedAtMs, myState }: any) {
   return {
     project: mr.project.key,
     iid: mr.iid,

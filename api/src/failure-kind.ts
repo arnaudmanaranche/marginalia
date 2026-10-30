@@ -64,7 +64,7 @@ const UNKNOWN = {
 };
 
 /** @param {string | null | undefined} message @returns {Failure} */
-export function failureKind(message) {
+export function failureKind(message: unknown) {
   const text = String(message ?? '');
   for (const [re, failure] of RULES) if (re.test(text)) return failure;
   return UNKNOWN;
@@ -74,7 +74,7 @@ export function failureKind(message) {
 // a check before the run), and so is what to do.
 const PLAIN = ['claude_login', 'gitlab_auth', 'preflight'];
 /** @param {Failure} failure */
-export const needsDoctor = (failure) => !failure.transient && !PLAIN.includes(failure.kind);
+export const needsDoctor = (failure: Failure) => !failure.transient && !PLAIN.includes(failure.kind);
 
 // How soon a poll comes back after a failure that passes by itself, when the interval is longer.
 export const RETRY_AFTER_MS = 5 * 60_000;

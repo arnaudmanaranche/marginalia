@@ -27,7 +27,7 @@ export const passDeps = {
   loadState,
   saveState,
   allowedTargets,
-  settlesConflicts: (project) => isStaged(project.triageCommand ?? ''),
+  settlesConflicts: (project: any) => isStaged(project.triageCommand ?? ''),
   username: GITLAB_USERNAME,
   notify,
   trackFailure,

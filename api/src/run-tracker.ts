@@ -13,7 +13,7 @@ const FLUSH_MS = 750;
 // menu bar read, and the raw transcript. Nothing here may fail a review: a write that fails is logged.
 // `plan`: the stage list to start from (see STAGES in run-trace.ts), the kind's own by default.
 /** @param {any} mr @param {{ kind: 'review' | 'triage', command: string, outputPath: string, plan?: 'review' | 'triage' | 'staged-review' | 'staged-triage' }} run */
-export async function followRun(mr, { kind, command, outputPath, plan }) {
+export async function followRun(mr: any, { kind, command, outputPath, plan }: any) {
   const at = new Date().toISOString();
   let trace = startTrace({ id: runId(at, kind), slug: reviewId(mr.project, basename(outputPath, '.md')), project: mr.project.key, iid: mr.iid, kind, command, at, plan });
   const transcript = await openTranscript(trace).catch((err) => {
@@ -55,37 +55,37 @@ export async function followRun(mr, { kind, command, outputPath, plan }) {
       return trace.cost;
     },
     /** @param {string} id */
-    stage(id) {
+    stage(id: any) {
       trace = enterStage(trace, id, new Date().toISOString());
       return flush();
     },
     /** @param {string} after @param {[string, string][]} list stages learnt while running, in order */
-    plan(after, list) {
+    plan(after: any, list: any) {
       trace = planStages(trace, after, list);
       return flush();
     },
     /** @param {string} id a stage that runs side by side with others */
-    begin(id) {
+    begin(id: any) {
       trace = beginStage(trace, id, new Date().toISOString());
       return flush();
     },
     /** @param {string} id @param {'done' | 'failed' | 'skipped'} [state] */
-    end(id, state = 'done') {
+    end(id: any, state = 'done') {
       trace = endStage(trace, id, new Date().toISOString(), state);
       return flush();
     },
     /** @param {string} text @param {{ sub?: boolean, stage?: string }} [opts] */
-    step(text, opts) {
+    step(text: string, opts: any) {
       trace = addStep(trace, text, new Date().toISOString(), opts);
       later();
     },
     /** @param {string} line one raw event of the stream */
-    event(line) {
+    event(line: string) {
       transcript?.write(`${line}\n`);
     },
     // Adds up: a staged run makes one Claude call per stage.
     /** @param {{ costUsd: number, turns: number, outputTokens: number }} stats */
-    addCost(stats) {
+    addCost(stats: any) {
       const was = trace.cost ?? { usd: 0, turns: 0, outputTokens: 0 };
       trace = { ...trace, cost: { usd: was.usd + stats.costUsd, turns: was.turns + stats.turns, outputTokens: was.outputTokens + stats.outputTokens } };
     },

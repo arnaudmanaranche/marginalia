@@ -12,7 +12,7 @@ const MAX_PUSHES = 20;
 const MAX_REPORTS = 10;
 
 // The shape of a review and when it was written: the latest one, or an earlier version of it.
-async function reviewSource(project, slug, versionId) {
+async function reviewSource(project: any, slug: string, versionId: any) {
   if (versionId) {
     const old = await artifactAt(project.reviewsDir, slug).readHistory(versionId);
     return old && { shape: old.shape ?? buildShape({ markdown: old.markdown }), at: Date.parse(versionTime(versionId)) };
@@ -23,15 +23,15 @@ async function reviewSource(project, slug, versionId) {
 }
 
 // The files of one tour stop, or all of them.
-async function forStop(project, slug, files, stopId, shape = null) {
+async function forStop(project: any, slug: string, files: any, stopId: any, shape = null) {
   if (!stopId) return files;
-  const stop = ((shape ?? (await artifactAt(project.reviewsDir, slug).readShape())).tour ?? []).find((s) => s.id === stopId);
+  const stop = ((shape ?? (await artifactAt(project.reviewsDir, slug).readShape())).tour ?? []).find((s: any) => s.id === stopId);
   return stop ? filesForPatterns(files, stop.files) : [];
 }
 
 // The changed files of the MR as an earlier review saw it, optionally those of one tour stop.
 // `{ status, error }` when that cannot be told.
-export async function reviewDiff(project, mr, slug, { versionId, stopId = null }) {
+export async function reviewDiff(project: any, mr: any, slug: string, { versionId, stopId = null }: any) {
   const source = await reviewSource(project, slug, versionId);
   if (!source) return { status: 404, error: 'no such version of this review' };
   const versions = await gitlab.listMergeRequestVersions(project, mr.iid);
@@ -43,7 +43,7 @@ export async function reviewDiff(project, mr, slug, { versionId, stopId = null }
 }
 
 // What changed after one push (`from`, its head commit) up to the MR's head now.
-export async function diffSincePush(project, mr, slug, { from, stopId = null }) {
+export async function diffSincePush(project: any, mr: any, slug: string, { from, stopId = null }: any) {
   const versions = await gitlab.listMergeRequestVersions(project, mr.iid);
   if (!isPushHead(versions, from)) return { status: 400, error: 'not the head of one of this merge request\'s pushes' };
   const head = versions[0].head_commit_sha;
@@ -52,9 +52,9 @@ export async function diffSincePush(project, mr, slug, { from, stopId = null }) 
 }
 
 // The commits each recent push added, with my last review on GitLab and the bot's reports marked.
-export async function reviewPushes(project, mr, slug) {
+export async function reviewPushes(project: any, mr: any, slug: string) {
   const versions = (await gitlab.listMergeRequestVersions(project, mr.iid)).slice(0, MAX_PUSHES);
-  const entries: [any, any[]][] = await Promise.all(versions.map(async (v) => [v.id, (await gitlab.getMergeRequestVersion(project, mr.iid, v.id)).commits ?? []]));
+  const entries: [any, any[]][] = await Promise.all(versions.map(async (v: any) => [v.id, (await gitlab.getMergeRequestVersion(project, mr.iid, v.id)).commits ?? []]));
   const commitsByVersion = new Map(entries);
   const artifact = artifactAt(project.reviewsDir, slug);
   const history = (await artifact.listHistory()).slice(0, MAX_REPORTS);

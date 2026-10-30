@@ -10,13 +10,13 @@ const REVIEW_FILE_BLOCK = /<<<REVIEW_FILE path="[^"]*">>>\n([\s\S]*?)\n<<<END_RE
 const MIN_FALLBACK_CHARS = 200;
 const TOOL_DENIED = /(?:tool|permission)[^\n]{0,80}(?:not allowed|denied|not permitted)|(?:not allowed|denied|not permitted)[^\n]{0,80}(?:tool|permission)/i;
 
-export async function clearStaleReport(worktreeDir) {
+export async function clearStaleReport(worktreeDir: string) {
   await Promise.all([REPORT_FILE, FINDINGS_FILE].map((f) => rm(join(worktreeDir, f), { force: true })));
 }
 
 // The structured findings the run wrote, or null. Consumed (removed) so the next
 // run can't pick up a stale one.
-export async function extractFindings(worktreeDir) {
+export async function extractFindings(worktreeDir: string) {
   const path = join(worktreeDir, FINDINGS_FILE);
   try {
     const raw = await readFile(path, 'utf8');
@@ -30,7 +30,7 @@ export async function extractFindings(worktreeDir) {
 // Cascade: report file -> marker block on stdout -> raw stdout. Returns
 // { content, source } where source is 'file' | 'block' | 'stdout', or throws
 // with an actionable message.
-export async function extractReport({ worktreeDir, stdout, stderr = '' }) {
+export async function extractReport({ worktreeDir, stdout, stderr = '' }: { worktreeDir: string; stdout: string; stderr?: string }) {
   const reportPath = join(worktreeDir, REPORT_FILE);
   try {
     const content = await readFile(reportPath, 'utf8');
@@ -59,7 +59,7 @@ export async function extractReport({ worktreeDir, stdout, stderr = '' }) {
 // Everything the bot guarantees about a run's output, whatever the command that
 // produced it: the markdown report, plus a normalized shape (see findings.ts)
 // built from the findings file when there is one, from the report otherwise.
-export async function buildReport({ worktreeDir, stdout, stderr = '' }) {
+export async function buildReport({ worktreeDir, stdout, stderr = '' }: { worktreeDir: string; stdout: string; stderr?: string }) {
   const { content, source } = await extractReport({ worktreeDir, stdout, stderr });
   const findingsRaw = await extractFindings(worktreeDir);
   return { content, source, findingsRaw, shape: buildShape({ markdown: content, findingsRaw }) };

@@ -2,8 +2,8 @@ import { createRoute, type RouteConfig } from '@hono/zod-openapi';
 import { ErrorBody } from '@worldia/marginalia-contract';
 
 // Small helpers so a route reads as what it takes and what it gives.
-export const jsonOf = (schema, description) => ({ description, content: { 'application/json': { schema } } });
-export const jsonBody = (schema) => ({ required: true, content: { 'application/json': { schema } } });
+export const jsonOf = (schema: any, description: string) => ({ description, content: { 'application/json': { schema } } });
+export const jsonBody = (schema: any) => ({ required: true, content: { 'application/json': { schema } } });
 
 const ERRORS = {
   400: 'Invalid input.',

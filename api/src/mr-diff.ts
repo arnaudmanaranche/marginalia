@@ -5,7 +5,7 @@ const HUNK = /^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@\s?(.*)$/;
 
 // A unified diff as lines: { t: 'hunk', text } or { t: 'add' | 'del' | 'ctx', old, new, text }.
 // `old` is null on an added line and `new` on a deleted one.
-export function parseDiff(diff) {
+export function parseDiff(diff: any) {
   const lines: Record<string, any>[] = [];
   let oldNo = 0;
   let newNo = 0;
@@ -31,7 +31,7 @@ export function parseDiff(diff) {
 
 // One changed file as the studio shows it. GitLab leaves `diff` empty for a file
 // it considers too large or collapsed: `omitted` says so instead of showing nothing.
-export function toDiffFile(f) {
+export function toDiffFile(f: any) {
   const lines = parseDiff(f.diff);
   return {
     path: f.new_path,
@@ -45,16 +45,16 @@ export function toDiffFile(f) {
 }
 
 // `*` stays inside a directory, `**` crosses them; anything else is literal.
-export function globToRegExp(glob) {
+export function globToRegExp(glob: string) {
   const body = glob
     .split('**')
-    .map((part) => part.split('*').map((s) => s.replace(/[.+?^${}()|[\]\\]/g, '\\$&')).join('[^/]*'))
+    .map((part: any) => part.split('*').map((s: any) => s.replace(/[.+?^${}()|[\]\\]/g, '\\$&')).join('[^/]*'))
     .join('.*');
   return new RegExp(`^${body}$`);
 }
 
 // The changed files a stop covers, in the order the stop lists them, each once.
-export function filesForPatterns(files, patterns) {
+export function filesForPatterns(files: any, patterns: any) {
   const seen = new Set();
   const out: any[] = [];
   for (const pattern of patterns) {

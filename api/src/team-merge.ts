@@ -14,11 +14,11 @@
 const FIELDS = ['key', 'kind', 'reviewCommand', 'triageCommand', 'allowedTargetBranches', 'excludeAuthors'];
 const FROM_DEFAULTS = new Set(['reviewCommand', 'triageCommand', 'allowedTargetBranches', 'excludeAuthors']);
 
-const isSet = (v) => v !== undefined && v !== null;
-const words = (text) => String(text ?? '').split(/\s+/).filter(Boolean);
+const isSet = (v: unknown) => v !== undefined && v !== null;
+const words = (text: unknown) => String(text ?? '').split(/\s+/).filter(Boolean);
 
-function mergeProject(dev, teamProject, defaults) {
-  const merged = { ...dev };
+function mergeProject(dev: any, teamProject: any, defaults: any) {
+  const merged: Record<string, any> = { ...dev };
   const fromTeam: any[] = [];
   for (const field of FIELDS) {
     if (isSet(dev[field])) continue;
@@ -34,9 +34,9 @@ function mergeProject(dev, teamProject, defaults) {
 
 // The two settings that live in the environment, not in config.json. The dev's
 // REVIEW_PROMPT_EXTRA wins; extra tools are added to theirs, never replacing them.
-function mergeGlobals(defaults, env) {
+function mergeGlobals(defaults: any, env: Record<string, any>) {
   const devTools = words(env.CLAUDE_EXTRA_ALLOWED_TOOLS);
-  const teamTools = (defaults.claudeExtraAllowedTools ?? []).filter((t) => !devTools.includes(t));
+  const teamTools = (defaults.claudeExtraAllowedTools ?? []).filter((t: string) => !devTools.includes(t));
   const devExtra = (env.REVIEW_PROMPT_EXTRA ?? '').trim();
   const teamExtra = (defaults.reviewPromptExtra ?? '').trim();
   return {
@@ -48,21 +48,21 @@ function mergeGlobals(defaults, env) {
 }
 
 // -> { config, fromTeam: [{ project, field, value, source }], unmapped: [teamProject], globals }
-export function mergeTeam(rawConfig, team, { env = {} } = {}) {
+export function mergeTeam(rawConfig: any, team: any, { env = {} }: { env?: Record<string, any> } = {}) {
   const defaults = team?.defaults ?? {};
   const teamProjects = team?.projects ?? [];
-  const byId = new Map(teamProjects.map((p) => [p.gitlabProjectId, p]));
+  const byId = new Map(teamProjects.map((p: any) => [p.gitlabProjectId, p]));
   const fromTeam: any[] = [];
-  const projects = (rawConfig.projects ?? []).map((dev) => {
+  const projects = (rawConfig.projects ?? []).map((dev: any) => {
     const result = mergeProject(dev, byId.get(dev.gitlabProjectId), defaults);
     fromTeam.push(...result.fromTeam);
     return result.merged;
   });
-  const mapped = new Set(projects.map((p) => p.gitlabProjectId));
+  const mapped = new Set(projects.map((p: any) => p.gitlabProjectId));
   return {
     config: { ...rawConfig, projects },
     fromTeam,
-    unmapped: teamProjects.filter((p) => !mapped.has(p.gitlabProjectId)),
+    unmapped: teamProjects.filter((p: any) => !mapped.has(p.gitlabProjectId)),
     globals: mergeGlobals(defaults, env),
   };
 }

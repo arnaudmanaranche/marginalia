@@ -2,9 +2,9 @@
 // systemd user unit (Linux). Pure (no config or I/O import), so it is unit-tested as
 // strings; scripts/service-*.ts write them and talk to launchctl / systemctl.
 
-const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const esc = (s: unknown) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-export function plistXml(label, keys) {
+export function plistXml(label: string, keys: string) {
   return `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -19,7 +19,7 @@ ${keys}
 // launchd starts with a bare PATH: the caller passes the one of the shell that
 // installs it, so `claude`, `git` and terminal-notifier resolve as under `npm start`.
 // `env` is what else the bot needs (MARGINALIA_HOME for a custom data dir).
-export function botPlistKeys({ nodePath, script, workingDir, path, logFile, env = {} }) {
+export function botPlistKeys({ nodePath, script, workingDir, path, logFile, env = {} }: { nodePath: string, script: string, workingDir: string, path: string, logFile: string, env?: Record<string, string> }) {
   const variables = Object.entries({ PATH: path, ...env }).map(([key, value]) => `    <key>${esc(key)}</key><string>${esc(value)}</string>`).join('\n');
   return `  <key>ProgramArguments</key>
   <array>
@@ -39,7 +39,7 @@ ${variables}
 }
 
 // A one-shot `open`: SwiftBar is a regular app, launchd only starts it.
-export function swiftbarPlistKeys(appPath) {
+export function swiftbarPlistKeys(appPath: string) {
   return `  <key>ProgramArguments</key>
   <array>
     <string>/usr/bin/open</string>
@@ -50,9 +50,9 @@ export function swiftbarPlistKeys(appPath) {
 }
 
 // systemd splits ExecStart on spaces and expands % and $: quote each word and escape them.
-const unitWord = (s) => `"${String(s).replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/%/g, '%%').replace(/\$/g, '$$$$')}"`;
+const unitWord = (s: unknown) => `"${String(s).replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/%/g, '%%').replace(/\$/g, '$$$$')}"`;
 
-export function systemdUnit({ nodePath, script, workingDir, path, env = {} }) {
+export function systemdUnit({ nodePath, script, workingDir, path, env = {} }: { nodePath: string, script: string, workingDir: string, path: string, env?: Record<string, string> }) {
   const environment = Object.entries({ PATH: path, ...env })
     .filter(([, v]) => v)
     .map(([k, v]) => `Environment=${unitWord(`${k}=${v}`)}`);
@@ -74,14 +74,14 @@ WantedBy=default.target
 }
 
 // How to keep the bot running on a platform with neither launchd nor systemd --user.
-export function manualInstructions({ nodePath, script }) {
+export function manualInstructions({ nodePath, script }: { nodePath: string, script: string }) {
   return `No launchd or systemd --user on this platform. Keep it running with pm2:
   npm i -g pm2
   pm2 start ${script} --name marginalia --interpreter ${nodePath}
   pm2 save && pm2 startup`;
 }
 
-export function servicePlatform(platform) {
+export function servicePlatform(platform: string) {
   if (platform === 'darwin') return 'launchd';
   if (platform === 'linux') return 'systemd';
   return 'manual';

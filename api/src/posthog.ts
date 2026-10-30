@@ -4,11 +4,11 @@
 /**
  * @param {{ host: string, key: string, fetchFn?: (url: string, init: any) => Promise<{ ok: boolean, status: number }>, timeoutMs?: number, chunk?: number }} options
  */
-export function createPosthogClient({ host, key, fetchFn = (url, init) => fetch(url, init), timeoutMs = 5000, chunk = 100 }) {
+export function createPosthogClient({ host, key, fetchFn = (url: string, init: any) => fetch(url, init), timeoutMs = 5000, chunk = 100 }: any) {
   const url = `${host.replace(/\/+$/, '')}/batch/`;
   return {
     /** @param {object[]} events -> { sent, failed, error } */
-    async send(events) {
+    async send(events: any) {
       let sent = 0;
       let failed = 0;
       /** @type {string | null} */
@@ -36,7 +36,7 @@ export function createPosthogClient({ host, key, fetchFn = (url, init) => fetch(
 // project API key `phc_...`, which can only write events) turn it on; MARGINALIA_TELEMETRY=off turns
 // it off whatever else is set. The host has no default: US and EU are different places.
 /** @param {Record<string, string | undefined>} env */
-export function posthogFromEnv(env) {
+export function posthogFromEnv(env: any) {
   if (env.MARGINALIA_TELEMETRY === 'off' || !env.POSTHOG_KEY) return { client: null, problem: null };
   if (!env.POSTHOG_HOST) return { client: null, problem: 'POSTHOG_KEY is set but POSTHOG_HOST is not: no events are sent.' };
   return { client: createPosthogClient({ host: env.POSTHOG_HOST, key: env.POSTHOG_KEY }), problem: null };

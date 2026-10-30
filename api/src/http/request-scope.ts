@@ -15,10 +15,10 @@ export const currentScope = (): Scope | undefined => store.getStore();
 // The watched projects this request may see.
 export const visibleProjects = () => {
   const scope = currentScope();
-  return scope ? PROJECTS.filter((p) => scope.projects.includes(p.key)) : PROJECTS;
+  return scope ? PROJECTS.filter((p: any) => scope.projects.includes(p.key)) : PROJECTS;
 };
 
 // The GitLab seam the routes talk to: the signed-in person's when there is one, else `fallback`.
 export const scopedGitlab = (fallback = defaultGitlab): typeof defaultGitlab => new Proxy(fallback, {
-  get: (target, name) => (...args) => ((currentScope()?.gitlab ?? target) as any)[name](...args),
+  get: (target, name) => (...args: any[]) => ((currentScope()?.gitlab ?? target) as any)[name](...args),
 });

@@ -7,12 +7,12 @@ import { notTracked } from './read-kit.ts';
 import { pollerAlive } from './poller-alive.ts';
 
 // Controlling the bot: its settings, its status, polling now and re-running one MR.
-export function botRoutes(app) {
+export function botRoutes(app: any) {
   app.openapi(route({
     method: 'put', path: '/api/settings', tags: ['Settings'], operationId: 'putSettings',
     summary: 'Change settings', description: 'Saved to `settings.json`; the poller picks it up at once. Applies to every project.',
     request: { body: jsonBody(SettingsPatch) }, responses: { 200: jsonOf(SettingsAnswer, 'The settings now in force, and the defaults.') }, errors: [400, 403, 415],
-  }), async (c) => {
+  }), async (c: any) => {
     try {
       return c.json({ settings: await saveSettings(c.req.valid('json')), defaults: envDefaults() }, 200);
     } catch (err) {
@@ -25,7 +25,7 @@ export function botRoutes(app) {
     method: 'get', path: '/api/status', tags: ['Reviews'], operationId: 'getStatus',
     summary: 'The bot\'s status and whether it is running', description: 'Light: `status.json` as is, plus `alive`. For the menu bar.',
     responses: { 200: jsonOf(BotState, 'The status.') },
-  }), async (c) => {
+  }), async (c: any) => {
     const status = await readStatus();
     return c.json({ status, alive: pollerAlive(status) }, 200);
   });
@@ -34,7 +34,7 @@ export function botRoutes(app) {
   app.openapi(route({
     method: 'post', path: '/api/poll', tags: ['Reviews'], operationId: 'pollNow',
     summary: 'Poll now', responses: { 200: jsonOf(Ok, 'The poller was nudged.') }, errors: [403, 409],
-  }), async (c) => {
+  }), async (c: any) => {
     const status = await readStatus();
     if (!pollerAlive(status)) return c.json({ error: 'the bot is not running' }, 409);
     if (status.phase === 'polling' || status.phase === 'reviewing') return c.json({ error: 'a poll is already running' }, 409);
@@ -51,13 +51,13 @@ export function botRoutes(app) {
     method: 'post', path: '/api/rerun', tags: ['Reviews'], operationId: 'rerunReview',
     summary: 'Queue a fresh review of one MR', request: { body: jsonBody(SlugBody) },
     responses: { 200: jsonOf(Rerun, 'Queued; the poller was nudged.') }, errors: [400, 403, 404, 409, 415],
-  }), async (c) => {
+  }), async (c: any) => {
     const found = await locate(c.req.valid('json').slug);
     if (!found?.mr) return notTracked(c);
     const { project, mr, status } = found;
     if (!pollerAlive(status)) return c.json({ error: 'the bot is not running: start it with npm start' }, 409);
     if (status.phase !== 'idle' && status.phase !== 'error') return c.json({ error: 'a run is in progress, try again when it is done' }, 409);
-    const state = await loadState(project);
+    const state: any = await loadState(project);
     if (mr.kind === 'comments') state.mineComments[mr.iid] = null;
     else state[mr.iid] = null;
     await saveState(project, state);

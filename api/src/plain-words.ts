@@ -15,7 +15,7 @@ const CODE_LIKE = [
 ];
 
 // The first code-looking word of the text, or null.
-export function technicalWord(text) {
+export function technicalWord(text: unknown) {
   for (const token of String(text ?? '').split(/\s+/)) {
     const word = token.replace(/^[("'[]+|["'\].,;:!?]+$/g, '');
     if (word && !PLAIN.test(word) && CODE_LIKE.some((re) => re.test(word)) && !/^(e\.g|i\.e)$/i.test(word)) return word;
@@ -23,4 +23,4 @@ export function technicalWord(text) {
   return null;
 }
 
-export const firstSentence = (text) => String(text ?? '').split(/(?<=[.!?])\s/)[0];
+export const firstSentence = (text: unknown) => String(text ?? '').split(/(?<=[.!?])\s/)[0];

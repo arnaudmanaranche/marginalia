@@ -11,7 +11,7 @@ import { assemblePlugin, listTeamContent, teamPaths } from './team-claude.ts';
 /** @param {{ config?: any, env?: NodeJS.ProcessEnv }} [options] */
 export const teamRepoUrl = ({ config, env = process.env }: { config?: any; env?: NodeJS.ProcessEnv } = {}) => (env.MARGINALIA_TEAM_REPO || config?.teamRepo || '').trim() || null;
 
-export async function readMarker(dataDir) {
+export async function readMarker(dataDir: string) {
   try {
     return JSON.parse(await readFile(teamPaths(dataDir).markerFile, 'utf8'));
   } catch {
@@ -19,7 +19,7 @@ export async function readMarker(dataDir) {
   }
 }
 
-async function writeMarker(dataDir, marker) {
+async function writeMarker(dataDir: string, marker: any) {
   const { markerFile } = teamPaths(dataDir);
   await writeFile(`${markerFile}.tmp`, `${JSON.stringify(marker, null, 2)}\n`);
   await rename(`${markerFile}.tmp`, markerFile);
@@ -27,7 +27,7 @@ async function writeMarker(dataDir, marker) {
 
 // The copy on disk, parsed: { present, team, errors, tooOld, content } (no network).
 /** @returns {Promise<{ present: boolean, ok?: boolean, team?: any, errors?: string[], tooOld?: boolean, content?: any }>} */
-export async function loadTeam(dataDir, running) {
+export async function loadTeam(dataDir: string, running: any) {
   const { teamDir } = teamPaths(dataDir);
   if (!(await fileExists(teamDir))) return { present: false };
   let raw;
@@ -44,10 +44,10 @@ export async function loadTeam(dataDir, running) {
 // -> { status: 'cloned'|'updated'|'unchanged'|'failed', kind?, error?, before, after }.
 // Never throws for an expected failure (offline, dirty, diverged); the outcome is
 // recorded in team-sync.json so doctor can say when the last attempt failed.
-export async function syncTeam({ dataDir, url, running, now = () => new Date() }) {
+export async function syncTeam({ dataDir, url, running, now = () => new Date() }: any) {
   if (!url) return { status: 'failed', kind: 'no-repo', error: 'No team repo configured: set teamRepo in config.json or MARGINALIA_TEAM_REPO.' };
   const paths = teamPaths(dataDir);
-  let result;
+  let result: any;
   try {
     const moved = (await fileExists(paths.teamDir)) ? await updateTeam(url, paths.teamDir) : await cloneTeam(url, paths.teamDir);
     result = { ...moved, status: !moved.before ? 'cloned' : moved.before === moved.after ? 'unchanged' : 'updated' };

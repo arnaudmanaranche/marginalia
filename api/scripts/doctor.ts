@@ -44,7 +44,7 @@ export async function runDoctor(argv: string[] = process.argv.slice(2)) {
   Number(process.versions.node.split('.')[0]) >= 22 ? ok(`Node ${process.versions.node}`) : bad(`Node ${process.versions.node}`, 'Node 22+ required (nvm use)');
   const configFile = join(cfg.DATA_DIR, 'config.json');
   if (cfg.FILE_CONFIG) ok(`Config: ${configFile}`);
-  else if (findCloneRoot(cfg.ROOT)) ok(`Config: ${join(findCloneRoot(cfg.ROOT), '.env')} (single project; \`marginalia migrate\` converts it to config.json)`);
+  else if (findCloneRoot(cfg.ROOT)) ok(`Config: ${join(findCloneRoot(cfg.ROOT) as string, '.env')} (single project; \`marginalia migrate\` converts it to config.json)`);
   else bad('No config.json or .env', 'marginalia init');
   const missing = cfg.missingConfig();
   missing.length ? bad(`Missing in the config: ${missing.join(', ')}`, 'marginalia init') : ok('Required config values present');
@@ -104,7 +104,7 @@ export async function runDoctor(argv: string[] = process.argv.slice(2)) {
     const { mergeTeam } = await import('../src/team-merge.ts');
     const { RUNNING_VERSION } = await import('../src/config-team.ts');
     const loaded: { present: boolean; ok?: boolean; team?: any } = await loadTeam(cfg.DATA_DIR, RUNNING_VERSION);
-    const dev = { projects: PROJECTS.map((p) => ({ gitlabProjectId: p.gitlabProjectId })) };
+    const dev = { projects: PROJECTS.map((p: any) => ({ gitlabProjectId: p.gitlabProjectId })) };
     for (const c of teamChecks({
       url: teamRepoUrl({ config: cfg.FILE_CONFIG }),
       marker: await readMarker(cfg.DATA_DIR),
@@ -130,7 +130,7 @@ export async function runDoctor(argv: string[] = process.argv.slice(2)) {
     const iid = argv[dryIdx + 1];
     const keyIdx = argv.indexOf('--project');
     const project = keyIdx === -1 ? PROJECTS[0] : projectByKey(argv[keyIdx + 1]);
-    if (!project) bad(`No project "${argv[keyIdx + 1]}"`, `known: ${PROJECTS.map((p) => p.key).join(', ')}`);
+    if (!project) bad(`No project "${argv[keyIdx + 1]}"`, `known: ${PROJECTS.map((p: any) => p.key).join(', ')}`);
     console.log(`\nDry run on MR !${iid} [${project?.key}]`);
     const { getMergeRequest } = (await import('../src/gitlab-api.ts')).gitlab;
     const { ensureBotWorktree } = await import('../src/worktree.ts');

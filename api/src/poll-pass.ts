@@ -16,7 +16,7 @@ import { trustExistingReview, workOnMr } from './poll-pass-mr.ts';
 //   allowedTargets(project), settlesConflicts(project), username, notify(title, message, path),
 //   trackFailure({ mr, kind, command, error }), startDoctor({ project, fileSlug, runId, auto }).
 // sink: begin(mr), setMr(mr, patch), end(), entriesOf(project), setEntries(project, entries).
-export async function passOver(project, deps, sink) {
+export async function passOver(project: any, deps: any, sink: any) {
   const state = await deps.loadState(project);
   const plan = planMergeRequests({
     openMrs: await deps.listOpenMergeRequests(project),
@@ -27,12 +27,12 @@ export async function passOver(project, deps, sink) {
   });
   const { reviewMrs, myMrs } = plan;
 
-  const toReview = reviewMrs.filter((mr) => !plan.isCurrent(mr));
-  const peerCommentAts = await Promise.all(myMrs.map((mr) => deps.latestPeerCommentAt(mr)));
+  const toReview = reviewMrs.filter((mr: any) => !plan.isCurrent(mr));
+  const peerCommentAts = await Promise.all(myMrs.map((mr: any) => deps.latestPeerCommentAt(mr)));
   // GitLab's has_conflicts: the staged triage merges the target in and settles them.
   const settles = deps.settlesConflicts(project);
-  const mine = myMrs.map((mr, i) => ({ mr, signal: triageSignal(peerCommentAts[i], settles && mr.has_conflicts ? mr.sha : null) }));
-  const toTriage = mine.filter(({ mr, signal }) => needsTriage(state, mr, signal));
+  const mine = myMrs.map((mr: any, i: any) => ({ mr, signal: triageSignal(peerCommentAts[i], settles && mr.has_conflicts ? mr.sha : null) }));
+  const toTriage = mine.filter(({ mr, signal }: any) => needsTriage(state, mr, signal));
 
   await sink.setEntries(project, await buildEntries({ project, plan, state, mine, previous: sink.entriesOf(project), deps }));
   logger.info({ project: project.key }, `${reviewMrs.length} MR(s) to review, ${myMrs.length} of my own — ${toReview.length} need a review, ${toTriage.length} need comment triage.`);
@@ -44,7 +44,7 @@ export async function passOver(project, deps, sink) {
   }
   for (const { mr, signal } of toTriage) await workOnMr('triage', mr, { signal }, pass);
 
-  pruneState(state, new Set(reviewMrs.map((mr) => String(mr.iid))), new Set(myMrs.map((mr) => String(mr.iid))));
+  pruneState(state, new Set(reviewMrs.map((mr: any) => String(mr.iid))), new Set(myMrs.map((mr: any) => String(mr.iid))));
   await deps.saveState(project, state);
   return outcome;
 }

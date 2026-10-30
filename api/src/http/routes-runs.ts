@@ -10,12 +10,12 @@ import { jsonOf, route } from './route-kit.ts';
 
 // The runs of the bot on one review: queued, running, done or failed, each with the stages it went
 // through. They are read from the run journal, so an MR with no report yet has them too.
-export function runRoutes(app) {
+export function runRoutes(app: any) {
   app.openapi(route({
     method: 'get', path: '/api/reviews/{slug}/runs', tags: ['Runs'], operationId: 'listRuns',
     summary: 'The runs of one review', description: 'Newest first, without their steps. The one in progress has `outcome: running`.',
     request: { params: z.object({ slug: ReviewId }) }, responses: { 200: jsonOf(Runs, 'The runs.') }, errors: [400],
-  }), async (c) => {
+  }), async (c: any) => {
     const where = parseReviewId(c.req.valid('param').slug, visibleProjects());
     if (!where) return c.json({ error: 'bad slug' }, 400);
     return c.json({ runs: await listTraces(where.project.key, where.slug) }, 200);
@@ -25,7 +25,7 @@ export function runRoutes(app) {
     method: 'get', path: '/api/reviews/{slug}/runs/{runId}', tags: ['Runs'], operationId: 'getRun',
     summary: 'One run with its steps', request: { params: z.object({ slug: ReviewId, runId: z.string().regex(/^[\w-]+$/) }) },
     responses: { 200: jsonOf(RunTrace, 'The run.') }, errors: [400, 404],
-  }), async (c) => {
+  }), async (c: any) => {
     const { slug, runId } = c.req.valid('param');
     const where = parseReviewId(slug, visibleProjects());
     if (!where) return c.json({ error: 'bad slug' }, 400);
@@ -41,7 +41,7 @@ export function runRoutes(app) {
     summary: 'Ask the doctor why a run failed', description: 'Starts a read-only Claude run that reads the failed run and Marginalia\'s code; its diagnosis shows on the run when done.',
     request: { params: z.object({ slug: ReviewId, runId: z.string().regex(/^[\w-]+$/) }) },
     responses: { 200: jsonOf(Ok, 'Started.') }, errors: [400, 404, 409],
-  }), async (c) => {
+  }), async (c: any) => {
     const { slug, runId } = c.req.valid('param');
     const where = parseReviewId(slug, visibleProjects());
     if (!where) return c.json({ error: 'bad slug' }, 400);
@@ -60,7 +60,7 @@ export function runRoutes(app) {
       method: 'post', path, tags: ['Runs'], operationId, summary,
       request: { params: z.object({ slug: ReviewId, runId: z.string().regex(/^[\w-]+$/) }) },
       responses: { 200: jsonOf(Ok, 'Done or started.') }, errors: [400, 404, 409, 502],
-    }), async (c) => {
+    }), async (c: any) => {
       const { slug, runId } = c.req.valid('param');
       const where = parseReviewId(slug, visibleProjects());
       if (!where) return c.json({ error: 'bad slug' }, 400);

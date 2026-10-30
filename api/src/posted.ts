@@ -9,45 +9,45 @@ import { postedKey } from './state-shape.ts';
 /** @param {() => import('node:sqlite').DatabaseSync} [dbOf] */
 export function postedRecord(dbOf = getDb) {
   const entries = () => Object.entries(readPosted(dbOf())).map(([key, info]) => ({ key, projectKey: key.split('/')[0], info }));
-  const draftWith = (projectKey, draftId, iid) => entries().find((e) => e.projectKey === projectKey && e.info.state === 'draft' && e.info.draftId === draftId && e.info.iid === iid);
+  const draftWith = (projectKey: string, draftId: any, iid: any) => entries().find((e) => e.projectKey === projectKey && e.info.state === 'draft' && e.info.draftId === draftId && e.info.iid === iid);
 
   return {
     // Every entry, by key (what the studio list sends to the page).
     all: () => readPosted(dbOf()),
     entries,
 
-    find: (projectKey, slug, commentId) => readPosted(dbOf())[postedKey(projectKey, slug, commentId)],
+    find: (projectKey: string, slug: string, commentId: string) => readPosted(dbOf())[postedKey(projectKey, slug, commentId)],
 
     // Records a comment as a draft note. Returns the entry.
-    recordDraft(projectKey, slug, commentId, info) {
+    recordDraft(projectKey: string, slug: string, commentId: string, info: any) {
       const entry = { at: new Date().toISOString(), state: 'draft', ...info };
       upsertPosted(dbOf(), postedKey(projectKey, slug, commentId), entry);
       return entry;
     },
 
     // The pending drafts of one review: [{ key, info }].
-    draftsOf: (projectKey, slug) => entries().filter((e) => e.key.startsWith(`${postedKey(projectKey, slug, '')}`) && e.info.state === 'draft'),
+    draftsOf: (projectKey: string, slug: string) => entries().filter((e) => e.key.startsWith(`${postedKey(projectKey, slug, '')}`) && e.info.state === 'draft'),
 
     // A draft that went out with its review, or that GitLab shows as published; `url` is its deep link, `at` when it did.
-    publish(key, url, at = new Date().toISOString()) {
+    publish(key: string, url: string, at = new Date().toISOString()) {
       const { draftId, ...rest } = readPosted(dbOf())[key];
       upsertPosted(dbOf(), key, { ...rest, state: 'published', at, url });
     },
 
     // Keeps the record in step with a draft edited or deleted on GitLab: false when it was not recorded.
-    editDraft(projectKey, draftId, iid, body) {
+    editDraft(projectKey: string, draftId: any, iid: any, body: string) {
       const found = draftWith(projectKey, draftId, iid);
       if (found) upsertPosted(dbOf(), found.key, { ...found.info, body });
       return Boolean(found);
     },
-    forgetDraft(projectKey, draftId, iid) {
+    forgetDraft(projectKey: string, draftId: any, iid: any) {
       const found = draftWith(projectKey, draftId, iid);
       if (found) deletePosted(dbOf(), found.key);
       return Boolean(found);
     },
 
     // A comment deleted on GitLab can be posted again.
-    forget: (key) => deletePosted(dbOf(), key),
+    forget: (key: string) => deletePosted(dbOf(), key),
   };
 }
 

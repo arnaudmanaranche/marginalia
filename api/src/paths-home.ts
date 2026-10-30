@@ -15,7 +15,7 @@ import { join } from 'node:path';
  * @param {string} root
  * @param {(path: string) => boolean} [exists]
  */
-export const findCloneRoot = (root, exists = existsSync) => [root, join(root, '..')].find((dir) => exists(join(dir, '.env'))) ?? null;
+export const findCloneRoot = (root: string, exists = existsSync) => [root, join(root, '..')].find((dir) => exists(join(dir, '.env'))) ?? null;
 
 /**
  * @param {{ env?: NodeJS.ProcessEnv, root?: string, home?: string, exists?: (path: string) => boolean }} [options]

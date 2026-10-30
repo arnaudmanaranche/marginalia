@@ -22,14 +22,14 @@ const DECISIONS: [RegExp, string | null][] = [
   [/^requested changes/i, 'changes_requested'],
   [/^unapproved this merge request/i, null],
 ];
-const REVIEWER_STATES = { approved: 'approved', requested_changes: 'changes_requested' };
+const REVIEWER_STATES: Record<string, string> = { approved: 'approved', requested_changes: 'changes_requested' };
 
-const newest = (times) => times.filter((t) => Number.isFinite(t)).reduce((a, b) => Math.max(a, b), -Infinity);
-const iso = (ms) => (Number.isFinite(ms) && ms > -Infinity ? new Date(ms).toISOString() : null);
+const newest = (times: number[]) => times.filter((t) => Number.isFinite(t)).reduce((a: number, b: number) => Math.max(a, b), -Infinity);
+const iso = (ms: any) => (Number.isFinite(ms) && ms > -Infinity ? new Date(ms).toISOString() : null);
 
-export function computeReviewState({ me, author, discussions, reviewers = [] as any[], approvedBy = [] as any[], lastPushAt = null, drafts = 0, now = Date.now() }) {
-  const notes = discussions.flatMap((d) => d.notes ?? []);
-  const time = (n) => Date.parse(n.created_at);
+export function computeReviewState({ me, author, discussions, reviewers = [] as any[], approvedBy = [] as any[], lastPushAt = null, drafts = 0, now = Date.now() }: { me: any; author?: any; discussions: any[]; reviewers?: any[]; approvedBy?: any[]; lastPushAt?: any; drafts?: number; now?: number }) {
+  const notes = discussions.flatMap((d: any) => d.notes ?? []);
+  const time = (n: any) => Date.parse(n.created_at);
   const mine = notes.filter((n) => n.author?.username === me);
   const decisions = mine
     .filter((n) => n.system)
@@ -40,13 +40,13 @@ export function computeReviewState({ me, author, discussions, reviewers = [] as 
   const reviewer = reviewers.find((r) => r.user?.username === me);
 
   // The reviewer entry is GitLab's own record when I was asked to review; otherwise the notes say.
-  const fromNotes = decisions.at(-1)?.decision[1] ?? null;
+  const fromNotes = decisions.at(-1)?.decision?.[1] ?? null;
   const decision = approvedBy.includes(me) ? 'approved' : reviewer ? (REVIEWER_STATES[reviewer.state] ?? fromNotes) : fromNotes;
   const reviewerActed = reviewer && ['reviewed', 'approved', 'requested_changes'].includes(reviewer.state);
 
   const others = notes.filter((n) => !n.system && n.author?.username !== me && !isBotAuthor(n.author));
   const unresolved = discussions.filter((d) => {
-    const first = (d.notes ?? []).find((n) => !n.system);
+    const first = (d.notes ?? []).find((n: any) => !n.system);
     return first?.resolvable && !first.resolved;
   }).length;
 

@@ -11,7 +11,7 @@ import { getDb } from './store.ts';
 // review, and one warning per process is all it says about it.
 let warned = false;
 
-function send(event) {
+function send(event: any) {
   const { client, problem } = posthogFromEnv(process.env);
   if (problem && !warned) {
     warned = true;
@@ -29,7 +29,7 @@ function send(event) {
 const context = () => ({ reviewer: GITLAB_USERNAME, version: RUNNING_VERSION, container: process.env.MARGINALIA_CONTAINER === '1' });
 
 /** A finished run: `run` is the row appendRun wrote, `report` what the report contained. */
-export function trackRun({ run, report }) {
+export function trackRun({ run, report }: { run: any; report: any }) {
   try {
     let runNumber = 1;
     try {
@@ -42,7 +42,7 @@ export function trackRun({ run, report }) {
 }
 
 /** A pass that threw: only its class of failure is sent, never the message. */
-export function trackFailure({ mr, kind, command, error }) {
+export function trackFailure({ mr, kind, command, error }: { mr: any; kind: any; command: any; error: any }) {
   try {
     send(failureEvent({ project: mr.project?.key, iid: mr.iid, kind, command, error: String(error?.message ?? error), at: new Date().toISOString(), ...context() }));
   } catch (err) {

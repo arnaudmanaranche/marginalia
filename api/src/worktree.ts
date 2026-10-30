@@ -10,14 +10,14 @@ import { fileExists } from './paths.ts';
 import { botWorktreeProblem, foreignWorktrees, foreignWorktreesMessage } from './worktree-guard.ts';
 
 // In the container image: the reason this repo cannot be worked in from here, or null.
-export async function containerRepoProblem(repoPath) {
+export async function containerRepoProblem(repoPath: string) {
   if (process.env.MARGINALIA_CONTAINER !== '1') return null;
   const foreign = foreignWorktrees(await worktreePorcelain(repoPath), existsSync);
   return foreign.length ? foreignWorktreesMessage(repoPath, foreign) : null;
 }
 
 // Throws unless `dir` is a git worktree of its own (see worktree-guard.ts).
-export async function assertBotWorktree(dir) {
+export async function assertBotWorktree(dir: string) {
   const top = await worktreeTop(dir);
   const problem = botWorktreeProblem(await realpath(dir), top && (await realpath(top)));
   if (problem) throw new Error(problem);
@@ -27,7 +27,7 @@ export async function assertBotWorktree(dir) {
 // to this bot, with a .claude symlink so /code-review, the code-reviewer
 // agent, and the GitLab/Atlassian connectors are available in it exactly as
 // in your real checkout.
-export async function ensureBotWorktree(project) {
+export async function ensureBotWorktree(project: any) {
   const { repoPath: REPO_LOCAL_PATH, worktreeDir: BOT_WORKTREE_DIR } = project;
   const claudeLink = join(BOT_WORKTREE_DIR, '.claude');
 
@@ -65,21 +65,21 @@ export async function ensureBotWorktree(project) {
   // Never `git worktree prune` here: it deletes the registration of every worktree whose folder is
   // not visible right now (an unplugged drive, another mount of this repo), including ones that are
   // not ours. Entries left behind by a crashed EnterWorktree cycle are only reported.
-  const stale = (await listWorktrees(REPO_LOCAL_PATH)).filter((w) => w.prunable);
+  const stale = (await listWorktrees(REPO_LOCAL_PATH)).filter((w: any) => w.prunable);
   if (stale.length) logger.info({ project: project.key }, `${stale.length} stale worktree entr${stale.length === 1 ? 'y' : 'ies'} in ${REPO_LOCAL_PATH} (their folders are gone). If none is on an unplugged drive, \`git worktree prune\` there clears them.`);
 }
 
 // Refuses to review if the MR's branch is checked out in some other worktree
 // (most likely your own day-to-day checkout) — checking it out here too would
 // fail, and forcing it would be surprising for whatever has it checked out.
-export async function branchCheckedOutElsewhere(project, branchName) {
+export async function branchCheckedOutElsewhere(project: any, branchName: string) {
   const { repoPath: REPO_LOCAL_PATH, worktreeDir: BOT_WORKTREE_DIR } = project;
   if (BOT_CHECKOUT === 'detached') return false;
   const entries = await listWorktrees(REPO_LOCAL_PATH);
-  return entries.some((e) => e.branch === branchName && e.path !== BOT_WORKTREE_DIR);
+  return entries.some((e: any) => e.branch === branchName && e.path !== BOT_WORKTREE_DIR);
 }
 
-export async function checkoutMergeRequest(mr) {
+export async function checkoutMergeRequest(mr: any) {
   const BOT_WORKTREE_DIR = mr.project.worktreeDir;
   await assertBotWorktree(BOT_WORKTREE_DIR);
   // A run can leave changes to tracked files (a triage whose commit failed), which

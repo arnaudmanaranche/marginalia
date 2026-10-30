@@ -7,8 +7,7 @@ import { updateRef } from './git-refs.ts';
 // messages and author dates, merges kept, only the names change. They were never pushed, so
 // nobody holds the old commits. The fixes ref moves only if nothing moved it meanwhile.
 // `status` is a `ready` fixesStatus(). -> true when the fixes were rewritten.
-/** @param {{ repoPath: string }} project @param {{ ref: string, remoteSha: string | null, fixesSha: string | null }} status */
-export async function ownFixes(project, status) {
+export async function ownFixes(project: { repoPath: string }, status: { ref: string, remoteSha: string | null, fixesSha: string | null }) {
   const id = await commitIdentity();
   if (!id || !status.remoteSha || !status.fixesSha) return false;
   const cwd = project.repoPath;

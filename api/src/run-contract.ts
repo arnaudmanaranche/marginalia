@@ -3,7 +3,7 @@ import { FINDINGS_FILE } from './findings.ts';
 import { REPORT_FILE } from './report.ts';
 
 // What a headless run is told it must deliver, and where (see report.ts for reading it back).
-export function contractPrompt(kind, extra = '', worktreeDir = '.') {
+export function contractPrompt(kind: any, extra = '', worktreeDir = '.') {
   const lines = [
     'You are running headless, driven by marginalia. Rules for this run:',
     '- Never post, reply, or resolve anything on GitLab, and never `git push`.',

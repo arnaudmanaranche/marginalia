@@ -12,18 +12,18 @@
 // -> [{ level: 'ok'|'warn'|'error', message, fix? }]
 
 const STALE_AFTER_MS = 7 * 24 * 3600 * 1000;
-const ok = (message) => ({ level: 'ok', message });
-const warn = (message, fix) => ({ level: 'warn', message, fix });
-const error = (message, fix) => ({ level: 'error', message, fix });
+const ok = (message: string) => ({ level: 'ok', message });
+const warn = (message: string, fix?: string) => ({ level: 'warn', message, fix });
+const error = (message: string, fix?: string) => ({ level: 'error', message, fix });
 
-const FAILURE_FIX = {
+const FAILURE_FIX: Record<string, string> = {
   unreachable: 'check the network and your access to the team repo, then run `marginalia sync`',
   dirty: 'the team copy is read-only: discard the local changes in <dataDir>/team, then sync again',
   diverged: 'delete <dataDir>/team and run `marginalia sync` to clone it again',
   'not-a-repo': 'move <dataDir>/team away and run `marginalia sync`',
 };
 
-function syncChecks({ marker, behind, now }) {
+function syncChecks({ marker, behind, now }: { marker: any; behind: any; now: number }) {
   if (!marker) return [warn('The team repo has never been synced', 'run `marginalia sync`')];
   const out: any[] = [];
   if (!marker.ok) {
@@ -38,7 +38,7 @@ function syncChecks({ marker, behind, now }) {
   return out;
 }
 
-function contentChecks({ loaded, unmapped }) {
+function contentChecks({ loaded, unmapped }: { loaded: any; unmapped: any[] }) {
   if (!loaded.present) return [error('No team copy on disk', 'run `marginalia sync`')];
   if (loaded.tooOld) return [error(loaded.errors[0], 'update marginalia (git pull, npm run setup), then run `marginalia sync`')];
   if (!loaded.ok) return [error(`team.json is invalid: ${loaded.errors.join('; ')}`, 'ask the team to fix team.json, then sync again')];
@@ -50,7 +50,7 @@ function contentChecks({ loaded, unmapped }) {
   return out;
 }
 
-export function teamChecks(state) {
+export function teamChecks(state: any) {
   if (!state.url) return [{ level: 'ok', message: 'No team repo configured (solo setup)' }];
   return [...syncChecks(state), ...contentChecks(state)];
 }

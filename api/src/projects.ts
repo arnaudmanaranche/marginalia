@@ -10,6 +10,6 @@ const parsed = FILE_CONFIG ? { ok: true, config: FILE_CONFIG } : parseConfig(app
 
 export const PROJECTS = parsed.ok ? buildProjects(parsed.config, { dataDir: DATA_DIR, legacyWorktreeDir: BOT_WORKTREE_DIR }) : [];
 
-export function projectByKey(key) {
-  return PROJECTS.find((p) => p.key === key) ?? null;
+export function projectByKey(key: string) {
+  return PROJECTS.find((p: any) => p.key === key) ?? null;
 }

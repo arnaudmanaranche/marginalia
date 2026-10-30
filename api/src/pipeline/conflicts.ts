@@ -16,7 +16,7 @@ const MARKER = /^(<{7}|>{7})( |$)|^={7}$/m;
 // before committing the merge. The fixes are then made on top of it. When the agent can't
 // settle them, the merge is undone and the triage goes on without it.
 /** @param {{ mr: any, run: any, context: string, settings: object | null }} input */
-export async function settleConflicts({ mr, run, context, settings }) {
+export async function settleConflicts({ mr, run, context, settings }: { mr: any; run: any; context: string; settings: any }) {
   const cwd = mr.project.worktreeDir;
   const target = mr.target_branch;
   const git = gitIn(cwd);
@@ -41,7 +41,7 @@ export async function settleConflicts({ mr, run, context, settings }) {
     const commit = await head(cwd);
     run.step(`Committed the merge ${commit.slice(0, 8)}: ${done.how}`, { stage: 'conflicts' });
     return { files, commit, how: done.how, error: null };
-  } catch (err) {
+  } catch (err: any) {
     await git.run('merge', '--abort').catch(() => null);
     await cleanWorktree(cwd);
     const error = String(err.message).slice(0, 300);

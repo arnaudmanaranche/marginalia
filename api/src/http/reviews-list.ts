@@ -15,7 +15,7 @@ import { reconcilePosted } from './reviews-reconcile.ts';
 import { buildStacks } from './reviews-stacks.ts';
 import { AWAITING, awaitingItem } from './reviews-awaiting.ts';
 
-async function listProjectReviews(project, status) {
+async function listProjectReviews(project: any, status: any) {
   type Mr = Record<string, any>;
   const mrs = ((status?.mrs ?? []) as Mr[]).filter((m) => m.project === project.key);
   const byPath = new Map<string, Mr>(mrs.map((mr): [string, Mr] => [mr.reviewPath, mr]));
@@ -64,13 +64,13 @@ export async function listReviews() {
   // for it. When it changes something, the page is told and loads the list again.
   void reconcilePosted();
   const status = await readStatus();
-  const items = (await Promise.all(visibleProjects().map((project) => listProjectReviews(project, status)))).flat();
+  const items = (await Promise.all(visibleProjects().map((project: any) => listProjectReviews(project, status)))).flat();
   items.sort(byPriorityThenDate);
   // https://host/group/project of each project, from any tracked MR url; used to link !123 and file paths.
-  const projectUrls = {};
+  const projectUrls: Record<string, any> = {};
   for (const mr of status?.mrs ?? []) projectUrls[mr.project] ??= mr.web_url?.match(/^(.*)\/-\/merge_requests\/\d+/)?.[1];
   const projectUrl = Object.values(projectUrls).find(Boolean) ?? null;
-  const projects = visibleProjects().map((p) => ({ key: p.key, kind: p.kind, gitlabProjectId: p.gitlabProjectId, url: projectUrls[p.key] ?? null }));
+  const projects = visibleProjects().map((p: any) => ({ key: p.key, kind: p.kind, gitlabProjectId: p.gitlabProjectId, url: projectUrls[p.key] ?? null }));
   return {
     status, items, stacks: buildStacks(status), projectUrl, projects,
     jiraBaseUrl: JIRA_BASE_URL ? JIRA_BASE_URL.replace(/\/+$/, '') : null,

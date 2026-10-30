@@ -40,13 +40,13 @@ export const TeamSchema = z.strictObject({
 });
 
 // [major, minor, patch] of "2.1.0" (a pre-release or build suffix is ignored), or null.
-export function parseSemver(text) {
+export function parseSemver(text: unknown) {
   const m = /^v?(\d+)\.(\d+)\.(\d+)/.exec(String(text ?? '').trim());
   return m ? [Number(m[1]), Number(m[2]), Number(m[3])] : null;
 }
 
 // Negative, 0 or positive like a comparator; null when either side is not a version.
-export function compareSemver(a, b) {
+export function compareSemver(a: unknown, b: unknown) {
   const [x, y] = [parseSemver(a), parseSemver(b)];
   if (!x || !y) return null;
   const i = x.findIndex((n, k) => n !== y[k]);
@@ -54,12 +54,12 @@ export function compareSemver(a, b) {
 }
 
 // True when `running` is at least `min`; an absent min is always satisfied.
-export const satisfiesMin = (min, running) => !min || (compareSemver(running, min) ?? 0) >= 0;
+export const satisfiesMin = (min: unknown, running: unknown) => !min || (compareSemver(running, min) ?? 0) >= 0;
 
 // { ok: true, team } or { ok: false, errors: ['projects.0.kind: ...'] }. Too new a team
 // repo is reported first and on its own: its other fields may be ones this version
 // does not know, so listing them as typos would send the dev the wrong way.
-export function parseTeam(raw, running) {
+export function parseTeam(raw: any, running: unknown) {
   const min = raw?.minMarginalia;
   if (typeof min === 'string' && parseSemver(min) && !satisfiesMin(min, running)) {
     return { ok: false, tooOld: true, errors: [`minMarginalia: this team repo needs marginalia ${min} or newer (this is ${running})`] };

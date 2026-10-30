@@ -8,7 +8,7 @@ import { fileExists } from './paths.ts';
 
 export class TeamSyncError extends Error {
   kind: string;
-  constructor(kind, message) {
+  constructor(kind: any, message: string) {
     super(message);
     this.kind = kind;
   }
@@ -17,12 +17,12 @@ export class TeamSyncError extends Error {
 // Never wait on a credential prompt; hooks are pointless on a read-only mirror; only
 // transports a team repo can reasonably use.
 const GIT_ENV = { GIT_TERMINAL_PROMPT: '0', GIT_ALLOW_PROTOCOL: 'file:https:http:ssh:git' };
-const git = (cwd) => gitIn(cwd, { env: GIT_ENV, hooks: false, timeout: 120_000 });
-const reason = (err) => String(err.stderr || err.message).trim().split('\n')[0];
+const git = (cwd: string) => gitIn(cwd, { env: GIT_ENV, hooks: false, timeout: 120_000 });
+const reason = (err: any) => String(err.stderr || err.message).trim().split('\n')[0];
 
 // Clones into a sibling temp folder and renames it, so teamDir is either absent or
 // complete, whatever interrupts the clone.
-export async function cloneTeam(url, teamDir) {
+export async function cloneTeam(url: string, teamDir: string) {
   const tmp = `${teamDir}.tmp-${process.pid}`;
   await mkdir(dirname(teamDir), { recursive: true });
   await rm(tmp, { recursive: true, force: true });
@@ -38,7 +38,7 @@ export async function cloneTeam(url, teamDir) {
 
 // Fetches and fast-forwards teamDir to its upstream. Refuses, leaving the copy as it
 // was, when it has local changes or has diverged from origin.
-export async function updateTeam(url, teamDir) {
+export async function updateTeam(url: string, teamDir: string) {
   if (!(await fileExists(`${teamDir}/.git`))) {
     throw new TeamSyncError('not-a-repo', `${teamDir} exists but is not a git clone: move it away and sync again.`);
   }
@@ -62,7 +62,7 @@ export async function updateTeam(url, teamDir) {
 }
 
 // Commits origin has that the copy does not, as of the last fetch (no network call).
-export async function commitsBehind(teamDir) {
+export async function commitsBehind(teamDir: string) {
   try {
     return Number(await git(teamDir).run('rev-list', '--count', 'HEAD..@{u}'));
   } catch {

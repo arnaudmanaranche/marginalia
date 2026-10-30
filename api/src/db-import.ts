@@ -4,7 +4,7 @@ import { transaction } from './db.ts';
 import { migrateState, migratePosted } from './state-shape.ts';
 import { writeProjectState, writePosted, insertRun } from './db-store.ts';
 
-const readJson = (file) => {
+const readJson = (file: string) => {
   try {
     return JSON.parse(readFileSync(file, 'utf8'));
   } catch {
@@ -16,7 +16,7 @@ const readJson = (file) => {
 // They are left where they are, so going back to an older version still finds them; `meta`
 // records that the import happened so a later run never imports them again over newer data.
 // Returns what it imported, or null when there was nothing to do.
-export function importLegacyFiles(db, dir, firstKey) {
+export function importLegacyFiles(db: any, dir: string, firstKey: any) {
   if (db.prepare("SELECT 1 FROM meta WHERE key = 'legacy_imported'").get()) return null;
   const counts = { projects: 0, posted: 0, runs: 0 };
   transaction(db, () => {
