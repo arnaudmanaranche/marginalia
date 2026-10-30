@@ -13,6 +13,8 @@ import { notify } from './src/notify.ts';
 import { ensureBotWorktree } from './src/worktree.ts';
 import { passOver } from './src/poll-pass.ts';
 import { passDeps } from './src/poll-pass-deps.ts';
+import { serial } from './src/serial.ts';
+import { startWebhookIfConfigured } from './src/webhook-intake.ts';
 import { intakePass } from './src/mention-pass.ts';
 import { failureTitleOf, mentionDeps } from './src/mention-deps.ts';
 
@@ -67,7 +69,7 @@ async function runPoll() {
   clearTimeout(pollTimer);
   isPolling = true;
   try {
-    await poll();
+    await serial.run(poll);
     status.phase = 'idle';
     status.lastPoll = { at: new Date().toISOString(), ok: true, error: null };
   } catch (err) {
@@ -135,6 +137,7 @@ async function main() {
   ensureDataDir();
   for (const project of PROJECTS) await mkdir(project.reviewsDir, { recursive: true });
   startStudio();
+  startWebhookIfConfigured();
   watchSettings();
   for (const project of PROJECTS) await ensureBotWorktree(project);
   // `kill -USR1 <pid>` (the menu bar's "Poll now") triggers a poll right away.

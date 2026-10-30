@@ -36,3 +36,13 @@ The bot answers `@<bot username>` in an MR comment (`GITLAB_USERNAME` is the acc
 | Variable | Default | Meaning |
 | --- | --- | --- |
 | `MENTION_DAILY_CAP` | `20` | The most runs mentions may start in a UTC day, all projects together. Past it the bot answers that it is at its limit. |
+
+### Webhook intake
+
+Set `WEBHOOK_SECRET` and the bot opens a second listener with one route, `POST /webhooks/gitlab`. In GitLab, add a project webhook with that URL, the same value as *Secret token*, and only the *Comments* trigger. The token is compared before the body is read; hooks other than a Note Hook are acknowledged and dropped; the answer is `200` at once and the note is queued behind any running poll or run. A note that arrives by webhook and again by polling runs once. Without the secret there is no listener and polling stays the intake.
+
+| Variable | Default | Meaning |
+| --- | --- | --- |
+| `WEBHOOK_SECRET` | none | Enables the listener; must equal GitLab's secret token. |
+| `WEBHOOK_PORT` | `4478` | Port of the listener. |
+| `WEBHOOK_HOST` | `127.0.0.1` | Bind address; use `0.0.0.0` inside a container, behind HTTPS. |
