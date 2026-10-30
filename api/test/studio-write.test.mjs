@@ -89,3 +89,9 @@ test('where an MR stands is read through the adapter, with the optional reads fa
   const state = await fetchReviewState(PROJECTS[0], { iid: 7, author: 'alice' }, broken);
   assert.ok(state.computedAt);
 });
+
+test('a local studio has no one signed in: /api/me is an empty object, not the app page', async () => {
+  const res = await app.request(`http://${HOST}/api/me`, { headers: { host: HOST } });
+  assert.equal(res.status, 200);
+  assert.deepEqual(await res.json(), {});
+});

@@ -1,6 +1,7 @@
 import { Command, Loader2, RefreshCw, Eye, TriangleAlert, Power, ShieldCheck, Settings } from 'lucide-react';
 import type { BotStatus } from '../lib/api';
 import { inTime, timeAgo } from '../lib/utils';
+import { AccountMenu } from './AccountMenu';
 import { Logo } from './Logo';
 
 function BotState({ status, connection }: { status: BotStatus | null; connection: 'connecting' | 'unreachable' | 'ok' }) {
@@ -61,6 +62,7 @@ export function StatusBar({ status, connection, settingsActive, onOpenPalette, o
         >
           <Settings className="size-4" />
         </button>
+        <AccountMenu />
       </div>
     </div>
   );

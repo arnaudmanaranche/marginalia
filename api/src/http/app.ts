@@ -40,6 +40,8 @@ export function createApp({ hosts, gitlab, auth }: { hosts?: () => Set<string>; 
     app.use('/api/settings', async (c, next) => (c.req.method === 'PUT' ? c.json({ error: 'settings are set by the operator of this studio' }, 403) : next()));
   }
   if (!auth) app.use('/api/*', writeGuard(hosts));
+  // Local mode has no one signed in: the studio asks and shows no account.
+  if (!auth) app.get('/api/me', (c) => c.json({}));
   gitlab ??= scopedGitlab();
 
   app.use('/api/post', requirePosting);
