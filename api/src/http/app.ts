@@ -1,5 +1,10 @@
 import { OpenAPIHono } from '@hono/zod-openapi';
-import { errorHandler, requirePosting, validationHook, writeGuard } from './guards.ts';
+import { errorHandler, ownHosts, requirePosting, validationHook, writeGuard } from './guards.ts';
+import { authRoutes } from './auth-routes.ts';
+import { sessionMiddleware } from './auth-middleware.ts';
+import { currentScope, scopedGitlab } from './request-scope.ts';
+import type { AuthConfig } from '../auth-config.ts';
+import { STUDIO_ALLOWED_HOSTS } from '../config.ts';
 import { readRoutes } from './routes-read.ts';
 import { writeRoutes } from './routes-write.ts';
 import { actionRoutes } from './routes-actions.ts';
@@ -18,12 +23,25 @@ const DESCRIPTION = `The contract between the studio server and the React app. G
 **Posting is opt-in on other people's merge requests.** Everything that touches GitLab drafts or posting answers \`403\` there unless the server runs with \`ALLOW_POSTING=true\`. On your own merge requests (a \`comments\` triage) replying to the threads, submitting those replies and pushing the triage's fixes are always available. The merge request is always resolved server-side from \`status.json\` using the review id, never taken from a request.`;
 
 // `hosts` returns the Host values that count as the studio itself (default: from STUDIO_PORT).
-/** @param {{ hosts?: () => Set<string>, gitlab?: any }} [options] */
-export function createApp({ hosts, gitlab }: { hosts?: () => Set<string>; gitlab?: any } = {}) {
+// `auth`: hosted mode, the studio behind GitLab login (see auth-routes.ts). Without it nobody is
+// signed in and the studio acts with the bot's token, as in local mode.
+type AuthOptions = { config: AuthConfig; db: any; projects: { key: string; encodedId: string }[]; fetchFn?: typeof fetch; now?: () => number };
+export function createApp({ hosts, gitlab, auth }: { hosts?: () => Set<string>; gitlab?: any; auth?: AuthOptions } = {}) {
   const app = new OpenAPIHono({ defaultHook: validationHook });
   app.onError(errorHandler);
+  if (auth) {
+    const own = hosts ?? (() => ownHosts(undefined, `${STUDIO_ALLOWED_HOSTS},${new URL(auth.config.publicUrl).host}`));
+    hosts = own;
+    app.use('/api/*', writeGuard(hosts)); // before the routes below, logout included
+    app.route('/', authRoutes(auth));
+    app.use('*', sessionMiddleware(auth));
+    app.get('/api/me', (c) => c.json({ username: currentScope()?.user.username, name: currentScope()?.user.name, projects: currentScope()?.projects }));
+    // Hosted, the operator sets the bot's settings (environment); a signed-in person does not.
+    app.use('/api/settings', async (c, next) => (c.req.method === 'PUT' ? c.json({ error: 'settings are set by the operator of this studio' }, 403) : next()));
+  }
+  if (!auth) app.use('/api/*', writeGuard(hosts));
+  gitlab ??= scopedGitlab();
 
-  app.use('/api/*', writeGuard(hosts));
   app.use('/api/post', requirePosting);
   app.use('/api/submit-review', requirePosting);
   app.use('/api/drafts/*', requirePosting);

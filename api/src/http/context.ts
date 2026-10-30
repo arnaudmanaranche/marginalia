@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { STATUS_FILE } from '../config.ts';
-import { PROJECTS } from '../projects.ts';
+import { currentScope, visibleProjects } from './request-scope.ts';
 import { parseReviewId } from '../review-id.ts';
 import { warn } from '../log.ts';
 import { fetchReviewState } from '../mr-state.ts';
@@ -9,18 +9,29 @@ import { fetchReviewState } from '../mr-state.ts';
 // What the route modules share: the bot's status, review-id resolution, the live-update
 // channel, and the queue that keeps two writes to GitLab from racing.
 
+// The bot's status as this request may see it: a signed-in person sees their projects only.
 export async function readStatus() {
+  let status;
   try {
-    return JSON.parse(await readFile(STATUS_FILE, 'utf8'));
+    status = JSON.parse(await readFile(STATUS_FILE, 'utf8'));
   } catch {
     return null;
   }
+  const scope = currentScope();
+  if (!scope) return status;
+  const keep = new Set(scope.projects);
+  return {
+    ...status,
+    mrs: (status.mrs ?? []).filter((m) => keep.has(m.project)),
+    projects: (status.projects ?? []).filter((p) => keep.has(p.key)),
+    current: status.current && keep.has(status.current.project) ? status.current : null,
+  };
 }
 
 // Resolves a review id (`<project>/<slug>`): { project, slug, mr, status }, where mr is the MR
 // tracked in status.json for it (undefined when none), or null for an id that is not valid.
 export async function locate(id) {
-  const parsed = parseReviewId(id, PROJECTS);
+  const parsed = parseReviewId(id, visibleProjects());
   if (!parsed) return null;
   const status = await readStatus();
   const mr = (status?.mrs ?? []).find((m) => m.project === parsed.project.key && m.reviewPath === join(parsed.project.reviewsDir, `${parsed.slug}.md`));

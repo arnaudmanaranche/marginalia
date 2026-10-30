@@ -1,5 +1,5 @@
 import { z } from '@hono/zod-openapi';
-import { PROJECTS } from '../projects.ts';
+import { visibleProjects } from './request-scope.ts';
 import { parseReviewId } from '../review-id.ts';
 import { listTraces, readRunPart, readTrace } from '../run-journal.ts';
 import { startDoctor } from '../doctor.ts';
@@ -16,7 +16,7 @@ export function runRoutes(app) {
     summary: 'The runs of one review', description: 'Newest first, without their steps. The one in progress has `outcome: running`.',
     request: { params: z.object({ slug: ReviewId }) }, responses: { 200: jsonOf(Runs, 'The runs.') }, errors: [400],
   }), async (c) => {
-    const where = parseReviewId(c.req.valid('param').slug, PROJECTS);
+    const where = parseReviewId(c.req.valid('param').slug, visibleProjects());
     if (!where) return c.json({ error: 'bad slug' }, 400);
     return c.json({ runs: await listTraces(where.project.key, where.slug) }, 200);
   });
@@ -27,7 +27,7 @@ export function runRoutes(app) {
     responses: { 200: jsonOf(RunTrace, 'The run.') }, errors: [400, 404],
   }), async (c) => {
     const { slug, runId } = c.req.valid('param');
-    const where = parseReviewId(slug, PROJECTS);
+    const where = parseReviewId(slug, visibleProjects());
     if (!where) return c.json({ error: 'bad slug' }, 400);
     const trace = await readTrace(where.project.key, where.slug, runId);
     if (!trace) return c.json({ error: 'no such run' }, 404);
@@ -43,7 +43,7 @@ export function runRoutes(app) {
     responses: { 200: jsonOf(Ok, 'Started.') }, errors: [400, 404, 409],
   }), async (c) => {
     const { slug, runId } = c.req.valid('param');
-    const where = parseReviewId(slug, PROJECTS);
+    const where = parseReviewId(slug, visibleProjects());
     if (!where) return c.json({ error: 'bad slug' }, 400);
     const started = await startDoctor({ project: where.project, fileSlug: where.slug, runId });
     if (!started.ok) return c.json({ error: started.error }, /** @type {404 | 409} */ (started.status));
@@ -62,7 +62,7 @@ export function runRoutes(app) {
       responses: { 200: jsonOf(Ok, 'Done or started.') }, errors: [400, 404, 409, 502],
     }), async (c) => {
       const { slug, runId } = c.req.valid('param');
-      const where = parseReviewId(slug, PROJECTS);
+      const where = parseReviewId(slug, visibleProjects());
       if (!where) return c.json({ error: 'bad slug' }, 400);
       const done = await act({ project: where.project, fileSlug: where.slug, runId });
       if (!done.ok) return c.json({ error: done.error }, done.status as 404 | 409 | 502);

@@ -1,6 +1,6 @@
 import { z } from '@hono/zod-openapi';
 import { GITLAB_BASE_URL, GITLAB_TOKEN } from '../config.ts';
-import { PROJECTS } from '../projects.ts';
+import { visibleProjects } from './request-scope.ts';
 import { projectOfUpload } from '../review-id.ts';
 import { uploadFetchPath } from '../gitlab-upload.ts';
 import { route } from './route-kit.ts';
@@ -15,7 +15,7 @@ export function imageRoute(app) {
     const { src } = c.req.valid('query');
     let project: any = null;
     try {
-      project = projectOfUpload(new URL(src, GITLAB_BASE_URL).pathname, PROJECTS);
+      project = projectOfUpload(new URL(src, GITLAB_BASE_URL).pathname, visibleProjects());
     } catch { /* not a URL: uploadFetchPath refuses it below */ }
     const path = project && uploadFetchPath(src, GITLAB_BASE_URL, project.encodedId);
     if (!path) return c.json({ error: 'not a GitLab upload' }, 400);

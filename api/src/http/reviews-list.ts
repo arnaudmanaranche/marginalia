@@ -1,7 +1,7 @@
 import { readFile, readdir, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import { ALLOW_POSTING, JIRA_BASE_URL } from '../config.ts';
-import { PROJECTS } from '../projects.ts';
+import { visibleProjects } from './request-scope.ts';
 import { reviewId } from '../review-id.ts';
 import { posted } from '../posted.ts';
 import { artifactAt } from '../artifact.ts';
@@ -64,13 +64,13 @@ export async function listReviews() {
   // for it. When it changes something, the page is told and loads the list again.
   void reconcilePosted();
   const status = await readStatus();
-  const items = (await Promise.all(PROJECTS.map((project) => listProjectReviews(project, status)))).flat();
+  const items = (await Promise.all(visibleProjects().map((project) => listProjectReviews(project, status)))).flat();
   items.sort(byPriorityThenDate);
   // https://host/group/project of each project, from any tracked MR url; used to link !123 and file paths.
   const projectUrls = {};
   for (const mr of status?.mrs ?? []) projectUrls[mr.project] ??= mr.web_url?.match(/^(.*)\/-\/merge_requests\/\d+/)?.[1];
   const projectUrl = Object.values(projectUrls).find(Boolean) ?? null;
-  const projects = PROJECTS.map((p) => ({ key: p.key, kind: p.kind, gitlabProjectId: p.gitlabProjectId, url: projectUrls[p.key] ?? null }));
+  const projects = visibleProjects().map((p) => ({ key: p.key, kind: p.kind, gitlabProjectId: p.gitlabProjectId, url: projectUrls[p.key] ?? null }));
   return {
     status, items, stacks: buildStacks(status), projectUrl, projects,
     jiraBaseUrl: JIRA_BASE_URL ? JIRA_BASE_URL.replace(/\/+$/, '') : null,

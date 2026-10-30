@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { z } from '@hono/zod-openapi';
-import { PROJECTS } from '../projects.ts';
+import { visibleProjects } from './request-scope.ts';
 import { parseReviewId } from '../review-id.ts';
 import { artifactAt } from '../artifact.ts';
 import { buildShape } from '../findings.ts';
@@ -27,7 +27,7 @@ export function readRoutes(app) {
     responses: { 200: jsonOf(ReviewContent, 'The review file and its shape.') }, errors: [400, 404],
   }), async (c) => {
     const id = c.req.valid('param').slug;
-    const where = parseReviewId(id, PROJECTS);
+    const where = parseReviewId(id, visibleProjects());
     if (!where) return badSlug(c);
     try {
       const md = await readFile(join(where.project.reviewsDir, `${where.slug}.md`), 'utf8');
@@ -42,7 +42,7 @@ export function readRoutes(app) {
     summary: 'Earlier versions of a review', request: { params: slug },
     responses: { 200: jsonOf(Versions, 'Versions, newest first.') }, errors: [400],
   }), async (c) => {
-    const where = parseReviewId(c.req.valid('param').slug, PROJECTS);
+    const where = parseReviewId(c.req.valid('param').slug, visibleProjects());
     if (!where) return badSlug(c);
     return c.json({ versions: await artifactAt(where.project.reviewsDir, where.slug).listHistory() }, 200);
   });
@@ -53,7 +53,7 @@ export function readRoutes(app) {
     responses: { 200: jsonOf(Version, 'The version.') }, errors: [400, 404],
   }), async (c) => {
     const { slug: id, id: versionId } = c.req.valid('param');
-    const where = parseReviewId(id, PROJECTS);
+    const where = parseReviewId(id, visibleProjects());
     if (!where) return badSlug(c);
     const version = await artifactAt(where.project.reviewsDir, where.slug).readHistory(versionId);
     if (version === null) return c.json({ error: 'not found' }, 404);

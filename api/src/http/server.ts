@@ -6,7 +6,10 @@
 import { mkdirSync, watch, type FSWatcher } from 'node:fs';
 import { dirname } from 'node:path';
 import { serve } from '@hono/node-server';
-import { STATUS_FILE, STUDIO_HOST, STUDIO_PORT } from '../config.ts';
+import { GITLAB_BASE_URL, STATUS_FILE, STUDIO_HOST, STUDIO_PORT } from '../config.ts';
+import { readAuthConfig } from '../auth-config.ts';
+import { purgeSessions } from '../auth-store.ts';
+import { getDb } from '../store.ts';
 import { PROJECTS } from '../projects.ts';
 import { RUNS_DIR } from '../run-journal.ts';
 import { logger } from '../logger.ts';
@@ -15,10 +18,14 @@ import { broadcast } from './context.ts';
 import { endLiveStreams } from './routes-live.ts';
 
 export function startStudio() {
-  const server = serve({ fetch: createApp().fetch, port: Number(STUDIO_PORT), hostname: STUDIO_HOST }, () => {
-    logger.info(`Studio: http://localhost:${STUDIO_PORT}`);
-    // There is no login: anyone who can reach the port can read the reviews and, when posting is on, post as you.
-    if (!['127.0.0.1', 'localhost', '::1'].includes(STUDIO_HOST)) logger.warn(`Studio listens on ${STUDIO_HOST} with no login: publish the port on 127.0.0.1 only, or keep it on a private network.`);
+  const login = readAuthConfig(process.env, GITLAB_BASE_URL);
+  if (!login.ok) throw new Error(login.error);
+  if (login.config) purgeSessions(getDb());
+  const auth = login.config ? { config: login.config, db: getDb(), projects: PROJECTS } : undefined;
+  const server = serve({ fetch: createApp({ auth }).fetch, port: Number(STUDIO_PORT), hostname: STUDIO_HOST }, () => {
+    logger.info(login.config ? `Studio: ${login.config.publicUrl} (GitLab login)` : `Studio: http://localhost:${STUDIO_PORT}`);
+    // Without login, anyone who can reach the port can read the reviews and, when posting is on, post as you.
+    if (!login.config && !['127.0.0.1', 'localhost', '::1'].includes(STUDIO_HOST)) logger.warn(`Studio listens on ${STUDIO_HOST} with no login: publish the port on 127.0.0.1 only, or keep it on a private network.`);
   });
   server.on('error', (err) => logger.error(err.code === 'EADDRINUSE' ? `Studio: port ${STUDIO_PORT} already in use` : `Studio: ${err.message}`));
   const watchers: FSWatcher[] = [];

@@ -21,10 +21,11 @@ export function retryPause(res, attempt) {
 // dropped connection may have been acted on, so only a read is.
 export const canRetry = (method, status) => status === 429 || (method === 'GET' && (status === undefined || RETRY_STATUS.has(status)));
 
-export function createGitlabClient({ baseUrl, token, fetchFn = (url, init) => fetch(url, init), sleep = wait, retries = 3 }) {
+// `bearer`: the token is a person's OAuth token (Authorization: Bearer), not a personal access token.
+export function createGitlabClient({ baseUrl, token, bearer = false, fetchFn = (url, init) => fetch(url, init), sleep = wait, retries = 3 }) {
   async function send(path, options: Record<string, any> = {}) {
     const method = (options.method ?? 'GET').toUpperCase();
-    const init = { ...options, headers: { 'PRIVATE-TOKEN': token, 'Content-Type': 'application/json', ...(options.headers || {}) } };
+    const init = { ...options, headers: { ...(bearer ? { Authorization: `Bearer ${token}` } : { 'PRIVATE-TOKEN': token }), 'Content-Type': 'application/json', ...(options.headers || {}) } };
     for (let attempt = 0; ; attempt++) {
       let res;
       try {
