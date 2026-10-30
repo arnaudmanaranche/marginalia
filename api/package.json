@@ -27,6 +27,7 @@
     "autostart": "node dist/scripts/autostart.js",
     "test": "node --test test/*.test.mjs",
     "typecheck": "tsc -p . --noEmit",
+    "eval": "tsc -p . && node dist/scripts/eval.js",
     "posthog:backfill": "node dist/scripts/posthog-backfill.js"
   },
   "engines": {

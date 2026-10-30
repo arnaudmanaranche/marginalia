@@ -19,6 +19,7 @@
     "test": "npm run build && npm --workspace api test",
     "test:ui": "npm --workspace ui test",
     "check:size": "node scripts/check-file-size.mjs",
+    "eval": "npm run build && npm --workspace api run eval --",
     "typecheck": "npm --workspace @worldia/marginalia-contract run build && npm --workspace api run typecheck",
     "posthog:backfill": "npm run build && npm --workspace api run posthog:backfill --",
     "studio:build": "npm --workspace ui run build",
