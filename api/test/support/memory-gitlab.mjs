@@ -9,7 +9,7 @@ import { findNoteIdByBody, latestPeerNoteAt, toDiscussions, toDraft } from '../.
 const refusal = (status, what) => new Error(`GitLab API /${what} -> ${status}: {"message":"${status}"}`);
 
 /** @param {{ me?: string, head?: string, diffLines?: Record<string, number[]> }} [options] `diffLines`: the lines of each path that are part of the MR diff. */
-export function memoryGitlab({ me = 'me', head = 'head1', diffLines = {} } = {}) {
+export function memoryGitlab({ me = 'me', head = 'head1', diffLines = {}, members = {} } = {}) {
   let nextId = 100;
   const id = () => (nextId += 1);
   // A discussion id is hex, as GitLab's are.
@@ -84,6 +84,15 @@ export function memoryGitlab({ me = 'me', head = 'head1', diffLines = {} } = {})
       return null;
     },
     draftNoteExists: async (_p, _iid, draftId) => draftIndex(draftId) !== -1,
+
+    memberAccessLevel: async (_p, username) => members[username] ?? 0,
+    async replyToDiscussion(_p, _iid, discussionId, body) {
+      const thread = discussions.find((d) => d.id === discussionId);
+      if (!thread) throw refusal(404, 'discussions');
+      const reply = note(me, body);
+      thread.notes.push(reply);
+      return reply;
+    },
 
     listMergeRequestVersions: async () => [],
     getMergeRequestVersion: async () => ({}),

@@ -21,4 +21,13 @@ export const MIGRATIONS = [
   );
   CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
   `,
+  `
+  CREATE TABLE mention (
+    project TEXT NOT NULL,
+    note_id INTEGER NOT NULL,
+    at      TEXT NOT NULL,
+    outcome TEXT NOT NULL,  -- 'ran', or why it did not: 'duplicate', 'not-a-member', 'daily-cap', 'refused'
+    PRIMARY KEY (project, note_id)
+  );
+  `,
 ];
