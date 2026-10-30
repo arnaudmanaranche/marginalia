@@ -35,6 +35,11 @@ const RULES: [RegExp, Failure][] = [
     title: 'The run took too long and was stopped',
     advice: 'It is tried again on the next poll. If it keeps happening, the doctor can tell where the time goes.',
   }],
+  [/^The result broke the contract/, {
+    kind: 'contract', transient: false,
+    title: 'The result did not follow the review format',
+    advice: 'The agent finished, but its findings file failed the contract, so nothing was saved or posted. The message says which part; re-run, or fix the skill that wrote it.',
+  }],
   [/did not produce a report|no report/i, {
     kind: 'no_report', transient: false,
     title: 'The agent wrote no report',

@@ -62,5 +62,5 @@ export async function extractReport({ worktreeDir, stdout, stderr = '' }) {
 export async function buildReport({ worktreeDir, stdout, stderr = '' }) {
   const { content, source } = await extractReport({ worktreeDir, stdout, stderr });
   const findingsRaw = await extractFindings(worktreeDir);
-  return { content, source, shape: buildShape({ markdown: content, findingsRaw }) };
+  return { content, source, findingsRaw, shape: buildShape({ markdown: content, findingsRaw }) };
 }

@@ -7,3 +7,4 @@ export * from './runs.ts';
 export * from './reviews-payload.ts';
 export * from './discussion.ts';
 export * from './requests.ts';
+export * from './agent-result.ts';

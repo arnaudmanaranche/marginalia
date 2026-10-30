@@ -8,6 +8,7 @@ import { discussionPrompt, triageDiscussionPrompt } from './discussion-prompt.ts
 import { claudeArgs, parseRunOutput } from './claude-cli.ts';
 import { runEnv, runSettings } from './run-settings.ts';
 import { buildReport } from './report.ts';
+import { enforceContract } from './guardrail.ts';
 import { contractPrompt } from './run-contract.ts';
 import { previousFindingsPrompt } from './previous-findings.ts';
 import { runStreaming } from './progress.ts';
@@ -47,8 +48,6 @@ export async function commandRun({ mr, run, kind, command, tools, outputPath, st
   const { text, stats } = parseRunOutput(stdout);
   if (stats) run.addCost(stats);
   const report = await buildReport({ worktreeDir: BOT_WORKTREE_DIR, stdout: text, stderr });
-  if (report.source === 'stdout') {
-    warn(mr, `${command} did not follow the output contract (no report file, no marker block): saved its raw final message as the report.`);
-  }
+  enforceContract(kind, report.findingsRaw);
   return report;
 }
