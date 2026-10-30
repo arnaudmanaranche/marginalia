@@ -9,6 +9,8 @@ import { claudeArgs, parseRunOutput } from './claude-cli.ts';
 import { runEnv, runSettings } from './run-settings.ts';
 import { buildReport } from './report.ts';
 import { enforceContract } from './guardrail.ts';
+import { catalogPrompt } from './catalog.ts';
+import { assembleCatalog } from './catalog-assemble.ts';
 import { contractPrompt } from './run-contract.ts';
 import { previousFindingsPrompt } from './previous-findings.ts';
 import { runStreaming } from './progress.ts';
@@ -33,11 +35,12 @@ export async function commandRun({ mr, run, kind, command, tools, outputPath, st
   await run.stage('agent');
   log(mr, `Running ${command} (this can take a few minutes)...`);
   const startedAt = Date.now();
-  const systemPrompt = contractPrompt(kind, [REVIEW_PROMPT_EXTRA, stackContext, conversation, previous].filter(Boolean).join('\n\n'), BOT_WORKTREE_DIR);
+  const catalog = await assembleCatalog(DATA_DIR);
+  const systemPrompt = contractPrompt(kind, [REVIEW_PROMPT_EXTRA, catalogPrompt(catalog.skills), stackContext, conversation, previous].filter(Boolean).join('\n\n'), BOT_WORKTREE_DIR);
   const team = await teamRunExtras(DATA_DIR); // --plugin-dir of the synced team skills, if any
   const { stdout, stderr } = await runStreaming(
     CLAUDE_BIN,
-    [...claudeArgs({ prompt: `${command} MR !${mr.iid}`, tools, systemPrompt, settings: withTeamDeny(runSettings(mr.project), team) }), ...team.args],
+    [...claudeArgs({ prompt: `${command} MR !${mr.iid}`, tools, systemPrompt, settings: withTeamDeny(runSettings(mr.project), { deny: [...team.deny, ...catalog.deny] }) }), ...team.args, ...catalog.args],
     { cwd: BOT_WORKTREE_DIR, env: runEnv() },
     (step, info) => run.step(step, info),
     (line) => run.event(line),

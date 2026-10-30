@@ -42,7 +42,7 @@ mention ──────┤ intake (webhook | polling) → one mention record
 2. Global built-ins: `pr-hygiene`, `correctness`, `security`, `tests`, `maintainability`, `compatibility`, `performance`. Stack-agnostic.
 3. Team skills from the reviewed repo's `.claude/`. They win over a built-in of the same name.
 
-The agent sees one merged catalog (name and a one-line "use when" description) and picks. Marginalia has no per-project skill list and no knowledge of any stack.
+The agent sees one merged catalog (name and a one-line "use when" description) and picks. `api/src/catalog.ts` plans the merge (a team skill replaces a built-in of the same name, never the contract skill) and `catalog-assemble.ts` builds `<data dir>/catalog`, a read-only plugin named `marginalia` passed to every command run with `--plugin-dir`. Marginalia has no per-project skill list and no knowledge of any stack.
 
 ## Credentials
 
@@ -57,7 +57,7 @@ SQLite on a persistent volume, one instance. Postgres is the step if more than o
 
 ## Delivery order
 
-1. Docs and rules. 2. Mechanical restructure, no behavior change: `lib/` to `api/src`, the studio server to `api/src/http`, `studio/` to `ui/` and the three workspaces with their own `package.json` (done). A clone keeps its `.env` and state files at the repo root. The contract is published as `@worldia/marginalia-contract` next to the bot, with the same version. 3. `.mjs` to `.ts` together with the `tsc` build (renamed and building), `strictNullChecks` (on), then `noImplicitAny`, since Node cannot run `.ts` without the build. 4. Contract, guardrails and catalog, with evals from here on. 5. Mention intake: polling, then webhook, then bot replies. 6. Hosted: OAuth, click-to-post, Docker/HTTPS recipe. A migration covers the V1 `.env`, `posted.json`, `runs.jsonl`, `state.json` and `marginalia.db`.
+1. Docs and rules. 2. Mechanical restructure, no behavior change: `lib/` to `api/src`, the studio server to `api/src/http`, `studio/` to `ui/` and the three workspaces with their own `package.json` (done). A clone keeps its `.env` and state files at the repo root. The contract is published as `@worldia/marginalia-contract` next to the bot, with the same version. 3. `.mjs` to `.ts` together with the `tsc` build (renamed and building), `strictNullChecks` (on), then `noImplicitAny`, since Node cannot run `.ts` without the build. 4. Contract, guardrails and catalog, with evals from here on (in progress: the strict `AgentReview`/`AgentTriage` schemas and `api/src/guardrail.ts` fail a command run whose findings file breaks them, and the catalog with the seven built-ins is loaded into runs; still to come: the flow test with a fake `claude` and `npm run eval`). 5. Mention intake: polling, then webhook, then bot replies. 6. Hosted: OAuth, click-to-post, Docker/HTTPS recipe. A migration covers the V1 `.env`, `posted.json`, `runs.jsonl`, `state.json` and `marginalia.db`.
 
 ## Tests
 
