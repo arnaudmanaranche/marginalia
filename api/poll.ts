@@ -13,6 +13,8 @@ import { notify } from './src/notify.ts';
 import { ensureBotWorktree } from './src/worktree.ts';
 import { passOver } from './src/poll-pass.ts';
 import { passDeps } from './src/poll-pass-deps.ts';
+import { intakePass } from './src/mention-pass.ts';
+import { failureTitleOf, mentionDeps } from './src/mention-deps.ts';
 
 // A failure that passes by itself (GitLab unreachable, Claude overloaded) brings the next poll closer.
 let retrySoon = false;
@@ -26,6 +28,8 @@ async function poll() {
   for (const project of PROJECTS) {
     try {
       if ((await passOver(project, passDeps, statusSink)).retrySoon) retrySoon = true;
+      // After the pass, so a mention is answered with the review the pass just made available.
+      await intakePass(project, mentionDeps, failureTitleOf);
     } catch (err) {
       logger.error({ project: project.key, err }, 'Poll failed');
       failures.push(`${project.key}: ${(err as Error).message}`);

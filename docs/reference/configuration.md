@@ -28,3 +28,11 @@ after upgrading moves the single-project `state.json` and `posted.json` under th
 project's key: keep a copy if you may go back to an older version. The studio's Settings
 page overrides allowed target branches and excluded authors for all projects at once.
 `npm run doctor -- --dry-run 123 --project front-end` tries the real chain on one MR.
+
+## Mentions
+
+The bot answers `@<bot username>` in an MR comment (`GITLAB_USERNAME` is the account whose token it uses). Each poll, after a project's pass, it reads the notes that came in since the last poll; the first poll only sets the starting point. A bare mention or `review` runs a review, `triage` works through the comments (the MR's author only), anything else is a question, and a reply under one of the bot's own notes is a follow-up. Only Developer and above can ask; others get one refusal. A note is handled once.
+
+| Variable | Default | Meaning |
+| --- | --- | --- |
+| `MENTION_DAILY_CAP` | `20` | The most runs mentions may start in a UTC day, all projects together. Past it the bot answers that it is at its limit. |
