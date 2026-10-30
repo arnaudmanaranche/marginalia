@@ -8,40 +8,46 @@ web
 
 ## Users
 
-Developers on one team who review each other's GitLab merge requests. Each person runs their own copy of marginalia on their own machine, under their own `claude` login and GitLab token; nothing is shared or hosted. Confirmed by the product owner: the audience is "my team", not a single person and not the public.
+Developers on one team who review each other's GitLab merge requests. The team runs one shared instance of marginalia on company infrastructure behind HTTPS, and signs in with GitLab. A single developer can also run it locally, as one user on `127.0.0.1`, to try it or to develop it.
 
-The job when they open the studio: an MR has been reviewed by the bot in the background, and they now need to read that review, decide what is worth saying, and say it on the MR. A second recurring job is triaging the comments other people left on their own MRs.
+Two jobs bring people to it. In the studio: an MR has been reviewed in the background, and they need to read the review, decide what is worth saying and say it on the MR. In GitLab: they want a review or an answer now, and they mention `@marginalia` on the MR. A recurring third job is triaging the comments other people left on their own MRs.
 
 ## Product Purpose
 
-marginalia is a poller that watches open MRs on a GitLab project and runs the team's own Claude Code slash commands headless (`REVIEW_COMMAND` for MRs written by others, `TRIAGE_COMMAND` for reviewer comments on one's own MRs). The **studio** is its local web app: it lists the reports those commands produce and is where a person reads them.
+marginalia is a bot that runs reviews on GitLab merge requests, and a studio to read them. A review is requested from the studio or by mentioning `@marginalia` in an MR. The bot checks out the MR, lets an agent review it with whatever tools, sub-agents and skills it chooses, validates the result against a fixed contract, then shows it in the studio or replies on the MR.
 
-Success, as confirmed by the product owner:
+Success:
 
-- **Read a review quickly and well**: verdict, blocking points and reasoning understood in seconds, without opening the raw markdown.
-- **Post the right comment**: the proposed comment can be copied, edited, and (opt-in) posted on the MR, with the person in control.
+- **Read a review quickly and well**: verdict, before/after, blocking points and reasoning understood in seconds, without opening raw markdown.
+- **Post the right comment**: the proposed comment can be copied, edited and posted, with the person in control.
 - **Triage feedback on their own MRs**: comments received on one's own merge requests are worked through efficiently.
+- **Get an answer where the work is**: a mention in GitLab returns a review or an answer in the thread.
 
 ## Positioning
 
-The bot brings no review logic of its own: the commands, agents and skills are the team's. It only checks out the MR, runs the command, and collects the report. It never posts to GitLab by itself; the only way anything leaves the machine is an explicit, confirmed click in the studio, and only when `ALLOW_POSTING=true`. Everything runs locally (studio bound to 127.0.0.1), by polling, so no webhook, Maintainer rights or public tunnel is needed.
+The contract is fixed, the method is free. The bot decides the shape of a review and refuses anything that does not fit it; the agent decides how to get there. Marginalia ships the contract skill and a small set of global skills (`pr-hygiene`, `correctness`, `security`, `tests`, `maintainability`, `compatibility`, `performance`) and accepts a team's own skills from the reviewed repo's `.claude/`, which win over the built-ins. The bot contains no knowledge of any stack.
+
+**The bot only posts when a person asked for it**, by mentioning it or by clicking. A mention is the request, so the bot replies in the thread. From the studio, a person reads, edits and clicks, and the comment goes out under their own name. The bot never reviews and posts unprompted.
+
+V2 reverses the 12 October 2026 decision to drop the mention bot. The reading experience stays the core and the mention is a second way in. See `docs/adr/0002-v2-supersedes-the-mention-bot-revert.md`.
 
 ## Operating Context
 
-- GitLab merge requests polled at a configurable interval (default 5 minutes, adjustable at runtime from the studio).
-- Claude Code CLI run headless in a git worktree dedicated to the bot, so the developer's own branch is never touched.
-- Reports are markdown files, read from the studio at `http://localhost:4477` (port configurable). A macOS menu bar item (SwiftBar) and desktop notifications tell the person when a review is ready.
-- Reviews arrive in bursts when the machine is on; a person typically returns to several at once, so the open set of reviews changes constantly and read/unread state matters.
-- The keyboard layout of team members varies (QWERTY and AZERTY have both been used); shortcuts must follow the typed character, not the physical key.
+- Shared instance: Docker image, HTTPS, GitLab OAuth for the studio, a bot GitLab account for replies, SQLite on a persistent volume, one instance.
+- Mentions arrive by webhook (`Note Hook`) where a Maintainer set it up, or by polling MR notes, which needs only Developer rights. Both feed the same intake.
+- Claude Code CLI runs headless with one API key per instance, in an ephemeral git worktree per run. The agent's environment holds no GitLab token. Only `api/` holds the write token.
+- Local mode: same code, one user, no OAuth, polling, the developer's own `claude` login. SwiftBar, autostart and desktop notifications are optional local helpers, not part of the core.
+- Reviews arrive in bursts; a person typically returns to several at once, so the open set changes constantly and read/unread state matters.
+- Keyboard layouts vary (QWERTY and AZERTY); shortcuts follow the typed character, not the physical key.
 
 ## Capabilities and Constraints
 
-- Works with any markdown report. Richer display (verdict badge, Critical / Important counts, overview, "Comment to post" blocks) when the report follows the optional format in `examples/commands/review.md`; otherwise reviews are listed as "Unrated".
-- Studio features in place: a Home that groups reviews by whose turn it is, tabs for the reviews being read, a command palette, copy / edit / opt-in post of the proposed comment, a guided tour with a diff pane and a per-stop chat, live updates, poll-interval setting.
+- A review follows the contract in `packages/contract`. Richer display (verdict, severity counts, before/after overview, tour, findings with a comment to post) comes from the contract itself; there is no "unrated" fallback for the contract path.
+- Studio features: a Home that groups reviews by whose turn it is, tabs for reviews being read, a command palette, copy / edit / post of the proposed comment, a guided tour with a diff pane and a per-stop chat, live updates.
 - Interface language is English. This is a binding requirement: no French in the UI.
 - Reports may be long and contain unbroken paths and identifiers; they must never break the layout.
 - Browsers reserve some shortcuts (⌘W cannot be intercepted); the studio uses Ctrl+W, ⌥W and ⌘⌥W to close a review tab.
-- Stack is settled: Node.js poller, React + Vite + Tailwind studio in `studio/`. Undecided: a manual light/dark switch (the theme follows the operating system today).
+- Stack: Node.js and TypeScript for `api/` (built with `tsc`), React + Vite + Tailwind for `ui/`, npm workspaces. Undecided: a manual light/dark switch (the theme follows the operating system today).
 
 ## Brand Commitments
 
@@ -50,17 +56,17 @@ The bot brings no review logic of its own: the commands, agents and skills are t
 
 ## Evidence on Hand
 
-- `examples/commands/` and `examples/agents/`: sample review and triage commands.
+- `api/examples/commands/` and `api/examples/agents/`: sample review and triage commands from V1.
 - Real generated reviews from the author's own use exist on their machine (about thirty), used to develop the studio. They are not part of this repository.
 - No usage data, customer testimonials or benchmarks exist. None should be invented.
 
 ## Product Principles
 
-1. **Reading comes first.** The studio exists to make a long review quick to understand; everything else supports that.
-2. **The person stays in control of anything that leaves the machine.** No automatic posting; every send is explicit, previewed and reversible in the person's own hands (edit before posting).
-3. **Bring your own commands.** Nothing in the studio may assume one repository, one review style or one report format; the optional format only enriches.
-4. **Local and quiet.** Runs on the person's machine, notifies without nagging, and shows what the bot is doing at a glance.
-5. **Robust to real reports.** Long identifiers, missing sections and unrated reports are normal input, not edge cases.
+1. **Reading comes first.** The studio exists to make a long review quick to understand; everything else supports that. A review shows the before/after overview, plain-words chapters, and the core change first.
+2. **Nothing is posted unasked.** Every post answers a mention or a click, is previewed, and for a click is editable first.
+3. **The contract is fixed, the method is free.** Nothing may assume one repository, one stack or one review style, and nothing invalid is shown or posted.
+4. **Untrusted input stays data.** MR titles, descriptions, diffs and comments never become instructions, and the agent cannot post.
+5. **Robust to real reviews.** Long identifiers, empty sections and failed runs are normal input, not edge cases.
 
 ## Accessibility & Inclusion
 

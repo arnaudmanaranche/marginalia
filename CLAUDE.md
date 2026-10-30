@@ -1,16 +1,34 @@
 # Marginalia — rules for AI agents
 
-## Module size in `lib/`
+Marginalia is a bot that reviews GitLab merge requests and a studio to read the reviews. V2 is
+moving the code into `api/` (bot), `ui/` (studio) and `packages/contract`. Read these first:
 
-- No module in `lib/` may exceed **150 lines** (`MAX_LINES` in `scripts/check-file-size.mjs`).
-- It is enforced three ways: a `PostToolUse` hook (`.claude/settings.json`) that rejects an edit
-  leaving a `lib/` file over the limit, `test/file-size.test.mjs` in `npm test`, and
-  `npm run check:size`.
-- When a module gets close to the limit, split it by responsibility rather than compacting it:
-  pure logic (parsing, mapping, building payloads) in its own module with no config or I/O import,
-  so it can be unit-tested on plain fixtures; requests and side effects in another.
-  Existing examples: `gitlab-notes.mjs` (pure) / `gitlab.mjs` + `gitlab-drafts.mjs` (requests),
-  `claude-cli.mjs` (pure) / `claude-runner.mjs` (flow), `findings-*.mjs` behind `findings.mjs`.
+- `GLOSSARY.md`: the words to use. A new concept gets an entry before it gets a name in code.
+- `PRODUCT.md`: what it is and the promises that must not break.
+- `docs/architecture.md`: packages, listeners, run flow, skills, delivery order.
+- `docs/guidelines/api.md` and `docs/guidelines/ui.md`: how code is written on each side.
+- `docs/adr/`: why each decision was made. `DESIGN.md`: how the studio looks.
+
+## Always
+
+- The bot only posts when a person mentioned it or clicked. Only `api/` holds the GitLab write
+  token; the agent never gets one. Nothing that fails the contract is shown or posted.
+- `ui/` never imports from `api/`; the link is `packages/contract` and HTTP.
+- Mechanical changes (renames, moves) never share a commit with behavior changes.
+
+## Build
+
+`api/` and `packages/contract` are TypeScript compiled by `tsc` to `dist/`: `npm run build`. `npm start`,
+`npm test` and `npm run typecheck` build first. Tests are `.mjs` and import from `dist`.
+
+## Module size
+
+- No module in `api/src` may exceed **150 lines** (`MAX_LINES` in
+  `scripts/check-file-size.mjs`); components in `ui/` stay under 200.
+- Enforced three ways: a `PostToolUse` hook (`.claude/settings.json`) that rejects an edit leaving
+  a file over the limit, `api/test/file-size.test.mjs` in `npm test`, and `npm run check:size`.
+- Near the limit, split by responsibility rather than compacting: pure logic in its own module
+  with no config or I/O import, requests and side effects in another. Do not raise the limit to
+  make a change fit.
 - Import a function from the module that defines it; only `findings.mjs` re-exports, as the
   public entry point of the findings shape.
-- Do not raise the limit to make a change fit.

@@ -4,8 +4,8 @@ state.json
 webapp-worktree/
 status.json
 status.json.tmp
-studio/node_modules/
-studio/dist/
+ui/node_modules/
+ui/dist/
 settings.json
 settings.json.tmp
 posted.json
@@ -21,3 +21,14 @@ worktree/
 
 *storybook.log
 storybook-static
+marginalia.db*
+.npmrc
+repos/
+compose.override.yaml
+
+# built studio copied next to the code by `prepack`
+api/ui-dist/
+
+packages/contract/dist/
+api/dist/
+*.tsbuildinfo

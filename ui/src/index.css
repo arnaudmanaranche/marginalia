@@ -1,0 +1,168 @@
+@import 'tailwindcss';
+@plugin '@tailwindcss/typography';
+
+@theme {
+  --font-sans: ui-sans-serif, -apple-system, 'Inter', 'Segoe UI', system-ui, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, monospace;
+
+  /* The filled primary action (bg-primary). Hover is the same hue, a little darker. */
+  --color-primary: hsl(210 100% 50%);
+  --color-primary-hover: hsl(210 100% 44%);
+  --color-primary-foreground: hsl(210 20% 98%);
+  /* The light on the primary button's face, softer on hover. */
+  --button-face-inset-shadow: inset 0 3px 8px 0 #ffffff7a;
+  --button-face-inset-shadow-hover: inset 0 3px 8px 0 #ffffff4d;
+}
+
+:root {
+  color-scheme: light dark;
+
+  /* Height of the sticky chrome (top bar 3.5rem + open-review strip). The strip grows for
+     touch so its tabs are 44px tall; everything pinned under it reads these variables. */
+  --strip-h: 2.5rem;
+  --chrome-h: 6rem;
+
+  /* Text roles. Secondary text was zinc-500 everywhere, which is 4.1:1 on the dark
+     canvas and 3.7:1 on dark cards (AA needs 4.5:1). Each role is remapped per theme:
+     muted = secondary copy (>= 6:1 on canvas and cards in both themes);
+     subtle = icons and non-text marks only (>= 3:1), never sentences. */
+  --fg-muted: var(--color-zinc-600);
+  --fg-subtle: var(--color-zinc-500);
+
+  /* canvas: the page; surface: a card or panel on it; sunken: a well inside a surface (a chip,
+     inline code); strip: the header band of a card (a file name over its diff); line: the
+     hairline between things; line-strong: the edge of a control. */
+  --canvas: var(--color-zinc-50);
+  --surface: var(--color-white);
+  --sunken: var(--color-zinc-100);
+  --strip: var(--color-zinc-50);
+  --line: var(--color-zinc-200);
+  --line-strong: var(--color-zinc-300);
+}
+@media (pointer: coarse) {
+  :root {
+    --strip-h: 3rem;
+    --chrome-h: 6.5rem;
+  }
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fg-muted: var(--color-zinc-400);
+    --fg-subtle: var(--color-zinc-500);
+    --canvas: var(--color-zinc-950);
+    --surface: var(--color-zinc-900);
+    --sunken: var(--color-zinc-800);
+    --strip: var(--color-zinc-900);
+    --line: var(--color-zinc-800);
+    --line-strong: var(--color-zinc-700);
+  }
+}
+
+@theme inline {
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-subtle: var(--fg-subtle);
+  /* Surfaces and lines (BRAND.md): one name per role, each switching with the theme, so a
+     component never pairs a light and a dark shade by hand. */
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-sunken: var(--sunken);
+  --color-strip: var(--strip);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+}
+
+body {
+  @apply bg-canvas text-zinc-900 antialiased;
+}
+@media (prefers-color-scheme: dark) {
+  body {
+    @apply text-zinc-100;
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 8rem;
+}
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* highlight.js, minimal palette that works in both themes */
+.hljs-comment, .hljs-quote { color: #71717a; }
+.hljs-keyword, .hljs-selector-tag, .hljs-literal { color: #c026d3; }
+.hljs-string, .hljs-attr, .hljs-addition { color: #059669; }
+.hljs-number, .hljs-built_in, .hljs-type { color: #d97706; }
+.hljs-title, .hljs-function { color: #2563eb; }
+.hljs-deletion { color: #dc2626; }
+@media (prefers-color-scheme: dark) {
+  .hljs-keyword, .hljs-selector-tag, .hljs-literal { color: #e879f9; }
+  .hljs-string, .hljs-attr, .hljs-addition { color: #34d399; }
+  .hljs-number, .hljs-built_in, .hljs-type { color: #fbbf24; }
+  .hljs-title, .hljs-function { color: #60a5fa; }
+  .hljs-deletion { color: #f87171; }
+}
+
+/* Tailwind's preflight resets buttons to cursor: default. */
+@layer base {
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']),
+  a[href],
+  select:not(:disabled),
+  summary,
+  label:has(select) {
+    cursor: pointer;
+  }
+  button:disabled {
+    cursor: not-allowed;
+  }
+}
+
+/* Interactive controls keep their compact desktop size for mouse and trackpad, and reach the
+   44px touch target only on coarse pointers (WCAG 2.5.8 asks for 24px at AA; 44px is the
+   comfortable size for a finger). */
+@utility touch-target {
+  @media (pointer: coarse) {
+    min-height: 2.75rem;
+    min-width: 2.75rem;
+  }
+}
+
+/* Loading skeletons: a soft sweep of light across a bar. Still under reduced motion. */
+.shimmer {
+  position: relative;
+  overflow: hidden;
+}
+.shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.55), transparent);
+  animation: shimmer 1.5s ease-in-out infinite;
+  animation-delay: inherit;
+}
+@media (prefers-color-scheme: dark) {
+  .shimmer::after {
+    background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.08), transparent);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .shimmer::after {
+    animation: none;
+  }
+}
+@keyframes shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+/* A new line of the bot's activity slides in. */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+}

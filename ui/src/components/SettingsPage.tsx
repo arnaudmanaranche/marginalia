@@ -1,0 +1,164 @@
+import { useEffect, useState } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from '../lib/toast';
+import { RotateCcw, Volume2 } from 'lucide-react';
+import { play, setSoundsOn, soundsOn } from '../lib/sounds';
+import { saveSettings, type Settings } from '../lib/api';
+import { keys } from '../lib/queryKeys';
+import { Button } from './ui/Button';
+
+type Draft = { pollIntervalMinutes: string; staleAfterDays: string; allowedTargetBranches: string; excludeAuthors: string; showFullDiff: boolean };
+type TextKey = Exclude<keyof Draft, 'showFullDiff'>;
+
+const toDraft = (s: Settings): Draft => ({
+  pollIntervalMinutes: String(s.pollIntervalMinutes),
+  staleAfterDays: String(s.staleAfterDays),
+  allowedTargetBranches: s.allowedTargetBranches.join(', '),
+  excludeAuthors: s.excludeAuthors.join(', '),
+  showFullDiff: s.showFullDiff,
+});
+const toList = (v: string) => [...new Set(v.split(/[,\s]+/).filter(Boolean))];
+
+const FIELDS: { key: TextKey; label: string; hint: string; list?: boolean; placeholder?: string }[] = [
+  { key: 'pollIntervalMinutes', label: 'Poll every (minutes)', hint: 'How often the bot looks for new or updated MRs. 1 to 1440.' },
+  { key: 'staleAfterDays', label: 'Skip MRs idle for (days)', hint: 'No push or comment for this long and the MR is assumed stale. 1 to 365.' },
+  { key: 'allowedTargetBranches', label: 'Target branches', hint: 'Only MRs based on these branches are reviewed. Empty reviews all of them.', list: true, placeholder: 'develop, main' },
+  { key: 'excludeAuthors', label: 'Excluded authors', hint: 'GitLab usernames (not emails) whose MRs are never touched. Drafts are always skipped.', list: true, placeholder: 'alice, bob' },
+];
+
+function patchOf(draft: Draft) {
+  return {
+    pollIntervalMinutes: Number(draft.pollIntervalMinutes),
+    staleAfterDays: Number(draft.staleAfterDays),
+    allowedTargetBranches: toList(draft.allowedTargetBranches),
+    excludeAuthors: toList(draft.excludeAuthors),
+    showFullDiff: draft.showFullDiff,
+  };
+}
+
+// Everything here is read fresh by the bot on its next poll: no restart. Secrets, paths and the
+// ALLOW_POSTING / ALLOW_PUSH gates stay in .env on purpose.
+export function SettingsPage({ settings, defaults, projects = 1 }: { settings: Settings | null; defaults: Settings | null; projects?: number }) {
+  const [draft, setDraft] = useState<Draft | null>(settings && toDraft(settings));
+  const client = useQueryClient();
+  const saveMutation = useMutation({
+    mutationFn: saveSettings,
+    onSuccess: () => client.invalidateQueries({ queryKey: keys.reviews }),
+  });
+  const saving = saveMutation.isPending;
+  // The server's values arrive after the first paint, and change when saved from elsewhere.
+  const saved = settings ? JSON.stringify(toDraft(settings)) : null;
+  useEffect(() => {
+    if (settings) setDraft(toDraft(settings));
+  }, [saved]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (!draft || !settings || !defaults) return <div className="mx-auto max-w-2xl px-6 py-8 text-fg-muted">Loading settings…</div>;
+
+  const dirty = JSON.stringify(draft) !== saved;
+  const defaultDraft = toDraft(defaults);
+  const save = async (patch: Parameters<typeof saveSettings>[0], message: string) => {
+    try {
+      await saveMutation.mutateAsync(patch);
+      toast.success(message, { description: 'Applied by the bot on its next poll.' });
+    } catch (err) {
+      toast.error('Could not save the settings', { description: (err as Error).message });
+    }
+  };
+
+  return (
+    <form
+      className="mx-auto max-w-2xl px-6 py-8"
+      onSubmit={(e) => {
+        e.preventDefault();
+        void save(patchOf(draft), 'Settings saved');
+      }}
+    >
+      <h1 className="text-3xl font-semibold tracking-tight">Settings</h1>
+      <p className="mt-1 text-fg-muted">
+        Saved to <code>settings.json</code> and applied without a restart. Each value overrides <code>.env</code>, which stays the default.
+      </p>
+      {projects > 1 && <p className="mt-1 text-fg-muted">These settings apply to all {projects} projects this install watches.</p>}
+
+      <div className="mt-8 space-y-6">
+        {FIELDS.map((f) => {
+          const id = `setting-${f.key}`;
+          const changedFromDefault = draft[f.key] !== defaultDraft[f.key];
+          return (
+            <div key={f.key}>
+              <label htmlFor={id} className="block text-sm font-medium">{f.label}</label>
+              <div className="mt-1.5 flex items-center gap-2">
+                <input
+                  id={id}
+                  value={draft[f.key]}
+                  onChange={(e) => setDraft({ ...draft, [f.key]: e.target.value })}
+                  inputMode={f.list ? undefined : 'numeric'}
+                  placeholder={f.placeholder}
+                  aria-describedby={`${id}-hint`}
+                  className="touch-target w-full rounded-lg border border-line bg-surface px-3 py-1.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/50"
+                />
+                {changedFromDefault && (
+                  <Button variant="ghost" size="sm" disabled={saving} onClick={() => void save({ [f.key]: null }, `${f.label} back to the .env default`)} title={`Back to the .env default (${defaultDraft[f.key] || 'empty'})`}>
+                    <RotateCcw className="size-3.5" />Default
+                  </Button>
+                )}
+              </div>
+              <p id={`${id}-hint`} className="mt-1 text-xs text-fg-muted">{f.hint}</p>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="mt-8 border-t border-line pt-6">
+        <label className="flex items-start gap-3 text-sm font-medium">
+          <input
+            type="checkbox"
+            checked={draft.showFullDiff}
+            onChange={(e) => setDraft({ ...draft, showFullDiff: e.target.checked })}
+            aria-describedby="setting-showFullDiff-hint"
+            className="mt-0.5 size-4 rounded border-zinc-300"
+          />
+          Show the full diff in reviews
+        </label>
+        <p id="setting-showFullDiff-hint" className="mt-1 pl-7 text-xs text-fg-muted">
+          Off: a stop shows only the files with a finding or a conversation, the main points. The agent reads every line, so you do not have to.
+        </p>
+      </div>
+
+      <SoundSetting />
+
+      <div className="mt-8 flex items-center gap-3">
+        <Button type="submit" variant="primary" disabled={!dirty || saving}>{saving ? 'Saving…' : 'Save'}</Button>
+        {dirty && <Button variant="ghost" onClick={() => setDraft(toDraft(settings))}>Discard changes</Button>}
+      </div>
+    </form>
+  );
+}
+
+// For this browser only, and applied at once: nothing to save.
+function SoundSetting() {
+  const [on, setOn] = useState(soundsOn);
+  return (
+    <div className="mt-8 border-t border-line pt-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <label className="flex items-start gap-3 text-sm font-medium">
+          <input
+            type="checkbox"
+            checked={on}
+            onChange={(e) => {
+              setSoundsOn(e.target.checked);
+              setOn(e.target.checked);
+              if (e.target.checked) play('done');
+            }}
+            aria-describedby="setting-sounds-hint"
+            className="mt-0.5 size-4 rounded border-zinc-300"
+          />
+          Play sounds
+        </label>
+        <Button variant="ghost" size="sm" disabled={!on} onClick={() => play('arrive')}><Volume2 className="size-3.5" />Try one</Button>
+      </div>
+      <p id="setting-sounds-hint" className="mt-1 pl-7 text-xs text-fg-muted">
+        A short sound when an MR arrives, a review or a triage is ready, a run fails, a reviewer writes on your MR, and when an action of yours goes through or fails. This browser only, applied at once.
+      </p>
+    </div>
+  );
+}

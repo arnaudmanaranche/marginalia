@@ -1,0 +1,57 @@
+import { useEffect, useRef } from 'react';
+import { Command } from 'cmdk';
+import { FileText } from 'lucide-react';
+import type { ReviewItem } from '../lib/api';
+import { useScrollLock } from '../lib/useScrollLock';
+import { useModalFocus } from '../lib/useModalFocus';
+import { VerdictBadge } from './VerdictBadge';
+
+export function CommandPalette({ open, setOpen, items, onSelect }: { open: boolean; setOpen: (o: boolean) => void; items: ReviewItem[]; onSelect: (slug: string) => void }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key.toLowerCase() === 'k' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setOpen(!open);
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [open, setOpen]);
+
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useScrollLock(open);
+  useModalFocus(open, dialogRef, { initial: 'input' });
+
+  if (!open) return null;
+  return (
+    <div role="presentation" className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 px-4 pt-[15vh]" onClick={() => setOpen(false)}>
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="Search reviews" className="w-full max-w-xl" onClick={(e) => e.stopPropagation()}>
+      <Command
+        label="Search reviews"
+        className="w-full overflow-hidden rounded-xl border border-line bg-surface shadow-2xl transition-shadow focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/50 dark:focus-within:border-blue-500"
+        onKeyDown={(e) => e.key === 'Escape' && setOpen(false)}
+      >
+        <Command.Input placeholder="MR, title, branch, author…" className="w-full border-b border-line bg-transparent px-4 py-3 text-sm outline-none" />
+        <Command.List className="max-h-80 overflow-y-auto p-2">
+          <Command.Empty className="px-3 py-6 text-center text-sm text-fg-muted">No results</Command.Empty>
+          {items.map((it) => (
+            <Command.Item
+              key={it.slug}
+              value={`${it.iid ?? ''} ${it.title} ${it.branch ?? ''} ${it.author ?? ''} ${it.slug}`}
+              onSelect={() => {
+                onSelect(it.slug);
+                setOpen(false);
+              }}
+              className="touch-target flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-sm aria-selected:bg-zinc-100 dark:aria-selected:bg-zinc-800"
+            >
+              <FileText className="size-4 shrink-0 text-fg-subtle" />
+              <span className="min-w-0 flex-1 truncate">{it.iid ? <span className="mr-2 font-mono text-xs text-fg-muted">!{it.iid}</span> : null}{it.title}</span>
+              {it.kind !== 'comments' && <VerdictBadge verdict={it.verdict} />}
+            </Command.Item>
+          ))}
+        </Command.List>
+      </Command>
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,60 @@
+# yaml-language-server: $schema=https://cubic.dev/schema/cubic-repository-config.schema.json
+version: 1
+
+reviews:
+  enabled: true
+  sensitivity: medium
+  custom_instructions: |
+    Marginalia is a bot that reviews GitLab merge requests (`api/`, TypeScript) and a web studio to
+    read the reviews (`ui/`, React), linked only by `packages/contract` and HTTP. The code is in
+    transition from `lib/` and `studio/`; judge changes against `docs/architecture.md`.
+    Report real bugs and broken promises, not style preferences. The promises that must never
+    weaken: the bot only posts when a person mentioned it or clicked; only `api/` holds the GitLab
+    write token; nothing that fails the contract is shown or posted; MR content is untrusted data.
+    Use the terms in GLOSSARY.md.
+  ignore:
+    files:
+      - "package-lock.json"
+      - "**/package-lock.json"
+      - "dist/"
+      - "**/dist/"
+      - "**/*.stories.*"
+      - "repos/"
+      - "runs/"
+      - "webapp-worktree/"
+      - ".impeccable/"
+      - ".build/"
+      - "*.db"
+      - "runs.jsonl"
+      - "posted.json"
+      - "state.json"
+      - "status.json"
+    max_changed_lines: 5000
+  custom_rules:
+    - name: API guidelines
+      file_paths:
+        - docs/guidelines/api.md
+      include:
+        - "api/**"
+        - "lib/**"
+        - "packages/**"
+        - "bin/**"
+        - "scripts/**"
+    - name: UI guidelines
+      file_paths:
+        - docs/guidelines/ui.md
+      include:
+        - "ui/**"
+        - "studio/**"
+    - name: Glossary naming
+      file_paths:
+        - GLOSSARY.md
+    - name: Product promises
+      file_paths:
+        - PRODUCT.md
+    - name: Security boundary
+      file_paths:
+        - docs/review-focus.md
+
+pr_descriptions:
+  generate: false
