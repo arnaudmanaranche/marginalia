@@ -30,4 +30,14 @@ export const MIGRATIONS = [
     PRIMARY KEY (project, note_id)
   );
   `,
+  `
+  CREATE TABLE session (
+    id         TEXT PRIMARY KEY,
+    username   TEXT NOT NULL,
+    name       TEXT NOT NULL,
+    projects   TEXT NOT NULL,  -- JSON: keys of the projects the person may use
+    tokens     TEXT NOT NULL,  -- sealed JSON: GitLab access and refresh token, expiry
+    expires_at INTEGER NOT NULL
+  );
+  `,
 ];
