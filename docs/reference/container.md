@@ -48,7 +48,7 @@ Put the clones in `./repos` (or set `REPOS_DIR`). Then `docker compose run --rm 
   boundary**: a non-root user, `cap_drop: ALL`, no host access beyond the mounted folders. Reviews run
   Bash over code from other people's MRs, so also limit the container's network (an egress rule that
   allows only GitLab, Jira and the Claude API) if you do not fully trust that code.
-- **The studio has no login.** It listens on `0.0.0.0` *inside* the container; `compose.yaml` publishes
+- **The studio has no login** unless you host it with GitLab login (see [hosting.md](hosting.md)). It listens on `0.0.0.0` *inside* the container; `compose.yaml` publishes
   it on `127.0.0.1` only. Do not publish it on a network interface. If you map another host port, list its
   Host values in `STUDIO_ALLOWED_HOSTS` (compose does this for `STUDIO_HOST_PORT`).
 - **`config.json` and the environment.** For `CLAUDE_BIN`, `CLAUDE_SANDBOX`, `NOTIFICATIONS` and `STUDIO_PORT`, a real
