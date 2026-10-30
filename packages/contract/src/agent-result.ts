@@ -49,5 +49,5 @@ export const AgentTriage = z.object({
     verdict: z.enum(['fixed', 'already_fixed', 'not_relevant', 'wrong', 'answered']),
     reply: text,
     resolve: z.boolean(),
-  })).min(1),
+  })),
 });

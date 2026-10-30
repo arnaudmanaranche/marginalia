@@ -35,10 +35,11 @@ test('APPROVE cannot leave a critical or important finding', () => {
   assert.throws(() => enforceContract('review', review({ verdict: 'APPROVE' })), /APPROVE/);
 });
 
-test('a triage needs a reply per thread, in the allowed verdicts', () => {
+test('a triage lists its replies, in the allowed verdicts', () => {
   const reply = { thread: 'abcdef1234', verdict: 'answered', reply: 'Done.', resolve: false };
   enforceContract('triage', JSON.stringify({ replies: [reply] }));
-  assert.throws(() => enforceContract('triage', JSON.stringify({ replies: [] })), /replies/);
+  enforceContract('triage', JSON.stringify({ replies: [] })); // no open thread, nothing to answer
+  assert.throws(() => enforceContract('triage', '{}'), /replies/);
   assert.throws(() => enforceContract('triage', JSON.stringify({ replies: [{ ...reply, verdict: 'maybe' }] })), /replies\.0\.verdict/);
 });
 
