@@ -47,6 +47,7 @@ export function createApp({ hosts, gitlab, auth }: { hosts?: () => Set<string>; 
   app.use('/api/post', requirePosting);
   app.use('/api/submit-review', requirePosting);
   app.use('/api/drafts/*', requirePosting);
+  app.use('/api/replies', requirePosting);
 
   readRoutes(app);
   writeRoutes(app, gitlab);

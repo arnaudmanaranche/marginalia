@@ -34,8 +34,9 @@ test('a reply needs a thread id and text', async () => {
 test('replies are only for my own MR', async () => {
   const res = await send('POST', '/api/replies', { ...reply, slug: 'demo/theirs' });
   assert.equal(res.status, 403);
-  assert.match(await errorOf(res), /your own/);
-  assert.equal((await send('POST', '/api/replies', { ...reply, slug: 'demo/untracked' })).status, 404);
+  assert.match(await errorOf(res), /other people's merge requests/);
+  // An MR the bot does not track is not mine either: refused before anything is looked up.
+  assert.equal((await send('POST', '/api/replies', { ...reply, slug: 'demo/untracked' })).status, 403);
 });
 
 test('the fixes of a triage are read from their own route, not answered with the app', async () => {
