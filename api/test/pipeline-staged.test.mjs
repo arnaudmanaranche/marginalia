@@ -67,7 +67,7 @@ test('a staged review maps the change, reviews each chapter, and weighs the find
   assert.equal(trace.cost.usd.toFixed(2), '0.04');
   // Only the chapters' reviewers get the review lenses.
   const lensLoads = trace.steps.filter((s) => s.text === 'Loading marginalia:security').map((s) => s.stage);
-  assert.deepEqual([...new Set(lensLoads)], ['chapter-1', 'chapter-2']);
+  assert.deepEqual([...new Set(lensLoads)].sort(), ['chapter-1', 'chapter-2']);
 
   const shape = buildShape({ markdown: out.content, findingsRaw: out.findingsRaw });
   assert.equal(shape.source, 'json');
