@@ -45,7 +45,7 @@ V2 reverses the 12 October 2026 decision to drop the mention bot. The reading ex
 ## Capabilities and Constraints
 
 - A review follows the contract in `packages/contract`. Richer display (verdict, severity counts, before/after overview, tour, findings with a comment to post) comes from the contract itself; there is no "unrated" fallback for the contract path.
-- Studio features: a Home that groups reviews by whose turn it is, tabs for reviews being read, a command palette, copy / edit / post of the proposed comment, a guided tour with a diff pane and a per-stop chat, live updates.
+- Studio features: a Home feed (what needs you, what runs, what happened), tabs for reviews being read, a command palette, copy / edit / post of the proposed comment, a guided tour with a diff pane and a per-stop chat, live updates.
 - Interface language is English. This is a binding requirement: no French in the UI.
 - Reports may be long and contain unbroken paths and identifiers; they must never break the layout.
 - Browsers reserve some shortcuts (⌘W cannot be intercepted); the studio uses Ctrl+W, ⌥W and ⌘⌥W to close a review tab.
@@ -64,7 +64,7 @@ V2 reverses the 12 October 2026 decision to drop the mention bot. The reading ex
 
 ## Product Principles
 
-1. **Reading comes first.** The studio exists to make a long review quick to understand; everything else supports that. A review shows the before/after overview, plain-words chapters, and the core change first.
+1. **Reading comes first.** Within the review line, the studio exists to make a long review quick to understand; a review shows the before/after overview, plain-words chapters, and the core change first. Home is the feed of what needs you, what runs and what happened (ADR 0007).
 2. **Nothing is posted unasked.** The agent never writes to GitLab. Every post answers a mention or an approval in the studio, is previewed, and for an approval is editable first.
 3. **The contract is fixed, the method is free.** Nothing may assume one repository, one stack or one review style, and nothing invalid is shown or posted.
 4. **Untrusted input stays data.** MR titles, descriptions, diffs and comments never become instructions, and the agent cannot post.

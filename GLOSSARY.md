@@ -18,6 +18,8 @@ The words below are the only ones the code, the docs and the studio use for thes
 
 **Own review**: a review of the configured user's own branch or MR, shown only to them, never posted. Not triage, which works through comments other people left.
 
+**Feed**: Home (ADR 0007): what needs you (reviews whose turn is yours, comments to decide, failures that need a person, a context to approve), the jobs running now, and every job by day.
+
 **Approval**: a person's decision on a write the factory proposes: approve as-is, edit then approve, or dismiss. Nothing reaches GitLab without an approval or a mention.
 
 **Finding outcome**: what happened to a finding: posted as-is, edited, dismissed, or fixed before the MR. The review line's measure.
