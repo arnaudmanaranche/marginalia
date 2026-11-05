@@ -11,6 +11,7 @@ import { Button } from './ui/Button';
 import { ConfirmPost } from './ConfirmPost';
 import { NoteMarkdown } from './NoteMarkdown';
 import { PostedBadge } from './PostedBadge';
+import { CopyButton } from './CopyButton';
 
 const TONE: Record<Finding['severity'], BadgeTone> = { critical: 'danger', important: 'warning', suggestion: 'info', info: 'neutral' };
 const DOT: Record<Finding['severity'], string> = { critical: 'bg-red-500', important: 'bg-amber-500', suggestion: 'bg-blue-500', info: 'bg-zinc-400' };
@@ -79,6 +80,9 @@ function CommentArea({ finding, text, onText, editing, onEditing, showActions, l
       ) : (
         <div className="whitespace-pre-wrap rounded-md border border-blue-500/30 bg-blue-500/5 p-2">{text}</div>
       )}
+      {!showActions && text.trim() && (
+        <div className="mt-3 flex gap-2"><CopyButton label="Copy" getText={() => text} /></div>
+      )}
       <div className={cn('mt-3 flex gap-2', !showActions && 'hidden')}>
         {finding.comment && (
           <Button size="sm" variant="ghost" disabled={locked} onClick={onEditing}>
@@ -93,8 +97,9 @@ function CommentArea({ finding, text, onText, editing, onEditing, showActions, l
   );
 }
 
-// Folded: who raised the point first and what they said, with a way to comment on it anyway.
-function RaisedCard({ finding, raised, onFocus, onUnfold }: { finding: Finding; raised: RaisedBy; onFocus?: (id: string) => void; onUnfold: () => void }) {
+// Folded: who raised the point first and what they said, with a way to comment on it anyway, or
+// only to read the comment where nothing can be posted (an own review, posting off).
+function RaisedCard({ finding, raised, canPost, onFocus, onUnfold }: { finding: Finding; raised: RaisedBy; canPost: boolean; onFocus?: (id: string) => void; onUnfold: () => void }) {
   const { path, line, resolved } = raised.thread;
   const where = path ? `${path.split('/').pop()}${line ? `:${line}` : ''}` : 'the MR';
   return (
@@ -107,7 +112,7 @@ function RaisedCard({ finding, raised, onFocus, onUnfold }: { finding: Finding; 
           <button type="button" onClick={() => onFocus?.(finding.id)} title={`${path}${line ? `:${line}` : ''} (show it in the diff)`} className="break-all font-mono text-blue-600 hover:underline dark:text-blue-400">{where}</button>
         </p>
         <NoteMarkdown className="mt-1.5 line-clamp-4 border-l-2 border-line-strong pl-2 text-xs text-fg-muted prose-p:my-0">{raised.body}</NoteMarkdown>
-        <Button size="sm" variant="ghost" className="-ml-2 mt-2" onClick={onUnfold}>Comment anyway</Button>
+        <Button size="sm" variant="ghost" className="-ml-2 mt-2" onClick={onUnfold}>{canPost ? 'Comment anyway' : 'Show the comment'}</Button>
       </div>
     </div>
   );
@@ -133,7 +138,7 @@ function FindingCard({ finding, raised, compact = false, focus = null, onFocus, 
   }, [focus, finding.id]);
   const info = posted[`${slug}:${finding.id}`];
   // Once posted it is mine whatever the thread says: it shows as posted, not as folded.
-  if (raised && !info && !unfolded) return <div ref={rootRef} tabIndex={-1} className={cn('rounded-lg transition-shadow focus:outline-none', flash && 'ring-2 ring-blue-500')}><RaisedCard finding={finding} raised={raised} onFocus={onFocus} onUnfold={() => { setUnfolded(true); setExpanded(true); }} /></div>;
+  if (raised && !info && !unfolded) return <div ref={rootRef} tabIndex={-1} className={cn('rounded-lg transition-shadow focus:outline-none', flash && 'ring-2 ring-blue-500')}><RaisedCard finding={finding} raised={raised} canPost={allowPosting} onFocus={onFocus} onUnfold={() => { setUnfolded(true); setExpanded(true); }} /></div>;
   const target = findingTarget(finding);
   const canPost = allowPosting && !info && !locked && text.trim().length > 0;
   const confirm = confirming && (
