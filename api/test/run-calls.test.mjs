@@ -24,3 +24,15 @@ test('each stage adds up what its Claude calls used, and remembers the model', (
   trace = addUsage(trace, 'chapter-1', { costUsd: 0.05, turns: 1, outputTokens: 20 });
   assert.deepEqual(trace.usage['chapter-1'], { model: 'claude-x', calls: 2, turns: 4, usd: 0.15000000000000002, ms: 4000, inputTokens: 10, outputTokens: 120, cacheReadTokens: 500, cacheWriteTokens: 0 });
 });
+
+test('a chapter\'s findings are kept as it gave them, stamped, up to the limit', async () => {
+  const { recordFindings, MAX_FOUND } = await import('../dist/src/run-calls.js');
+  let trace = recordFindings({}, 'chapter-1', [{ id: 'a', severity: 'critical', title: 'T', path: 'x.ts', line: 3, body: 'kept out' }, { id: 'b', title: 'U', line: 'nope' }], 't1');
+  assert.deepEqual(trace.found, [
+    { id: 'a', stage: 'chapter-1', severity: 'critical', title: 'T', path: 'x.ts', line: 3, at: 't1' },
+    { id: 'b', stage: 'chapter-1', severity: 'info', title: 'U', path: null, line: null, at: 't1' },
+  ]);
+  trace = recordFindings({ found: Array.from({ length: MAX_FOUND - 1 }, () => ({})) }, 'chapter-2', [{ id: 'c' }, { id: 'd' }], 't2');
+  assert.equal(trace.found.length, MAX_FOUND);
+  assert.equal(trace.found.at(-1).id, 'c');
+});

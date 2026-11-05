@@ -48,6 +48,7 @@ export async function stagedReview({ mr, run, outputPath, stack = null, settings
     await run.begin(ids[i]);
     try {
       const result = await agentStage({ run, stage: ids[i], prompt: chapterPrompt({ context: text, map, chapter, index: i, checklist }), ...lens, cwd, parse: parseChapter });
+      await run.found(ids[i], result.findings ?? []);
       await run.end(ids[i]);
       return { result };
     } catch (err) {

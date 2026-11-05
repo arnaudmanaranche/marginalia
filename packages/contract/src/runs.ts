@@ -50,6 +50,9 @@ export const RunTrace = z.object({
   calls: z.array(ToolCallRecord).optional().describe('Absent on a run from before tool calls were kept.'),
   droppedCalls: z.number().int().optional(),
   usage: z.record(z.string(), StageUsage).optional().describe('By stage id.'),
+  found: z.array(z.object({
+    id: z.string(), stage: z.string(), severity: z.string(), title: z.string(), path: nullable(z.string()), line: nullable(z.number().int()), at: z.string(),
+  })).optional().describe('Findings as each chapter gave them, before the report weighs and merges them.'),
   fixSource: z.object({ available: z.boolean(), why: z.string().optional() }).describe('Whether the doctor can prepare fixes on this install.'),
 }).describe('One run with every step it took.').meta({ id: 'RunTrace' });
 

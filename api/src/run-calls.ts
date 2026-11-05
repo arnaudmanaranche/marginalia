@@ -39,3 +39,18 @@ export function addUsage(trace: any, stage: string, stats: CallStats) {
   };
   return { ...trace, usage: { ...(trace.usage ?? {}), [stage]: now } };
 }
+
+// A run keeps this many findings as found: the feed of the studio, before the report weighs them.
+export const MAX_FOUND = 500;
+
+export interface Found { id: string; stage: string; severity: string; title: string; path: string | null; line: number | null; at: string }
+
+// The findings one stage (a chapter's reviewer) gave, as it gave them, stamped with when.
+export function recordFindings(trace: any, stage: string, findings: any[], at: string) {
+  const was: Found[] = trace.found ?? [];
+  const fresh = findings.slice(0, Math.max(0, MAX_FOUND - was.length)).map((f) => ({
+    id: String(f.id ?? ''), stage, severity: String(f.severity ?? 'info'), title: String(f.title ?? ''),
+    path: typeof f.path === 'string' ? f.path : null, line: Number.isInteger(f.line) ? f.line : null, at,
+  }));
+  return { ...trace, found: [...was, ...fresh] };
+}

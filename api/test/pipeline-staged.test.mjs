@@ -65,6 +65,7 @@ test('a staged review maps the change, reviews each chapter, and weighs the find
   assert.ok(trace.steps.some((s) => s.stage === 'chapter-2' && /did not fit the contract/.test(s.text)), 'chapter 2 was asked again');
   assert.ok(trace.steps.some((s) => s.stage === 'context' && /2 changed files.*CLAUDE\.md/.test(s.text)));
   assert.equal(trace.cost.usd.toFixed(2), '0.04');
+  assert.deepEqual(trace.found.map((f) => [f.stage, f.id, f.severity, f.path, f.line]), [['chapter-1', 'neg-total', 'important', 'src/pricing.mjs', 2]]);
   // Only the chapters' reviewers get the review lenses.
   const lensLoads = trace.steps.filter((s) => s.text === 'Loading marginalia:security').map((s) => s.stage);
   assert.deepEqual([...new Set(lensLoads)].sort(), ['chapter-1', 'chapter-2']);

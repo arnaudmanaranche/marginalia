@@ -3,7 +3,7 @@ import { logger } from './logger.ts';
 import { reviewId } from './review-id.ts';
 import { liveEntryOf, writeStatus } from './status.ts';
 import { openTranscript, pruneTraces, runId, saveTrace } from './run-journal.ts';
-import { addUsage, recordCall, type CallStats } from './run-calls.ts';
+import { addUsage, recordCall, recordFindings, type CallStats } from './run-calls.ts';
 import type { ToolCall } from './tool-calls.ts';
 import { addStep, beginStage, endStage, enterStage, finishTrace, liveSummary, planStages, startTrace } from './run-trace.ts';
 
@@ -96,6 +96,11 @@ export async function followRun(mr: any, { kind, command, outputPath, plan }: an
     call(c: ToolCall, stage: string | null = null) {
       trace = recordCall(trace, c, stage ?? trace.stages.find((s: any) => s.state === 'running')?.id ?? null);
       later();
+    },
+    // The findings a stage gave, the moment it gave them, for the studio's feed.
+    found(stage: string, findings: any[]) {
+      trace = recordFindings(trace, stage, findings, new Date().toISOString());
+      return flush();
     },
     // Adds up, for the run and for the stage: a staged run makes one Claude call per stage.
     addCost(stats: CallStats, stage: string | null = null) {

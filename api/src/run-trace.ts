@@ -143,6 +143,6 @@ export function liveSummary(trace: any) {
 // A run as a line of an MR's run history: the trace without its steps and tool calls.
 /** @param {Trace} trace */
 export function runSummary(trace: any) {
-  const { steps, calls, ...rest } = trace;
+  const { steps, calls, found, ...rest } = trace;
   return { ...rest, stepCount: steps.length + trace.droppedSteps };
 }
