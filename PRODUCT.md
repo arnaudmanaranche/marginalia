@@ -14,7 +14,9 @@ Two jobs bring people to it. In the studio: an MR has been reviewed in the backg
 
 ## Product Purpose
 
-marginalia is a bot that runs reviews on GitLab merge requests, and a studio to read them. A review is requested from the studio or by mentioning `@marginalia` in an MR. The bot checks out the MR, lets an agent review it with whatever tools, sub-agents and skills it chooses, validates the result against a fixed contract, then shows it in the studio or replies on the MR.
+marginalia is a software factory for a team's repositories (ADR 0006). It learns a project from its code and tools (GitLab, Jira, Notion, Slack, PostHog) into a project context, runs lines of jobs on it, and leaves every decision to a person in the studio, which shows each job as it runs. It works on any repository, front-end or back-end. Review is the first line: MRs opened by other people, and your own branches before and after their MR exists.
+
+Within the review line, marginalia runs reviews on GitLab merge requests, and the studio is where they are read. A review is requested from the studio or by mentioning `@marginalia` in an MR. The bot checks out the MR, lets an agent review it with whatever tools, sub-agents and skills it chooses, validates the result against a fixed contract, then shows it in the studio or replies on the MR.
 
 Success:
 
@@ -63,10 +65,12 @@ V2 reverses the 12 October 2026 decision to drop the mention bot. The reading ex
 ## Product Principles
 
 1. **Reading comes first.** The studio exists to make a long review quick to understand; everything else supports that. A review shows the before/after overview, plain-words chapters, and the core change first.
-2. **Nothing is posted unasked.** Every post answers a mention or a click, is previewed, and for a click is editable first.
+2. **Nothing is posted unasked.** The agent never writes to GitLab. Every post answers a mention or an approval in the studio, is previewed, and for an approval is editable first.
 3. **The contract is fixed, the method is free.** Nothing may assume one repository, one stack or one review style, and nothing invalid is shown or posted.
 4. **Untrusted input stays data.** MR titles, descriptions, diffs and comments never become instructions, and the agent cannot post.
-5. **Robust to real reviews.** Long identifiers, empty sections and failed runs are normal input, not edge cases.
+5. **Any repository.** Front-end or back-end, any stack. What a project is lives in its approved project context, never in code, built-in skills or prompts.
+6. **Visible work.** Every job is visible in the studio while it runs, and a failure shows its reason.
+7. **Robust to real reviews.** Long identifiers, empty sections and failed runs are normal input, not edge cases.
 
 ## Accessibility & Inclusion
 

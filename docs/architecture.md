@@ -2,6 +2,10 @@
 
 Target architecture for V2. Terms are defined in `GLOSSARY.md`; the reasons are in `docs/adr/`. Step 2 of the delivery order is done: the repo is an npm workspace of `packages/contract` (the HTTP schemas, in eight modules), `api/` (the bot: `src`, `src/http`, `bin`, `scripts`, `docker`, `skills`, `examples`, `swiftbar`, `test`) and `ui/`. `scripts/check-file-size.mjs` stays at the root as repo tooling. The `.ts` migration (step 3) is done: the code is TypeScript, builds to `dist/` and is `strict` with `noImplicitAny`.
 
+## Factory
+
+Marginalia is a software factory (ADR 0006). A **line** is one kind of job on one project, and a **job** is one execution of a line on one target. Review is the first line and is the run flow below. Each job reads the project's approved **project context** (glossary, stack, features, critical paths, every item cited), which is learned by an Understand job and stored outside the reviewed repo: in the team repo, or in `<data dir>/context/` in local mode. During a run the agent reads Jira, Notion, Slack and PostHog with read-only access. Writes wait for an approval in the studio, except a mention reply. Nothing in the code names a stack.
+
 ## Packages
 
 npm workspaces at the repo root:

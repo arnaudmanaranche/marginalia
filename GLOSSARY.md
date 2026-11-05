@@ -4,6 +4,22 @@ The words below are the only ones the code, the docs and the studio use for thes
 
 **Marginalia**: the product as a whole, bot and studio together.
 
+**Factory**: what Marginalia is becoming (ADR 0006): it learns a project, runs lines of jobs on it and leaves every decision to a person. Not a separate service.
+
+**Line**: one kind of job on one project. Review is the first line. Has metrics of its own.
+
+**Job**: one execution of a line on one target, an MR or a branch. Starts from a trigger (poll, webhook, mention, click, branch push) and ends with a result, a visible failure, or closed without action. A run is how a job executes.
+
+**Project context**: what the factory has learned about one project: glossary, stack, features and critical paths, each item citing its source. Data stored outside the reviewed repo, approved by a person before reviews use it. Never code in Marginalia.
+
+**Critical path**: a flow in a project whose breakage costs the most (a user journey for a front-end, a request flow, data write or payment for a back-end). Listed in the project context.
+
+**Own review**: a review of the configured user's own branch or MR, shown only to them, never posted. Not triage, which works through comments other people left.
+
+**Approval**: a person's decision on a write the factory proposes: approve as-is, edit then approve, or dismiss. Nothing reaches GitLab without an approval or a mention.
+
+**Finding outcome**: what happened to a finding: posted as-is, edited, dismissed, or fixed before the MR. The review line's measure.
+
 **Bot**: the `api/` side. It listens, runs the agent, validates the result and posts. It has no screen. Not the studio.
 
 **Studio**: the `ui/` side, the web app where a person reads a review and decides what to say. It talks to the bot over HTTP only. Not the bot.

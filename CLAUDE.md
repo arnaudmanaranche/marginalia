@@ -1,6 +1,7 @@
 # Marginalia — rules for AI agents
 
-Marginalia is a bot that reviews GitLab merge requests and a studio to read the reviews. V2 is
+Marginalia is a software factory (ADR 0006): it learns a project, runs lines of jobs on it (review
+is the first) and a studio shows every job and holds every decision. V2 is
 moving the code into `api/` (bot), `ui/` (studio) and `packages/contract`. Read these first:
 
 - `GLOSSARY.md`: the words to use. A new concept gets an entry before it gets a name in code.
@@ -13,6 +14,8 @@ moving the code into `api/` (bot), `ui/` (studio) and `packages/contract`. Read 
 
 - The bot only posts when a person mentioned it or clicked. Only `api/` holds the GitLab write
   token; the agent never gets one. Nothing that fails the contract is shown or posted.
+- Any repository, front or back: no stack or project name in code, built-in skills or prompts;
+  what a project is lives in its approved project context.
 - `ui/` never imports from `api/`; the link is `packages/contract` and HTTP.
 - Mechanical changes (renames, moves) never share a commit with behavior changes.
 
