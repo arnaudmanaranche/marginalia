@@ -20,7 +20,7 @@ export function ReviewLineCard({ metrics }: { metrics: LineMetrics }) {
   return (
     <section aria-labelledby="review-line" className="mt-3">
       <h3 id="review-line" className="text-xs font-medium text-fg-muted">Review line · last {metrics.days} days</h3>
-      <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-7">
         <Tile
           label="Jobs" value={String(jobs.total)}
           note={jobs.failed > 0
@@ -31,6 +31,7 @@ export function ReviewLineCard({ metrics }: { metrics: LineMetrics }) {
         <Tile label="Posted as proposed" value={String(findings.asProposed)} note={findings.unknown > 0 ? `${findings.unknown} more from reviews no longer kept` : undefined} />
         <Tile label="Edited first" value={String(findings.edited)} />
         <Tile label="Dismissed" value={String(findings.dismissed)} />
+        <Tile label="Fixed before the MR" value={String(findings.fixedBefore)} note="your own branches" />
         <Tile label="Cost" value={`$${jobs.costUsd.toFixed(2)}`} note={`median run ${minutes(jobs.medianMs)}`} />
       </div>
     </section>

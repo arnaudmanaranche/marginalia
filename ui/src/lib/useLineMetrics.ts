@@ -6,7 +6,7 @@ import { fetchJson } from './fetchRetry';
 export interface LineMetrics {
   days: number;
   jobs: { total: number; failed: number; running: number; medianMs: number | null; costUsd: number };
-  findings: { asProposed: number; edited: number; unknown: number; dismissed: number; pending: number; actedOnRate: number | null };
+  findings: { asProposed: number; edited: number; unknown: number; dismissed: number; pending: number; fixedBefore: number; actedOnRate: number | null };
 }
 
 export function useLineMetrics(): LineMetrics | null {
