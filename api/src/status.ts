@@ -1,0 +1,67 @@
+import { writeFile, rename } from 'node:fs/promises';
+import { STATUS_FILE } from './config.ts';
+import { PROJECTS } from './projects.ts';
+import { logger } from './logger.ts';
+import { carryOver, readPrevious } from './status-seed.ts';
+
+// What the menu bar plugin shows. Kept in memory and flushed to status.json
+// after every change.
+export const status = {
+  pid: process.pid,
+  startedAt: new Date().toISOString(),
+  phase: 'idle', // idle | polling | reviewing | error | stopped
+  current: null as any, // MR being reviewed right now
+  lastPoll: null as { at: string; ok: boolean; error: string | null } | null,
+  nextPollAt: null as string | null,
+  projects: PROJECTS.map((p: any) => ({ key: p.key, kind: p.kind, reviewsDir: p.reviewsDir })),
+  // The last known entries until the first pass sets each project's own (status-seed.ts).
+  mrs: carryOver(readPrevious(STATUS_FILE), PROJECTS.map((p: any) => p.key)) as any[],
+};
+
+let statusWrite = Promise.resolve();
+
+// Writes go through a temp file + rename so the plugin never reads a
+// half-written file, and are chained so two writes never race on the rename.
+export function writeStatus() {
+  statusWrite = statusWrite
+    .then(async () => {
+      const tmp = `${STATUS_FILE}.tmp`;
+      await writeFile(tmp, JSON.stringify(status, null, 2));
+      await rename(tmp, STATUS_FILE);
+    })
+    .catch((err) => logger.error({ err }, `Could not write ${STATUS_FILE}`));
+  return statusWrite;
+}
+
+// An MR is told apart by its project: iids repeat from one GitLab project to the next.
+// My own MR can have two entries (own review, triage): `kind` picks one; without it, the first.
+// A branch without an MR (iid null) is told apart by its name.
+export const sameMr = (entry: any, mr: any, kind?: string) => (mr.iid === null ? entry.iid === null && entry.sourceBranch === mr.source_branch : entry.iid === mr.iid)
+  && entry.project === mr.project.key && (!kind || entry.kind === kind);
+
+export function setMrStatus(mr: any, patch: any, kind?: string) {
+  const entry = status.mrs.find((m) => sameMr(m, mr, kind));
+  if (entry) Object.assign(entry, patch);
+  return writeStatus();
+}
+
+// What a pass over a project (poll-pass.ts) shows through: marks the bot busy on one MR, then
+// back to polling.
+export const statusSink = {
+  async begin(mr: any, kind?: string) {
+    status.phase = 'reviewing';
+    status.current = { project: mr.project.key, iid: mr.iid, title: mr.title, web_url: mr.web_url, startedAt: new Date().toISOString() };
+    await setMrStatus(mr, { status: 'reviewing' }, kind);
+  },
+  setMr: setMrStatus,
+  async end() {
+    status.phase = 'polling';
+    status.current = null;
+    await writeStatus();
+  },
+  entriesOf: (project: any) => status.mrs.filter((m) => m.project === project.key),
+  async setEntries(project: any, entries: any[]) {
+    status.mrs = [...status.mrs.filter((m) => m.project !== project.key), ...entries];
+    await writeStatus();
+  },
+};

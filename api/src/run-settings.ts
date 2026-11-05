@@ -1,0 +1,18 @@
+import { ROOT, GITLAB_BASE_URL, CLAUDE_SANDBOX, CLAUDE_ENV_PASSTHROUGH } from './config.ts';
+import { claudeEnv } from './claude-cli.ts';
+import { claudeSettings } from './claude-sandbox.ts';
+
+// Sandbox + deny rules for every headless run (see claude-sandbox.ts): the
+// reviews, the triage and the studio's chat all get the same confinement, around
+// the repo, worktree and reviews dir of the project the run is about.
+export const runSettings = (project: any) => claudeSettings({
+  sandbox: CLAUDE_SANDBOX !== 'false',
+  rootDir: ROOT,
+  repoPath: project.repoPath,
+  worktreeDir: project.worktreeDir,
+  reviewsDir: project.reviewsDir,
+  gitHost: new URL(GITLAB_BASE_URL).hostname,
+});
+
+// The environment of a headless run: secrets scrubbed (see claude-cli.ts).
+export const runEnv = () => claudeEnv(process.env, CLAUDE_ENV_PASSTHROUGH.split(/\s+/).filter(Boolean));

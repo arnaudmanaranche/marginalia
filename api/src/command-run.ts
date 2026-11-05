@@ -1,0 +1,60 @@
+import { gitlab } from './gitlab-api.ts';
+import { c, log, warn } from './log.ts';
+import { CLAUDE_BIN, REVIEW_PROMPT_EXTRA, DATA_DIR } from './config.ts';
+import { teamRunExtras } from './team-claude.ts';
+import { withTeamDeny } from './team-plugin.ts';
+import { artifactOf } from './artifact.ts';
+import { discussionPrompt, triageDiscussionPrompt } from './discussion-prompt.ts';
+import { claudeArgs, parseRunOutput } from './claude-cli.ts';
+import { runEnv, runSettings } from './run-settings.ts';
+import { buildReport } from './report.ts';
+import { enforceContract } from './guardrail.ts';
+import { catalogPrompt } from './catalog.ts';
+import { assembleCatalog } from './catalog-assemble.ts';
+import { contractPrompt } from './run-contract.ts';
+import { previousFindingsPrompt } from './previous-findings.ts';
+import { runStreaming } from './progress.ts';
+import { buildStackPrompt } from './stack-context.ts';
+import { readContext } from './context-store.ts';
+import { projectContextPrompt } from './context-prompt.ts';
+
+// A run of the project's own command (REVIEW_COMMAND / TRIAGE_COMMAND, a slash command of the
+// reviewed repo): one Claude call that does the whole job, told the output contract with
+// --append-system-prompt, its report read back from whatever it wrote. See pipeline/ for the
+// staged runs Marginalia drives itself.
+/** @param {{ mr: any, run: any, kind: 'review' | 'triage', command: string, tools: string[], outputPath: string, stack?: any }} input */
+export async function commandRun({ mr, run, kind, command, tools, outputPath, stack = null }: { mr: any; run: any; kind: 'review' | 'triage'; command: string; tools: string[]; outputPath: string; stack?: any }) {
+  const BOT_WORKTREE_DIR = mr.project.worktreeDir;
+  await run.stage('context');
+  const stackContext = stack && stack.info.size > 1 ? await buildStackPrompt(mr, stack) : '';
+  // A failed fetch must not block the review: it just runs without the conversation.
+  const conversation = mr.iid === null ? '' : await gitlab.listDiscussions(mr.project, mr.iid)
+    .then(kind === 'review' ? discussionPrompt : triageDiscussionPrompt, (err) => { warn(mr, `Could not read the MR discussions: ${err.message}`); return ''; });
+  // The report this run replaces: its findings keep their ids when they still apply.
+  const previous = previousFindingsPrompt(await artifactOf(outputPath).previousFindings());
+  const projectContext = kind === 'review' ? projectContextPrompt(await readContext(DATA_DIR, mr.project.key, 'approved')) : '';
+  if (stackContext) log(mr, `Layer ${stack.info.position}/${stack.info.size} of a stack on ${stack.info.baseBranch}.`);
+
+  await run.stage('agent');
+  log(mr, `Running ${command} (this can take a few minutes)...`);
+  const startedAt = Date.now();
+  const catalog = await assembleCatalog(DATA_DIR);
+  const systemPrompt = contractPrompt(kind, [REVIEW_PROMPT_EXTRA, projectContext, catalogPrompt(catalog.skills), stackContext, conversation, previous].filter(Boolean).join('\n\n'), BOT_WORKTREE_DIR);
+  const team = await teamRunExtras(DATA_DIR); // --plugin-dir of the synced team skills, if any
+  const { stdout, stderr } = await runStreaming(
+    CLAUDE_BIN,
+    [...claudeArgs({ prompt: mr.iid === null ? `${command} branch ${mr.source_branch} (no merge request yet: review its diff from where it left origin/${mr.target_branch})` : `${command} MR !${mr.iid}`, tools, systemPrompt, settings: withTeamDeny(runSettings(mr.project), { deny: [...team.deny, ...catalog.deny] }) }), ...team.args, ...catalog.args],
+    { cwd: BOT_WORKTREE_DIR, env: runEnv() },
+    (step, info) => run.step(step, info),
+    (line) => run.event(line),
+    { name: kind, traceId: run.id, kind, project: mr.project.key },
+  );
+  log(mr, `${c.green}Claude finished in ${Math.round((Date.now() - startedAt) / 1000)}s.${c.reset}`);
+
+  await run.stage('report');
+  const { text, stats } = parseRunOutput(stdout);
+  if (stats) run.addCost(stats);
+  const report = await buildReport({ worktreeDir: BOT_WORKTREE_DIR, stdout: text, stderr });
+  enforceContract(kind, report.findingsRaw);
+  return report;
+}

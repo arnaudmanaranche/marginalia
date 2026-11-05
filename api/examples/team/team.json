@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "name": "Acme Web",
+  "minMarginalia": "1.0.0",
+  "defaults": {
+    "reviewCommand": "/acme-web:review",
+    "triageCommand": "/mr-comments",
+    "allowedTargetBranches": ["develop"],
+    "excludeAuthors": ["renovate-bot"],
+    "claudeExtraAllowedTools": [],
+    "reviewPromptExtra": "Answer in English. Cite the repo's own rule or an existing example for every finding."
+  },
+  "projects": [
+    { "gitlabProjectId": "acme/web/back-end", "key": "back-end", "kind": "back" },
+    {
+      "gitlabProjectId": "acme/web/front-end",
+      "key": "front-end",
+      "kind": "front",
+      "allowedTargetBranches": ["develop", "release"]
+    }
+  ]
+}

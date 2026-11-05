@@ -1,0 +1,10 @@
+# TLS terminates here; Caddy gets and renews the certificate for MARGINALIA_DOMAIN by itself.
+# The webhook listener (one route) and the studio are two ports of the bot; only these paths are public.
+{$MARGINALIA_DOMAIN} {
+	handle /webhooks/gitlab {
+		reverse_proxy marginalia:4478
+	}
+	handle {
+		reverse_proxy marginalia:4477
+	}
+}

@@ -1,0 +1,28 @@
+# The studio for a team, on a server, behind HTTPS and GitLab login:
+#   docker compose -f compose.yaml -f compose.hosted.yaml up -d
+# Needs Docker Compose 2.24+ (`!reset`). See docs/reference/hosting.md for the settings in .env.
+services:
+  marginalia:
+    # Nothing is published by the bot itself: the proxy below is the only way in.
+    ports: !reset []
+    environment:
+      STUDIO_HOST: 0.0.0.0
+      STUDIO_PUBLIC_URL: 'https://${MARGINALIA_DOMAIN:?set MARGINALIA_DOMAIN}'
+      GITLAB_OAUTH_CLIENT_ID: '${GITLAB_OAUTH_CLIENT_ID:?create the GitLab application}'
+      GITLAB_OAUTH_CLIENT_SECRET: '${GITLAB_OAUTH_CLIENT_SECRET:?create the GitLab application}'
+      SESSION_SECRET: '${SESSION_SECRET:?openssl rand -hex 32}'
+      WEBHOOK_SECRET: '${WEBHOOK_SECRET:-}'
+      WEBHOOK_HOST: 0.0.0.0
+      MENTION_DAILY_CAP: '${MENTION_DAILY_CAP:-20}'
+  proxy:
+    image: caddy:2
+    restart: unless-stopped
+    ports: ['80:80', '443:443']
+    environment:
+      MARGINALIA_DOMAIN: '${MARGINALIA_DOMAIN}'
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy:/data
+    depends_on: [marginalia]
+volumes:
+  caddy:

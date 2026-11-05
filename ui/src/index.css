@@ -1,0 +1,249 @@
+@import 'tailwindcss';
+@plugin '@tailwindcss/typography';
+
+/* Dark is an attribute on <html> (lib/theme.ts), not the OS media query, so a person can choose it:
+   every `dark:` utility and every dark token below reads it. */
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
+@theme {
+  --font-sans: ui-sans-serif, -apple-system, 'Inter', 'Segoe UI', system-ui, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, monospace;
+
+  /* The filled primary action (bg-primary). Hover is the same hue, a little darker. */
+  --color-primary: hsl(210 100% 50%);
+  --color-primary-hover: hsl(210 100% 44%);
+  --color-primary-foreground: hsl(210 20% 98%);
+  /* The light on the primary button's face, softer on hover. */
+  --button-face-inset-shadow: inset 0 3px 8px 0 #ffffff7a;
+  --button-face-inset-shadow-hover: inset 0 3px 8px 0 #ffffff4d;
+}
+
+:root {
+  color-scheme: light;
+
+  /* Height of the sticky chrome (top bar 3.5rem + open-review strip). The strip grows for
+     touch so its tabs are 44px tall; everything pinned under it reads these variables. */
+  --strip-h: 2.5rem;
+  --chrome-h: 6rem;
+
+  /* Text roles. Secondary text was zinc-500 everywhere, which is 4.1:1 on the dark
+     canvas and 3.7:1 on dark cards (AA needs 4.5:1). Each role is remapped per theme:
+     muted = secondary copy (>= 6:1 on canvas and cards in both themes);
+     subtle = icons and non-text marks only (>= 3:1), never sentences. */
+  --fg-muted: var(--color-zinc-600);
+  --fg-subtle: var(--color-zinc-500);
+
+  /* canvas: the page; surface: a card or panel on it; sunken: a well inside a surface (a chip,
+     inline code); strip: the header band of a card (a file name over its diff); line: the
+     hairline between things; line-strong: the edge of a control. */
+  --canvas: var(--color-zinc-50);
+  --surface: var(--color-white);
+  --sunken: var(--color-zinc-100);
+  --strip: var(--color-zinc-50);
+  --line: var(--color-zinc-200);
+  --line-strong: var(--color-zinc-300);
+
+  /* Run states, one hue each, for marks and live pills (ds/StatusMark, ds/LivePill): ok = done,
+     run = in progress (the signal blue), warn = retrying or skipped by choice, fail = failed,
+     idle = not started. Text that sits on them stays in the text roles. */
+  --ok: var(--color-emerald-600);
+  --run: var(--color-blue-600);
+  --warn: var(--color-amber-600);
+  --fail: var(--color-red-600);
+  /* Idle marks and the rail ahead are non-text marks: 3:1 on the surface in both themes. */
+  --idle: var(--color-zinc-500);
+  /* Run-blue text on a run tint (a count on bg-run/15): one step deeper than --run, for AA. */
+  --run-ink: var(--color-blue-700);
+  /* Green as text (added lines in a file chip): ok itself is for marks, this step is for AA. */
+  --ok-ink: var(--color-emerald-700);
+
+  /* Motion: state changes are short and land softly (exponential ease-out). */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-fast: 150ms;
+  --dur: 220ms;
+}
+@media (pointer: coarse) {
+  :root {
+    --strip-h: 3rem;
+    --chrome-h: 6.5rem;
+  }
+}
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --fg-muted: var(--color-zinc-400);
+  --fg-subtle: var(--color-zinc-500);
+  --canvas: var(--color-zinc-950);
+  --surface: var(--color-zinc-900);
+  --sunken: var(--color-zinc-800);
+  --strip: var(--color-zinc-900);
+  --line: var(--color-zinc-800);
+  --line-strong: var(--color-zinc-700);
+  --ok: var(--color-emerald-400);
+  --run: var(--color-blue-400);
+  --warn: var(--color-amber-400);
+  --fail: var(--color-red-400);
+  --idle: var(--color-zinc-500);
+  --run-ink: var(--color-blue-300);
+  --ok-ink: var(--color-emerald-300);
+}
+
+@theme inline {
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-subtle: var(--fg-subtle);
+  /* Surfaces and lines (BRAND.md): one name per role, each switching with the theme, so a
+     component never pairs a light and a dark shade by hand. */
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-sunken: var(--sunken);
+  --color-strip: var(--strip);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-ok: var(--ok);
+  --color-run: var(--run);
+  --color-warn: var(--warn);
+  --color-fail: var(--fail);
+  --color-idle: var(--idle);
+  --color-run-ink: var(--run-ink);
+  --color-ok-ink: var(--ok-ink);
+}
+
+/* The parts of the page the browser draws carry the studio too: selection in the signal blue,
+   thin scrollbars on the hairline, one focus ring everywhere. */
+::selection {
+  background: color-mix(in oklab, var(--run) 30%, transparent);
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+}
+:focus-visible {
+  outline: 2px solid var(--run);
+  outline-offset: 2px;
+}
+
+/* A live dot breathes: a ring grows out of it and fades. Under reduced motion it stays still. */
+@keyframes ping-ring {
+  from { transform: scale(1); opacity: 0.55; }
+  to { transform: scale(2.6); opacity: 0; }
+}
+@utility live-ping {
+  animation: ping-ring 1.6s var(--ease-out) infinite;
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+/* A running mark turns: the arc of the ring goes round. Under reduced motion it pulses instead. */
+/* A check draws itself when a step lands. Under reduced motion it is simply there. */
+@keyframes draw {
+  from { stroke-dashoffset: 1; }
+}
+@utility mark-draw {
+  stroke-dasharray: 1;
+  animation: draw var(--dur) var(--ease-out) both;
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+@keyframes breathe {
+  50% { opacity: 0.45; }
+}
+@keyframes turn {
+  to { transform: rotate(360deg); }
+}
+@utility mark-turn {
+  transform-origin: center;
+  animation: turn 1s linear infinite;
+  @media (prefers-reduced-motion: reduce) {
+    animation: breathe 2s ease-in-out infinite;
+  }
+}
+
+body {
+  @apply bg-canvas text-zinc-900 antialiased;
+}
+[data-theme='dark'] body {
+  @apply text-zinc-100;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 8rem;
+}
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* highlight.js, minimal palette that works in both themes */
+.hljs-comment, .hljs-quote { color: #71717a; }
+.hljs-keyword, .hljs-selector-tag, .hljs-literal { color: #c026d3; }
+.hljs-string, .hljs-attr, .hljs-addition { color: #059669; }
+.hljs-number, .hljs-built_in, .hljs-type { color: #d97706; }
+.hljs-title, .hljs-function { color: #2563eb; }
+.hljs-deletion { color: #dc2626; }
+[data-theme='dark'] .hljs-keyword, [data-theme='dark'] .hljs-selector-tag, [data-theme='dark'] .hljs-literal { color: #e879f9; }
+[data-theme='dark'] .hljs-string, [data-theme='dark'] .hljs-attr, [data-theme='dark'] .hljs-addition { color: #34d399; }
+[data-theme='dark'] .hljs-number, [data-theme='dark'] .hljs-built_in, [data-theme='dark'] .hljs-type { color: #fbbf24; }
+[data-theme='dark'] .hljs-title, [data-theme='dark'] .hljs-function { color: #60a5fa; }
+[data-theme='dark'] .hljs-deletion { color: #f87171; }
+
+/* Tailwind's preflight resets buttons to cursor: default. */
+@layer base {
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']),
+  a[href],
+  select:not(:disabled),
+  summary,
+  label:has(select) {
+    cursor: pointer;
+  }
+  button:disabled {
+    cursor: not-allowed;
+  }
+}
+
+/* Interactive controls keep their compact desktop size for mouse and trackpad, and reach the
+   44px touch target only on coarse pointers (WCAG 2.5.8 asks for 24px at AA; 44px is the
+   comfortable size for a finger). */
+@utility touch-target {
+  @media (pointer: coarse) {
+    min-height: 2.75rem;
+    min-width: 2.75rem;
+  }
+}
+
+/* Loading skeletons: a soft sweep of light across a bar. Still under reduced motion. */
+.shimmer {
+  position: relative;
+  overflow: hidden;
+}
+.shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.55), transparent);
+  animation: shimmer 1.5s ease-in-out infinite;
+  animation-delay: inherit;
+}
+[data-theme='dark'] .shimmer::after {
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.08), transparent);
+}
+@media (prefers-reduced-motion: reduce) {
+  .shimmer::after {
+    animation: none;
+  }
+}
+@keyframes shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+/* A new line of the bot's activity slides in. */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+}

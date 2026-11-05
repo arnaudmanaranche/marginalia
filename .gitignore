@@ -1,11 +1,15 @@
 node_modules/
 .env
 state.json
+/context/
+/worktrees/
+/catalog/
+/runs/
 webapp-worktree/
 status.json
 status.json.tmp
-studio/node_modules/
-studio/dist/
+ui/node_modules/
+ui/dist/
 settings.json
 settings.json.tmp
 posted.json
@@ -18,6 +22,18 @@ mr-review-bot.10s.sh
 .DS_Store
 worktree/
 .env.bak
+.posthog-wizard-cache/
 
 *storybook.log
 storybook-static
+marginalia.db*
+.npmrc
+repos/
+compose.override.yaml
+
+# built studio copied next to the code by `prepack`
+api/ui-dist/
+
+packages/contract/dist/
+api/dist/
+*.tsbuildinfo

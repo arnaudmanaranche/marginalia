@@ -1,0 +1,55 @@
+# Glossary
+
+The words below are the only ones the code, the docs and the studio use for these things. A new concept gets an entry here before it gets a name in code.
+
+**Marginalia**: the product as a whole, bot and studio together.
+
+**Factory**: what Marginalia is becoming (ADR 0006): it learns a project, runs lines of jobs on it and leaves every decision to a person. Not a separate service.
+
+**Line**: one kind of job on one project. Review is the first line. Has metrics of its own.
+
+**Job**: one execution of a line on one target, an MR or a branch. Starts from a trigger (poll, webhook, mention, click, branch push) and ends with a result, a visible failure, or closed without action. A run is how a job executes.
+
+**Project context**: what the factory has learned about one project: glossary, stack, features and critical paths, each item citing its source. Data stored outside the reviewed repo, approved by a person before reviews use it. Never code in Marginalia.
+
+**Understand**: the job that learns a project into a draft project context, from the repo at its default branch and the read-only connectors (`marginalia understand`). A person approves the draft (`marginalia context approve`); until then reviews keep the last approved one.
+
+**Critical path**: a flow in a project whose breakage costs the most (a user journey for a front-end, a request flow, data write or payment for a back-end). Listed in the project context.
+
+**Own review**: a review of the configured user's own branch or MR, shown only to them, never posted. Not triage, which works through comments other people left.
+
+**Feed**: Home (ADR 0007): what needs you (reviews whose turn is yours, comments to decide, failures that need a person, a context to approve), the jobs running now, and every job by day.
+
+**Approval**: a person's decision on a write the factory proposes: approve as-is, edit then approve, or dismiss. Nothing reaches GitLab without an approval or a mention.
+
+**Finding outcome**: what happened to a finding: posted as-is, edited, dismissed, or fixed before the MR. The review line's measure.
+
+**Bot**: the `api/` side. It listens, runs the agent, validates the result and posts. It has no screen. Not the studio.
+
+**Studio**: the `ui/` side, the web app where a person reads a review and decides what to say. It talks to the bot over HTTP only. Not the bot.
+
+**Invocation**: one request for the bot to do something on a merge request. It comes from the studio or from a mention. Replaces "command" (`REVIEW_COMMAND`, `TRIAGE_COMMAND`), which is easy to confuse with a Claude Code slash command.
+
+**Mention**: a GitLab comment that addresses `@marginalia`. One kind of invocation. A bare mention or `review` asks for a review, `triage` works through the comments on the author's own MR, any other text is a question. A reply in a thread that already holds a bot comment is a follow-up and needs no new mention.
+
+**Intake**: how a mention reaches the bot, by **webhook** (GitLab calls the bot) or by **polling** (the bot reads MR notes). Both produce the same record and go through the same guardrails, so a note that arrives twice runs once.
+
+**Run**: one execution of the agent for one invocation on one MR, in its own ephemeral worktree. Ends with a review or a visible failure.
+
+**Pass**: one project's turn in a poll. Lists its open MRs, decides what each needs (review, triage, nothing), shows where each stands, does the work one MR at a time and records it in the state. `passOver()` in `api/src/poll-pass.mjs`; a poll is one pass per project.
+
+**Review**: the validated result of a run on an MR, in the shape of the contract. Never a free-form report.
+
+**Contract**: the schema a review must satisfy (`packages/contract`). The bot owns it and the studio renders only what it describes. The skill `marginalia-review` states it for the agent.
+
+**Guardrail**: a check the bot applies before anything is shown or posted: schema validation of a review, authorization of a mention, deduplication by note id, the per-MR queue and the daily cap. A result that fails a guardrail is never half-rendered and never posted.
+
+**Finding**: one issue in a review, with a severity, a `path:line` on the MR's new file version and a proposed comment.
+
+**Tour**: the chapters of a review, each explaining one idea in plain words, core change first, database, tests and generated files last.
+
+**Skill**: a unit of review expertise the agent can load. Three tiers: the contract skill (always loaded), the global built-in skills, and team skills from the reviewed repo's `.claude/`.
+
+**Catalog**: the merged list of skills (name and one-line "use when" description) the agent chooses from. A team skill overrides a built-in one of the same name.
+
+**Post**: sending a comment to GitLab. A **reply** is posted by the bot account after a mention. A **click-to-post** is posted from the studio under the clicking person's own GitLab token. The bot never posts unprompted.

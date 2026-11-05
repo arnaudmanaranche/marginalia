@@ -1,0 +1,40 @@
+import type { Job } from './api';
+import { contextRoute } from './contextApi';
+
+// How a job reads in the list: what ran, how it stands, and how long it took. Pure.
+
+export const WHAT: Record<Job['what'], string> = {
+  review: 'Review',
+  own: 'Own review',
+  comments: 'Comment triage',
+  understand: 'Learn the project',
+};
+
+export type JobTone = 'running' | 'done' | 'failed' | 'skipped';
+
+export function stateOf(job: Job): { tone: JobTone; label: string } {
+  if (job.outcome === 'running') {
+    const stage = job.stages.find((s) => s.state === 'running');
+    return { tone: 'running', label: stage ? stage.label : 'Starting' };
+  }
+  if (job.outcome === 'failed') return { tone: 'failed', label: job.failure?.title ?? 'Failed' };
+  if (job.outcome === 'skipped') return { tone: 'skipped', label: 'Skipped' };
+  return { tone: 'done', label: 'Done' };
+}
+
+// What it ran on: the MR or branch title when known, else the review's file name.
+export function targetOf(job: Job): string {
+  if (job.what === 'understand') return 'The whole project';
+  if (job.title) return job.title;
+  const file = job.slug.slice(job.slug.indexOf('/') + 1);
+  return file.replace(/^(own-|mr-comments-)/, '');
+}
+
+export function durationOf(job: Job, now = Date.now()): string {
+  const end = job.endedAt ? Date.parse(job.endedAt) : now;
+  const s = Math.max(0, Math.round((end - Date.parse(job.startedAt)) / 1000));
+  return s < 60 ? `${s}s` : s < 3600 ? `${Math.floor(s / 60)}m ${String(s % 60).padStart(2, '0')}s` : `${Math.floor(s / 3600)}h ${Math.floor((s % 3600) / 60)}m`;
+}
+
+// Where a job leads: the review it was about, or the project's context it learned.
+export const routeOf = (job: Job) => (job.what === 'understand' ? contextRoute(job.project) : job.slug);

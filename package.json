@@ -1,31 +1,38 @@
 {
   "name": "marginalia",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
   "type": "module",
-  "description": "Poller that watches open GitLab MRs, triggers Claude Code headless review, and posts the result as an MR comment.",
-  "main": "poll.mjs",
+  "description": "Marginalia workspace: the bot (api), the studio (ui) and their contract (packages/contract).",
+  "workspaces": [
+    "packages/*",
+    "api",
+    "ui"
+  ],
   "scripts": {
-    "start": "node poll.mjs",
-    "dev": "concurrently -k -n api,studio -c blue,magenta \"npm start\" \"npm run studio:dev\"",
-    "setup": "npm install && npm run studio:install && npm run studio:build && npm run init",
-    "init": "node scripts/init.mjs",
-    "doctor": "node scripts/doctor.mjs",
-    "autostart": "node scripts/autostart.mjs",
-    "test": "node --test test/*.test.mjs",
+    "start": "npm run build && npm --workspace api start",
+    "dev": "npm run build && concurrently -k -n contract,api,run,studio -c gray,blue,cyan,magenta \"npm --workspace @worldia/marginalia-contract run build -- -w --preserveWatchOutput\" \"npm --workspace api run build -- -w --preserveWatchOutput\" \"npm --workspace api start -- --watch\" \"npm run studio:dev\"",
+    "setup": "npm install && npm run studio:build && npm run init",
+    "init": "npm run build && npm --workspace api run init",
+    "doctor": "npm run build && npm --workspace api run doctor --",
+    "autostart": "npm run build && npm --workspace api run autostart --",
+    "test": "npm run build && npm --workspace api test",
+    "test:ui": "npm --workspace ui test",
     "check:size": "node scripts/check-file-size.mjs",
-    "studio:install": "npm --prefix studio install",
-    "studio:build": "npm --prefix studio run build",
-    "studio:dev": "npm --prefix studio run dev",
-    "studio:storybook": "npm --prefix studio run storybook"
+    "eval": "npm run build && npm --workspace api run eval --",
+    "typecheck": "npm --workspace @worldia/marginalia-contract run build && npm --workspace api run typecheck",
+    "posthog:backfill": "npm run build && npm --workspace api run posthog:backfill --",
+    "studio:build": "npm --workspace ui run build",
+    "studio:dev": "npm --workspace ui run dev",
+    "studio:storybook": "npm --workspace ui run storybook",
+    "build": "npm --workspace @worldia/marginalia-contract run build && npm --workspace api run build"
   },
   "engines": {
-    "node": ">=18"
-  },
-  "dependencies": {
-    "dotenv": "^16.4.5"
+    "node": ">=22"
   },
   "devDependencies": {
-    "concurrently": "^9.2.4"
+    "@types/node": "^26.6.5",
+    "concurrently": "^9.2.4",
+    "typescript": "^7.0.2"
   }
 }

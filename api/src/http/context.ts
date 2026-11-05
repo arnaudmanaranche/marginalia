@@ -1,0 +1,83 @@
+import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
+import { STATUS_FILE } from '../config.ts';
+import { currentScope, visibleProjects } from './request-scope.ts';
+import { parseReviewId } from '../review-id.ts';
+import { warn } from '../log.ts';
+import { fetchReviewState } from '../mr-state.ts';
+
+// What the route modules share: the bot's status, review-id resolution, the live-update
+// channel, and the queue that keeps two writes to GitLab from racing.
+
+// The bot's status as this request may see it: a signed-in person sees their projects only.
+export async function readStatus() {
+  let status;
+  try {
+    status = JSON.parse(await readFile(STATUS_FILE, 'utf8'));
+  } catch {
+    return null;
+  }
+  const scope = currentScope();
+  if (!scope) return status;
+  const keep = new Set(scope.projects);
+  return {
+    ...status,
+    mrs: (status.mrs ?? []).filter((m: any) => keep.has(m.project)),
+    projects: (status.projects ?? []).filter((p: any) => keep.has(p.key)),
+    current: status.current && keep.has(status.current.project) ? status.current : null,
+  };
+}
+
+// Resolves a review id (`<project>/<slug>`): { project, slug, mr, status }, where mr is the MR
+// tracked in status.json for it (undefined when none), or null for an id that is not valid.
+export async function locate(id: string) {
+  const parsed = parseReviewId(id, visibleProjects());
+  if (!parsed) return null;
+  const status = await readStatus();
+  const mr = (status?.mrs ?? []).find((m: any) => m.project === parsed.project.key && m.reviewPath === join(parsed.project.reviewsDir, `${parsed.slug}.md`));
+  return { ...parsed, mr, status };
+}
+
+// GitLab errors are shown to the person, but never at length.
+export const shortMessage = (err: any) => String(err.message ?? err).slice(0, 300);
+
+// Live updates: each open page subscribes (see routes-live.ts); a change in a review file,
+// status.json, settings.json or after an action here wakes them all, debounced.
+const listeners = new Set<() => void>();
+export function subscribe(listener: () => void) {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+let debounce: NodeJS.Timeout | null = null;
+export function broadcast() {
+  if (debounce) clearTimeout(debounce);
+  debounce = setTimeout(() => {
+    for (const listener of listeners) listener();
+  }, 150);
+}
+
+// One at a time, in order; a failure of one never blocks the next.
+export function serialQueue() {
+  let tail = Promise.resolve();
+  return (task: () => any) => {
+    const run = tail.then(task);
+    tail = run.catch(() => {});
+    return run;
+  };
+}
+// Serialized so two quick clicks can't both pass the "already posted" check.
+export const postQueue = serialQueue();
+
+// Where an MR stands for me is read from GitLab by the poll. After an action here (a comment, a
+// submitted review, a deleted draft) that one MR is read again at once, so Home moves it without
+// waiting for the next poll. The newer of the two readings is the one shown.
+export const stateOverrides = new Map();
+export const newerState = (a: any, b: any) => (a && b ? (Date.parse(a.computedAt) >= Date.parse(b.computedAt) ? a : b) : a ?? b ?? null);
+export function refreshState(project: any, mr: any, gitlab: any) {
+  fetchReviewState(project, mr, gitlab)
+    .then((state) => {
+      stateOverrides.set(`${project.key}:${mr.iid}`, state);
+      broadcast();
+    })
+    .catch((err) => warn({ ...mr, project }, `Could not refresh where it stands: ${shortMessage(err).slice(0, 120)}`));
+}
