@@ -50,7 +50,9 @@ export function RunPanel({ slug, awaiting, failure = null, collapsible = false, 
         <PanelHeader
           icon={collapsible ? <ChevronRight className={cn('size-4 transition-transform duration-200 motion-reduce:transition-none', open && 'rotate-90')} aria-hidden /> : <ListChecks className="size-4" aria-hidden />}
           title={headline.title}
-          meta={headline.detail}
+          // Say it once: the pill holds the time and the footer the position, so a live or finished run
+          // names its command here; a failed or waiting one keeps its explanation.
+          meta={run && (running || run.outcome === 'reviewed') ? run.command : headline.detail}
           aside={<LivePill tone={pill.tone} label={pill.label} live={running} detail={run ? runTime(run, now) : undefined} />}
         />
       </button>
@@ -65,7 +67,7 @@ export function RunPanel({ slug, awaiting, failure = null, collapsible = false, 
                   <NoteMarkdown className="text-fg-muted">{advice.advice}</NoteMarkdown>
                 </div>
               )}
-              {run && <RunPlan stages={run.stages} steps={trace?.steps} now={now} />}
+              {run && <div className="max-w-3xl"><RunPlan stages={run.stages} steps={trace?.steps} now={now} /></div>}
               {run?.error && (
                 <div role="alert" className="rounded-lg border border-fail/30 p-3">
                   <p className="mb-1 text-xs font-medium text-fail">{run.outcome === 'skipped' ? 'Why it was skipped' : 'Error'}</p>
