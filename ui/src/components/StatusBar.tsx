@@ -1,4 +1,4 @@
-import { Command, Loader2, RefreshCw, Eye, TriangleAlert, Power, ShieldCheck, Settings, History } from 'lucide-react';
+import { Command, Loader2, RefreshCw, Eye, TriangleAlert, Power, ShieldCheck, Settings, History, Inbox } from 'lucide-react';
 import type { BotStatus } from '../lib/api';
 import { inTime, timeAgo } from '../lib/utils';
 import { AccountMenu } from './AccountMenu';
@@ -39,7 +39,7 @@ function BotState({ status, connection }: { status: BotStatus | null; connection
   );
 }
 
-export function StatusBar({ status, connection, settingsActive, jobsActive, onOpenPalette, onHome, onSettings, onJobs }: { status: BotStatus | null; connection: 'connecting' | 'unreachable' | 'ok'; settingsActive: boolean; jobsActive: boolean; onOpenPalette: () => void; onHome: () => void; onSettings: () => void; onJobs: () => void }) {
+export function StatusBar({ status, connection, settingsActive, jobsActive, approvalsActive, approvals, onOpenPalette, onHome, onSettings, onJobs, onApprovals }: { status: BotStatus | null; connection: 'connecting' | 'unreachable' | 'ok'; settingsActive: boolean; jobsActive: boolean; approvalsActive: boolean; approvals: number; onOpenPalette: () => void; onHome: () => void; onSettings: () => void; onJobs: () => void; onApprovals: () => void }) {
   return (
     <div className="border-b border-line">
       <div className="flex h-14 items-center gap-4 px-4">
@@ -52,6 +52,16 @@ export function StatusBar({ status, connection, settingsActive, jobsActive, onOp
         >
           Search…
           <kbd className="flex items-center gap-0.5 rounded bg-sunken px-1.5 py-0.5 text-xs"><Command className="size-3" />K</kbd>
+        </button>
+        <button
+          onClick={onApprovals}
+          aria-label={approvals > 0 ? `Approvals, ${approvals} waiting` : 'Approvals'}
+          aria-current={approvalsActive ? 'page' : undefined}
+          title="Approvals: proposed comments waiting for your decision"
+          className={`touch-target relative rounded-lg border p-2 hover:border-zinc-300 dark:hover:border-zinc-700 ${approvalsActive ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-line bg-surface text-fg-muted'}`}
+        >
+          <Inbox className="size-4" />
+          {approvals > 0 && <span aria-hidden className="absolute -right-1.5 -top-1.5 min-w-4 rounded-full bg-blue-600 px-1 text-center text-[10px] font-semibold leading-4 text-white">{approvals > 99 ? '99+' : approvals}</span>}
         </button>
         <button
           onClick={onJobs}

@@ -19,4 +19,5 @@ export const keys = {
 // What the bot's "changed" event makes stale. The list, the reports and the runs are cheap local reads. The
 // threads and the diff come from GitLab and are keyed by the review's own version, so a new report
 // refetches them by itself; they are not reloaded on every file change.
-export const LIVE_KEYS = [keys.reviews, ['review'], ['history'], ['runs']] as const;
+// The approvals inbox changes with every review and every post.
+export const LIVE_KEYS = [keys.reviews, ['review'], ['history'], ['runs'], ['approvals']] as const;

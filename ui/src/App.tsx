@@ -22,6 +22,8 @@ const ReviewReader = lazy(() => loadReader().then((m) => ({ default: m.ReviewRea
 import { CommandPalette } from './components/CommandPalette';
 import { SettingsPage } from './components/SettingsPage';
 import { JobsView } from './components/JobsPage';
+import { ApprovalsView } from './components/ApprovalsPage';
+import { APPROVALS_ROUTE, useApprovals } from './lib/approvalsApi';
 import { ProjectView } from './components/ProjectPage';
 import { contextKeyOf, contextRoute, useContexts, waitsForApproval } from './lib/contextApi';
 import { StackBoard } from './components/StackBoard';
@@ -151,12 +153,13 @@ export function App() {
   const isPosted = (i: ReviewItem) => Object.keys(posted).some((k) => k.startsWith(`${i.slug}:`));
   const current = items.find((i) => i.slug === slug);
   const stack = current?.stackId ? data?.stacks.find((s) => s.id === current.stackId) : undefined;
-  const { content: review, error: reviewError, retry: retryReview } = useReview(slug === SETTINGS_ROUTE || slug === JOBS_ROUTE || contextKeyOf(slug) ? null : slug, current?.reviewedAt);
+  const { content: review, error: reviewError, retry: retryReview } = useReview(slug === SETTINGS_ROUTE || slug === JOBS_ROUTE || slug === APPROVALS_ROUTE || contextKeyOf(slug) ? null : slug, current?.reviewedAt);
 
   const { isUnread } = useSeen(current);
   const projects = data?.projects;
   const several = hasSeveralProjects(projects);
   const pendingContexts = useContexts().filter(waitsForApproval);
+  const approvalCount = useApprovals().data?.proposals.length ?? 0;
   const filter = activeFilter(projectFilter, projects);
   const shown = useMemo(() => filterByProject(items, filter, projects), [items, filter, projects]);
   const groups = useHomeGroups(shown);
@@ -181,7 +184,7 @@ export function App() {
     <LazyMotion features={loadMotionFeatures} strict>
       <Toaster position="bottom-right" theme="system" richColors />
       <header className="sticky top-0 z-40 bg-canvas">
-        <StatusBar status={data?.status ?? null} connection={data ? 'ok' : error ? 'unreachable' : 'connecting'} settingsActive={slug === SETTINGS_ROUTE} jobsActive={slug === JOBS_ROUTE} onOpenPalette={() => setPalette(true)} onHome={() => go(null)} onSettings={() => go(SETTINGS_ROUTE)} onJobs={() => go(JOBS_ROUTE)} />
+        <StatusBar status={data?.status ?? null} connection={data ? 'ok' : error ? 'unreachable' : 'connecting'} settingsActive={slug === SETTINGS_ROUTE} jobsActive={slug === JOBS_ROUTE} approvalsActive={slug === APPROVALS_ROUTE} approvals={approvalCount} onApprovals={() => go(APPROVALS_ROUTE)} onOpenPalette={() => setPalette(true)} onHome={() => go(null)} onSettings={() => go(SETTINGS_ROUTE)} onJobs={() => go(JOBS_ROUTE)} />
         <TabStrip
           tabs={tabItems}
           activeSlug={slug}
@@ -199,6 +202,8 @@ export function App() {
         <main className="min-w-0 flex-1">
       {slug === SETTINGS_ROUTE ? (
         <SettingsPage settings={data?.settings ?? null} defaults={data?.settingsDefaults ?? null} projects={projects?.length ?? 1} />
+      ) : slug === APPROVALS_ROUTE ? (
+        <ApprovalsView onOpen={go} />
       ) : slug === JOBS_ROUTE ? (
         <JobsView showProject={several} onOpen={go} />
       ) : contextKeyOf(slug) ? (
