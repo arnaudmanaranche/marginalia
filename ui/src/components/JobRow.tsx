@@ -19,8 +19,9 @@ export function JobRow({ job, showProject, onOpen }: { job: Job; showProject: bo
   const body = (
     <>
       <span className={cn('flex w-32 shrink-0 items-center gap-2 text-sm sm:w-48', className)}>
-        <Icon aria-hidden className={cn('size-4 shrink-0', state.tone === 'running' && 'animate-spin motion-reduce:animate-pulse')} />
-        <span className="truncate" title={job.error ?? state.label}>{state.label}</span>
+        <Icon aria-hidden className={cn('size-4 shrink-0 self-start mt-0.5', state.tone === 'running' && 'animate-spin motion-reduce:animate-pulse')} />
+        {/* A failure says why in full, on two lines at most; the raw error is in the tooltip. */}
+        <span className="line-clamp-2 leading-snug" title={job.error ?? state.label}>{state.label}</span>
       </span>
       <span className="min-w-0 flex-1">
         <span className="block truncate text-sm font-medium" title={targetOf(job)}>{targetOf(job)}</span>
