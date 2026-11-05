@@ -38,7 +38,7 @@ const RULES: [RegExp, Failure][] = [
   [/^The result broke the contract/, {
     kind: 'contract', transient: false,
     title: 'The result did not follow the review format',
-    advice: 'The agent finished, but its findings file failed the contract, so nothing was saved or posted. The message says which part; re-run, or fix the skill that wrote it.',
+    advice: 'The agent finished, but its findings file failed the contract, so nothing was saved or posted. The message says which part; re-run, as an agent rarely breaks it twice.',
   }],
   [/did not produce a report|no report/i, {
     kind: 'no_report', transient: false,

@@ -1,6 +1,6 @@
 # 0003. The contract is fixed, the method is free
 
-Status: accepted, 2026-10-29
+Status: accepted, 2026-10-29. The skill tiers and the contract skill are superseded by ADR 0008.
 
 Decision: the bot fixes the shape of a review (verdict, overview with before/after, tour, findings with severity, `path:line` and a proposed comment) in `packages/contract`, and validates every result. An invalid result is a visible failure and is never partly rendered or posted. How the agent reaches it is its own: tools, sub-agents, skills, order.
 

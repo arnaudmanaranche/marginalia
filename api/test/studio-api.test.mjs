@@ -21,9 +21,8 @@ const { PROJECTS } = await import('../dist/src/projects.js');
 const REVIEWS_DIR = PROJECTS[0].reviewsDir;
 // A review is addressed as <project key>/<slug>.
 const idOf = (name) => `${PROJECTS[0].key}/${name}`;
-const { FINDINGS_FILE } = await import('../dist/src/findings.js');
+const { buildShape } = await import('../dist/src/findings.js');
 const { artifactAt } = await import('../dist/src/artifact.js');
-const { REPORT_FILE, buildReport } = await import('../dist/src/report.js');
 const { startStudio } = await import('../dist/src/http/server.js');
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -42,12 +41,11 @@ function required(schema) {
 const names = (await readdir(FIXTURES, { withFileTypes: true })).filter((d) => d.isDirectory()).map((d) => d.name);
 await mkdir(REVIEWS_DIR, { recursive: true });
 for (const name of names) {
-  const worktree = await mkdtemp(join(tmpdir(), 'marginalia-wt-'));
   const read = (f) => readFile(join(FIXTURES, name, f), 'utf8').catch(() => null);
   const [report, stdout, findings] = await Promise.all([read('report.md'), read('stdout.txt'), read('findings.json')]);
-  if (report !== null) await writeFile(join(worktree, REPORT_FILE), report);
-  if (findings !== null) await writeFile(join(worktree, FINDINGS_FILE), findings);
-  await artifactAt(REVIEWS_DIR, name).write(await buildReport({ worktreeDir: worktree, stdout: stdout ?? '' }));
+  const content = report ?? stdout ?? '';
+  const findingsRaw = findings?.trim() ? findings : null;
+  await artifactAt(REVIEWS_DIR, name).write({ content, source: 'pipeline', findingsRaw, shape: buildShape({ markdown: content, findingsRaw }) });
 }
 
 const server = startStudio();

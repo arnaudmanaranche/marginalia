@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, writeFile, readlink, readdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { CONTRACT_SKILL, catalogPrompt, planCatalog, skillDescription } from '../dist/src/catalog.js';
+import { lensPrompt, planCatalog, skillDescription } from '../dist/src/catalog.js';
 import { BUILT_IN_SKILLS, assembleCatalog, readSkills } from '../dist/src/catalog-assemble.js';
 
 const skill = (name, description = `Use when ${name}.`) => ({ name, dir: `/s/${name}`, description });
@@ -14,28 +14,21 @@ test('a team skill replaces a built-in of the same name, the rest merge sorted',
   assert.equal(plan[1].dir, '/t/security');
 });
 
-test('no team skill can replace the contract skill', () => {
-  const plan = planCatalog({ builtIn: [skill(CONTRACT_SKILL)], team: [{ ...skill(CONTRACT_SKILL), dir: '/t/evil' }] });
-  assert.equal(plan[0].source, 'built-in');
-  assert.equal(plan[0].dir, `/s/${CONTRACT_SKILL}`);
-});
-
 test('the description is read from the frontmatter', () => {
   assert.equal(skillDescription('---\nname: x\ndescription: Use when a thing.\n---\n# X'), 'Use when a thing.');
   assert.equal(skillDescription('# no frontmatter'), '');
 });
 
-test('the prompt lists the catalog, names the contract skill first and marks team skills', () => {
-  const text = catalogPrompt(planCatalog({ builtIn: [skill(CONTRACT_SKILL), skill('tests')], team: [skill('react-hooks')] }));
-  assert.match(text.split('\n')[0], /always follow marginalia:marginalia-review/);
+test('a chapter is offered every lens of the catalog, team ones marked, and nothing without one', () => {
+  const text = lensPrompt(planCatalog({ builtIn: [skill('tests')], team: [skill('react-hooks')] }));
   assert.match(text, /- marginalia:react-hooks \(team\): Use when react-hooks\./);
   assert.match(text, /- marginalia:tests: /);
-  assert.doesNotMatch(text.split('\n').slice(1).join('\n'), /marginalia-review/);
+  assert.equal(lensPrompt([]), '');
 });
 
-test('the shipped built-ins are the contract skill and the eight global ones, each well formed', async () => {
+test('the shipped built-ins are the eight global lenses, each well formed', async () => {
   const found = await readSkills(BUILT_IN_SKILLS);
-  assert.deepEqual(found.map((s) => s.name).sort(), ['compatibility', 'correctness', 'critical-path-impact', 'maintainability', CONTRACT_SKILL, 'performance', 'pr-hygiene', 'security', 'tests'].sort());
+  assert.deepEqual(found.map((s) => s.name).sort(), ['compatibility', 'correctness', 'critical-path-impact', 'maintainability', 'performance', 'pr-hygiene', 'security', 'tests'].sort());
   for (const s of found) assert.match(s.description, /^(Use when|Review)/, `${s.name} says when to use it`);
 });
 
@@ -59,12 +52,4 @@ test('two runs starting together share one catalog build instead of racing on it
   const later = await assembleCatalog(data);
   assert.notEqual(later, a);
   assert.deepEqual(later.args, a.args);
-});
-
-test('a chapter is offered the review lenses, never the contract skill, and nothing without one', async () => {
-  const { lensPrompt } = await import('../dist/src/catalog.js');
-  const text = lensPrompt([{ name: CONTRACT_SKILL, source: 'built-in', dir: '/x', description: 'whole review' }, { name: 'security', source: 'team', dir: '/t', description: 'Use when input is untrusted.' }]);
-  assert.match(text, /marginalia:security \(team\): Use when input is untrusted\./);
-  assert.ok(!text.includes(CONTRACT_SKILL));
-  assert.equal(lensPrompt([{ name: CONTRACT_SKILL, source: 'built-in', dir: '/x', description: '' }]), '');
 });

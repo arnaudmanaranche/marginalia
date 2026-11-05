@@ -5,7 +5,6 @@ import { artifactOf } from './artifact.ts';
 import { branchCheckedOutElsewhere, checkoutMergeRequest } from './worktree.ts';
 import { reviewOutputPath, mrCommentsOutputPath } from './paths.ts';
 import { recordFixes } from './fixes.ts';
-import { clearStaleReport } from './report.ts';
 import { appendRun } from './runlog.ts';
 import { trackRun } from './telemetry.ts';
 import { listFields } from './findings.ts';
@@ -44,7 +43,6 @@ async function runStages(mr: any, { kind, outputPath, label, stack = null, detac
   await run.stage('checkout');
   log(mr, `Checking out ${mr.iid === null ? 'the branch' : 'MR branch'} in the bot worktree...`);
   await checkoutMergeRequest(mr, { detached });
-  await clearStaleReport(BOT_WORKTREE_DIR);
   const baseSha = await head(BOT_WORKTREE_DIR);
 
   const report = await stagedRun({ mr, run, kind, outputPath, stack });

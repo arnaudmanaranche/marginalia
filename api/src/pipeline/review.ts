@@ -20,7 +20,7 @@ const CHECKLIST = '.claude/agents/code-reviewer.md';
 // Marginalia's own review of someone else's MR, in stages a person can follow in the studio:
 // the bot gathers the context, one agent maps the change into chapters, one agent per chapter
 // reviews it, and the bot weighs the findings into the report. Returns the report and its
-// findings file, as a review command would have written them.
+// findings, as the studio reads them.
 /** @param {{ mr: any, run: any, outputPath: string, stack?: any, settings: object | null }} input */
 export async function stagedReview({ mr, run, outputPath, stack = null, settings }: { mr: any; run: any; outputPath: string; stack?: any; settings: object | null }) {
   const cwd = mr.project.worktreeDir;

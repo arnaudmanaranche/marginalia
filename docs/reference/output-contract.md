@@ -38,7 +38,7 @@ the report's wording. It is read, in order of preference, from:
    `## Critical` / `## Important` / `## Suggestions` sections with one bullet per
    finding, an optional `**Overview:**` line, and a blockquote under a bullet as its
    comment. The first `path[:line]` of the bullet is where *Add to review* anchors
-   it in the diff (see `examples/commands/review.md`);
+   it in the diff;
 3. nothing: the studio says so in a notice, and the findings it could not read are
    left out of the per-finding "Add to review".
 

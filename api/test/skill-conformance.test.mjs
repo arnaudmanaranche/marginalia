@@ -1,35 +1,32 @@
-// Whatever command or skill writes the review, the bot must hand the studio the
-// same normalized shape. Each folder in test/fixtures/skills is one way of
-// writing a review:
-//   report.md       what the command wrote to .marginalia-report.md
-//   stdout.txt      what it printed (when it wrote no report file)
-//   findings.json   what it wrote to .marginalia-findings.json, if anything
+// However a review was written, the bot must hand the studio the same normalized
+// shape (findings.ts). Each folder in test/fixtures/skills is one way of writing a
+// review, as the stored reviews hold them:
+//   report.md       the review's markdown
+//   stdout.txt      a raw message kept as the review (when there is no report.md)
+//   findings.json   its structured findings, if any
 //   expect.json     what the studio must get out of it
 // The invariants checked for every fixture are the contract; expect.json adds
 // the particular numbers for that fixture. To support a new way of writing
 // reviews, add a folder: no code changes.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, readdir, readFile, writeFile, access } from 'node:fs/promises';
+import { mkdtemp, readdir, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { artifactAt } from '../dist/src/artifact.js';
-import { FINDINGS_FILE, NO_FINDINGS_WARNING, SEVERITIES, VERDICTS, listFields } from '../dist/src/findings.js';
-import { REPORT_FILE, buildReport } from '../dist/src/report.js';
+import { NO_FINDINGS_WARNING, SEVERITIES, VERDICTS, buildShape, listFields } from '../dist/src/findings.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), 'fixtures', 'skills');
 const read = (path) => readFile(path, 'utf8').catch(() => null);
-const exists = (path) => access(path).then(() => true, () => false);
 
 async function run(name) {
   const dir = join(ROOT, name);
-  const worktree = await mkdtemp(join(tmpdir(), 'marginalia-skill-'));
   const [report, stdout, findings, expect] = await Promise.all(['report.md', 'stdout.txt', 'findings.json', 'expect.json'].map((f) => read(join(dir, f))));
-  if (report !== null) await writeFile(join(worktree, REPORT_FILE), report);
-  if (findings !== null) await writeFile(join(worktree, FINDINGS_FILE), findings);
-  const built = await buildReport({ worktreeDir: worktree, stdout: stdout ?? '' });
-  return { worktree, built, expect: JSON.parse(expect) };
+  const content = report ?? stdout ?? '';
+  const findingsRaw = findings?.trim() ? findings : null;
+  const built = { content, source: 'pipeline', findingsRaw, shape: buildShape({ markdown: content, findingsRaw }) };
+  return { built, expect: JSON.parse(expect) };
 }
 
 const fixtures = (await readdir(ROOT, { withFileTypes: true })).filter((d) => d.isDirectory()).map((d) => d.name);
@@ -40,7 +37,7 @@ test('there are fixtures to run against', () => {
 
 for (const name of fixtures) {
   test(`${name}: the shape honours the contract`, async () => {
-    const { built, worktree } = await run(name);
+    const { built } = await run(name);
     const { shape } = built;
 
     assert.equal(shape.version, 1);
@@ -66,10 +63,6 @@ for (const name of fixtures) {
       assert.deepEqual(shape.findings, []);
       assert.ok(shape.warnings.includes(NO_FINDINGS_WARNING), 'an unstructured report is never silent about it');
     }
-
-    // Both files of the run are consumed, so the next run cannot read stale ones.
-    assert.equal(await exists(join(worktree, REPORT_FILE)), false);
-    assert.equal(await exists(join(worktree, FINDINGS_FILE)), false);
 
     assert.deepEqual(JSON.parse(JSON.stringify(shape)), shape, 'plain JSON');
   });

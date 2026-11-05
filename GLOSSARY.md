@@ -44,7 +44,7 @@ The words below are the only ones the code, the docs and the studio use for thes
 
 **Review**: the validated result of a run on an MR, in the shape of the contract. Never a free-form report.
 
-**Contract**: the schema a review must satisfy (`packages/contract`). The bot owns it and the studio renders only what it describes. The skill `marginalia-review` states it for the agent.
+**Contract**: the schema a review must satisfy (`packages/contract`). The bot owns it and the studio renders only what it describes. The bot states it to each stage of a run and checks each answer against it.
 
 **Guardrail**: a check the bot applies before anything is shown or posted: schema validation of a review, authorization of a mention, deduplication by note id, the per-MR queue and the daily cap. A result that fails a guardrail is never half-rendered and never posted.
 
@@ -52,7 +52,7 @@ The words below are the only ones the code, the docs and the studio use for thes
 
 **Tour**: the chapters of a review, each explaining one idea in plain words, core change first, database, tests and generated files last.
 
-**Skill**: a unit of review expertise the agent can load. Three tiers: the contract skill (always loaded), the global built-in skills, and team skills from the reviewed repo's `.claude/`.
+**Skill**: a unit of review expertise a chapter's reviewer can load, a lens: the global built-in skills and the team's skills, a team skill winning over a built-in of the same name.
 
 **Catalog**: the merged list of skills (name and one-line "use when" description) the agent chooses from. A team skill overrides a built-in one of the same name.
 
