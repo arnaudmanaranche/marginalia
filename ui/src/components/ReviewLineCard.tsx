@@ -18,8 +18,8 @@ export function ReviewLineCard({ metrics }: { metrics: LineMetrics }) {
   const { jobs, findings } = metrics;
   const decided = findings.asProposed + findings.edited + findings.unknown + findings.dismissed;
   return (
-    <section aria-labelledby="review-line" className="mt-6">
-      <h2 id="review-line" className="text-base font-medium">Review line <span className="font-normal text-fg-muted">· last {metrics.days} days</span></h2>
+    <section aria-labelledby="review-line" className="mt-3">
+      <h3 id="review-line" className="text-xs font-medium text-fg-muted">Review line · last {metrics.days} days</h3>
       <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         <Tile
           label="Jobs" value={String(jobs.total)}

@@ -22,7 +22,8 @@ function StandingBadge({ item }: { item: ReviewItem }) {
 // One review per line: the title opens it; findings and age say how urgent it is.
 // An MR the bot is reviewing, or just picked up and has no report for yet, opens on what the bot is
 // doing. A row that `arrived` while the page was open slides in and glows for a moment.
-export function ReviewRow({ item, unread, reviewing = false, arrived = false, showProject = false }: { item: ReviewItem; unread: boolean; reviewing?: boolean; arrived?: boolean; showProject?: boolean }) {
+// `reason`: why it is in the feed's Needs-you list ("Returned to you"), said beside the title.
+export function ReviewRow({ item, unread, reviewing = false, arrived = false, showProject = false, reason }: { item: ReviewItem; unread: boolean; reviewing?: boolean; arrived?: boolean; showProject?: boolean; reason?: string }) {
   const title = (
     <>
       {item.iid && <span className="mr-2 font-mono text-[11px] tabular-nums text-fg-muted">!{item.iid}</span>}
@@ -44,6 +45,7 @@ export function ReviewRow({ item, unread, reviewing = false, arrived = false, sh
     >
       <span className={unread ? 'size-2 shrink-0 rounded-full bg-run' : 'size-2 shrink-0'} aria-hidden />
       <a href={`#/${item.slug}`} className="min-w-0 flex-1 basis-64 truncate font-medium hover:underline">{title}</a>
+      {reason && <span className="shrink-0 text-xs text-fg-muted">{reason}</span>}
       {arrived && <Badge tone="info">New</Badge>}
       {reviewing && <LivePill tone="run" label="Reviewing" live title="Open it to follow the run" />}
       {!reviewing && item.awaiting === 'queued' && <LivePill tone="idle" label="Queued" title="The bot reviews it in this poll: open it to follow the run" />}

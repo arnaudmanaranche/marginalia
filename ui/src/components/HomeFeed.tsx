@@ -1,0 +1,69 @@
+import { Inbox, Sparkles } from 'lucide-react';
+import type { ReviewItem } from '../lib/api';
+import { APPROVALS_ROUTE, useApprovals } from '../lib/approvalsApi';
+import { contextRoute, useContexts, waitsForApproval } from '../lib/contextApi';
+import { failuresNeedingYou, reviewsNeedingYou, runningNow } from '../lib/feed';
+import { WHAT, targetOf } from '../lib/jobs';
+import { useJobs } from '../lib/useJobs';
+import { useLineMetrics } from '../lib/useLineMetrics';
+import { StatusMark } from './ds/StatusMark';
+import { FeedRow } from './FeedRow';
+import { JobList } from './JobList';
+import { JobRow } from './JobRow';
+import { ReviewLineCard } from './ReviewLineCard';
+import { ReviewRow } from './ReviewRow';
+
+const list = 'divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface';
+
+// Home (ADR 0007): what needs you, what runs now, what happened. Everything waiting on a person comes
+// first in one list; the jobs follow, live, then the line's measure and every job by day.
+export function HomeFeed({ items, isUnread, isReviewing, isNew, showProject, onOpen, filter }: {
+  items: ReviewItem[]; isUnread: (i: ReviewItem) => boolean; isReviewing: (i: ReviewItem) => boolean; isNew: (i: ReviewItem) => boolean;
+  showProject: boolean; onOpen: (route: string | null) => void; filter?: React.ReactNode;
+}) {
+  const { jobs } = useJobs();
+  const metrics = useLineMetrics();
+  const proposals = useApprovals().data?.proposals.length ?? 0;
+  const drafts = useContexts().filter(waitsForApproval);
+  const reviews = reviewsNeedingYou(items);
+  const failures = jobs ? failuresNeedingYou(jobs) : [];
+  const running = jobs ? runningNow(jobs) : [];
+  const count = reviews.length + failures.length + drafts.length + (proposals > 0 ? 1 : 0);
+  return (
+    <div className="mx-auto max-w-7xl px-6 py-8">
+      <h1 className="text-3xl font-semibold tracking-tight">{count === 0 ? 'Nothing needs you' : `${count} thing${count > 1 ? 's' : ''} need${count > 1 ? '' : 's'} you`}</h1>
+      <p className="mt-1 text-fg-muted">{running.length > 0 ? `${running.length} job${running.length > 1 ? 's' : ''} running.` : 'No job running.'}</p>
+      {filter}
+
+      {count > 0 && (
+        <section aria-labelledby="needs-you" className="mt-6">
+          <h2 id="needs-you" className="mb-2 text-sm font-medium">Needs you</h2>
+          <ul className={list}>
+            {proposals > 0 && <FeedRow mark={<Inbox className="size-4 text-run" aria-hidden />} title={`${proposals} proposed comment${proposals > 1 ? 's' : ''} to decide`} detail="Add each to your review, edited or not, or dismiss it" onOpen={() => onOpen(APPROVALS_ROUTE)} />}
+            {failures.map((j) => <FeedRow key={j.slug} mark={<StatusMark state="failed" />} title={targetOf(j)} detail={`${j.failure?.title ?? 'Failed'} · ${WHAT[j.what]}`} onOpen={() => onOpen(j.slug)} />)}
+            {drafts.map((c) => <FeedRow key={c.project} mark={<Sparkles className="size-4 text-run" aria-hidden />} title={`A new context for ${c.project}`} detail="Read it and approve it: reviews use the approved one" onOpen={() => onOpen(contextRoute(c.project))} />)}
+            {/* Say it once: a reason is named on the first row of its run, not repeated on each. */}
+            {reviews.map(({ item, reason }, i) => <ReviewRow key={item.slug} item={item} reason={i === 0 || reviews[i - 1].reason !== reason ? reason : undefined} unread={isUnread(item)} reviewing={isReviewing(item)} arrived={isNew(item)} showProject={showProject} />)}
+          </ul>
+        </section>
+      )}
+
+      {running.length > 0 && (
+        <section aria-labelledby="running" className="mt-8">
+          <h2 id="running" className="mb-2 text-sm font-medium">Running now</h2>
+          <ul className={list}>
+            {running.map((j) => <JobRow key={`${j.slug}:${j.id}`} job={j} showProject={showProject} open={false} onToggle={() => onOpen(j.slug)} onOpen={onOpen} />)}
+          </ul>
+        </section>
+      )}
+
+      <section aria-labelledby="activity" className="mt-8">
+        <h2 id="activity" className="text-sm font-medium">Activity</h2>
+        {metrics && <ReviewLineCard metrics={metrics} />}
+        {jobs === null ? <div aria-busy="true" className="mt-6 h-40 animate-pulse rounded-xl border border-line motion-reduce:animate-none" />
+          : jobs.length === 0 ? <p className="mt-4 text-sm text-fg-muted">Nothing has run yet. A review, a triage or learning a project shows here as it runs.</p>
+          : <JobList jobs={jobs} showProject={showProject} onOpen={onOpen} />}
+      </section>
+    </div>
+  );
+}

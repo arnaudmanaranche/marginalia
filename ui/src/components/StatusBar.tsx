@@ -1,4 +1,4 @@
-import { Command, Settings, History, Inbox } from 'lucide-react';
+import { Command, Settings, Inbox } from 'lucide-react';
 import { LivePill } from './ds/LivePill';
 import type { BotStatus } from '../lib/api';
 import { inTime, timeAgo } from '../lib/utils';
@@ -29,7 +29,7 @@ function BotState({ status, connection }: { status: BotStatus | null; connection
   );
 }
 
-export function StatusBar({ status, connection, settingsActive, jobsActive, approvalsActive, approvals, onOpenPalette, onHome, onSettings, onJobs, onApprovals }: { status: BotStatus | null; connection: 'connecting' | 'unreachable' | 'ok'; settingsActive: boolean; jobsActive: boolean; approvalsActive: boolean; approvals: number; onOpenPalette: () => void; onHome: () => void; onSettings: () => void; onJobs: () => void; onApprovals: () => void }) {
+export function StatusBar({ status, connection, settingsActive, approvalsActive, approvals, onOpenPalette, onHome, onSettings, onApprovals }: { status: BotStatus | null; connection: 'connecting' | 'unreachable' | 'ok'; settingsActive: boolean; approvalsActive: boolean; approvals: number; onOpenPalette: () => void; onHome: () => void; onSettings: () => void; onApprovals: () => void }) {
   return (
     <div className="border-b border-line">
       <div className="flex h-14 items-center gap-4 px-4">
@@ -52,15 +52,6 @@ export function StatusBar({ status, connection, settingsActive, jobsActive, appr
         >
           <Inbox className="size-4" />
           {approvals > 0 && <span aria-hidden className="absolute -right-1.5 -top-1.5 min-w-4 rounded-full bg-blue-600 px-1 text-center text-[11px] font-semibold leading-4 text-white">{approvals > 99 ? '99+' : approvals}</span>}
-        </button>
-        <button
-          onClick={onJobs}
-          aria-label="Jobs"
-          aria-current={jobsActive ? 'page' : undefined}
-          title="Jobs: everything the bot ran"
-          className={`touch-target rounded-lg border p-2 hover:border-zinc-300 dark:hover:border-zinc-700 ${jobsActive ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-line bg-surface text-fg-muted'}`}
-        >
-          <History className="size-4" />
         </button>
         <button
           onClick={onSettings}

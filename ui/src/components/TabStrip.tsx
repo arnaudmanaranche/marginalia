@@ -33,11 +33,11 @@ export function TabStrip({ tabs, activeSlug, botBySlug, isUnread, isPosted, home
             e.preventDefault();
             onSelect(null);
           }}
-          className={cn('flex shrink-0 items-center gap-2 border-r border-t-2 border-line px-3 text-sm', activeSlug === null ? 'border-t-blue-500 bg-white font-medium dark:bg-zinc-950' : 'border-t-transparent text-zinc-600 hover:bg-zinc-200/60 dark:text-zinc-400 dark:hover:bg-zinc-800/60')}
+          className={cn('flex shrink-0 items-center gap-2 border-r border-t-2 border-line px-3 text-sm', activeSlug === null ? 'border-t-run bg-white font-medium dark:bg-zinc-950' : 'border-t-transparent text-zinc-600 hover:bg-zinc-200/60 dark:text-zinc-400 dark:hover:bg-zinc-800/60')}
         >
           <LayoutGrid className="size-4" />
-          Reviews
-          {homeUnread > 0 && <span className="rounded-full bg-run/15 px-1.5 text-xs text-blue-700 dark:text-blue-300">{homeUnread}<span className="sr-only"> unread</span></span>}
+          Home
+          {homeUnread > 0 && <span className="rounded-full bg-run/15 px-1.5 text-xs text-run-ink">{homeUnread}<span className="sr-only"> waiting on you</span></span>}
         </a>
         </li>
 

@@ -1,6 +1,5 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { LazyMotion, MotionConfig } from 'motion/react';
-import { Inbox } from 'lucide-react';
 import { Toaster } from 'sonner';
 import { toast } from './lib/toast';
 import { loadSeen, saveSeen, type ReviewItem } from './lib/api';
@@ -14,26 +13,25 @@ import { groupReviews, waitingOnYou } from './lib/dashboard';
 import { usePersistentState, useOpenTabs } from './lib/layout';
 import { StatusBar } from './components/StatusBar';
 import { TabStrip, type BotState } from './components/TabStrip';
-import { ReviewGroups } from './components/ReviewGroups';
+import { HomeFeed } from './components/HomeFeed';
 import { ProjectFilter } from './components/ProjectFilter';
 // Not needed on Home, and the heaviest part of the bundle (markdown, highlighting).
 const loadReader = () => import('./components/ReviewReader');
 const ReviewReader = lazy(() => loadReader().then((m) => ({ default: m.ReviewReader })));
 import { CommandPalette } from './components/CommandPalette';
 import { SettingsPage } from './components/SettingsPage';
-import { JobsView } from './components/JobsPage';
 import { ApprovalsView } from './components/ApprovalsPage';
 import { APPROVALS_ROUTE, useApprovals } from './lib/approvalsApi';
 import { isLiveFor } from './lib/liveRun';
 import { ProjectView } from './components/ProjectPage';
-import { contextKeyOf, contextRoute, useContexts, waitsForApproval } from './lib/contextApi';
+import { contextKeyOf } from './lib/contextApi';
 import { StackBoard } from './components/StackBoard';
 import { ReviewMissing, ReviewSkeleton } from './components/ReviewSkeleton';
 
 const EMPTY_POSTED = {};
 // `#/settings` is the settings page, not a review.
 const SETTINGS_ROUTE = 'settings';
-// `#/jobs` lists everything the bot ran.
+// `#/jobs` was the jobs page; Home is the feed now (ADR 0007), so it lands there.
 const JOBS_ROUTE = 'jobs';
 // Reviews older than this are hidden from Home.
 const STALE_DAYS = 30;
@@ -159,14 +157,11 @@ export function App() {
   const { isUnread } = useSeen(current);
   const projects = data?.projects;
   const several = hasSeveralProjects(projects);
-  const pendingContexts = useContexts().filter(waitsForApproval);
   const approvalCount = useApprovals().data?.proposals.length ?? 0;
   const filter = activeFilter(projectFilter, projects);
   const shown = useMemo(() => filterByProject(items, filter, projects), [items, filter, projects]);
-  const groups = useHomeGroups(shown);
   // The Home tab counts what waits on you in every project, whatever the filter hides.
   const waitingAll = waitingOnYou(useHomeGroups(items));
-  const waiting = waitingOnYou(groups);
 
   const go = (s: string | null) => {
     location.hash = s ? `#/${s}` : '';
@@ -178,6 +173,8 @@ export function App() {
   };
 
   useCloseTabShortcut(slug, palette, close);
+  // An old `#/jobs` link lands on Home, which is the feed now.
+  useEffect(() => { if (slug === JOBS_ROUTE) go(null); }, [slug]);
 
   return (
     // reducedMotion="user": no layout animation if the OS asks for less motion.
@@ -185,7 +182,7 @@ export function App() {
     <LazyMotion features={loadMotionFeatures} strict>
       <Toaster position="bottom-right" theme="system" richColors />
       <header className="sticky top-0 z-40 bg-canvas">
-        <StatusBar status={data?.status ?? null} connection={data ? 'ok' : error ? 'unreachable' : 'connecting'} settingsActive={slug === SETTINGS_ROUTE} jobsActive={slug === JOBS_ROUTE} approvalsActive={slug === APPROVALS_ROUTE} approvals={approvalCount} onApprovals={() => go(APPROVALS_ROUTE)} onOpenPalette={() => setPalette(true)} onHome={() => go(null)} onSettings={() => go(SETTINGS_ROUTE)} onJobs={() => go(JOBS_ROUTE)} />
+        <StatusBar status={data?.status ?? null} connection={data ? 'ok' : error ? 'unreachable' : 'connecting'} settingsActive={slug === SETTINGS_ROUTE} approvalsActive={slug === APPROVALS_ROUTE} approvals={approvalCount} onApprovals={() => go(APPROVALS_ROUTE)} onOpenPalette={() => setPalette(true)} onHome={() => go(null)} onSettings={() => go(SETTINGS_ROUTE)} />
         <TabStrip
           tabs={tabItems}
           activeSlug={slug}
@@ -205,8 +202,6 @@ export function App() {
         <SettingsPage settings={data?.settings ?? null} defaults={data?.settingsDefaults ?? null} projects={projects?.length ?? 1} />
       ) : slug === APPROVALS_ROUTE ? (
         <ApprovalsView onOpen={go} />
-      ) : slug === JOBS_ROUTE ? (
-        <JobsView showProject={several} onOpen={go} />
       ) : contextKeyOf(slug) ? (
         <ProjectView key={slug} projectKey={contextKeyOf(slug)!} />
       ) : slug ? (
@@ -219,24 +214,10 @@ export function App() {
         )}
         </>
       ) : (
-        <div className="mx-auto max-w-7xl px-6 py-8">
-          <h1 className="text-3xl font-semibold tracking-tight">Review queue</h1>
-          <p className="mt-1 text-fg-muted">
-            {data && (waiting > 0 ? `${waiting} waiting on you.` : 'Nothing is waiting on you.')}
-            {data && !data.allowPosting && ' Reviews are read-only; on your own MRs you can still reply and push.'}
-          </p>
-          {pendingContexts.map((c) => (
-            <p key={c.project} className="mt-1 text-sm"><a href={`#/${contextRoute(c.project)}`} className="text-blue-600 underline-offset-2 hover:underline dark:text-blue-400">A new context for {c.project} waits for your approval.</a></p>
-          ))}
-
-          {several && <ProjectFilter options={filterOptions(projects)} value={filter} onChange={setProjectFilter} />}
-
-          {data && groups.length === 0 ? (
-            <div className="mt-16 flex flex-col items-center gap-2 text-fg-muted"><Inbox className="size-8" />No recent reviews.</div>
-          ) : (
-            <ReviewGroups groups={groups} isUnread={isUnread} isReviewing={isReviewing} isNew={isNew} showProject={several} />
-          )}
-        </div>
+        <HomeFeed
+          items={shown} isUnread={isUnread} isReviewing={isReviewing} isNew={isNew} showProject={several} onOpen={go}
+          filter={several ? <ProjectFilter options={filterOptions(projects)} value={filter} onChange={setProjectFilter} /> : undefined}
+        />
       )}
         </main>
       </div>

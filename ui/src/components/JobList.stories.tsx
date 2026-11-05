@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { JobsPage } from './JobsPage';
+import { JobList } from './JobList';
 import type { Job } from '../lib/api';
 
 const stage = (id: string, label: string, state: 'pending' | 'running' | 'done' | 'failed') => ({ id, label, state, startedAt: null, endedAt: null });
@@ -17,16 +17,12 @@ const jobs: Job[] = [
 ];
 
 const meta = {
-  title: 'Scholia/Pages/JobsPage',
-  component: JobsPage,
-  args: { jobs, error: null, onRetry: () => {}, showProject: false, onOpen: () => {} },
-} satisfies Meta<typeof JobsPage>;
+  title: 'Scholia/Data display/JobList',
+  component: JobList,
+  args: { jobs, showProject: false, onOpen: () => {} },
+} satisfies Meta<typeof JobList>;
 export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const List: Story = {};
-export const WithReviewLine: Story = { args: { contexts: [{ project: 'webapp', draftLearnedAt: null, approvedAt: '2026-11-05T10:26:00Z' }, { project: 'api', draftLearnedAt: '2026-11-05T12:00:00Z', approvedAt: null }], metrics: { days: 28, jobs: { total: 64, failed: 3, running: 1, medianMs: 95_000, costUsd: 21.4 }, findings: { asProposed: 41, edited: 12, unknown: 0, dismissed: 9, pending: 7, actedOnRate: 62 / 69 } } } };
 export const SeveralProjects: Story = { args: { showProject: true } };
-export const Loading: Story = { args: { jobs: null } };
-export const Empty: Story = { args: { jobs: [] } };
-export const Failed: Story = { args: { jobs: null, error: 'HTTP 503' } };
