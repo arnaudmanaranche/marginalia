@@ -3,6 +3,7 @@ import { CornerDownRight } from 'lucide-react';
 import type { RunStage, RunStep } from '../lib/api';
 import { duration } from '../lib/runs';
 import { cn } from '../lib/utils';
+import { ToolChip } from './ds/ToolChip';
 
 // Every step of a run, in order, under the stage it was taken in. A step a sub-agent took is set in
 // under the one that started it. While the run goes, the log follows the newest step unless the
@@ -27,7 +28,7 @@ export function RunSteps({ steps, stages, startedAt, running, total }: { steps: 
           const el = e.currentTarget;
           pinned.current = el.scrollHeight - el.scrollTop - el.clientHeight < 24;
         }}
-        className="max-h-96 overflow-y-auto rounded-md border border-line bg-canvas py-1 font-mono text-xs leading-5"
+        className="max-h-96 overflow-y-auto rounded-lg border border-line bg-canvas py-1 font-mono text-xs leading-5"
       >
         {steps.map((s, i) => (
           <Fragment key={i}>
@@ -37,7 +38,8 @@ export function RunSteps({ steps, stages, startedAt, running, total }: { steps: 
             <li className={cn('flex gap-3 px-3', s.sub && 'pl-6')}>
               <span className="w-14 shrink-0 select-none text-right tabular-nums text-fg-subtle">+{duration(new Date(s.at).getTime() - t0)}</span>
               {s.sub && <CornerDownRight className="mt-1 size-3 shrink-0 text-fg-subtle" aria-label="Sub-agent" />}
-              <span className="min-w-0 break-words">{s.text}</span>
+              <span className="min-w-0 flex-1 break-words">{s.text}</span>
+              {s.tool && <ToolChip name={s.tool} />}
             </li>
           </Fragment>
         ))}

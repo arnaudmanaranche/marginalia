@@ -183,6 +183,8 @@ export interface RunStep {
   stage: string | null;
   // Taken by a sub-agent the run started.
   sub: boolean;
+  // The tool it called, short: `read`, `git`, `jira.search`.
+  tool?: string;
 }
 export interface RunSummary {
   id: string;
