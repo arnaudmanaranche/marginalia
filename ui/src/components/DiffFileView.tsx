@@ -6,10 +6,10 @@ import { cn } from '../lib/utils';
 import { scrollInPane, type Focus } from '../lib/tourFocus';
 import { Badge } from './ui/Badge';
 import { ThreadCard, ThreadRow } from './ThreadRow';
+import { SeverityBadge } from './ds/Severity';
 
 const ROW = { add: 'bg-emerald-500/10', del: 'bg-red-500/10', ctx: '', hunk: 'bg-blue-500/10 text-fg-muted' } as const;
 const SIGN = { add: '+', del: '-', ctx: ' ', hunk: '' } as const;
-const TONE = { critical: 'danger', important: 'warning', suggestion: 'info', info: 'neutral' } as const;
 const PREVIEW_LINES = 300;
 
 // One changed file of the MR, with the review's findings under the lines they are about.
@@ -82,7 +82,7 @@ export function DiffFileView({ file, findings, threads, defaultOpen, focus, onSe
                       className="cursor-pointer"
                     >
                       <td colSpan={3} className={cn('border-y border-amber-500/30 bg-amber-500/5 px-3 py-1.5 font-sans text-sm transition-colors hover:bg-amber-500/10', flash === f.id && 'bg-blue-500/20 ring-2 ring-inset ring-blue-500')}>
-                        <Badge tone={TONE[f.severity]} className="mr-2">{f.severity}</Badge>
+                        <SeverityBadge level={f.severity} className="mr-2" />
                         <span className={cn('font-medium')}>{f.title}</span>
                       </td>
                     </tr>

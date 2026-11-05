@@ -5,16 +5,13 @@ import { addToReview } from '../lib/pendingPosts';
 import { raisedElsewhere, type RaisedBy } from '../lib/raisedElsewhere';
 import { cn } from '../lib/utils';
 import { scrollInPane, type Focus } from '../lib/tourFocus';
-import { Badge } from './ui/Badge';
-import type { BadgeTone } from './ui/badgeStyles';
 import { Button } from './ui/Button';
 import { ConfirmPost } from './ConfirmPost';
 import { NoteMarkdown } from './NoteMarkdown';
 import { PostedBadge } from './PostedBadge';
 import { CopyButton } from './CopyButton';
+import { SeverityBadge, SeverityDot } from './ds/Severity';
 
-const TONE: Record<Finding['severity'], BadgeTone> = { critical: 'danger', important: 'warning', suggestion: 'info', info: 'neutral' };
-const DOT: Record<Finding['severity'], string> = { critical: 'bg-red-500', important: 'bg-amber-500', suggestion: 'bg-blue-500', info: 'bg-zinc-400' };
 
 interface PostProps {
   slug: string;
@@ -46,7 +43,7 @@ function findingTarget(finding: Finding) {
 function FindingHeader({ finding, info }: { finding: Finding; info: PostedInfo | undefined }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <Badge tone={TONE[finding.severity]}>{finding.severity}</Badge>
+      <SeverityBadge level={finding.severity} />
       <span className="font-medium">{finding.title}</span>
       {finding.path && <code className="break-all text-xs text-fg-muted">{finding.path}{finding.line ? `:${finding.line}` : ''}</code>}
       <PostedBadge info={info} />
@@ -171,7 +168,7 @@ function FindingCard({ finding, raised, compact = false, focus = null, onFocus, 
     <div ref={rootRef} tabIndex={-1} className={cn('rounded-lg border border-line text-sm transition-shadow focus:outline-none', flash && 'ring-2 ring-blue-500')}>
       <div className="flex items-start gap-2 px-3 py-2">
         <button type="button" aria-expanded={expanded} onClick={() => { if (!expanded) onFocus?.(finding.id); setExpanded((e) => !e); }} className="flex min-w-0 flex-1 items-start gap-2 text-left">
-          <span className={cn('mt-1.5 size-2 shrink-0 rounded-full', DOT[finding.severity])} aria-hidden />
+          <SeverityDot level={finding.severity} className="mt-1.5" />
           <span className="min-w-0 flex-1 font-medium leading-snug"><span className="sr-only">{finding.severity}: </span>{finding.title}</span>
           <ChevronRight className={cn('mt-0.5 size-4 shrink-0 text-fg-subtle transition-transform motion-reduce:transition-none', expanded && 'rotate-90')} aria-hidden />
         </button>
