@@ -37,7 +37,7 @@ function describe(result: { status: string }, loaded: LoadedTeam, unmapped: any[
   const head = { cloned: 'Cloned', updated: 'Updated', unchanged: 'Already up to date' }[result.status];
   log(`${head}: team "${team.name}" (version ${team.version}${team.minMarginalia ? `, needs marginalia ${team.minMarginalia}+` : ''})`);
   log(`  skills (${content.skills.length}): ${content.skills.join(', ') || 'none'}`);
-  log(`  commands (${content.commands.length}): ${content.commands.join(', ') || 'none'}   agents (${content.agents.length}): ${content.agents.join(', ') || 'none'}`);
+  log(`  agents (${content.agents.length}): ${content.agents.join(', ') || 'none'}`);
   if (unmapped.length) {
     log('\nTeam projects with no local checkout (add a projects[] entry with your repoLocalPath):');
     for (const p of unmapped) log(`  - ${p.key ?? p.gitlabProjectId}  (gitlabProjectId "${p.gitlabProjectId}")`);

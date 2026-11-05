@@ -9,13 +9,6 @@ export function migrateState(raw: any, firstKey: string) {
   return { version: 2, projects: Object.keys(legacy).length && firstKey ? { [firstKey]: legacy } : {} };
 }
 
-export function projectState(file: any, key: string) {
-  const state = file.projects[key] ?? {};
-  state.mineComments ??= {};
-  state.stackBelow ??= {};
-  return state;
-}
-
 // posted.json is keyed `<projectKey>/<review slug>:<comment id>`. A key from before
 // projects existed (no "/" before the colon) belongs to `firstKey`.
 export const postedKey = (projectKey: string, slug: string, id: string) => `${projectKey}/${slug}:${id}`;

@@ -54,17 +54,16 @@ test('a studio thread stays silent, but a mention inside it is still an ask and 
 });
 
 const mention = (noteId, kind = 'review') => ({ noteId, discussionId: 'd', author: 'bob', at: 'x', invocation: { kind, text: 't' } });
-const standing = (over = {}) => ({ seenNoteIds: new Set(), accessLevel: 30, runsToday: 0, dailyCap: 20, busy: false, ...over });
+const standing = (over = {}) => ({ seenNoteIds: new Set(), accessLevel: 30, runsToday: 0, dailyCap: 20, ...over });
 
-test('guardrails apply in order: duplicate, membership, cap, then one run per MR', () => {
+test('guardrails apply in order: duplicate, membership, then the daily cap', () => {
   assert.deepEqual(decideMention(mention(1), standing()), { action: 'run' });
-  assert.deepEqual(decideMention(mention(1), standing({ busy: true })), { action: 'queue' });
   assert.deepEqual(decideMention(mention(1), standing({ seenNoteIds: new Set([1]), accessLevel: 0 })), { action: 'ignore', reason: 'duplicate' });
   assert.deepEqual(decideMention(mention(1), standing({ accessLevel: 20 })), { action: 'ignore', reason: 'not-a-member' });
   assert.deepEqual(decideMention(mention(1), standing({ runsToday: 20 })), { action: 'ignore', reason: 'daily-cap' });
 });
 
-test('queued mentions become one follow-up: one review, then the questions in order', () => {
+test('mentions found together become one follow-up: one review, then the questions in order', () => {
   const merged = mergeQueued([mention(1, 'question'), mention(2, 'review'), mention(3, 'review'), mention(4, 'question')]);
   assert.deepEqual(merged.map((m) => m.noteId), [2, 1, 4]);
 });

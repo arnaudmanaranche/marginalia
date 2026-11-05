@@ -36,7 +36,7 @@ export function doctorPrompt({ trace, transcript, sourceDir, agentDirs }: any) {
     transcript ? `The raw event stream of the run (its end) is below, one JSON event per line.\n\`\`\`\n${transcript}\n\`\`\`` : 'No raw event stream was kept for this run.',
     '',
     `Marginalia's source is in ${sourceDir} (start from src/claude-runner.ts, src/report.ts, src/artifact.ts and poll.ts).`,
-    agentDirs.length ? `The review and triage instructions the run followed are under: ${agentDirs.join(', ')} (commands/, agents/, skills/).` : '',
+    agentDirs.length ? `The review and triage instructions the run followed are under: ${agentDirs.join(', ')} (agents/, skills/).` : '',
     '',
     'Read the code paths the error went through before concluding. Do not guess: when the evidence does not settle it, say so and lower your confidence.',
     '',

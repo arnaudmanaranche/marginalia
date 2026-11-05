@@ -37,9 +37,6 @@ export { deriveFromMarkdown, extractSummary, findingsFromMarkdown, parseVerdict 
 // the studio lists, counts and posts from. The readers behind it live in
 // findings-json.ts (the structured file) and findings-markdown.ts (the report).
 
-// Where the injected contract asks the run to write its structured findings.
-export const FINDINGS_FILE = '.marginalia-findings.json';
-
 export const NO_FINDINGS_WARNING = 'No findings could be read from this report: it has no structured findings file and no Critical / Important / Suggestion sections. Per-finding "Add to review" is unavailable; use the comment box under Discussion.';
 
 // `findingsRaw` is the content of .marginalia-findings.json, or null when the

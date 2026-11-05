@@ -4,7 +4,7 @@ import { join } from 'node:path';
 // to create where, and which paths the run may not edit. team-claude.ts does the I/O.
 //
 // The mechanism is `claude --plugin-dir <dir>`: Claude Code loads a plugin from a
-// folder holding skills/, commands/ and agents/, which is exactly the team repo's
+// folder holding skills/ and agents/, which is exactly the team repo's
 // layout. Nothing is written into the dev's repo .claude/ (the bot worktree's .claude
 // is a symlink to it), and the dev's own commands keep working next to the team's.
 // A plugin's commands and skills are namespaced by the plugin name: /<name>:review.
@@ -13,7 +13,7 @@ import { join } from 'node:path';
 // inside the team repo, and the clone must stay clean for a fast-forward-only sync.
 // So <dataDir>/team-plugin holds a generated manifest and symlinks into <dataDir>/team.
 
-export const TEAM_DIRS = ['skills', 'commands', 'agents'];
+export const TEAM_DIRS = ['skills', 'agents'];
 
 // "Acme Frontend Team" -> "acme-frontend-team"; the namespace of the team's commands.
 export function pluginName(teamName?: string | null) {

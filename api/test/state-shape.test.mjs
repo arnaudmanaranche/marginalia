@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { migrateState, projectState, migratePosted, postedKey } from '../dist/src/state-shape.js';
+import { migrateState, migratePosted, postedKey } from '../dist/src/state-shape.js';
 
 test('a single-project state file moves under the first project', () => {
   const file = migrateState({ 12: 'sha', mineComments: { 3: 't' }, stackBelow: {} }, 'back');
@@ -14,10 +14,9 @@ test('an empty or unreadable state migrates to no projects', () => {
   assert.deepEqual(migrateState({}, 'back').projects, {});
 });
 
-test('a v2 file is kept as is, and a project without state gets empty bookkeeping', () => {
+test('a v2 file is kept as is', () => {
   const v2 = { version: 2, projects: { back: { 1: 'a' } } };
   assert.equal(migrateState(v2, 'back'), v2);
-  assert.deepEqual(projectState(v2, 'front'), { mineComments: {}, stackBelow: {} });
 });
 
 test('posted keys from before projects get the first project, new ones are untouched', () => {

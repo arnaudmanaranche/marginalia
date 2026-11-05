@@ -46,7 +46,7 @@ The words below are the only ones the code, the docs and the studio use for thes
 
 **Contract**: the schema a review must satisfy (`packages/contract`). The bot owns it and the studio renders only what it describes. The bot states it to each stage of a run and checks each answer against it.
 
-**Guardrail**: a check the bot applies before anything is shown or posted: schema validation of a review, authorization of a mention, deduplication by note id, the per-MR queue and the daily cap. A result that fails a guardrail is never half-rendered and never posted.
+**Guardrail**: a check the bot applies before anything is shown or posted: schema validation of a review, authorization of a mention, deduplication by note id and the daily cap. Mentions found together become one follow-up; waiting is the queue's job. A result that fails a guardrail is never half-rendered and never posted.
 
 **Finding**: one issue in a review, with a severity, a `path:line` on the MR's new file version and a proposed comment.
 

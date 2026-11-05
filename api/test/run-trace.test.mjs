@@ -8,26 +8,26 @@ import { MAX_STEPS, addStep, enterStage, finishTrace, liveSummary, runSummary, s
 process.env.MR_REVIEW_BOT_SKIP_CONFIG_CHECK = '1';
 const { listTraces, pruneTraces, readTrace, readTranscript, runId, saveTrace } = await import('../dist/src/run-journal.js');
 
-const start = (kind = 'review') => startTrace({ id: 'r1', slug: 'webapp/feat-x', project: 'webapp', iid: 12, kind, command: '/code-review', at: 't0' });
+const start = (kind = 'review') => startTrace({ id: 'r1', slug: 'webapp/feat-x', project: 'webapp', iid: 12, kind, command: 'marginalia', at: 't0' });
 const states = (trace) => trace.stages.map((s) => `${s.id}:${s.state}`);
 
 test('a run starts with every stage of its kind pending', () => {
-  assert.deepEqual(states(start()), ['preflight:pending', 'checkout:pending', 'context:pending', 'agent:pending', 'report:pending']);
-  assert.match(start('triage').stages[3].label, /answers the reviewers/);
+  assert.deepEqual(states(start()), ['preflight:pending', 'checkout:pending', 'context:pending', 'map:pending', 'report:pending']);
+  assert.match(start('triage').stages[4].label, /Weigh each reviewer comment/);
 });
 
 test('entering a stage closes the one before and skips any jumped over', () => {
   let t = enterStage(start(), 'checkout', 't1');
-  t = enterStage(t, 'agent', 't2');
-  assert.deepEqual(states(t), ['preflight:skipped', 'checkout:done', 'context:skipped', 'agent:running', 'report:pending']);
+  t = enterStage(t, 'map', 't2');
+  assert.deepEqual(states(t), ['preflight:skipped', 'checkout:done', 'context:skipped', 'map:running', 'report:pending']);
   assert.equal(t.stages[1].endedAt, 't2');
   assert.equal(t.stages[3].startedAt, 't2');
 });
 
 test('steps belong to the stage they were taken in, and a sub-agent step says so', () => {
-  let t = enterStage(start(), 'agent', 't1');
+  let t = enterStage(start(), 'map', 't1');
   t = addStep(t, 'Reading a.ts', 't2', { sub: true });
-  assert.deepEqual(t.steps, [{ at: 't2', text: 'Reading a.ts', stage: 'agent', sub: true }]);
+  assert.deepEqual(t.steps, [{ at: 't2', text: 'Reading a.ts', stage: 'map', sub: true }]);
 });
 
 test('a run past the step cap counts the steps it dropped', () => {
@@ -40,9 +40,9 @@ test('a run past the step cap counts the steps it dropped', () => {
 
 test('a failure marks the stage it happened in and keeps the error', () => {
   let t = enterStage(start(), 'checkout', 't1');
-  t = enterStage(t, 'agent', 't2');
+  t = enterStage(t, 'map', 't2');
   t = finishTrace(t, 'failed', 't3', 'claude exited with code 1');
-  assert.deepEqual(states(t), ['preflight:skipped', 'checkout:done', 'context:skipped', 'agent:failed', 'report:skipped']);
+  assert.deepEqual(states(t), ['preflight:skipped', 'checkout:done', 'context:skipped', 'map:failed', 'report:skipped']);
   assert.equal(t.outcome, 'failed');
   assert.equal(t.error, 'claude exited with code 1');
   assert.equal(t.failure.kind, 'unknown');
@@ -56,7 +56,7 @@ test('a success closes the last stage', () => {
 });
 
 test('the live summary carries the stages and the last steps only', () => {
-  let t = enterStage(start(), 'agent', 't1');
+  let t = enterStage(start(), 'map', 't1');
   for (let i = 0; i < 20; i += 1) t = addStep(t, `s${i}`, 't');
   const live = liveSummary(t);
   assert.equal(live.runId, 'r1');

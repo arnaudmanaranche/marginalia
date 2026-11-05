@@ -49,5 +49,5 @@ export async function listTeamContent(teamDir: string) {
   for (const name of await names('skills', (e: any) => e.isDirectory())) {
     if (await fileExists(join(teamDir, 'skills', name, 'SKILL.md'))) skills.push(name);
   }
-  return { skills, commands: await names('commands', md), agents: await names('agents', md) };
+  return { skills, agents: await names('agents', md) };
 }

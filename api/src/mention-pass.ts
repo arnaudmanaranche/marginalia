@@ -51,7 +51,7 @@ async function handleMentions(project: any, mr: any, all: Mention[], ctx: Ctx) {
     const reply = (text: string) => deps.replyToDiscussion(project, mr.iid, mention.discussionId, text);
     try {
       if (!levels.has(mention.author)) levels.set(mention.author, await deps.memberAccessLevel(project, mention.author));
-      const decision = decideMention(mention, { seenNoteIds: seen, accessLevel: levels.get(mention.author) ?? 0, runsToday: deps.store.runsSince(startOfDay(started)), dailyCap: deps.dailyCap, busy: false });
+      const decision = decideMention(mention, { seenNoteIds: seen, accessLevel: levels.get(mention.author) ?? 0, runsToday: deps.store.runsSince(startOfDay(started)), dailyCap: deps.dailyCap });
       if (decision.action === 'ignore') {
         mark(mention, decision.reason);
         if (decision.reason !== 'duplicate') await reply(REFUSAL[decision.reason]);

@@ -9,28 +9,14 @@ import { failureKind } from './failure-kind.ts';
 /** @typedef {'running' | 'reviewed' | 'skipped' | 'failed'} Outcome */
 
 // What each kind of run does, in order, in the words the studio shows. A run of the staged
-// pipelines (lib/pipeline) gets its own list, and plans more stages as it learns them: one per
-// chapter of a review, one per reviewer thread to fix.
+// pipelines (pipeline/) plans more stages as it learns them: one per chapter of a review, one per
+// reviewer thread to fix.
 const PREFLIGHT = /** @type {[string, string]} */ (['preflight', 'Check that Claude, GitLab and git answer']);
 export const STAGES = {
   understand: [
     ['checkout', 'Check out the default branch'],
     ['agent', 'Claude reads the repository and the team\'s tools'],
     ['report', 'Check and save the draft context'],
-  ],
-  review: [
-    PREFLIGHT,
-    ['checkout', 'Check out the MR branch'],
-    ['context', 'Read the conversation and the last report'],
-    ['agent', 'Claude reviews the MR'],
-    ['report', 'Save the report'],
-  ],
-  triage: [
-    PREFLIGHT,
-    ['checkout', 'Check out the MR branch'],
-    ['context', 'Read the reviewer threads and the last report'],
-    ['agent', 'Claude answers the reviewers and fixes what they found'],
-    ['report', 'Save the replies and record the fixes'],
   ],
   'staged-review': [
     PREFLIGHT,
@@ -55,7 +41,7 @@ export const MAX_STEPS = 2000;
 /**
  * @param {{ id: string, slug: string, project: string, iid: number | string | null, kind: 'review' | 'triage' | 'understand', command: string, at: string, plan?: keyof typeof STAGES }} input
  */
-export function startTrace({ id, slug, project, iid, kind, command, at, plan = kind }: { id: string, slug: string, project: string, iid: number | string | null, kind: 'review' | 'triage' | 'understand', command: string, at: string, plan?: keyof typeof STAGES }) {
+export function startTrace({ id, slug, project, iid, kind, command, at, plan = kind === 'understand' ? 'understand' : `staged-${kind}` }: { id: string, slug: string, project: string, iid: number | string | null, kind: 'review' | 'triage' | 'understand', command: string, at: string, plan?: keyof typeof STAGES }) {
   return {
     id, slug, project, iid, kind, command,
     startedAt: at,

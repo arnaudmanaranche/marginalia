@@ -40,11 +40,6 @@ const RULES: [RegExp, Failure][] = [
     title: 'The result did not follow the review format',
     advice: 'The agent finished, but its findings file failed the contract, so nothing was saved or posted. The message says which part; re-run, as an agent rarely breaks it twice.',
   }],
-  [/did not produce a report|no report/i, {
-    kind: 'no_report', transient: false,
-    title: 'The agent wrote no report',
-    advice: 'The run finished without following the output contract. The doctor can tell why.',
-  }],
   [/CONFLICT|index\.lock|cannot lock ref|not a git repository|would be overwritten by (checkout|merge)|untracked working tree files/i, {
     kind: 'git', transient: false,
     title: 'The bot worktree is in a bad state',

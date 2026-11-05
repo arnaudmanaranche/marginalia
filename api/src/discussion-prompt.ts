@@ -27,14 +27,3 @@ export function discussionPrompt(threads: any[]) {
     threadText(threads, 'me (the reviewer)'),
   ].join('\n');
 }
-
-// The comments a triage works on. The bot reads them with its own token, so the
-// run needs no GitLab MCP server or API access to fetch them.
-export function triageDiscussionPrompt(threads: any[]) {
-  const open = threads.filter((t: any) => !t.resolved);
-  return [
-    'The unresolved discussion threads of this merge request, fetched by marginalia from GitLab, are below, each with its id. They are the reviewer comments to triage: use them as is and do not try to fetch the discussions yourself.',
-    '',
-    open.length ? threadText(open, 'me (the MR author)', { ids: true }) : '(none: there is no unresolved thread)',
-  ].join('\n');
-}

@@ -52,7 +52,7 @@ export async function ensureBotWorktree(project: any) {
     if (await fileExists(repoClaude)) {
       await symlink(repoClaude, claudeLink, 'dir');
     } else {
-      logger.info({ project: project.key }, `No .claude/ in ${REPO_LOCAL_PATH}: only user-level commands/agents (~/.claude) will be available to the bot.`);
+      logger.info({ project: project.key }, `No .claude/ in ${REPO_LOCAL_PATH}: no code-reviewer checklist nor repo settings for the bot.`);
     }
   }
 
