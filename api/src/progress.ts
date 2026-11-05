@@ -1,5 +1,6 @@
 import { spawn } from 'node:child_process';
 import { basename } from 'node:path';
+import { toolOf } from './tool-label.ts';
 
 // One readable line per step of a run, for the studio's live panel: what the
 // run says it is doing, and the tools it calls.
@@ -38,14 +39,14 @@ export function describeStep(block: any) {
 // the id of the Agent call that started it); every raw line goes to onEvent. The final "result"
 // event is returned as the JSON the run would have printed with --output-format json.
 /**
- * @param {(step: string, info: { sub: boolean }) => void} [onStep]
+ * @param {(step: string, info: { sub: boolean, tool: string | null }) => void} [onStep]
  * @param {(line: string) => void} [onEvent]
  */
 export function runStreaming(
   bin: string,
   args: string[],
   options: Record<string, any>,
-  onStep: (step: string, info: { sub: boolean }) => void = () => {},
+  onStep: (step: string, info: { sub: boolean; tool: string | null }) => void = () => {},
   onEvent: (line: string) => void = () => {},
 ): Promise<{ stdout: string; stderr: string }> {
   return new Promise((resolve, reject) => {
@@ -66,7 +67,7 @@ export function runStreaming(
       if (event.type === 'assistant') {
         for (const block of event.message?.content ?? []) {
           const step = describeStep(block);
-          if (step) onStep(step, { sub: Boolean(event.parent_tool_use_id) });
+          if (step) onStep(step, { sub: Boolean(event.parent_tool_use_id), tool: toolOf(block) });
         }
       }
     };

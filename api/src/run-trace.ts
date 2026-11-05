@@ -108,9 +108,10 @@ export function endStage(trace: any, id: string, at: string, state = 'done') {
 }
 
 /** @param {Trace} trace @param {string} text @param {string} at @param {{ sub?: boolean, stage?: string }} [opts] */
-export function addStep(trace: any, text: string, at: string, { sub = false, stage }: { sub?: boolean; stage?: string } = {}) {
+// `tool`: the short name of the tool the step called (tool-label.ts), for the studio's chips.
+export function addStep(trace: any, text: string, at: string, { sub = false, stage, tool = null }: { sub?: boolean; stage?: string; tool?: string | null } = {}) {
   if (trace.steps.length >= MAX_STEPS) return { ...trace, droppedSteps: trace.droppedSteps + 1 };
-  return { ...trace, steps: [...trace.steps, { at, text, stage: stage ?? running(trace)?.id ?? null, sub }] };
+  return { ...trace, steps: [...trace.steps, { at, text, stage: stage ?? running(trace)?.id ?? null, sub, ...(tool && { tool }) }] };
 }
 
 // How the run ended. A failure marks the stages it happened in (all that were running: several run

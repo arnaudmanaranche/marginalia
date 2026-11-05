@@ -49,9 +49,9 @@ export function understandProject(project: any, { onStep = (_step: string) => {}
     // Followed like any run (run-tracker.ts): it shows in the studio's jobs, live and afterwards.
     const target = { project, iid: null, title: 'Learn the project', source_branch: null };
     const run = await followRun(target, { kind: 'understand', command: 'understand', outputPath: join(project.reviewsDir, `${CONTEXT_JOB}.md`), plan: 'understand' });
-    const say = (step: string, stage: string) => {
+    const say = (step: string, stage: string, tool: string | null = null) => {
       onStep(step);
-      run.step(step, { stage });
+      run.step(step, { stage, tool });
     };
     try {
       await run.stage('checkout');
@@ -63,7 +63,7 @@ export function understandProject(project: any, { onStep = (_step: string) => {}
       const settings = runSettings({ ...project, worktreeDir: dir });
       const call = async (text: string, resume: string | null) => {
         const args = [...claudeArgs({ prompt: text, tools: UNDERSTAND_TOOLS, systemPrompt: UNDERSTAND_SYSTEM, settings, resume }), '--add-dir', join(PACKAGE_ROOT, 'jobs')];
-        const { stdout } = await runStreaming(CLAUDE_BIN, args, { cwd: dir, env: runEnv(), timeout: TIMEOUT_MS }, (step) => say(step, 'agent'), (line) => run.event(line));
+        const { stdout } = await runStreaming(CLAUDE_BIN, args, { cwd: dir, env: runEnv(), timeout: TIMEOUT_MS }, (step, info) => say(step, 'agent', info.tool), (line) => run.event(line));
         const out = parseRunOutput(stdout);
         if (out.stats) run.addCost(out.stats);
         return out;

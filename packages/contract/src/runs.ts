@@ -5,7 +5,7 @@ import { Failure } from './review-item.ts';
 const StageState = z.enum(['pending', 'running', 'done', 'failed', 'skipped']);
 const LiveStage = z.object({ id: z.string(), label: z.string(), state: StageState });
 export const RunStage = LiveStage.extend({ startedAt: nullable(z.string()), endedAt: nullable(z.string()) }).meta({ id: 'RunStage' });
-export const RunStep = z.object({ at: z.string(), text: z.string(), stage: nullable(z.string()), sub: z.boolean().describe('Taken by a sub-agent the run started.') }).meta({ id: 'RunStep' });
+export const RunStep = z.object({ at: z.string(), text: z.string(), stage: nullable(z.string()), sub: z.boolean().describe('Taken by a sub-agent the run started.'), tool: z.string().optional().describe('The tool the step called, short: `read`, `git`, `jira.search`.') }).meta({ id: 'RunStep' });
 const RunFields = {
   id: z.string(), slug: ReviewId, project: z.string(), iid: z.union([z.number().int(), z.string()]).nullable().describe('Null for a branch without an MR yet, or a job about the whole project.'),
   kind: z.enum(['review', 'triage', 'understand']), command: z.string(),
