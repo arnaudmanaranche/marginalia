@@ -51,7 +51,7 @@ export function StatusBar({ status, connection, settingsActive, jobsActive, appr
           className={`touch-target relative rounded-lg border p-2 hover:border-zinc-300 dark:hover:border-zinc-700 ${approvalsActive ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-line bg-surface text-fg-muted'}`}
         >
           <Inbox className="size-4" />
-          {approvals > 0 && <span aria-hidden className="absolute -right-1.5 -top-1.5 min-w-4 rounded-full bg-blue-600 px-1 text-center text-[10px] font-semibold leading-4 text-white">{approvals > 99 ? '99+' : approvals}</span>}
+          {approvals > 0 && <span aria-hidden className="absolute -right-1.5 -top-1.5 min-w-4 rounded-full bg-blue-600 px-1 text-center text-[11px] font-semibold leading-4 text-white">{approvals > 99 ? '99+' : approvals}</span>}
         </button>
         <button
           onClick={onJobs}
