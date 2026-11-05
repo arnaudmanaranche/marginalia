@@ -21,12 +21,15 @@ const loadReader = () => import('./components/ReviewReader');
 const ReviewReader = lazy(() => loadReader().then((m) => ({ default: m.ReviewReader })));
 import { CommandPalette } from './components/CommandPalette';
 import { SettingsPage } from './components/SettingsPage';
+import { JobsView } from './components/JobsPage';
 import { StackBoard } from './components/StackBoard';
 import { ReviewMissing, ReviewSkeleton } from './components/ReviewSkeleton';
 
 const EMPTY_POSTED = {};
 // `#/settings` is the settings page, not a review.
 const SETTINGS_ROUTE = 'settings';
+// `#/jobs` lists everything the bot ran.
+const JOBS_ROUTE = 'jobs';
 // Reviews older than this are hidden from Home.
 const STALE_DAYS = 30;
 // The animation features load after the first paint; until then `m` components just render.
@@ -146,7 +149,7 @@ export function App() {
   const isPosted = (i: ReviewItem) => Object.keys(posted).some((k) => k.startsWith(`${i.slug}:`));
   const current = items.find((i) => i.slug === slug);
   const stack = current?.stackId ? data?.stacks.find((s) => s.id === current.stackId) : undefined;
-  const { content: review, error: reviewError, retry: retryReview } = useReview(slug === SETTINGS_ROUTE ? null : slug, current?.reviewedAt);
+  const { content: review, error: reviewError, retry: retryReview } = useReview(slug === SETTINGS_ROUTE || slug === JOBS_ROUTE ? null : slug, current?.reviewedAt);
 
   const { isUnread } = useSeen(current);
   const projects = data?.projects;
@@ -175,7 +178,7 @@ export function App() {
     <LazyMotion features={loadMotionFeatures} strict>
       <Toaster position="bottom-right" theme="system" richColors />
       <header className="sticky top-0 z-40 bg-canvas">
-        <StatusBar status={data?.status ?? null} connection={data ? 'ok' : error ? 'unreachable' : 'connecting'} settingsActive={slug === SETTINGS_ROUTE} onOpenPalette={() => setPalette(true)} onHome={() => go(null)} onSettings={() => go(SETTINGS_ROUTE)} />
+        <StatusBar status={data?.status ?? null} connection={data ? 'ok' : error ? 'unreachable' : 'connecting'} settingsActive={slug === SETTINGS_ROUTE} jobsActive={slug === JOBS_ROUTE} onOpenPalette={() => setPalette(true)} onHome={() => go(null)} onSettings={() => go(SETTINGS_ROUTE)} onJobs={() => go(JOBS_ROUTE)} />
         <TabStrip
           tabs={tabItems}
           activeSlug={slug}
@@ -193,6 +196,8 @@ export function App() {
         <main className="min-w-0 flex-1">
       {slug === SETTINGS_ROUTE ? (
         <SettingsPage settings={data?.settings ?? null} defaults={data?.settingsDefaults ?? null} projects={projects?.length ?? 1} />
+      ) : slug === JOBS_ROUTE ? (
+        <JobsView showProject={several} onOpen={go} />
       ) : slug ? (
         <>
         {stack && current && <StackBoard stack={stack} items={items} current={current} isPosted={isPosted} onSelect={go} />}

@@ -12,6 +12,8 @@ export const keys = {
   pushes: (slug: string, refreshKey?: string) => ['pushes', slug, refreshKey ?? null] as const,
   runs: (slug: string) => ['runs', slug, 'list'] as const,
   run: (slug: string, id: string) => ['runs', slug, 'run', id] as const,
+  // Under 'runs', so the live invalidation keeps the jobs current too.
+  jobs: ['runs', '*', 'jobs'] as const,
 };
 
 // What the bot's "changed" event makes stale. The list, the reports and the runs are cheap local reads. The

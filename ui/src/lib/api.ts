@@ -188,8 +188,9 @@ export interface RunSummary {
   id: string;
   slug: string;
   project: string;
-  iid: number | string;
-  kind: 'review' | 'triage';
+  // Null for a branch without an MR yet, or a job about the whole project.
+  iid: number | string | null;
+  kind: 'review' | 'triage' | 'understand';
   command: string;
   startedAt: string;
   endedAt: string | null;
@@ -228,6 +229,12 @@ export interface DoctorFix {
   error?: string;
   url?: string | null;
 }
+// A job of the factory: one run, saying which line it was and what it was about.
+export interface Job extends RunSummary {
+  what: 'review' | 'comments' | 'own' | 'understand';
+  title: string | null;
+}
+
 export interface RunTrace extends RunSummary {
   steps: RunStep[];
   doctor: Doctor | null;
