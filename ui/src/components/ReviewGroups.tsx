@@ -7,7 +7,7 @@ function Heading({ group }: { group: Group }) {
   return (
     <>
       <span className="font-medium">{group.title}</span>
-      <span className={group.needsYou ? 'rounded-md bg-run/15 px-1.5 font-mono text-[11px] leading-4 tabular-nums text-run' : 'rounded-md bg-sunken px-1.5 font-mono text-[11px] leading-4 tabular-nums text-fg-muted'}>{group.items.length}</span>
+      <span className={group.needsYou ? 'rounded-md bg-run/15 px-1.5 font-mono text-[11px] leading-4 tabular-nums text-run-ink' : 'rounded-md bg-sunken px-1.5 font-mono text-[11px] leading-4 tabular-nums text-fg-muted'}>{group.items.length}</span>
       <span className="hidden text-xs font-normal text-fg-muted sm:inline">{group.hint}</span>
     </>
   );

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { toast } from '../lib/toast';
-import { Loader2, RefreshCw, Stethoscope } from 'lucide-react';
+import { RefreshCw, Stethoscope } from 'lucide-react';
 import { startDoctor, type Doctor, type DoctorFix, type DoctorWhere, type Failure } from '../lib/api';
 import { duration } from '../lib/runs';
 import { useNow } from '../lib/useNow';
@@ -10,6 +10,7 @@ import type { BadgeTone } from './ui/badgeStyles';
 import { Button } from './ui/Button';
 import { NoteMarkdown } from './NoteMarkdown';
 import { DoctorFixPanel } from './DoctorFixPanel';
+import { Spinner } from './ds/Spinner';
 
 const WHERE: Record<DoctorWhere, { label: string; tone: BadgeTone }> = {
   bot: { label: 'Fix in Marginalia', tone: 'violet' },
@@ -38,13 +39,13 @@ export function DoctorCard({ slug, runId, doctor, failure, fix, fixSource }: { s
   };
   const askButton = (label: string) => (
     <Button size="sm" disabled={asking} onClick={ask}>
-      {asking ? <Loader2 className="size-3.5 animate-spin motion-reduce:animate-pulse" /> : label === 'Ask the doctor' ? <Stethoscope className="size-3.5" /> : <RefreshCw className="size-3.5" />}{label}
+      {asking ? <Spinner className="size-3.5" /> : label === 'Ask the doctor' ? <Stethoscope className="size-3.5" /> : <RefreshCw className="size-3.5" />}{label}
     </Button>
   );
 
   return (
-    <section aria-label="Doctor" className="rounded-md border border-violet-500/30 bg-surface p-3 text-sm">
-      <p className="mb-2 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-violet-700 dark:text-violet-300"><Stethoscope className="size-3.5" aria-hidden />Doctor</p>
+    <section aria-label="Doctor" className="rounded-xl border border-line bg-surface p-4 text-sm">
+      <h3 className="mb-2 flex items-center gap-1.5 text-sm font-medium"><Stethoscope className="size-4 text-fg-subtle" aria-hidden />Why it failed</h3>
       {!doctor && (
         <div className="flex flex-wrap items-center justify-between gap-2">
           <p className="text-fg-muted">{failure?.transient ? 'This kind of failure passes by itself. Ask anyway if it keeps coming back.' : 'Not looked at yet. The doctor reads this run and the bot to find the cause (a few minutes, read only).'}</p>
@@ -53,12 +54,12 @@ export function DoctorCard({ slug, runId, doctor, failure, fix, fixSource }: { s
       )}
       {doctor?.state === 'running' && (
         <p role="status" className="flex items-center gap-2 text-fg-muted">
-          <Loader2 className="size-4 animate-spin motion-reduce:animate-pulse" aria-hidden />Reading the run and the bot's code…{doctor.startedAt && <span className="tabular-nums text-fg-subtle">{duration(now - new Date(doctor.startedAt).getTime())}</span>}
+          <Spinner className="size-4" />Reading the run and the bot's code…{doctor.startedAt && <span className="tabular-nums text-fg-muted">{duration(now - new Date(doctor.startedAt).getTime())}</span>}
         </p>
       )}
       {doctor?.state === 'failed' && (
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="text-red-700 dark:text-red-300">The doctor could not finish: {doctor.error}</p>
+          <p className="text-fail">The doctor could not finish: {doctor.error}</p>
           {askButton('Try again')}
         </div>
       )}
@@ -80,14 +81,14 @@ export function DoctorCard({ slug, runId, doctor, failure, fix, fixSource }: { s
             </div>
           )}
           {doctor.fix?.what && (
-            <div className="rounded-md bg-violet-500/5 p-2">
+            <div className="rounded-lg bg-sunken p-3">
               <p className="text-xs font-medium text-fg-muted">{doctor.fix.inBot ? 'The change that keeps it from happening again' : 'What to do'}</p>
               <NoteMarkdown>{doctor.fix.what}</NoteMarkdown>
               {doctor.fix.files.length > 0 && <p className="mt-1 font-mono text-xs text-fg-muted">{doctor.fix.files.join(', ')}</p>}
-              {doctor.fix.inBot && <div className="mt-2 border-t border-violet-500/20 pt-2"><DoctorFixPanel slug={slug} runId={runId} fix={fix} source={fixSource} /></div>}
+              {doctor.fix.inBot && <div className="mt-2 border-t border-line pt-2"><DoctorFixPanel slug={slug} runId={runId} fix={fix} source={fixSource} /></div>}
             </div>
           )}
-          <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-fg-subtle">
+          <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-fg-muted">
             <span>{doctor.sameAs ? 'Same failure as an earlier run: this diagnosis is from then.' : doctor.endedAt ? `Diagnosed ${timeAgo(doctor.endedAt)}.` : ''}</span>
             {askButton('Ask again')}
           </div>

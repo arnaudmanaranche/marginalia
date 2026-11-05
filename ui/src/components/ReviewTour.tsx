@@ -103,7 +103,7 @@ export function ReviewTour({ stops, findings, post, diff: source, showFullDiff, 
       <m.div key={stop.id} initial={{ opacity: 0, x: direction * 14 }} animate={{ opacity: 1, x: 0 }} transition={transition.base}>
         <h2 className={cn('text-lg font-semibold tracking-tight', stops.length > 1 ? 'mt-1' : 'mt-4')}>{stop.title}{stop.supporting && <Badge className="ml-2 align-middle">Supporting</Badge>}</h2>
         {stop.summary && <NoteMarkdown className="mt-1 text-fg-muted">{stop.summary}</NoteMarkdown>}
-        <p className="mt-2 text-xs text-fg-subtle">{meta}</p>
+        <p className="mt-2 text-xs text-fg-muted">{meta}</p>
         {here.length > 0 && (
           <div className="mt-4">
             {post ? <FindingsPanel findings={here} threads={threads} compact focus={focus} onFocus={(id) => select(id, 'list')} {...post} /> : (

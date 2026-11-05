@@ -36,7 +36,7 @@ export function RunSteps({ steps, stages, startedAt, running, total }: { steps: 
               <li className="sticky top-0 bg-canvas px-3 pt-1.5 pb-0.5 font-sans text-[11px] font-medium uppercase tracking-wide text-fg-muted">{label(s.stage)}</li>
             )}
             <li className={cn('flex gap-3 px-3', s.sub && 'pl-6')}>
-              <span className="w-14 shrink-0 select-none text-right tabular-nums text-fg-subtle">+{duration(new Date(s.at).getTime() - t0)}</span>
+              <span className="w-14 shrink-0 select-none text-right tabular-nums text-fg-muted">+{duration(new Date(s.at).getTime() - t0)}</span>
               {s.sub && <CornerDownRight className="mt-1 size-3 shrink-0 text-fg-subtle" aria-label="Sub-agent" />}
               <span className="min-w-0 flex-1 break-words">{s.text}</span>
               {s.tool && <ToolChip name={s.tool} />}
@@ -44,7 +44,7 @@ export function RunSteps({ steps, stages, startedAt, running, total }: { steps: 
           </Fragment>
         ))}
       </ol>
-      {total > steps.length && <p className="mt-1 text-xs text-fg-subtle">{total - steps.length} later steps were not kept (a run keeps its first {steps.length}).</p>}
+      {total > steps.length && <p className="mt-1 text-xs text-fg-muted">{total - steps.length} later steps were not kept (a run keeps its first {steps.length}).</p>}
     </>
   );
 }

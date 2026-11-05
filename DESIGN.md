@@ -178,7 +178,7 @@ Graphite neutrals and one signal blue, with four status hues. Both themes are co
 - **Important Amber** (oklch(55.5% 0.163 48.998) light / oklch(87.9% 0.169 91.605) dark): "important" findings.
 
 ### Run states
-Five state hues, one per run state, exposed as `--ok`, `--run`, `--warn`, `--fail`, `--idle` and the classes `text-ok`, `bg-run`, `border-fail/40` and so on. They color marks, dots and edges, never sentences: the words beside them stay in the text roles. **Run** is the signal blue, because a run in progress is a signal. Both themes have their own steps (600 on light, 400 on dark; idle is zinc-400 / zinc-600).
+Five state hues, one per run state, exposed as `--ok`, `--run`, `--warn`, `--fail`, `--idle` and the classes `text-ok`, `bg-run`, `border-fail/40` and so on. They color marks, dots and edges, never sentences: the words beside them stay in the text roles. **Run** is the signal blue, because a run in progress is a signal. Both themes have their own steps (600 on light, 400 on dark; idle is zinc-400 / zinc-600). As text on the surface, run (5.2:1 light) and fail (4.8:1) pass AA; ok and warn do not in light and are never set as text, only as marks and dots. Run-blue text on a run tint uses `--run-ink` (blue-700 light, blue-300 dark; 5.2:1 and 9.1:1), as in the count of a group that waits on you.
 
 ### Tertiary
 - **Semantic Violet** (oklch(49.1% 0.27 292.581) light / oklch(81.1% 0.111 293.571) dark): the triage label; the only place the app is allowed to be "expressive".
@@ -287,6 +287,7 @@ The pieces every live surface is made of, each defined once:
 - **Panel / PanelHeader / PanelFooter:** the one container of tool surfaces: a 12px surface with a hairline, header and footer rows separated by hairlines. The border is the elevation.
 - **Timeline / TimelineItem:** steps on a vertical rail, the mark on the rail, the rail solid in ok below a step that is done and dashed ahead of the current one.
 - **Elapsed:** a duration that keeps counting, in tabular figures.
+- **Spinner:** something under way where a mark has no room (inside a button, in a line of text): the running mark's arc in the current text colour. The only loading indicator; no icon-font spinner.
 - **SpanBar:** spans on one rounded track, each at its share of the total time and coloured by state, with a 2px gap of track between spans and finished ones alternating two steps of the ok hue so stage boundaries read; a running span carries the shimmer. A job's stages in one bar, or one stage on a run's axis.
 - **SeverityBadge / SeverityDot:** how much a finding matters: the word on a badge where there is room, a dot (fail, warn, run, idle) in a dense list, the word kept for screen readers.
 - **Kbd:** a key beside its action (`a`, `e`, `d`, `j`, `k`), the typed character in micro mono on the sunken fill.

@@ -65,7 +65,7 @@ export function GlanceBody({ body }: { body: string }) {
         const blocking = /^blocking$/i.test(r.label) && !NOTHING_BLOCKING.test(r.text);
         return (
           <div key={r.label} className="contents">
-            <dt className={cn('pt-0.5 text-xs font-medium uppercase tracking-wide text-fg-subtle', blocking && 'text-red-600 dark:text-red-400')}>{r.label}</dt>
+            <dt className={cn('pt-0.5 text-xs font-medium uppercase tracking-wide text-fg-muted', blocking && 'text-fail')}>{r.label}</dt>
             <dd className="min-w-0 [&_.prose_p]:m-0"><Md>{r.text}</Md></dd>
           </div>
         );

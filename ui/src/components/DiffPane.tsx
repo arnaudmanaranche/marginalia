@@ -40,13 +40,13 @@ export function DiffPane({ showAll, state, findings, focus, threads: allThreads,
   return (
     <>
       {toggle}
-      {state.approximate && <p className="mb-3 text-xs text-fg-subtle">This review did not record its version: the code shown is the one pushed just before it was written.</p>}
+      {state.approximate && <p className="mb-3 text-xs text-fg-muted">This review did not record its version: the code shown is the one pushed just before it was written.</p>}
       {!files.length ? <p className="text-sm text-fg-muted">{hidden > 0 ? `Nothing flagged here: ${hidden} file${hidden === 1 ? '' : 's'} hidden by the Settings page's "Show the full diff" option.` : since ? 'Nothing in this stop changed after that push.' : "None of this stop's files is in the MR diff."}</p> : (
         <m.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }} className="space-y-3">
           {files.map((f, i) => <DiffFileView key={f.path} file={f} findings={inline} threads={since ? [] : threads} defaultOpen={i < 3} focus={focus} onSelectFinding={onSelectFinding} />)}
         </m.div>
       )}
-      {hidden > 0 && files.length > 0 && <p className="mt-3 text-xs text-fg-subtle">{hidden} file{hidden === 1 ? '' : 's'} with nothing flagged hidden (Settings, "Show the full diff").</p>}
+      {hidden > 0 && files.length > 0 && <p className="mt-3 text-xs text-fg-muted">{hidden} file{hidden === 1 ? '' : 's'} with nothing flagged hidden (Settings, "Show the full diff").</p>}
     </>
   );
 }
