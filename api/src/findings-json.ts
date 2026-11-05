@@ -48,6 +48,7 @@ export function normalizeFindingsData(data: any) {
   const summary = str(data.summary ?? data.overview, 2000);
   const withIds = assignIds(findings);
   const risk = normalizeRisk(data.risk);
+  const criticalPaths = (Array.isArray(data.criticalPaths) ? data.criticalPaths : []).map((p: unknown) => str(p, 200)).filter(Boolean).slice(0, 12);
   if (data.risk !== undefined && data.risk !== null && !risk) warnings.push('the risk level is not low, medium or high');
   const walk = buildTour(data.tour, withIds);
   warnings.push(...walk.warnings);
@@ -59,7 +60,7 @@ export function normalizeFindingsData(data: any) {
   if (!walk.tour.length && !triage) warnings.push('there is no tour (the order to read the MR in): every report should have one');
   const { replies, warnings: replyWarnings } = normalizeReplies(data.replies);
   warnings.push(...replyWarnings);
-  return { ok: true, verdict, summary: summary ? clip(plain(summary), 400) : null, findings: withIds, risk, overview, tour: walk.tour, replies, warnings };
+  return { ok: true, verdict, summary: summary ? clip(plain(summary), 400) : null, findings: withIds, risk, criticalPaths, overview, tour: walk.tour, replies, warnings };
 }
 
 // The command may wrap the JSON in a code fence.

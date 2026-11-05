@@ -4,6 +4,9 @@ import { gatherContext } from './context.ts';
 import { contextText } from './context-text.ts';
 import { renderReview } from './report-render.ts';
 import { mergeReview } from './review-merge.ts';
+import { DATA_DIR } from '../config.ts';
+import { readContext } from '../context-store.ts';
+import { projectContextPrompt } from '../context-prompt.ts';
 import { REVIEW_SYSTEM, chapterPrompt, mapPrompt, parseChapter, parseMap } from './review-prompts.ts';
 
 // Chapters reviewed side by side, at most this many at once.
@@ -20,7 +23,7 @@ export async function stagedReview({ mr, run, outputPath, stack = null, settings
   await run.stage('context');
   const { context } = await gatherContext(mr, { outputPath, stack });
   run.step(`${context.files.length} changed files${context.ticket ? `, ticket ${context.ticket.key}${context.ticket.text ? '' : ' (not readable here)'}` : ', no ticket'}, rules in ${context.guidance.join(', ') || 'no file'}`, { stage: 'context' });
-  const text = contextText(context);
+  const text = [contextText(context), projectContextPrompt(await readContext(DATA_DIR, mr.project.key, 'approved'))].filter(Boolean).join('\n\n');
 
   await run.stage('map');
   const changed = context.files.map((f: any) => f.path);

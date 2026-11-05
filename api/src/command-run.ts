@@ -15,6 +15,8 @@ import { contractPrompt } from './run-contract.ts';
 import { previousFindingsPrompt } from './previous-findings.ts';
 import { runStreaming } from './progress.ts';
 import { buildStackPrompt } from './stack-context.ts';
+import { readContext } from './context-store.ts';
+import { projectContextPrompt } from './context-prompt.ts';
 
 // A run of the project's own command (REVIEW_COMMAND / TRIAGE_COMMAND, a slash command of the
 // reviewed repo): one Claude call that does the whole job, told the output contract with
@@ -30,13 +32,14 @@ export async function commandRun({ mr, run, kind, command, tools, outputPath, st
     .then(kind === 'review' ? discussionPrompt : triageDiscussionPrompt, (err) => { warn(mr, `Could not read the MR discussions: ${err.message}`); return ''; });
   // The report this run replaces: its findings keep their ids when they still apply.
   const previous = previousFindingsPrompt(await artifactOf(outputPath).previousFindings());
+  const projectContext = kind === 'review' ? projectContextPrompt(await readContext(DATA_DIR, mr.project.key, 'approved')) : '';
   if (stackContext) log(mr, `Layer ${stack.info.position}/${stack.info.size} of a stack on ${stack.info.baseBranch}.`);
 
   await run.stage('agent');
   log(mr, `Running ${command} (this can take a few minutes)...`);
   const startedAt = Date.now();
   const catalog = await assembleCatalog(DATA_DIR);
-  const systemPrompt = contractPrompt(kind, [REVIEW_PROMPT_EXTRA, catalogPrompt(catalog.skills), stackContext, conversation, previous].filter(Boolean).join('\n\n'), BOT_WORKTREE_DIR);
+  const systemPrompt = contractPrompt(kind, [REVIEW_PROMPT_EXTRA, projectContext, catalogPrompt(catalog.skills), stackContext, conversation, previous].filter(Boolean).join('\n\n'), BOT_WORKTREE_DIR);
   const team = await teamRunExtras(DATA_DIR); // --plugin-dir of the synced team skills, if any
   const { stdout, stderr } = await runStreaming(
     CLAUDE_BIN,

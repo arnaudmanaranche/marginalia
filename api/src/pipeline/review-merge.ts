@@ -42,6 +42,7 @@ export function mergeReview({ map, chapters }: { map: any, chapters: { result: {
       summary: `${map.overview.after} ${tally}${failed ? ` ${failed} chapter${failed > 1 ? 's' : ''} could not be reviewed.` : ''}`,
       risk: map.risk,
       overview: map.overview,
+      ...(map.criticalPaths?.length && { criticalPaths: map.criticalPaths }),
       tour,
       findings,
     },

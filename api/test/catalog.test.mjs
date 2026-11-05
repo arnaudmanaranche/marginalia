@@ -33,9 +33,9 @@ test('the prompt lists the catalog, names the contract skill first and marks tea
   assert.doesNotMatch(text.split('\n').slice(1).join('\n'), /marginalia-review/);
 });
 
-test('the shipped built-ins are the contract skill and the seven global ones, each well formed', async () => {
+test('the shipped built-ins are the contract skill and the eight global ones, each well formed', async () => {
   const found = await readSkills(BUILT_IN_SKILLS);
-  assert.deepEqual(found.map((s) => s.name).sort(), ['compatibility', 'correctness', 'maintainability', CONTRACT_SKILL, 'performance', 'pr-hygiene', 'security', 'tests'].sort());
+  assert.deepEqual(found.map((s) => s.name).sort(), ['compatibility', 'correctness', 'critical-path-impact', 'maintainability', CONTRACT_SKILL, 'performance', 'pr-hygiene', 'security', 'tests'].sort());
   for (const s of found) assert.match(s.description, /^(Use when|Review)/, `${s.name} says when to use it`);
 });
 

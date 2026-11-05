@@ -15,10 +15,11 @@ export function mapPrompt(context: any) {
     'Read the diff (start with the files that carry the idea), the ticket and the description. Then answer:',
     '- overview: what the system did before this MR and what it does now, one or two plain sentences each. ' + PLAIN,
     '- risk: low (contained, tested, nothing sensitive), medium (behaviour change in shared code, or real logic with thin tests) or high (auth, payments, data, migrations, a public contract, concurrency, wide blast radius with weak tests), why in one sentence, and the factors as short strings.',
+    '- criticalPaths: the exact names of the project\'s critical paths this change touches, when a project context is given above; else [].',
     '- chapters: one idea each, the core change first, then what supports it, and database, tests and generated files last. Every changed file belongs to exactly one chapter (a glob such as `src/flights/**` is fine). 1 or 2 chapters for a tiny MR, 3 to 8 otherwise. Each has a title naming the idea, a summary of two or three plain sentences (what changed and why, then what is safe to skim), and `check`: what the reviewer of this chapter must verify, concretely (the input that could break it, the caller that could be missed).',
     '',
     'Answer with only this JSON, in a ```json block:',
-    '{"overview": {"before": "...", "after": "..."}, "risk": {"level": "low|medium|high", "rationale": "...", "factors": ["..."]}, "chapters": [{"title": "...", "summary": "...", "files": ["path or glob"], "check": "..."}]}',
+    '{"overview": {"before": "...", "after": "..."}, "criticalPaths": ["..."], "risk": {"level": "low|medium|high", "rationale": "...", "factors": ["..."]}, "chapters": [{"title": "...", "summary": "...", "files": ["path or glob"], "check": "..."}]}',
   ].join('\n');
 }
 
@@ -50,6 +51,7 @@ export function parseMap(answer: any, changed: any) {
     value: {
       overview: { before: text(overview.before, 600), after: text(overview.after, 600) },
       risk: { level: risk.level, rationale: text(risk.rationale, 400) ?? '', factors: (Array.isArray(risk.factors) ? risk.factors : []).map((f: any) => text(f, 120)).filter(Boolean).slice(0, 8) },
+      criticalPaths: (Array.isArray(json.value.criticalPaths) ? json.value.criticalPaths : []).map((p: any) => text(p, 200)).filter(Boolean).slice(0, 12),
       chapters: kept,
       warnings,
     },

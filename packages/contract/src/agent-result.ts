@@ -29,6 +29,8 @@ export const AgentReview = z.object({
   summary: text,
   risk: z.object({ level: z.enum(['low', 'medium', 'high']), rationale: text.optional(), factors: z.array(text).optional() }).optional(),
   overview: z.object({ before: text, after: text }),
+  // The project's critical paths this MR touches, by name, when the project has an approved context.
+  criticalPaths: z.array(text).optional(),
   tour: z.array(AgentChapter).min(1),
   findings: z.array(AgentFinding),
 }).superRefine((r, ctx) => {

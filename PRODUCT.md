@@ -27,7 +27,7 @@ Success:
 
 ## Positioning
 
-The contract is fixed, the method is free. The bot decides the shape of a review and refuses anything that does not fit it; the agent decides how to get there. Marginalia ships the contract skill and a small set of global skills (`pr-hygiene`, `correctness`, `security`, `tests`, `maintainability`, `compatibility`, `performance`) and accepts a team's own skills from the reviewed repo's `.claude/`, which win over the built-ins. The bot contains no knowledge of any stack.
+The contract is fixed, the method is free. The bot decides the shape of a review and refuses anything that does not fit it; the agent decides how to get there. Marginalia ships the contract skill and a small set of global skills (`pr-hygiene`, `correctness`, `security`, `tests`, `maintainability`, `compatibility`, `performance`, `critical-path-impact`) and accepts a team's own skills from the reviewed repo's `.claude/`, which win over the built-ins. The bot contains no knowledge of any stack.
 
 **The bot only posts when a person asked for it**, by mentioning it or by clicking. A mention is the request, so the bot replies in the thread. From the studio, a person reads, edits and clicks, and the comment goes out under their own name. The bot never reviews and posts unprompted.
 

@@ -43,7 +43,9 @@ mention ──────┤ intake (webhook | polling) → one mention record
 ## Skills
 
 1. `marginalia-review`: the contract skill. Always loaded. The one place the format is written for the agent.
-2. Global built-ins: `pr-hygiene`, `correctness`, `security`, `tests`, `maintainability`, `compatibility`, `performance`. Stack-agnostic.
+2. Global built-ins: `pr-hygiene`, `correctness`, `security`, `tests`, `maintainability`, `compatibility`, `performance`, `critical-path-impact` (maps the diff to the approved project context's critical paths). Stack-agnostic.
+
+A review run is also told the project's approved context, inline (`api/src/context-prompt.ts`), in both the command path and the staged pipeline; the review names the critical paths it touches in `criticalPaths`. Without an approved context nothing changes.
 3. Team skills from the reviewed repo's `.claude/`. They win over a built-in of the same name.
 
 The agent sees one merged catalog (name and a one-line "use when" description) and picks. `api/src/catalog.ts` plans the merge (a team skill replaces a built-in of the same name, never the contract skill) and `catalog-assemble.ts` builds `<data dir>/catalog`, a read-only plugin named `marginalia` passed to every command run with `--plugin-dir`. Marginalia has no per-project skill list and no knowledge of any stack.
