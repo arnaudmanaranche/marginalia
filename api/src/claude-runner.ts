@@ -61,7 +61,7 @@ async function runStages(mr: any, { kind, command, tools, outputPath, label, sta
 
   if (kind === 'triage') await recordFixes(mr, baseSha);
   log(mr, `Report (${source}) written to ${outputPath}. Nothing was posted to GitLab.`);
-  if (row) trackRun({ run: row, report: { source, ...listFields(shape), warnings: shape.warnings.length } });
+  if (row) trackRun({ run: row, report: { source, ...listFields(shape), warnings: shape.warnings.length, own: detached, criticalPaths: (shape.criticalPaths ?? []).length } });
   return 'reviewed';
 }
 

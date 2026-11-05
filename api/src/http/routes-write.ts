@@ -1,5 +1,6 @@
 import { z } from '@hono/zod-openapi';
 import { posted } from '../posted.ts';
+import { recordPosted } from '../finding-outcome.ts';
 import { loadState } from '../state.ts';
 import { reviewerStateFor } from '../review-actions.ts';
 import { gitlab as defaultGitlab } from '../gitlab-api.ts';
@@ -51,6 +52,7 @@ export function writeRoutes(app: any, gitlab = defaultGitlab) {
       return c.json({ error: shortMessage(err) }, 502);
     }
     const entry = posted.recordDraft(project.key, found.slug, commentId, { iid: mr.iid, draftId: draft.id, body: text, mrUrl: mr.web_url, url: mr.web_url, inline: hasTarget ? inline : undefined });
+    void recordPosted({ project, slug: found.slug, iid: mr.iid, commentId, body });
     refreshState(project, mr, gitlab);
     broadcast();
     return c.json(entry, 200);

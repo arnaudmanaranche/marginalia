@@ -23,8 +23,14 @@ delays or fails a review; it logs one warning per process.
 The event carries ids and numbers only, never an MR title, a branch name, a diff or any review text:
 `project`, `mr_iid`, `kind` (`review`, `triage`, `chat`), `command`, `cost_usd`, `output_tokens`, `turns`,
 `duration_ms`, `run_number` and `rerun` (this MR had a pass of this kind before), and for reviews
-`verdict`, `risk`, `critical`, `important`, `postable`, `report_source`, `contract_warnings`. It is sent
+`verdict`, `risk`, `critical`, `important`, `postable`, `report_source`, `contract_warnings`, `own_review`
+and `critical_paths` (how many of the project's critical paths the review says it touches). It is sent
 with `$process_person_profile: false` (events, not people) under the id `marginalia:<your GitLab username>`.
+
+The review line's measure is what becomes of each finding: a `marginalia_finding` event when a finding's
+comment is added to a GitLab review from the studio, with `outcome` `posted` (as the review proposed it)
+or `posted_edited` (changed first), plus `project`, `mr_iid`, `finding_id`, `severity`, `own_review` and
+`critical_paths`. No title, comment or path. The same finding of the same review is one event.
 
 Runs the bot recorded before you turned it on are in the `run` table; `npm run posthog:backfill` shows what
 would be sent, and `npm run posthog:backfill -- --send` sends it. A run always has the same event id, so

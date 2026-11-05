@@ -27,7 +27,7 @@ const base = ({ reviewer, version, container }: { reviewer: string; version?: st
 interface RunEventInput {
   run: { at: string, project?: string | null, iid?: number | string | null, kind: string, command?: string, costUsd?: number, outputTokens?: number, turns?: number, durationMs?: number | null },
   runNumber: number, reviewer: string, version?: string, container?: boolean,
-  report?: { source?: string, verdict?: string | null, risk?: string | null, critical?: number, important?: number, postable?: number, warnings?: number }
+  report?: { source?: string, verdict?: string | null, risk?: string | null, critical?: number, important?: number, postable?: number, warnings?: number, own?: boolean, criticalPaths?: number }
 }
 
 export function runEvent({ run, runNumber, reviewer, version, container, report }: RunEventInput) {
@@ -57,6 +57,8 @@ export function runEvent({ run, runNumber, reviewer, version, container, report 
         important: report.important ?? 0,
         postable: report.postable ?? 0,
         contract_warnings: report.warnings ?? 0,
+        own_review: Boolean(report.own),
+        critical_paths: report.criticalPaths ?? 0,
       }),
     },
   };

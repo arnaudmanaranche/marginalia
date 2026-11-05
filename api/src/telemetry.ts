@@ -4,6 +4,7 @@ import { countRuns } from './db-store.ts';
 import { logger } from './logger.ts';
 import { posthogFromEnv } from './posthog.ts';
 import { failureEvent, runEvent } from './run-events.ts';
+import { findingEvent } from './finding-events.ts';
 import { getDb } from './store.ts';
 
 // Anonymous-by-design usage events (see run-events.ts) to PostHog, off unless POSTHOG_KEY and
@@ -47,5 +48,14 @@ export function trackFailure({ mr, kind, command, error }: { mr: any; kind: any;
     send(failureEvent({ project: mr.project?.key, iid: mr.iid, kind, command, error: String(error?.message ?? error), at: new Date().toISOString(), ...context() }));
   } catch (err) {
     logger.debug({ err }, 'Could not build the failure event');
+  }
+}
+
+/** What became of one finding (finding-events.ts). */
+export function trackFinding(input: Omit<Parameters<typeof findingEvent>[0], 'reviewer' | 'version' | 'at'>) {
+  try {
+    send(findingEvent({ ...input, reviewer: GITLAB_USERNAME, version: RUNNING_VERSION, at: new Date().toISOString() }));
+  } catch (err) {
+    logger.debug({ err }, 'Could not build the finding event');
   }
 }
