@@ -63,7 +63,7 @@ export function ReviewReader({ item, review: currentReview, reviewError, onRetry
   const linkCtx = useMemo(() => ({ projectUrl, branch: item?.branch ?? null, mrWebUrl: item?.webUrl ?? null }), [projectUrl, item?.branch, item?.webUrl]);
   const meta = useMemo(() => extractMeta(markdown ?? ''), [markdown]);
   // The tour skips the chapters with nothing to act on (stops.ts): a clean chapter is not a stop.
-  const stops = useMemo(() => stopsToRead(shape?.tour ?? []), [shape]);
+  const stops = useMemo(() => stopsToRead(shape?.tour ?? [], shape?.findings ?? []), [shape]);
   // Findings the person can't reach otherwise: with a tour, the ones no chapter holds; without one,
   // those with no comment card in the report's own text.
   const loose = useMemo(() => {

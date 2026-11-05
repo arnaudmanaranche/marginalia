@@ -20,7 +20,7 @@ export function ChapterRail({ stops, findings, index, direction, onGo, children 
   return (
     <div>
       {stops.length > 1 && (
-        <div className="sticky top-0 z-10 -mx-4 flex items-center justify-between gap-3 border-b border-line bg-surface px-4 py-2.5">
+        <div className="sticky top-0 z-20 -mx-4 flex items-center justify-between gap-3 border-b border-line bg-surface px-4 py-2.5">
           <p className="flex items-center gap-2 text-xs text-fg-muted" aria-live="polite">
             <span className="font-medium text-zinc-900 dark:text-zinc-100">Chapter {index + 1} of {stops.length}</span>
             <span className="hidden items-center gap-1 sm:flex"><Kbd>←</Kbd><Kbd>→</Kbd></span>
