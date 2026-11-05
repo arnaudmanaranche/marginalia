@@ -1,6 +1,6 @@
 ---
 name: "Marginalia studio"
-description: "A flat, dense, high-contrast reading desk for machine-written code reviews."
+description: "A flat, dense, high-contrast reading desk for machine-written code reviews, with the live surfaces of a developer tool for the jobs the factory runs."
 colors:
   canvas-dark: "oklch(14.1% 0.005 285.823)"
   surface-dark: "oklch(21% 0.006 285.885)"
@@ -23,6 +23,16 @@ colors:
   important-amber-dark: "oklch(87.9% 0.169 91.605)"
   semantic-violet-light: "oklch(49.1% 0.27 292.581)"
   semantic-violet-dark: "oklch(81.1% 0.111 293.571)"
+  state-ok-light: "oklch(59.6% 0.145 163.225)"
+  state-ok-dark: "oklch(76.5% 0.177 163.223)"
+  state-run-light: "oklch(54.6% 0.245 262.881)"
+  state-run-dark: "oklch(70.7% 0.165 254.624)"
+  state-warn-light: "oklch(66.6% 0.179 58.318)"
+  state-warn-dark: "oklch(82.8% 0.189 84.429)"
+  state-fail-light: "oklch(57.7% 0.245 27.325)"
+  state-fail-dark: "oklch(70.4% 0.191 22.216)"
+  state-idle-light: "oklch(70.5% 0.015 286.067)"
+  state-idle-dark: "oklch(44.2% 0.017 285.786)"
 typography:
   display:
     fontFamily: "ui-sans-serif, -apple-system, 'Inter', 'Segoe UI', system-ui, sans-serif"
@@ -56,6 +66,11 @@ typography:
     fontSize: "1rem"
     fontWeight: 400
     lineHeight: "1.75"
+  micro:
+    fontFamily: "ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, monospace"
+    fontSize: "0.6875rem"
+    fontWeight: 400
+    lineHeight: "1rem"
   code:
     fontFamily: "ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, monospace"
     fontSize: "0.85em"
@@ -105,6 +120,23 @@ components:
     textColor: "{colors.text-dark}"
     height: "40px"
     typography: "{typography.body}"
+  tool-chip:
+    backgroundColor: "{colors.line-dark}"
+    textColor: "{colors.text-muted-dark}"
+    rounded: "{rounded.md}"
+    padding: "1px 6px"
+    typography: "{typography.micro}"
+  live-pill:
+    backgroundColor: "{colors.line-dark}"
+    textColor: "{colors.text-dark}"
+    rounded: "{rounded.full}"
+    padding: "2px 8px"
+    typography: "{typography.label}"
+  panel:
+    backgroundColor: "{colors.surface-dark}"
+    textColor: "{colors.text-dark}"
+    rounded: "{rounded.xl}"
+    padding: "14px 16px"
   input:
     backgroundColor: "{colors.surface-dark}"
     textColor: "{colors.text-dark}"
@@ -120,6 +152,8 @@ components:
 **Creative North Star: "The Reading Desk"**
 
 Marginalia's studio is where a person sits down to read what a machine wrote about someone else's code. The desk is the review; everything around it (the bar, the tabs, the sidebar) is furniture that stays out of the way and tells the truth about state. The voice is crisp, high-contrast and technical: firm edges, strong status colors, no ornament. Nothing here is decorative, and nothing is playful.
+
+Where the factory works, the desk turns into a developer tool. A job in progress is shown the way a good tracing or CI tool shows it: a plan on a rail, a mark per step that says done, running or waiting, the tool each action called as a mono chip, and a clock that counts. These live surfaces are built from one small set of primitives (`ui/src/components/ds/`) so a running review, the jobs, the queue and the top bar all speak the same state language.
 
 Density is deliberate. Controls are small and close (14px and 12px type, 6–12px padding), because the job is to hold many reviews in view and move between them fast. Surfaces are flat and separated by one-pixel lines, so hierarchy comes from tone and type weight rather than from shadow. The single loud thing on any screen is a status: a verdict, a count, an unread dot.
 
@@ -142,6 +176,9 @@ Graphite neutrals and one signal blue, with four status hues. Both themes are co
 - **Changes Red** (oklch(57.7% 0.245 27.325) light / oklch(70.4% 0.191 22.216) dark): "Request changes" verdicts, critical findings, failures.
 - **Approved Green** (oklch(59.6% 0.145 163.225) light / oklch(76.5% 0.177 163.223) dark): "Approve" verdicts and the posted-comment check.
 - **Important Amber** (oklch(55.5% 0.163 48.998) light / oklch(87.9% 0.169 91.605) dark): "important" findings.
+
+### Run states
+Five state hues, one per run state, exposed as `--ok`, `--run`, `--warn`, `--fail`, `--idle` and the classes `text-ok`, `bg-run`, `border-fail/40` and so on. They color marks, dots and edges, never sentences: the words beside them stay in the text roles. **Run** is the signal blue, because a run in progress is a signal. Both themes have their own steps (600 on light, 400 on dark; idle is zinc-400 / zinc-600).
 
 ### Tertiary
 - **Semantic Violet** (oklch(49.1% 0.27 292.581) light / oklch(81.1% 0.111 293.571) dark): the triage label; the only place the app is allowed to be "expressive".
@@ -171,7 +208,7 @@ Each neutral role is one Tailwind class that switches with the theme (`studio/sr
 A new neutral role is added there, in both themes, before it is used.
 
 ### Named Rules
-**The Signal Rule.** Blue is a signal, not a mood. If it is not selection, unread, focus or the one primary action, it is not blue.
+**The Signal Rule.** Blue is a signal, not a mood. If it is not selection, unread, focus, the one primary action or a run in progress, it is not blue.
 **The Double-Code Rule.** A status is never carried by color alone: pair it with an icon, a word or a shape (verdict badges do all three).
 **The Muted-Text Rule.** Secondary sentences use `text-fg-muted`; raw `zinc-500` is 3.7–4.1:1 on dark surfaces and fails AA, so it never sets a sentence.
 
@@ -188,6 +225,7 @@ A new neutral role is added there, in both themes, before it is used.
 - **Title** (500, 1rem): section headings inside a review (real `h2`s wrapping the collapsible triggers) and dialog titles.
 - **Body** (400, 0.875rem, 1.43): the interface: buttons, list rows, card text.
 - **Label** (400, 0.75rem): metadata, counts, timestamps, keyboard hints.
+- **Micro** (mono 400, 0.6875rem / 1rem): tool chips, the full log's stage headings, the counter on a top-bar button. Nothing longer than an identifier.
 - **Prose** (400, 1rem, 1.75, measure capped at 80ch): the review text.
 
 ### Named Rules
@@ -241,12 +279,26 @@ Moderate, consistent corners: 6px on small marks, 8px on controls and inputs, 12
 - **Open-review strip:** a `nav` of links, active one marked with `aria-current` and a 2px top rule in the verdict color (green or red); each carries a state icon (spinner for in progress, clock for waiting, triangle for failed, else the verdict), an unread dot and a close button that appears on hover or when active.
 - **Stack line:** a review in a stack opens under one line: its layers bottom to top as chips (verdict icon, `!iid`, the current one outlined in blue), whether the stack can merge, and a toggle for what crosses layers.
 
+### Tool surfaces (`ui/src/components/ds/`)
+The pieces every live surface is made of, each defined once:
+- **StatusMark:** a 16px state mark. Done is a filled ok disc whose check draws itself; running is an idle track with a turning run arc and a center dot; pending is a dashed idle ring; failed is a filled fail disc with a cross; skipped is a ring with a bar. Always labelled for screen readers.
+- **ToolChip / ToolChips:** the tool an action called, in micro mono on the sunken fill with a hairline ring; several show the first three and count the rest.
+- **LivePill:** a pill with a state dot, a word and an optional measure (`Running · 2m 19s`). The dot breathes while the thing is live. Used by the top bar, the queue rows and every panel header.
+- **Panel / PanelHeader / PanelFooter:** the one container of tool surfaces: a 12px surface with a hairline, header and footer rows separated by hairlines. The border is the elevation.
+- **Timeline / TimelineItem:** steps on a vertical rail, the mark on the rail, the rail solid in ok below a step that is done and dashed ahead of the current one.
+- **Elapsed:** a duration that keeps counting, in tabular figures.
+
+The **run plan** (`RunPlan` inside `RunPanel`) is the reference composition: a Panel whose header names the run and carries its LivePill, a Timeline of the run's stages with their step count, tool chips and time, the stage in progress unfolding its last three actions (the newest on the sunken fill) as they slide in, the full log one click away, and a footer with the position (`Running · 4 of 5`) and the time and cost. Time and position are said once each: the pill holds the time, the footer the position.
+
 ### Dialogs
 Command palette and post confirmation are true modal dialogs: focus moves in, Tab wraps, Escape closes and focus returns to the opener. The confirmation puts focus on Cancel, the safe action.
 
 ### Motion
 
-Motion explains state and continuity, and stays short. Cards glide between sizes with a layout animation (0.5s, `cubic-bezier(0.4, 0, 0.2, 1)`); tabs grow in and out over 0.22s; extra card content fades in only once the card is nearly in place. With `prefers-reduced-motion`, travel disappears (instant resize, no smooth scroll, spinners become a soft pulse) while state changes and opacity stay.
+Motion explains state and continuity, and stays short. Its tokens are `--ease-out` (`cubic-bezier(0.16, 1, 0.3, 1)`, exponential), `--dur-fast` (150ms) and `--dur` (220ms) in CSS, and the same values as presets in `ui/src/lib/motion.ts` (`arrive`: a new line slides up 4px and fades in; `unfold`: a section opens in its own height). Live state has three CSS utilities: `live-ping` (a ring grows out of a live dot), `mark-turn` (a running arc goes round) and `mark-draw` (a check draws itself); each has a reduced-motion path that keeps the state. Cards glide between sizes with a layout animation (0.5s, `cubic-bezier(0.4, 0, 0.2, 1)`); tabs grow in and out over 0.22s; extra card content fades in only once the card is nearly in place. With `prefers-reduced-motion`, travel disappears (instant resize, no smooth scroll, spinners become a soft pulse) while state changes and opacity stay.
+
+### Browser surfaces
+What the browser draws carries the studio: text selection in the run blue at 30%, thin scrollbars on the strong hairline, and one focus ring (2px run blue, 2px offset) for every focusable element.
 
 ### Sound
 
