@@ -60,3 +60,11 @@ test('two runs starting together share one catalog build instead of racing on it
   assert.notEqual(later, a);
   assert.deepEqual(later.args, a.args);
 });
+
+test('a chapter is offered the review lenses, never the contract skill, and nothing without one', async () => {
+  const { lensPrompt } = await import('../dist/src/catalog.js');
+  const text = lensPrompt([{ name: CONTRACT_SKILL, source: 'built-in', dir: '/x', description: 'whole review' }, { name: 'security', source: 'team', dir: '/t', description: 'Use when input is untrusted.' }]);
+  assert.match(text, /marginalia:security \(team\): Use when input is untrusted\./);
+  assert.ok(!text.includes(CONTRACT_SKILL));
+  assert.equal(lensPrompt([{ name: CONTRACT_SKILL, source: 'built-in', dir: '/x', description: '' }]), '');
+});

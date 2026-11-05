@@ -33,3 +33,15 @@ export function catalogPrompt(skills: CatalogSkill[]): string {
     ...lines,
   ].join('\n');
 }
+
+// What a chapter's reviewer is told about the catalog (pipeline/review.ts): the review lenses it may
+// load for its files. The contract skill is the method of a whole review in one call, which the
+// staged pipeline replaces, so it is not offered.
+export function lensPrompt(skills: CatalogSkill[]): string {
+  const lenses = skills.filter((s) => s.name !== CONTRACT_SKILL);
+  if (!lenses.length) return '';
+  return [
+    'Review lenses you can load with the Skill tool: load the ones your files call for, before you judge them, and none that does not apply. A team lens is the team\'s own standard and wins over a built-in one on the same point.',
+    ...lenses.map((s) => `- ${CATALOG_PLUGIN}:${s.name}${s.source === 'team' ? ' (team)' : ''}: ${s.description}`),
+  ].join('\n');
+}

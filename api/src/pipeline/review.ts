@@ -5,6 +5,10 @@ import { contextText } from './context-text.ts';
 import { renderReview } from './report-render.ts';
 import { mergeReview } from './review-merge.ts';
 import { DATA_DIR } from '../config.ts';
+import { lensPrompt } from '../catalog.ts';
+import { assembleCatalog } from '../catalog-assemble.ts';
+import { teamRunExtras } from '../team-claude.ts';
+import { withTeamDeny } from '../team-plugin.ts';
 import { readContext } from '../context-store.ts';
 import { projectContextPrompt } from '../context-prompt.ts';
 import { REVIEW_SYSTEM, chapterPrompt, mapPrompt, parseChapter, parseMap } from './review-prompts.ts';
@@ -33,10 +37,15 @@ export async function stagedReview({ mr, run, outputPath, stack = null, settings
   await run.end('map');
 
   const checklist = context.guidance.includes(CHECKLIST) ? CHECKLIST : null;
+  // Each chapter's reviewer may load the review lenses (built-in and team skills) its files call
+  // for; both plugins stay read-only to it.
+  const catalog = await assembleCatalog(DATA_DIR);
+  const team = await teamRunExtras(DATA_DIR);
+  const lens = { system: [REVIEW_SYSTEM, lensPrompt(catalog.skills)].filter(Boolean).join('\n\n'), tools: [...STAGE_READ_TOOLS, 'Skill'], settings: withTeamDeny(settings, { deny: [...team.deny, ...catalog.deny] }), extraArgs: [...team.args, ...catalog.args] };
   const chapters = await mapLimit(map.chapters, CONCURRENCY, async (chapter, i) => {
     await run.begin(ids[i]);
     try {
-      const result = await agentStage({ run, stage: ids[i], prompt: chapterPrompt({ context: text, map, chapter, index: i, checklist }), system: REVIEW_SYSTEM, tools: STAGE_READ_TOOLS, cwd, settings, parse: parseChapter });
+      const result = await agentStage({ run, stage: ids[i], prompt: chapterPrompt({ context: text, map, chapter, index: i, checklist }), ...lens, cwd, parse: parseChapter });
       await run.end(ids[i]);
       return { result };
     } catch (err) {

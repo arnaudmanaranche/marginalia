@@ -13,6 +13,10 @@ const say = (event) => process.stdout.write(`${JSON.stringify(event)}\n`);
 const step = (name, input) => say({ type: 'assistant', message: { content: [{ type: 'tool_use', name, input }] } });
 const answer = (value) => say({ type: 'result', result: typeof value === 'string' ? value : `Done.\n\`\`\`json\n${JSON.stringify(value)}\n\`\`\``, session_id: 'sess-1', total_cost_usd: 0.01, num_turns: 2, usage: { output_tokens: 100 } });
 
+// Given the Skill tool and a plugin (the review lenses), it loads one, as a chapter's reviewer may.
+const allowed = (args[args.indexOf('--allowedTools') + 1] ?? '').split(' ');
+if (!resumed && allowed.includes('Skill') && args.includes('--plugin-dir')) step('Skill', { skill: 'marginalia:security' });
+
 if (resumed) {
   answer({ findings: [], verified: 'The tests cover the rounding.' });
 } else if (prompt.includes('Your stage: map the change')) {

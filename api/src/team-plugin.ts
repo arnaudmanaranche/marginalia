@@ -51,5 +51,5 @@ export function teamRunPlan({ pluginDir, teamDir, assembled }: { pluginDir: stri
 // Adds the team's deny rules to the settings object of a run (`claudeSettings` output).
 export function withTeamDeny(settings: any, plan: { deny: string[] }) {
   if (!plan.deny.length) return settings;
-  return { ...settings, permissions: { ...settings.permissions, deny: [...new Set([...(settings.permissions?.deny ?? []), ...plan.deny])] } };
+  return { ...settings, permissions: { ...settings?.permissions, deny: [...new Set([...(settings?.permissions?.deny ?? []), ...plan.deny])] } };
 }
