@@ -5,7 +5,7 @@ import type { MyState, ReviewItem } from './api';
 // and who pushed or answered since), never from what this browser has opened. Pure, and kept
 // to erasable TypeScript so a node test can load it.
 
-export type GroupId = 'first' | 'returned' | 'unsent' | 'mine' | 'waiting' | 'done';
+export type GroupId = 'first' | 'returned' | 'unsent' | 'mine' | 'own' | 'waiting' | 'done';
 
 export interface Group {
   id: GroupId;
@@ -22,6 +22,7 @@ const GROUPS: Omit<Group, 'items'>[] = [
   { id: 'returned', title: 'Returned to you', hint: 'The author pushed or answered since your review.', needsYou: true, collapsed: false },
   { id: 'unsent', title: 'Review to send', hint: 'Your comments wait in a pending review on GitLab.', needsYou: true, collapsed: false },
   { id: 'mine', title: 'Comments on your merge requests', hint: 'Reviewers wrote on your work.', needsYou: true, collapsed: false },
+  { id: 'own', title: 'Your branches', hint: 'Your own work, reviewed for you alone. Nothing here is posted.', needsYou: false, collapsed: false },
   { id: 'waiting', title: 'Waiting on others', hint: 'You did your part. The next move is theirs.', needsYou: false, collapsed: false },
   { id: 'done', title: 'Done', hint: 'Nothing left for you here.', needsYou: false, collapsed: true },
 ];
@@ -49,6 +50,8 @@ function turnOf(kind: ReviewItem['kind'], s: MyState): GroupId {
 // The group of one review, or null when Home does not list it (retros).
 export function groupOf(item: ReviewItem): GroupId | null {
   if (item.kind === 'retro') return null;
+  // My own work reviewed for me: listed while the branch or MR is still open, whatever GitLab says.
+  if (item.kind === 'own') return item.tracked ? 'own' : 'done';
   // A merge request that is no longer open needs nobody; neither does one not read yet.
   if (!item.tracked || !item.myState) return 'done';
   return turnOf(item.kind, item.myState);
@@ -72,6 +75,7 @@ export interface Standing {
 // Where I stand on the MR, in words: what I decided, what waits to be sent, or that a review is asked
 // of me. Read by the list rows.
 export function standingOf(kind: ReviewItem['kind'], s: MyState): Standing | null {
+  if (kind === 'own') return null;
   if (kind === 'comments') return s.unresolved > 0 ? { label: `${s.unresolved} open`, tone: 'warning' } : null;
   if (s.decision === 'approved') return { label: 'You approved', tone: 'success' };
   if (s.decision === 'changes_requested') return { label: 'You requested changes', tone: 'warning' };

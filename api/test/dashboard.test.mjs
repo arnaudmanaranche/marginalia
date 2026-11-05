@@ -74,3 +74,12 @@ test('where I stand is said the same way everywhere, in order of what matters mo
   assert.deepEqual(stand({ unresolved: 3 }, 'comments'), { label: '3 open', tone: 'warning' });
   assert.equal(stand({}, 'comments'), null);
 });
+
+test('my own work reviewed for me lists under "Your branches", with or without an MR, until it closes', () => {
+  assert.equal(groupOf(review('own-a', null, { kind: 'own', iid: null })), 'own', 'a branch has no GitLab state');
+  assert.equal(groupOf(review('own-b', state({ unresolved: 2 }), { kind: 'own', iid: 7 })), 'own');
+  assert.equal(groupOf(review('own-c', null, { kind: 'own', tracked: false })), 'done');
+  assert.equal(standingOf('own', state({ drafts: 3 })), null);
+  const groups = groupReviews([review('own-a', null, { kind: 'own' }), review('x', state({ reviewed: true, myActivityAt: DAY1 }))]);
+  assert.deepEqual(groups.map((g) => [g.id, g.title, g.needsYou]), [['own', 'Your branches', false], ['waiting', 'Waiting on others', false]]);
+});

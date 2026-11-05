@@ -7,9 +7,11 @@ import { Button } from './ui/Button';
 
 // Title, verdict and the actions on a review. On my own MR there is no verdict to give: the
 // action is sending my replies to the reviewers.
-export function ReaderHeader({ item, risk, showSubmit, draftCount, sending, reviewing, onSubmit, locked, onRerun }: {
+export function ReaderHeader({ item, risk, criticalPaths = [], showSubmit, draftCount, sending, reviewing, onSubmit, locked, onRerun }: {
   item: ReviewItem | undefined;
   risk: Risk | null;
+  // The project's critical paths the MR touches: said once, quietly, under the title.
+  criticalPaths?: string[];
   showSubmit: boolean;
   draftCount: number;
   sending: boolean;
@@ -30,6 +32,10 @@ export function ReaderHeader({ item, risk, showSubmit, draftCount, sending, revi
             <RiskBadge level={risk?.level ?? null} why={risk?.rationale} />
           </span>
         </div>
+        {criticalPaths.length > 0 && (
+          <p className="mt-1 truncate text-sm text-fg-muted" title={criticalPaths.join(', ')}>Touches {criticalPaths.length > 1 ? 'critical paths' : 'a critical path'}: {criticalPaths.join(', ')}</p>
+        )}
+        {item?.kind === 'own' && <p className="mt-1 text-sm text-fg-muted">Your own work, reviewed for you. Nothing here is posted.</p>}
       </div>
       <div className="flex shrink-0 items-center gap-2">
         {showSubmit && (
@@ -38,7 +44,7 @@ export function ReaderHeader({ item, risk, showSubmit, draftCount, sending, revi
           </Button>
         )}
         {item?.tracked && item.kind !== 'retro' && (
-          <Button disabled={locked} onClick={onRerun} aria-label={item.kind === 'comments' ? 'Re-run triage' : 'Re-run review'} title={item.kind === 'comments' ? 'Triage the reviewer comments again on the current head of the MR' : 'Run the review again on the current head of the MR'} className="px-2.5">
+          <Button disabled={locked} onClick={onRerun} aria-label={item.kind === 'comments' ? 'Re-run triage' : 'Re-run review'} title={item.kind === 'comments' ? 'Triage the reviewer comments again on the current head of the MR' : item.kind === 'own' ? 'Review your work again on its current head' : 'Run the review again on the current head of the MR'} className="px-2.5">
             {locked ? <Loader2 className="size-4 animate-spin motion-reduce:animate-pulse" /> : <RefreshCw className="size-4" />}
           </Button>
         )}

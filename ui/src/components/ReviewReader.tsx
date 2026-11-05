@@ -53,11 +53,13 @@ export function ReviewReader({ item, review: currentReview, reviewError, onRetry
   const locked = rerunning || Boolean(live) || viewingOld;
   // My own MR: I answer the reviewers and push the triage's fixes, I do not review it.
   const author = item?.kind === 'comments';
+  // My own work, reviewed for me: read and copy, never posted (the server refuses it too).
+  const mayPost = allowPosting && item?.kind !== 'own';
   const onLatest = Boolean(item?.tracked && item.iid && !viewingOld);
   const fixes = useFixes(author && onLatest && item ? item.slug : null, item?.reviewedAt);
   const allThreads = useThreads(author && onLatest && item ? item.slug : null, item?.reviewedAt, 'all');
   const openThreads = useMemo(() => reviewerThreads(allThreads), [allThreads]);
-  const postCtx = useMemo(() => ({ allowPosting, slug: item?.slug ?? null, iid: item?.tracked ? item.iid : null, posted, reload, locked, findings: shape?.findings ?? [] }), [allowPosting, item?.slug, item?.tracked, item?.iid, posted, reload, locked, shape]);
+  const postCtx = useMemo(() => ({ allowPosting: mayPost, slug: item?.slug ?? null, iid: item?.tracked ? item.iid : null, posted, reload, locked, findings: shape?.findings ?? [] }), [mayPost, item?.slug, item?.tracked, item?.iid, posted, reload, locked, shape]);
   const linkCtx = useMemo(() => ({ projectUrl, branch: item?.branch ?? null, mrWebUrl: item?.webUrl ?? null }), [projectUrl, item?.branch, item?.webUrl]);
   const meta = useMemo(() => extractMeta(markdown ?? ''), [markdown]);
   // The tour skips the chapters with nothing to act on (stops.ts): a clean chapter is not a stop.
@@ -100,7 +102,8 @@ export function ReviewReader({ item, review: currentReview, reviewError, onRetry
       <ReaderHeader
         item={item}
         risk={shape?.risk ?? null}
-        showSubmit={(allowPosting || author) && Boolean(item?.tracked) && !awaiting && (draftCount > 0 || item?.kind === 'review')}
+        criticalPaths={shape?.criticalPaths ?? []}
+        showSubmit={(mayPost || author) && Boolean(item?.tracked) && !awaiting && (draftCount > 0 || item?.kind === 'review')}
         draftCount={draftCount}
         sending={sending}
         reviewing={rerunning || Boolean(live)}
@@ -121,7 +124,7 @@ export function ReviewReader({ item, review: currentReview, reviewError, onRetry
         <ReportDelta previous={previous.review.shape?.findings ?? []} at={previous.at} current={shape?.findings ?? []} onRead={() => setVersionId(previous.id)} />
       )}
       {markdown !== null && hasTour && (
-          <ReviewTour showFullDiff={showFullDiff} stops={stops} findings={shape!.findings} diff={item?.tracked && item.iid ? { slug: item.slug, version: versionId, key: item.reviewedAt } : null} post={item?.tracked && item.iid && !viewingOld ? { slug: item.slug, iid: item.iid, allowPosting, locked, posted, reload } : null} onReport={setVersionId} />
+          <ReviewTour showFullDiff={showFullDiff} stops={stops} findings={shape!.findings} diff={item?.tracked && item.iid ? { slug: item.slug, version: versionId, key: item.reviewedAt } : null} post={item?.tracked && item.iid && !viewingOld ? { slug: item.slug, iid: item.iid, allowPosting: mayPost, locked, posted, reload } : null} onReport={setVersionId} />
       )}
       {markdown !== null && answering && item?.iid && (
         <ReplyBoard slug={item.slug} iid={item.iid} threads={allThreads} open={openThreads} replies={shape?.replies ?? []} posted={posted} fixes={fixes} locked={locked} reload={reload} refreshKey={item.reviewedAt} showFullDiff={showFullDiff} onReport={setVersionId} />
@@ -133,7 +136,7 @@ export function ReviewReader({ item, review: currentReview, reviewError, onRetry
             {!hasTour && !answering && <ReportSections intro={intro} sections={ordered} firstSupporting={firstSupporting} isOpen={isOpen} setOverrides={setOverrides} />}
             {!author && item?.tracked && item.iid && !viewingOld && loose.length > 0 && (
               <CollapsibleCard id="findings" title={`${hasTour ? 'Other findings' : 'Findings to comment on'} (${loose.length})`} open={overrides.findings ?? true} onOpenChange={(o) => setOverrides((prev) => ({ ...prev, findings: o }))}>
-                <FindingsPanel findings={loose} threads={threads} slug={item.slug} iid={item.iid} allowPosting={allowPosting} locked={locked} posted={posted} reload={reload} />
+                <FindingsPanel findings={loose} threads={threads} slug={item.slug} iid={item.iid} allowPosting={mayPost} locked={locked} posted={posted} reload={reload} />
               </CollapsibleCard>
             )}
           </article>

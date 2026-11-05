@@ -1,5 +1,6 @@
 export type Verdict = 'APPROVE' | 'REQUEST_CHANGES' | 'OTHER' | null;
-type Kind = 'review' | 'comments' | 'retro';
+// `own`: my own MR or branch, reviewed for me alone; never posted.
+type Kind = 'review' | 'comments' | 'own' | 'retro';
 
 // Where an MR really stands for me, read from GitLab (see lib/review-state.mjs).
 export interface MyState {
@@ -114,6 +115,8 @@ interface ReviewShape {
   summary: string | null;
   risk?: Risk | null;
   overview?: Overview | null;
+  // The project's critical paths this MR touches, by name (from its approved context).
+  criticalPaths?: string[];
   tour?: TourStop[];
   findings: Finding[];
   // A triage of my own MR: the drafted answer to each reviewer thread.
