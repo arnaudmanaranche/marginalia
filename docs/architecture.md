@@ -54,6 +54,7 @@ The agent sees one merged catalog (name and a one-line "use when" description) a
 - GitLab read (`read_api`, `read_repository`): the bot account's token, for cloning and reading. The agent process gets a checkout and no token.
 - GitLab write: held only by `api/`, used after validation to reply and to post drafts.
 - Click-to-post: the signed-in person's OAuth token.
+- Connectors: a run reads GitLab, Jira (Atlassian v2), Notion and Slack through the claude.ai connectors of the logged-in account, read tools only (`api/src/connector-tools.ts`). A connector write tool is refused even when a config lists it. PostHog has no read-only tool, so the agent gets PostHog data from the bot. The preflight and `marginalia doctor` say which connectors are missing, and a run goes on without them.
 
 ## Storage
 

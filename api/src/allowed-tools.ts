@@ -1,4 +1,5 @@
 import { CLAUDE_EXTRA_ALLOWED_TOOLS } from './config.ts';
+import { CONNECTOR_READ_TOOLS, TICKET_READ_TOOLS, withoutConnectorWrites } from './connector-tools.ts';
 
 // The tools each headless run may use, passed to `claude --allowedTools`.
 
@@ -19,8 +20,8 @@ const READ_GIT = [
 const WRITE_GIT = ['add', 'commit', 'checkout', 'switch', 'restore', 'stash'].map((sub) => `Bash(git ${sub}:*)`);
 
 // The /code-review command needs to orchestrate a nested worktree, spawn the
-// code-reviewer agent, and read the ticket/MR from the GitLab and Atlassian
-// connectors — it cannot run under the old read-only lockdown.
+// code-reviewer agent, and read the ticket, the MR, specs and team threads through
+// the claude.ai connectors (read-only, see connector-tools.ts).
 const BASE_TOOLS = [
   'Agent',
   'EnterWorktree',
@@ -30,15 +31,7 @@ const BASE_TOOLS = [
   'Glob',
   'Write',
   ...READ_GIT,
-  'mcp__claude_ai_Gitlab__list_merge_requests',
-  'mcp__claude_ai_Gitlab__get_merge_request',
-  'mcp__claude_ai_Atlassian__getJiraIssue',
-  'mcp__claude_ai_Atlassian__searchJiraIssuesUsingJql',
-  // The preflight-access skill checks each connector with a read-only whoami
-  // first; /mr-comments stops the run when one of them is refused.
-  'mcp__claude_ai_Atlassian__atlassianUserInfo',
-  'mcp__claude_ai_Atlassian__getVisibleJiraProjects',
-  'mcp__claude_ai_Gitlab__who_am_i',
+  ...CONNECTOR_READ_TOOLS,
 ];
 
 // /mr-comments needs more than /code-review: it edits files directly instead
@@ -55,8 +48,8 @@ const MR_COMMENTS_TOOLS = [
   'mcp__GitLab__authenticate',
 ];
 
-// CLAUDE_EXTRA_ALLOWED_TOOLS (space-separated) is added to both lists.
-const extraTools = CLAUDE_EXTRA_ALLOWED_TOOLS.split(/\s+/).filter(Boolean);
+// CLAUDE_EXTRA_ALLOWED_TOOLS (space-separated) is added to both lists, less any connector write.
+const extraTools = withoutConnectorWrites(CLAUDE_EXTRA_ALLOWED_TOOLS.split(/\s+/).filter(Boolean));
 export const CLAUDE_ALLOWED_TOOLS = [...BASE_TOOLS, ...extraTools];
 export const CLAUDE_MR_COMMENTS_ALLOWED_TOOLS = [...MR_COMMENTS_TOOLS, ...extraTools];
 
@@ -64,7 +57,7 @@ export const CLAUDE_MR_COMMENTS_ALLOWED_TOOLS = [...MR_COMMENTS_TOOLS, ...extraT
 // already checked out the MR and fetched its target, so no stage fetches, nests a worktree or
 // starts a sub-agent; the ticket tool is there for a ticket the bot could not read itself.
 const STAGE_GIT = READ_GIT.filter((rule) => !/git (fetch|worktree)/.test(rule));
-export const STAGE_READ_TOOLS = ['Read', 'Grep', 'Glob', ...STAGE_GIT, 'mcp__claude_ai_Atlassian__getJiraIssue', ...extraTools];
+export const STAGE_READ_TOOLS = ['Read', 'Grep', 'Glob', ...STAGE_GIT, ...TICKET_READ_TOOLS, ...extraTools];
 // Fixing a reviewer comment on my own MR, or settling a merge's conflicts: edit only. The bot
 // commits what the stage changed, so each commit holds one stage's work under a known message.
 export const STAGE_FIX_TOOLS = [...STAGE_READ_TOOLS, 'Edit', 'Write'];

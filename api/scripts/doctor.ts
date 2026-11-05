@@ -58,6 +58,8 @@ export async function runDoctor(argv: string[] = process.argv.slice(2)) {
     ok(`${cfg.CLAUDE_BIN} ${stdout.trim()}`);
   });
   if (process.env.ANTHROPIC_API_KEY) warnMsg('ANTHROPIC_API_KEY is set: the bot strips it for its runs, so you must be logged into claude.ai (`claude` then /login)');
+  console.log('\nConnectors (read-only for the agent)');
+  for (const c of await (await import('../src/connector-probe.ts')).probeConnectors()) (c.level === 'ok' ? ok : warnMsg)(`${c.label}: ${c.detail}`);
 
   console.log('\nGitLab');
   if (!missing.length) {
