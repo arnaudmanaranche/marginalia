@@ -13,6 +13,11 @@ import { failureKind } from './failure-kind.ts';
 // chapter of a review, one per reviewer thread to fix.
 const PREFLIGHT = /** @type {[string, string]} */ (['preflight', 'Check that Claude, GitLab and git answer']);
 export const STAGES = {
+  understand: [
+    ['checkout', 'Check out the default branch'],
+    ['agent', 'Claude reads the repository and the team\'s tools'],
+    ['report', 'Check and save the draft context'],
+  ],
   review: [
     PREFLIGHT,
     ['checkout', 'Check out the MR branch'],
@@ -48,9 +53,9 @@ export const STAGES = {
 export const MAX_STEPS = 2000;
 
 /**
- * @param {{ id: string, slug: string, project: string, iid: number | string, kind: 'review' | 'triage', command: string, at: string, plan?: keyof typeof STAGES }} input
+ * @param {{ id: string, slug: string, project: string, iid: number | string | null, kind: 'review' | 'triage' | 'understand', command: string, at: string, plan?: keyof typeof STAGES }} input
  */
-export function startTrace({ id, slug, project, iid, kind, command, at, plan = kind }: { id: string, slug: string, project: string, iid: number | string, kind: 'review' | 'triage', command: string, at: string, plan?: keyof typeof STAGES }) {
+export function startTrace({ id, slug, project, iid, kind, command, at, plan = kind }: { id: string, slug: string, project: string, iid: number | string | null, kind: 'review' | 'triage' | 'understand', command: string, at: string, plan?: keyof typeof STAGES }) {
   return {
     id, slug, project, iid, kind, command,
     startedAt: at,

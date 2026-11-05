@@ -7,8 +7,8 @@ const LiveStage = z.object({ id: z.string(), label: z.string(), state: StageStat
 export const RunStage = LiveStage.extend({ startedAt: nullable(z.string()), endedAt: nullable(z.string()) }).meta({ id: 'RunStage' });
 export const RunStep = z.object({ at: z.string(), text: z.string(), stage: nullable(z.string()), sub: z.boolean().describe('Taken by a sub-agent the run started.') }).meta({ id: 'RunStep' });
 const RunFields = {
-  id: z.string(), slug: ReviewId, project: z.string(), iid: z.union([z.number().int(), z.string()]),
-  kind: z.enum(['review', 'triage']), command: z.string(),
+  id: z.string(), slug: ReviewId, project: z.string(), iid: z.union([z.number().int(), z.string()]).nullable().describe('Null for a branch without an MR yet, or a job about the whole project.'),
+  kind: z.enum(['review', 'triage', 'understand']), command: z.string(),
   startedAt: z.string(), endedAt: nullable(z.string()),
   outcome: z.enum(['running', 'reviewed', 'skipped', 'failed']),
   error: nullable(z.string()),
@@ -44,10 +44,18 @@ export const RunTrace = z.object({
 export const BotStatus = z.object({
   pid: z.number().int(),
   phase: z.enum(['idle', 'polling', 'reviewing', 'error', 'stopped']),
-  current: nullable(z.object({ project: z.string().optional(), iid: z.number().int(), title: z.string(), startedAt: z.string(), progress: z.array(z.string()).optional(), runId: z.string().optional(), slug: ReviewId.optional(), stages: z.array(LiveStage).optional(), stepCount: z.number().int().optional() })),
+  current: nullable(z.object({ project: z.string().optional(), iid: z.number().int().nullable(), title: z.string(), startedAt: z.string(), progress: z.array(z.string()).optional(), runId: z.string().optional(), slug: ReviewId.optional(), stages: z.array(LiveStage).optional(), stepCount: z.number().int().optional() })),
   lastPoll: nullable(z.object({ at: z.string(), ok: z.boolean(), error: nullable(z.string()) })),
   nextPollAt: nullable(z.string()),
-  mrs: z.array(z.object({ project: z.string().optional(), iid: z.number().int(), status: z.string(), reviewPath: nullable(z.string()).optional() }).passthrough()).optional(),
+  mrs: z.array(z.object({ project: z.string().optional(), iid: z.number().int().nullable(), status: z.string(), reviewPath: nullable(z.string()).optional() }).passthrough()).optional(),
 }).describe('Content of `status.json`, written by the poller.').meta({ id: 'BotStatus' });
 
 export const BotState = z.object({ status: nullable(BotStatus), alive: z.boolean() }).meta({ id: 'BotState' });
+
+// A job of the factory (ADR 0006): one run of a line on one target, from the run journal, newest
+// first. `what` says which: a review, a triage of my MR's comments, an own review, or learning the project.
+export const Job = RunSummary.extend({
+  what: z.enum(['review', 'comments', 'own', 'understand']),
+  title: nullable(z.string()).describe('The MR or branch title when the bot still tracks it.'),
+}).meta({ id: 'Job' });
+export const Jobs = z.object({ jobs: z.array(Job) }).meta({ id: 'Jobs' });
