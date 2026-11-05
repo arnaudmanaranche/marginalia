@@ -25,6 +25,7 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const List: Story = {};
+export const WithReviewLine: Story = { args: { metrics: { days: 28, jobs: { total: 64, failed: 3, running: 1, medianMs: 95_000, costUsd: 21.4 }, findings: { asProposed: 41, edited: 12, unknown: 0, dismissed: 9, pending: 7, actedOnRate: 62 / 69 } } } };
 export const SeveralProjects: Story = { args: { showProject: true } };
 export const Loading: Story = { args: { jobs: null } };
 export const Empty: Story = { args: { jobs: [] } };
