@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { projectContextPrompt } from '../dist/src/context-prompt.js';
 import { enforceContract } from '../dist/src/guardrail.js';
 import { normalizeFindingsData } from '../dist/src/findings-json.js';
+import { buildShape } from '../dist/src/findings.js';
 import { parseMap } from '../dist/src/pipeline/review-prompts.js';
 import { mergeReview } from '../dist/src/pipeline/review-merge.js';
 
@@ -45,6 +46,8 @@ test('a review names the critical paths it touches, and keeps them once read bac
   assert.throws(() => enforceContract('review', review({ criticalPaths: [''] })), /criticalPaths/);
   assert.deepEqual(normalizeFindingsData(JSON.parse(review({ criticalPaths: ['Payment', 3] }))).criticalPaths, ['Payment']);
   assert.deepEqual(normalizeFindingsData(JSON.parse(review())).criticalPaths, []);
+  assert.deepEqual(buildShape({ markdown: '', findingsRaw: review({ criticalPaths: ['Payment'] }) }).criticalPaths, ['Payment']);
+  assert.deepEqual(buildShape({ markdown: '' }).criticalPaths, []);
 });
 
 test('the staged map carries the critical paths into the merged review', () => {

@@ -13,7 +13,7 @@ export { deriveFromMarkdown, extractSummary, findingsFromMarkdown, parseVerdict 
 // A review command is free to write its report however it likes. This module
 // turns that report into one normalized "shape", with a fixed vocabulary:
 //
-//   { version: 1, source, verdict, summary, risk, overview, tour, findings, replies, warnings }
+//   { version: 1, source, verdict, summary, risk, overview, criticalPaths, tour, findings, replies, warnings }
 //
 // - verdict:  'APPROVE' | 'REQUEST_CHANGES' | 'OTHER' | null
 // - findings: [{ id, severity, title, path, line, body, comment }]
@@ -21,6 +21,7 @@ export { deriveFromMarkdown, extractSummary, findingsFromMarkdown, parseVerdict 
 //             comment is the text ready to post on the MR, or null
 // - risk:     { level: 'low' | 'medium' | 'high', rationale, factors } or null
 // - overview: { before, after } in plain words, or null
+// - criticalPaths: names of the project's critical paths the MR touches, or []
 // - tour:     [{ id, title, summary, files, findingIds, supporting }]: the order to read the
 //             MR in, core first and supporting stops (tests, database, generated) last, or []
 //             (only the structured file can carry risk, overview and tour)
@@ -63,6 +64,7 @@ export function buildShape({ markdown, findingsRaw = null }: { markdown: string;
         findings: parsed.findings,
         risk: parsed.risk,
         overview: parsed.overview,
+        criticalPaths: parsed.criticalPaths ?? [],
         tour: parsed.tour,
         replies: parsed.replies ?? [],
         warnings,
@@ -79,6 +81,7 @@ export function buildShape({ markdown, findingsRaw = null }: { markdown: string;
     findings: derived.findings,
     risk: null,
     overview: null,
+    criticalPaths: [],
     tour: [],
     replies: [],
     warnings,

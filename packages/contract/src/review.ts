@@ -26,6 +26,7 @@ export const ReviewShape = z.object({
   summary: nullable(z.string()),
   risk: z.object({ level: z.enum(['low', 'medium', 'high']) }).passthrough().nullable().optional(),
   overview: z.object({ before: z.string(), after: z.string() }).nullable().optional(),
+  criticalPaths: z.array(z.string()).optional().describe('The project\'s critical paths this MR touches, by name (from its approved project context).'),
   tour: z.array(z.object({ id: z.string(), title: z.string(), summary: z.string(), files: z.array(z.string()) }).passthrough()).optional(),
   findings: z.array(Finding),
   replies: z.array(Reply).optional().describe('A triage of my own MR: the drafted reply to each reviewer thread.'),
