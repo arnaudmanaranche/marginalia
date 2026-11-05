@@ -4,6 +4,8 @@ import { ToolChip, ToolChips } from './ToolChip';
 import { LivePill } from './LivePill';
 import { Panel, PanelFooter, PanelHeader } from './Panel';
 import { Timeline, TimelineItem } from './Timeline';
+import { SpanBar } from './SpanBar';
+import { Segmented } from './Segmented';
 
 // The design system's primitives side by side, in both themes (the toolbar switches them).
 const meta = { title: 'Scholia/Design system/Primitives', component: StatusMark, args: { state: 'running' } } satisfies Meta<typeof StatusMark>;
@@ -43,4 +45,16 @@ export const PanelWithTimeline: Story = {
       <PanelFooter><span>Running · 2 of 3</span><span className="tabular-nums">1m 02s</span></PanelFooter>
     </Panel>
   ),
+};
+export const Spans: Story = {
+  render: () => (
+    <div className="flex max-w-md flex-col gap-3">
+      <SpanBar total={100} spans={[{ id: 'a', label: 'a', state: 'done', start: 0, end: 8 }, { id: 'b', label: 'b', state: 'done', start: 8, end: 20 }, { id: 'c', label: 'c', state: 'running', start: 20, end: 70 }]} />
+      <SpanBar total={100} spans={[{ id: 'a', label: 'a', state: 'done', start: 0, end: 30 }, { id: 'b', label: 'b', state: 'failed', start: 30, end: 100 }]} />
+      <SpanBar total={100} height="h-2" spans={[{ id: 'b', label: 'b', state: 'done', start: 40, end: 65 }]} />
+    </div>
+  ),
+};
+export const Segments: Story = {
+  render: () => <Segmented label="Show jobs" value="all" onChange={() => {}} options={[{ id: 'all', label: 'All' }, { id: 'running', label: 'Running', count: 1 }, { id: 'failed', label: 'Failed', count: 4 }]} />,
 };

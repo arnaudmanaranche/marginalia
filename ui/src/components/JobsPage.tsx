@@ -4,7 +4,7 @@ import { useJobs } from '../lib/useJobs';
 import { useLineMetrics, type LineMetrics } from '../lib/useLineMetrics';
 import { ReviewLineCard } from './ReviewLineCard';
 import { contextRoute, useContexts, type ContextSummary } from '../lib/contextApi';
-import { JobRow } from './JobRow';
+import { JobList } from './JobList';
 import { Button } from './ui/Button';
 
 // Everything the bot ran, newest first, across projects and lines: the history of what happened
@@ -42,9 +42,7 @@ export function JobsPage({ jobs, metrics = null, contexts = [], error, onRetry, 
       ) : jobs.length === 0 ? (
         <div className="mt-16 flex flex-col items-center gap-2 text-fg-muted"><History className="size-8" aria-hidden />No job yet. A review, a triage or learning a project shows here as it runs.</div>
       ) : (
-        <ul className="mt-6 divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface">
-          {jobs.map((job) => <JobRow key={`${job.slug}:${job.id}`} job={job} showProject={showProject} onOpen={onOpen} />)}
-        </ul>
+        <JobList jobs={jobs} showProject={showProject} onOpen={onOpen} />
       )}
     </div>
   );
