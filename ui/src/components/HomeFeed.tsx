@@ -6,10 +6,12 @@ import { failuresNeedingYou, reviewsNeedingYou, runningNow } from '../lib/feed';
 import { WHAT, targetOf } from '../lib/jobs';
 import { useJobs } from '../lib/useJobs';
 import { useLineMetrics } from '../lib/useLineMetrics';
+import { useQueue } from '../lib/useQueue';
 import { StatusMark } from './ds/StatusMark';
 import { FeedRow } from './FeedRow';
 import { JobList } from './JobList';
 import { JobRow } from './JobRow';
+import { QueuePanel } from './QueuePanel';
 import { ReviewLineCard } from './ReviewLineCard';
 import { ReviewRow } from './ReviewRow';
 
@@ -23,6 +25,7 @@ export function HomeFeed({ loaded, items, isUnread, isReviewing, isNew, showProj
   showProject: boolean; onOpen: (route: string | null) => void; filter?: React.ReactNode;
 }) {
   const { jobs } = useJobs();
+  const queue = useQueue();
   const metrics = useLineMetrics();
   const proposals = useApprovals().data?.proposals.length ?? 0;
   const drafts = useContexts().filter(waitsForApproval);
@@ -65,6 +68,13 @@ export function HomeFeed({ loaded, items, isUnread, isReviewing, isNew, showProj
           </ul>
         </section>
       )}
+
+      <section aria-labelledby="queue" className="mt-8">
+        <h2 id="queue" className="mb-2 text-sm font-medium">Queue</h2>
+        {queue.queue ? <QueuePanel queue={queue.queue} onOpen={onOpen} />
+          : queue.error ? <p className="text-sm text-fg-muted">The queue could not be read: {queue.error}. <button type="button" className="underline" onClick={queue.retry}>Try again</button></p>
+          : <div aria-busy="true" className="h-56 animate-pulse rounded-xl border border-line motion-reduce:animate-none" />}
+      </section>
 
       <section aria-labelledby="activity" className="mt-8">
         <h2 id="activity" className="text-sm font-medium">Activity</h2>
