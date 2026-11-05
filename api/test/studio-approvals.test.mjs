@@ -35,6 +35,7 @@ test('the inbox lists each proposed comment of someone else\'s MR, not a finding
   assert.equal(body.canPost, false);
   assert.deepEqual(body.proposals.map((p) => [p.slug, p.findingId, p.iid, p.mrTitle, p.comment]), [['demo/feat-x', 'a', 5, 'Add coupons', 'Please guard the null.']]);
   assert.deepEqual(body.proposals[0].criticalPaths, ['Payment']);
+  assert.equal(body.proposals[0].body, 'Why.');
 });
 
 test('a dismissed comment leaves the inbox and comes back on undo; an unknown review is a 404', async () => {

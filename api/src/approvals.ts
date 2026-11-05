@@ -22,7 +22,7 @@ export async function listProposals({ projects, mrs, posted, dismissed }: { proj
       .filter((f: any) => f.comment && !posted[postedKey(project.key, slug, f.id)] && !dismissed.has(postedKey(project.key, slug, f.id)))
       .map((f: any) => ({
         slug: `${project.key}/${slug}`, project: project.key, iid: mr.iid, mrTitle: mr.title ?? slug, webUrl: mr.web_url ?? null, reviewedAt,
-        findingId: f.id, severity: f.severity, title: f.title, path: f.path ?? null, line: f.line ?? null, comment: f.comment,
+        findingId: f.id, severity: f.severity, title: f.title, body: f.body ?? '', path: f.path ?? null, line: f.line ?? null, comment: f.comment,
         criticalPaths: shape.criticalPaths ?? [],
       }));
   }));

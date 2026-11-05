@@ -6,6 +6,7 @@ export const Proposal = z.object({
   slug: ReviewId, project: z.string(), iid: z.number().int(), mrTitle: z.string(), webUrl: nullable(z.string()),
   reviewedAt: nullable(z.string()),
   findingId: z.string(), severity: z.enum(['critical', 'important', 'suggestion', 'info']), title: z.string(),
+  body: z.string().describe('What is wrong and why, as the review explains it.'),
   path: nullable(z.string()), line: nullable(z.number().int()),
   comment: z.string().describe('The comment the review proposes, ready as is.'),
   criticalPaths: z.array(z.string()),
