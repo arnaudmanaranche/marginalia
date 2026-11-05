@@ -1,7 +1,7 @@
 import { artifactAt } from '../artifact.ts';
 import { askAboutStop } from '../chat.ts';
 import { buildChatPrompt, parseChatInput } from '../chat-prompt.ts';
-import { filesForPatterns, toDiffFile } from '../mr-diff.ts';
+import { filesOfStop, toDiffFile } from '../mr-diff.ts';
 import { gitlab } from '../gitlab-api.ts';
 import { ChatAnswer, ChatRequest } from '@worldia/marginalia-contract';
 import { jsonBody, jsonOf, route } from './route-kit.ts';
@@ -30,7 +30,7 @@ export function chatRoute(app: any) {
     if (chatBusy) return c.json({ error: 'another question is being answered, try again in a moment' }, 429);
     chatBusy = true;
     try {
-      const files = filesForPatterns((await gitlab.listMergeRequestDiffs(project, mr.iid)).map(toDiffFile), stop.files);
+      const files = filesOfStop((await gitlab.listMergeRequestDiffs(project, mr.iid)).map(toDiffFile), stop, shape.findings);
       const prompt = buildChatPrompt({ title: mr.title, shape, stop, files, history, question });
       return c.json({ answer: await askAboutStop({ project, iid: mr.iid, prompt }) }, 200);
     } catch (err) {

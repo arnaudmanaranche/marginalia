@@ -53,6 +53,24 @@ export function globToRegExp(glob: string) {
   return new RegExp(`^${body}$`);
 }
 
+// A chapter's files: the ones it lists, then the files its own findings point at. A review can put a
+// finding in a chapter whose list does not name that finding's file (a note on a test in the chapter
+// about the code); without this the chapter would show a finding and no code to see it on.
+export function filesOfStop(files: any, stop: any, findings: any[] = []) {
+  const out = filesForPatterns(files, stop?.files ?? []);
+  const seen = new Set(out.map((f: any) => f.path));
+  const ids = new Set(stop?.findingIds ?? []);
+  for (const finding of findings) {
+    if (!ids.has(finding.id) || !finding.path || seen.has(finding.path)) continue;
+    const file = files.find((f: any) => f.path === finding.path);
+    if (file) {
+      seen.add(file.path);
+      out.push(file);
+    }
+  }
+  return out;
+}
+
 // The changed files a stop covers, in the order the stop lists them, each once.
 export function filesForPatterns(files: any, patterns: any) {
   const seen = new Set();

@@ -1,6 +1,6 @@
 import { z } from '@hono/zod-openapi';
 import { artifactAt } from '../artifact.ts';
-import { filesForPatterns, toDiffFile } from '../mr-diff.ts';
+import { filesOfStop, toDiffFile } from '../mr-diff.ts';
 import { diffSincePush, reviewDiff, reviewPushes } from '../review-diff.ts';
 import { reviewThreads } from '../review-threads.ts';
 import { gitlab } from '../gitlab-api.ts';
@@ -48,7 +48,7 @@ export function mrReadRoutes(app: any) {
       if (stopId) {
         const shape = await artifactAt(project.reviewsDir, found.slug!).readShape();
         const stop = (shape.tour ?? []).find((s: any) => s.id === stopId);
-        files = stop ? filesForPatterns(files, stop.files) : [];
+        files = stop ? filesOfStop(files, stop, shape.findings) : [];
       }
       return c.json({ files }, 200);
     } catch (err) {

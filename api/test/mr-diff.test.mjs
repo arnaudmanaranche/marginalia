@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { filesForPatterns, globToRegExp, parseDiff, toDiffFile } from '../dist/src/mr-diff.js';
+import { filesForPatterns, filesOfStop, globToRegExp, parseDiff, toDiffFile } from '../dist/src/mr-diff.js';
 
 const DIFF = '@@ -1,3 +1,4 @@ fn\n a\n-b\n+B\n+c\n d\n\\ No newline at end of file\n';
 
@@ -27,4 +27,12 @@ test('stop patterns pick files by path or glob, in stop order, once each', () =>
   assert.deepEqual(filesForPatterns(files, ['src/*.ts', 'src/z.ts']).map((f) => f.path), ['src/z.ts']);
   assert.equal(globToRegExp('a.b/*.ts').test('aXb/c.ts'), false, 'dots are literal');
   assert.deepEqual(filesForPatterns(files, ['nothing/**']), []);
+});
+
+test('a chapter also shows the files its own findings point at, after the ones it lists', () => {
+  const files = [{ path: 'src/a.ts' }, { path: 'src/b.ts' }, { path: 'test/c.test.ts' }, { path: 'src/d.ts' }];
+  const stop = { files: ['test/**'], findingIds: ['f1', 'f2', 'f3'] };
+  const findings = [{ id: 'f1', path: 'src/b.ts' }, { id: 'f2', path: 'test/c.test.ts' }, { id: 'f3' }, { id: 'other', path: 'src/d.ts' }, { id: 'f4', path: 'gone.ts' }];
+  assert.deepEqual(filesOfStop(files, stop, findings).map((f) => f.path), ['test/c.test.ts', 'src/b.ts']);
+  assert.deepEqual(filesOfStop(files, { files: [], findingIds: [] }, findings), []);
 });

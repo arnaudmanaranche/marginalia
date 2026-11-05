@@ -3,7 +3,7 @@ import { stat } from 'node:fs/promises';
 import { artifactAt } from './artifact.ts';
 import { buildShape } from './findings.ts';
 import { versionTime } from './history.ts';
-import { filesForPatterns, toDiffFile } from './mr-diff.ts';
+import { filesOfStop, toDiffFile } from './mr-diff.ts';
 import { buildPushes, isPushHead } from './mr-pushes.ts';
 import { diffRange, resolveReviewedVersion } from './review-version.ts';
 
@@ -25,8 +25,9 @@ async function reviewSource(project: any, slug: string, versionId: any) {
 // The files of one tour stop, or all of them.
 async function forStop(project: any, slug: string, files: any, stopId: any, shape = null) {
   if (!stopId) return files;
-  const stop = ((shape ?? (await artifactAt(project.reviewsDir, slug).readShape())).tour ?? []).find((s: any) => s.id === stopId);
-  return stop ? filesForPatterns(files, stop.files) : [];
+  const read = shape ?? (await artifactAt(project.reviewsDir, slug).readShape());
+  const stop = (read.tour ?? []).find((s: any) => s.id === stopId);
+  return stop ? filesOfStop(files, stop, read.findings) : [];
 }
 
 // The changed files of the MR as an earlier review saw it, optionally those of one tour stop.
