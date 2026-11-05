@@ -29,7 +29,9 @@ with `$process_person_profile: false` (events, not people) under the id `margina
 
 The review line's measure is what becomes of each finding: a `marginalia_finding` event when a finding's
 comment is added to a GitLab review from the studio, with `outcome` `posted` (as the review proposed it),
-`posted_edited` (changed first) or `dismissed` (decided not worth saying, from the approvals inbox), plus `project`, `mr_iid`, `finding_id`, `severity`, `own_review` and
+`posted_edited` (changed first), `dismissed` (decided not worth saying, from the approvals inbox) or
+`fixed_before_mr` (an own review's finding whose code a later push changed, counted once; `mr_iid` is null for a
+branch without an MR yet), plus `project`, `mr_iid`, `finding_id`, `severity`, `own_review` and
 `critical_paths`. No title, comment or path. The same finding of the same review is one event.
 
 Runs the bot recorded before you turned it on are in the `run` table; `npm run posthog:backfill` shows what

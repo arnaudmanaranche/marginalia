@@ -34,6 +34,7 @@ export const LineMetrics = z.object({
   findings: z.object({
     asProposed: z.number().int(), edited: z.number().int(), dismissed: z.number().int(), pending: z.number().int(),
     unknown: z.number().int().describe('Added to a review whose finding can no longer be read: neither as proposed nor edited can be told.'),
+    fixedBefore: z.number().int().describe('Findings of an own review whose code a later push changed.'),
     actedOnRate: nullable(z.number()).describe('Decided comments over decided plus pending; null with none.'),
   }),
 }).meta({ id: 'LineMetrics' });

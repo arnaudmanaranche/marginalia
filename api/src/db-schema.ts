@@ -47,4 +47,11 @@ export const MIGRATIONS = [
     by  TEXT NOT NULL      -- the person who decided it is not worth saying
   );
   `,
+  `
+  CREATE TABLE fixed_before (
+    key TEXT PRIMARY KEY,  -- <project>/<review slug>:<finding id>, as posted
+    at  TEXT NOT NULL,
+    sha TEXT NOT NULL      -- the commit whose push changed the code the finding pointed at
+  );
+  `,
 ];

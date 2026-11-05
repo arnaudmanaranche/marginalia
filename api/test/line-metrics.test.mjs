@@ -17,7 +17,13 @@ test('the comments acted on: as proposed, edited, dismissed, over everything dec
     { at: ago(4), outcome: 'dismissed' }, { at: ago(60), outcome: 'posted' }, { at: ago(5), outcome: 'posted_unknown' },
   ];
   const m = lineMetrics({ now: NOW, jobs: [], decided, pending: 5 });
-  assert.deepEqual(m.findings, { asProposed: 2, edited: 1, unknown: 1, dismissed: 1, pending: 5, actedOnRate: 0.5 });
+  assert.deepEqual(m.findings, { asProposed: 2, edited: 1, unknown: 1, dismissed: 1, pending: 5, fixedBefore: 0, actedOnRate: 0.5 });
   assert.equal(lineMetrics({ now: NOW, jobs: [], decided: [], pending: 0 }).findings.actedOnRate, null);
   assert.equal(lineMetrics({ now: NOW, jobs: [], decided: [], pending: 0 }).jobs.medianMs, null);
+});
+
+test('findings fixed by a push count apart and do not move the acted-on rate', () => {
+  const m = lineMetrics({ now: NOW, jobs: [], pending: 1, decided: [{ at: ago(1), outcome: 'posted' }, { at: ago(2), outcome: 'fixed_before_mr' }, { at: ago(3), outcome: 'fixed_before_mr' }, { at: ago(90), outcome: 'fixed_before_mr' }] });
+  assert.equal(m.findings.fixedBefore, 2);
+  assert.equal(m.findings.actedOnRate, 0.5);
 });

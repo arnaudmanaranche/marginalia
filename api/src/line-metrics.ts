@@ -6,7 +6,7 @@ const DAY = 24 * 60 * 60 * 1000;
 
 interface JobIn { startedAt: string; endedAt: string | null; outcome: string; cost: { usd: number } | null }
 // `posted_unknown`: added to a review whose finding can no longer be read, so neither as proposed nor edited can be shown.
-interface Decided { at: string; outcome: 'posted' | 'posted_edited' | 'posted_unknown' | 'dismissed' }
+interface Decided { at: string; outcome: 'posted' | 'posted_edited' | 'posted_unknown' | 'dismissed' | 'fixed_before_mr' }
 
 const median = (xs: number[]) => {
   if (!xs.length) return null;
@@ -26,6 +26,9 @@ export function lineMetrics({ jobs, decided, pending, now = Date.now(), days = 2
   const edited = count('posted_edited');
   const dismissed = count('dismissed');
   const unknown = count('posted_unknown');
+  // Own findings a push fixed: a person acting on their own review, not on a proposed comment, so
+  // they stay out of the acted-on rate (which is over comments proposed to be posted).
+  const fixedBefore = count('fixed_before_mr');
   const acted = asProposed + edited + unknown + dismissed;
   const durations = finished.filter((j) => j.outcome === 'reviewed').map((j) => Date.parse(j.endedAt!) - Date.parse(j.startedAt));
   return {
@@ -38,7 +41,7 @@ export function lineMetrics({ jobs, decided, pending, now = Date.now(), days = 2
       costUsd: Math.round(recent.reduce((sum, j) => sum + (j.cost?.usd ?? 0), 0) * 100) / 100,
     },
     findings: {
-      asProposed, edited, unknown, dismissed, pending,
+      asProposed, edited, unknown, dismissed, pending, fixedBefore,
       // Of the comments a person decided on or still has to, the share already decided.
       actedOnRate: acted + pending ? acted / (acted + pending) : null,
     },

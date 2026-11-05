@@ -5,6 +5,7 @@ import { postedOutcome } from './finding-events.ts';
 import { listJobs } from './job-list.ts';
 import { listProposals } from './approvals.ts';
 import { dismissedKeys, dismissedRows } from './dismissed-store.ts';
+import { fixedRows } from './fixed-store.ts';
 import { lineMetrics } from './line-metrics.ts';
 
 // Gathers what lineMetrics() counts: the jobs of the window, each comment added to a review (as
@@ -32,6 +33,7 @@ export async function gatherLineMetrics({ projects, mrs, postedEntries, posted, 
     return { at: String(e.info.at), outcome: finding ? postedOutcome(finding.comment, sent(e.info)) as 'posted' | 'posted_edited' : 'posted_unknown' as const };
   }));
   const dismissed = dismissedRows(db).filter((r) => keys.has(r.key.split('/')[0])).map((r) => ({ at: r.at, outcome: 'dismissed' as const }));
+  const fixed = fixedRows(db).filter((r) => keys.has(r.key.split('/')[0])).map((r) => ({ at: r.at, outcome: 'fixed_before_mr' as const }));
   const pending = (await listProposals({ projects, mrs, posted, dismissed: dismissedKeys(db) })).length;
-  return lineMetrics({ jobs, decided: [...decided, ...dismissed], pending, days });
+  return lineMetrics({ jobs, decided: [...decided, ...dismissed, ...fixed], pending, days });
 }

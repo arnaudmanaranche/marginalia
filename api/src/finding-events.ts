@@ -11,16 +11,17 @@ export type FindingOutcome = 'posted' | 'posted_edited' | 'dismissed' | 'fixed_b
 export const postedOutcome = (proposed: string | null | undefined, sent: string): FindingOutcome => (proposed && proposed.trim() === sent.trim() ? 'posted' : 'posted_edited');
 
 interface FindingEventInput {
-  project: string; iid: number | string | null; findingId: string; severity: string | null;
+  project: string; iid: number | string | null; scope?: string; findingId: string; severity: string | null;
   outcome: FindingOutcome; own: boolean; criticalPaths: number; reviewer: string; at: string; version?: string;
 }
 
-export function findingEvent({ project, iid, findingId, severity, outcome, own, criticalPaths, reviewer, at, version }: FindingEventInput) {
+export function findingEvent({ project, iid, scope, findingId, severity, outcome, own, criticalPaths, reviewer, at, version }: FindingEventInput) {
   return {
     event: FINDING_EVENT,
     distinct_id: `marginalia:${reviewer}`,
     // One outcome per finding of one review: a second post of the same finding is the same event.
-    uuid: eventUuid(`finding|${project}|${iid ?? ''}|${findingId}|${outcome}`),
+    // `scope` names a review that has no MR number (an own branch): its slug.
+    uuid: eventUuid(`finding|${project}|${scope ?? iid ?? ''}|${findingId}|${outcome}`),
     timestamp: at,
     properties: {
       $process_person_profile: false,

@@ -14,6 +14,7 @@ import { followRun } from './run-tracker.ts';
 import { commandRun } from './command-run.ts';
 import { preflight } from './preflight.ts';
 import { isStaged, stagedRun } from './pipeline/staged.ts';
+import { recordFixedBefore } from './own-fixed.ts';
 
 // Shared by both flows. `kind` is 'review' (someone else's MR) or 'triage' (my own MR, reviewer
 // comments). The work is done by the project's command (command-run.ts) or, when it is
@@ -57,6 +58,8 @@ async function runStages(mr: any, { kind, command, tools, outputPath, label, sta
   const row = cost ? await appendRun({ project: mr.project.key, iid: mr.iid, kind, command, costUsd: cost.usd, outputTokens: cost.outputTokens, turns: cost.turns, durationMs: Date.now() - Date.parse(run.startedAt) }) : null;
   if (cost) log(mr, `Cost: $${cost.usd.toFixed(2)}, ${cost.outputTokens} output tokens, ${cost.turns} turns.`);
   if (shape.warnings.length) warn(mr, `Report contract: ${shape.warnings.join(' ')}`);
+  // An own review replaces the last one: first, which of its findings did this push fix?
+  if (detached) await recordFixedBefore({ project: mr.project, slug: basename(outputPath, '.md'), newSha: baseSha, iid: mr.iid });
   if (await artifactOf(outputPath).write(report, baseSha)) log(mr, `Previous report kept in ${REVIEWS_DIR}/.history.`);
 
   if (kind === 'triage') await recordFixes(mr, baseSha);
