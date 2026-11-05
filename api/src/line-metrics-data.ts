@@ -18,7 +18,8 @@ const sent = (info: any) => (info.inline === false ? String(info.body ?? '').rep
 export async function gatherLineMetrics({ projects, mrs, postedEntries, posted, db, days = 28 }: { projects: any[]; mrs: any[]; postedEntries: any[]; posted: Record<string, any>; db: any; days?: number }) {
   const keys = new Set(projects.map((p: any) => p.key));
   const byKey = new Map(projects.map((p: any) => [p.key, p]));
-  const jobs = (await listJobs([...keys], { limit: 2000 })).filter((j: any) => j.what === 'review');
+  // The review line: reviews of other people's MRs and own reviews (a triage of comments is its own job).
+  const jobs = (await listJobs([...keys], { limit: 2000 })).filter((j: any) => j.what === 'review' || j.what === 'own');
   const shapes = new Map<string, Promise<any>>();
   const shapeOf = (project: any, slug: string) => {
     const id = `${project.key}/${slug}`;

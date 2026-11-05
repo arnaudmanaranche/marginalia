@@ -4,7 +4,7 @@
 
 const DAY = 24 * 60 * 60 * 1000;
 
-interface JobIn { startedAt: string; endedAt: string | null; outcome: string; cost: { usd: number } | null }
+interface JobIn { startedAt: string; endedAt: string | null; outcome: string; cost: { usd: number } | null; what?: string }
 // `posted_unknown`: added to a review whose finding can no longer be read, so neither as proposed nor edited can be shown.
 interface Decided { at: string; outcome: 'posted' | 'posted_edited' | 'posted_unknown' | 'dismissed' | 'fixed_before_mr' }
 
@@ -35,6 +35,7 @@ export function lineMetrics({ jobs, decided, pending, now = Date.now(), days = 2
     days,
     jobs: {
       total: recent.length,
+      own: recent.filter((j) => j.what === 'own').length,
       failed: recent.filter((j) => j.outcome === 'failed').length,
       running: recent.filter((j) => j.outcome === 'running').length,
       medianMs: median(durations),

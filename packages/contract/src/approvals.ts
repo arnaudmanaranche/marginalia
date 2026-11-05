@@ -27,7 +27,7 @@ export const DismissRequest = z.object({
 export const LineMetrics = z.object({
   days: z.number().int(),
   jobs: z.object({
-    total: z.number().int(), failed: z.number().int(), running: z.number().int(),
+    total: z.number().int(), own: z.number().int().describe('Of the total, the own reviews.'), failed: z.number().int(), running: z.number().int(),
     medianMs: nullable(z.number()).describe('Median duration of the runs that ended with a review.'),
     costUsd: z.number(),
   }),

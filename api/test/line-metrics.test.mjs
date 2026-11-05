@@ -4,11 +4,11 @@ import { lineMetrics } from '../dist/src/line-metrics.js';
 
 const NOW = Date.parse('2026-11-05T12:00:00Z');
 const ago = (days, minutes = 0) => new Date(NOW - days * 86_400_000 + minutes * 60_000).toISOString();
-const job = (days, outcome, minutes, usd) => ({ startedAt: ago(days), endedAt: outcome === 'running' ? null : ago(days, minutes), outcome, cost: usd === undefined ? null : { usd } });
+const job = (days, outcome, minutes, usd, what = 'review') => ({ what, startedAt: ago(days), endedAt: outcome === 'running' ? null : ago(days, minutes), outcome, cost: usd === undefined ? null : { usd } });
 
 test('the line counts the jobs of the window, how they ended, the median run and the cost', () => {
-  const m = lineMetrics({ now: NOW, pending: 0, decided: [], jobs: [job(1, 'reviewed', 2, 0.2), job(2, 'reviewed', 4, 0.3), job(3, 'failed', 1, 0.05), job(0, 'running'), job(40, 'reviewed', 9, 5)] });
-  assert.deepEqual(m.jobs, { total: 4, failed: 1, running: 1, medianMs: 3 * 60_000, costUsd: 0.55 });
+  const m = lineMetrics({ now: NOW, pending: 0, decided: [], jobs: [job(1, 'reviewed', 2, 0.2), job(2, 'reviewed', 4, 0.3, 'own'), job(3, 'failed', 1, 0.05), job(0, 'running'), job(40, 'reviewed', 9, 5)] });
+  assert.deepEqual(m.jobs, { total: 4, own: 1, failed: 1, running: 1, medianMs: 3 * 60_000, costUsd: 0.55 });
 });
 
 test('the comments acted on: as proposed, edited, dismissed, over everything decided or still waiting', () => {
