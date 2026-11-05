@@ -17,6 +17,8 @@ export const ProjectSchema = z.object({
   triageCommand: z.string().trim().default('/mr-comments'),
   allowedTargetBranches: list,
   excludeAuthors: list,
+  // Review my own MRs too, for me alone (an own review is never posted).
+  reviewOwn: z.boolean().default(false),
 });
 
 export const ConfigSchema = z.object({

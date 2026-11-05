@@ -6,7 +6,7 @@ import { jiraPriorityOf } from './jira.ts';
 import { runMrComments, runReview } from './claude-runner.ts';
 import { fetchReviewStates } from './mr-state.ts';
 import { notify } from './notify.ts';
-import { mrCommentsOutputPath, mtimeOrNull, reviewOutputPath } from './paths.ts';
+import { mrCommentsOutputPath, mtimeOrNull, ownReviewOutputPath, reviewOutputPath } from './paths.ts';
 import { isStaged } from './pipeline/staged.ts';
 import { allowedTargets } from './settings.ts';
 import { loadState, saveState } from './state.ts';
@@ -22,6 +22,7 @@ export const passDeps = {
   mtime: mtimeOrNull,
   reviewPath: reviewOutputPath,
   commentsPath: mrCommentsOutputPath,
+  ownPath: ownReviewOutputPath,
   runReview,
   runMrComments,
   loadState,

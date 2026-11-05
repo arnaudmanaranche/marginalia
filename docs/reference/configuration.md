@@ -29,6 +29,13 @@ project's key: keep a copy if you may go back to an older version. The studio's 
 page overrides allowed target branches and excluded authors for all projects at once.
 `npm run doctor -- --dry-run 123 --project front-end` tries the real chain on one MR.
 
+## Own reviews
+
+`"reviewOwn": true` on a project (or `REVIEW_OWN=true` in a single-project `.env`) also reviews
+your own open MRs, once per push, with the project's review command. An own review is written to
+`own-<branch>.md`, shows only to you, and is never posted: the studio's posting routes refuse it
+whatever `ALLOW_POSTING` says. The triage of the comments on your MRs keeps working beside it.
+
 ## Mentions
 
 The bot answers `@<bot username>` in an MR comment (`GITLAB_USERNAME` is the account whose token it uses). Each poll, after a project's pass, it reads the notes that came in since the last poll; the first poll only sets the starting point. A bare mention or `review` runs a review, `triage` works through the comments (the MR's author only), anything else is a question, and a reply under one of the bot's own notes is a follow-up. Only Developer and above can ask; others get one refusal. A note is handled once.

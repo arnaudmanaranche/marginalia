@@ -6,8 +6,15 @@ import { recordBelow } from './poll-plan.ts';
 // The work on one MR inside a pass (see poll-pass.ts). Review and triage share one skeleton:
 // mark the MR busy, run, record what was done, notify; on a failure, say why and try again next
 // poll. What differs is this table.
+const reviewRecord = (state: any, mr: any, { plan }: any) => {
+  state[mr.iid] = mr.sha;
+  recordBelow(state, mr, plan.parentOf(mr));
+};
+
+// `entry` is the kind of the MR's status entry: my own MR can have two (own review, triage).
 const KINDS: Record<string, any> = {
   review: {
+    entry: 'review',
     label: 'Review',
     ready: 'Review ready',
     command: (mr: any) => mr.project.reviewCommand,
@@ -16,12 +23,22 @@ const KINDS: Record<string, any> = {
       const info = plan.stackInfo(mr);
       return deps.runReview(mr, deps.reviewPath(mr), info && { stacks: plan.stacks, info });
     },
-    record: (state: any, mr: any, { plan }: any) => {
-      state[mr.iid] = mr.sha;
-      recordBelow(state, mr, plan.parentOf(mr));
+    record: reviewRecord,
+  },
+  own: {
+    entry: 'own',
+    label: 'Own review',
+    ready: 'Own review ready',
+    command: (mr: any) => mr.project.reviewCommand,
+    path: (deps: any, mr: any) => deps.ownPath(mr),
+    run: (deps: any, mr: any, { plan }: any) => {
+      const info = plan.stackInfo(mr);
+      return deps.runReview(mr, deps.ownPath(mr), info && { stacks: plan.stacks, info });
     },
+    record: reviewRecord,
   },
   triage: {
+    entry: 'comments',
     label: 'Comment triage',
     ready: 'Comments triaged',
     command: (mr: any) => mr.project.triageCommand,
@@ -36,9 +53,9 @@ const KINDS: Record<string, any> = {
 // A failure that passes by itself (GitLab unreachable, Claude overloaded) brings the next poll
 // closer and raises no alarm; any other one is notified and handed to the doctor, which explains it
 // in the studio.
-async function failed(mr: any, label: string, err: any, { deps, sink, outcome }: any) {
+async function failed(mr: any, { label, entry }: any, err: any, { deps, sink, outcome }: any) {
   const failure = failureKind(err.message);
-  await sink.setMr(mr, { status: 'failed', error: err.message, failure });
+  await sink.setMr(mr, { status: 'failed', error: err.message, failure }, entry);
   if (failure.transient) outcome.retrySoon = true;
   else deps.notify(`${label} failed: ${failure.title}`, `!${mr.iid} ${mr.title}`);
   if (needsDoctor(failure) && err.run) {
@@ -52,23 +69,23 @@ async function failed(mr: any, label: string, err: any, { deps, sink, outcome }:
 export async function workOnMr(kind: string, mr: any, ctx: any, pass: any) {
   const { deps, sink, state } = pass;
   const spec = KINDS[kind];
-  await sink.begin(mr);
+  await sink.begin(mr, spec.entry);
   try {
     const outcome = await spec.run(deps, mr, ctx);
     if (outcome !== 'reviewed') {
       // Not recorded in state on a skip: the next poll retries it, once the branch has
       // been switched away from in the other worktree.
-      await sink.setMr(mr, { status: 'skipped', error: `Branch "${mr.source_branch}" is checked out in another worktree.` });
+      await sink.setMr(mr, { status: 'skipped', error: `Branch "${mr.source_branch}" is checked out in another worktree.` }, spec.entry);
       return;
     }
     spec.record(state, mr, ctx);
     await deps.saveState(mr.project, state);
-    await sink.setMr(mr, { status: 'up_to_date', reviewedAt: new Date().toISOString() });
+    await sink.setMr(mr, { status: 'up_to_date', reviewedAt: new Date().toISOString() }, spec.entry);
     deps.notify(spec.ready, `!${mr.iid} ${mr.title}`, spec.path(deps, mr));
   } catch (err) {
     logError(mr, `${spec.label} failed`, err);
     deps.trackFailure({ mr, kind, command: spec.command(mr), error: err });
-    await failed(mr, spec.label, err, pass);
+    await failed(mr, spec, err, pass);
   } finally {
     await sink.end();
   }
@@ -84,6 +101,6 @@ export async function trustExistingReview(mr: any, plan: any, { deps, sink, stat
   state[mr.iid] = mr.sha;
   recordBelow(state, mr, plan.parentOf(mr));
   await deps.saveState(mr.project, state);
-  await sink.setMr(mr, { status: 'up_to_date' });
+  await sink.setMr(mr, { status: 'up_to_date' }, 'review');
   return true;
 }

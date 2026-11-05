@@ -1,5 +1,6 @@
-import { TRIAGE_FILE_PREFIX } from '../paths.ts';
+import { OWN_FILE_PREFIX, TRIAGE_FILE_PREFIX } from '../paths.ts';
 
 export function kindOf(slug: string) {
-  return slug.startsWith(TRIAGE_FILE_PREFIX) ? 'comments' : 'review';
+  if (slug.startsWith(TRIAGE_FILE_PREFIX)) return 'comments';
+  return slug.startsWith(OWN_FILE_PREFIX) ? 'own' : 'review';
 }

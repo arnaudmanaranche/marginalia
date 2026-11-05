@@ -4,7 +4,7 @@ import { analyzeStacks } from './stack.ts';
 // Pure: no GitLab call, no disk, so it is tested on plain fixtures.
 
 // `state` is { [iid]: sha, mineComments: {}, stackBelow: {} } (see src/state.ts).
-export function planMergeRequests({ openMrs, state, allowedTargets, username, triageEnabled }: any) {
+export function planMergeRequests({ openMrs, state, allowedTargets, username, triageEnabled, reviewOwn = false }: any) {
   // A stacked MR targets the branch of the MR below it, so the allowed-targets
   // filter looks at the branch the whole stack is based on.
   const stacks = analyzeStacks(openMrs);
@@ -26,7 +26,11 @@ export function planMergeRequests({ openMrs, state, allowedTargets, username, tr
     .filter((mr: any) => mr.author.username !== username)
     .sort((a: any, b: any) => stacks.get(a.iid)!.depth - stacks.get(b.iid)!.depth);
   const myMrs = triageEnabled ? allMrs.filter((mr: any) => mr.author.username === username) : [];
-  return { stacks, stackInfo, parentOf, isCurrent, reviewMrs, myMrs };
+  // With reviewOwn, my MRs are also reviewed for me alone (an own review, never posted).
+  const ownMrs = reviewOwn
+    ? allMrs.filter((mr: any) => mr.author.username === username).sort((a: any, b: any) => stacks.get(a.iid)!.depth - stacks.get(b.iid)!.depth)
+    : [];
+  return { stacks, stackInfo, parentOf, isCurrent, reviewMrs, myMrs, ownMrs };
 }
 
 // What starts a triage of my MR: a peer comment newer than the last one triaged, or a conflict with

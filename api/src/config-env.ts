@@ -19,6 +19,7 @@ export function configFromEnv(env: any) {
       triageCommand: command(env.TRIAGE_COMMAND, '/mr-comments'),
       allowedTargetBranches: csv(env.ALLOWED_TARGET_BRANCHES),
       excludeAuthors: csv(env.EXCLUDE_AUTHORS),
+      ...(env.REVIEW_OWN !== undefined && { reviewOwn: env.REVIEW_OWN === 'true' }),
     }],
   };
 }
@@ -41,6 +42,7 @@ export function envFromConfig(config: any) {
     TRIAGE_COMMAND: project.triageCommand,
     ALLOWED_TARGET_BRANCHES: project.allowedTargetBranches.join(','),
     EXCLUDE_AUTHORS: project.excludeAuthors.join(','),
+    REVIEW_OWN: String(project.reviewOwn ?? false),
   };
 }
 

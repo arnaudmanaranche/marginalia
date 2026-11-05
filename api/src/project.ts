@@ -45,5 +45,6 @@ export function buildProjects(config: any, { dataDir, legacyWorktreeDir }: { dat
     triageCommand: p.triageCommand,
     allowedTargetBranches: p.allowedTargetBranches,
     excludeAuthors: p.excludeAuthors,
+    reviewOwn: p.reviewOwn ?? false,
   }));
 }

@@ -3,6 +3,7 @@ import { bodyLimit } from 'hono/body-limit';
 import { STUDIO_PORT, STUDIO_ALLOWED_HOSTS, ALLOW_POSTING } from '../config.ts';
 import { locate } from './context.ts';
 import { currentScope } from './request-scope.ts';
+import { kindOf } from './review-kind.ts';
 
 // Write endpoints are guarded against other web pages hitting localhost: Host must be us
 // (DNS rebinding), Origin must be us when present, and a body must be JSON (a cross-origin
@@ -45,9 +46,14 @@ export async function isOwnMr(id: string) {
 
 // Posting on someone else's MR needs ALLOW_POSTING=true (or a signed-in person); on my own MR it is always allowed.
 // Signed in (hosted), the click is the person's own and the comment goes up under their token.
-export const requirePosting = async (c: any, next: any) => (currentScope() || ALLOW_POSTING === 'true' || (await isOwnMr(await reviewIdOf(c)))
-  ? next()
-  : c.json({ error: 'posting on other people\'s merge requests is disabled (ALLOW_POSTING=false)' }, 403));
+// An own review is never posted, whoever asks (ADR 0006): it is the author's to read.
+export const requirePosting = async (c: any, next: any) => {
+  const id = await reviewIdOf(c);
+  if (id && kindOf(String(id).split('/').pop() ?? '') === 'own') return c.json({ error: 'an own review is never posted: it is yours to read' }, 403);
+  return (currentScope() || ALLOW_POSTING === 'true' || (await isOwnMr(id)))
+    ? next()
+    : c.json({ error: 'posting on other people\'s merge requests is disabled (ALLOW_POSTING=false)' }, 403);
+};
 
 // Bad input answers { error } (400), whatever library found it.
 export const validationHook = (result: any, c: any) => {

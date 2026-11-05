@@ -32,10 +32,11 @@ export function writeStatus() {
 }
 
 // An MR is told apart by its project: iids repeat from one GitLab project to the next.
-export const sameMr = (entry: any, mr: any) => entry.iid === mr.iid && entry.project === mr.project.key;
+// My own MR can have two entries (own review, triage): `kind` picks one; without it, the first.
+export const sameMr = (entry: any, mr: any, kind?: string) => entry.iid === mr.iid && entry.project === mr.project.key && (!kind || entry.kind === kind);
 
-export function setMrStatus(mr: any, patch: any) {
-  const entry = status.mrs.find((m) => sameMr(m, mr));
+export function setMrStatus(mr: any, patch: any, kind?: string) {
+  const entry = status.mrs.find((m) => sameMr(m, mr, kind));
   if (entry) Object.assign(entry, patch);
   return writeStatus();
 }
@@ -43,10 +44,10 @@ export function setMrStatus(mr: any, patch: any) {
 // What a pass over a project (poll-pass.ts) shows through: marks the bot busy on one MR, then
 // back to polling.
 export const statusSink = {
-  async begin(mr: any) {
+  async begin(mr: any, kind?: string) {
     status.phase = 'reviewing';
     status.current = { project: mr.project.key, iid: mr.iid, title: mr.title, web_url: mr.web_url, startedAt: new Date().toISOString() };
-    await setMrStatus(mr, { status: 'reviewing' });
+    await setMrStatus(mr, { status: 'reviewing' }, kind);
   },
   setMr: setMrStatus,
   async end() {

@@ -56,3 +56,11 @@ test('a chat question needs a stop id and a question', async () => {
   assert.equal((await send('POST', '/api/chat', { slug: 'demo/feat-x', stopId: '../x', question: 'why?' })).status, 400);
   assert.equal((await send('POST', '/api/chat', { slug: 'demo/feat-x', stopId: 'stop-1', question: ' ' })).status, 400);
 });
+
+test('an own review is never posted, even with posting switched on', async () => {
+  for (const [method, path, body] of [['POST', '/api/post', { ...good, slug: 'demo/own-feat-x' }], ['POST', '/api/submit-review', { slug: 'demo/own-feat-x' }]]) {
+    const res = await send(method, path, body);
+    assert.equal(res.status, 403, path);
+    assert.match(await errorOf(res), /own review is never posted/);
+  }
+});

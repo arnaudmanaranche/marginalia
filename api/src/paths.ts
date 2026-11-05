@@ -11,6 +11,12 @@ export function reviewOutputPath(mr: any) {
 }
 
 export const TRIAGE_FILE_PREFIX = 'mr-comments-';
+// An own review: my own work reviewed for me alone, never posted (GLOSSARY.md).
+export const OWN_FILE_PREFIX = 'own-';
+
+export function ownReviewOutputPath(mr: any) {
+  return join(mr.project.reviewsDir, `${OWN_FILE_PREFIX}${branchSlug(mr.source_branch)}.md`);
+}
 
 export function mrCommentsOutputPath(mr: any) {
   return join(mr.project.reviewsDir, `${TRIAGE_FILE_PREFIX}${branchSlug(mr.source_branch)}.md`);
