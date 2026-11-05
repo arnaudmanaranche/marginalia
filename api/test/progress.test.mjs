@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { describeStep, runStreaming } from '../dist/src/progress.js';
+import { runStreaming } from '../dist/src/progress.js';
+import { describeStep } from '../dist/src/step-text.js';
 
 test('tool calls read as plain steps', () => {
   assert.equal(describeStep({ type: 'tool_use', name: 'mcp__chrome-devtools__navigate_page', input: { url: 'https://a.test/?channel=X' } }), 'Opening https://a.test/?channel=X');
