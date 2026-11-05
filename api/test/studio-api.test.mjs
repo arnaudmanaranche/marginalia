@@ -100,3 +100,17 @@ test('the runs of a review are listed, and an unknown run is a 404', async () =>
   const bad = await get(`/api/reviews/${encodeURIComponent(idOf('no-run-yet'))}/runs/..%2F..%2Fetc`);
   assert.notEqual(bad.status, 200);
 });
+
+test('the queue lists a waiting task with its place in line, in the shape the API promises', async () => {
+  const { botQueue } = await import('../dist/src/bot-queue.js');
+  // Not started here: the task stays queued.
+  void botQueue.enqueue({ kind: 'mention', label: 'Answer a mention on !7', project: PROJECTS[0].key, priority: 'high', payload: { iid: 7 } }).catch(() => {});
+  const { status, body } = await get('/api/queue');
+  assert.equal(status, 200);
+  for (const key of required('QueueView')) assert.ok(key in body, `QueueView.${key}`);
+  const task = body.tasks.find((t) => t.label === 'Answer a mention on !7');
+  for (const key of required('QueueTask')) assert.ok(key in task, `QueueTask.${key}`);
+  assert.equal(task.status, 'queued');
+  assert.equal(task.position, 1);
+  assert.deepEqual(body.workers.map((w) => w.taskId), [null]);
+});
