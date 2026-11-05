@@ -33,19 +33,19 @@ async function runCommand(mr: any, opts: any) {
   }
 }
 
-async function runStages(mr: any, { kind, command, tools, outputPath, label, stack = null }: any, run: any) {
+async function runStages(mr: any, { kind, command, tools, outputPath, label, stack = null, detached = false }: any, run: any) {
   const { worktreeDir: BOT_WORKTREE_DIR, reviewsDir: REVIEWS_DIR } = mr.project;
   log(mr, `Starting ${label}: ${c.bold}"${mr.title}"${c.reset} (${mr.source_branch} -> ${mr.target_branch})`);
 
-  if (await branchCheckedOutElsewhere(mr.project, mr.source_branch)) {
+  if (!detached && (await branchCheckedOutElsewhere(mr.project, mr.source_branch))) {
     warn(mr, `Branch "${mr.source_branch}" is checked out in another worktree, skipping this pass.`);
     return 'skipped';
   }
 
   await preflight(mr, { kind, run });
   await run.stage('checkout');
-  log(mr, 'Checking out MR branch in the bot worktree...');
-  await checkoutMergeRequest(mr);
+  log(mr, `Checking out ${mr.iid === null ? 'the branch' : 'MR branch'} in the bot worktree...`);
+  await checkoutMergeRequest(mr, { detached });
   await clearStaleReport(BOT_WORKTREE_DIR);
   const baseSha = await head(BOT_WORKTREE_DIR);
 
@@ -65,9 +65,11 @@ async function runStages(mr: any, { kind, command, tools, outputPath, label, sta
   return 'reviewed';
 }
 
-export function runReview(mr: any, outputPath = reviewOutputPath(mr), stack = /** @type {any} */ (null)) {
+// `own`: an own review (my MR or branch), read from a detached checkout.
+export function runReview(mr: any, outputPath = reviewOutputPath(mr), stack = /** @type {any} */ (null), { own = false }: { own?: boolean } = {}) {
   return runCommand(mr, {
     stack,
+    detached: own,
     kind: 'review',
     command: mr.project.reviewCommand,
     tools: CLAUDE_ALLOWED_TOOLS,

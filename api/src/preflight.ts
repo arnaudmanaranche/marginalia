@@ -24,7 +24,8 @@ export async function preflight(mr: any, { kind, run }: any) {
   const checks = (await Promise.all([
     probe(CLAUDE_BIN, ['auth', 'status'], { env: runEnv() }).then(claudeCheck),
     gitlab.getProject(mr.project).then((project: any) => gitlabCheck({ project }), (err: any) => gitlabCheck({ error: message(err) })),
-    probe('git', ['ls-remote', 'origin', `refs/merge-requests/${mr.iid}/head`], { cwd: repoPath }).then((r) => branchCheck({ ...r, iid: mr.iid })),
+    probe('git', ['ls-remote', 'origin', mr.iid === null ? `refs/heads/${mr.source_branch}` : `refs/merge-requests/${mr.iid}/head`], { cwd: repoPath })
+      .then((r) => branchCheck({ ...r, iid: mr.iid, branch: mr.source_branch })),
     ...(kind === 'triage'
       ? [probe('git', ['push', '--dry-run', '--no-verify', '--porcelain', 'origin', `HEAD:refs/heads/${mr.source_branch}`], { cwd: repoPath }).then((r) => pushCheck({ ...r, branch: mr.source_branch }))]
       : []),

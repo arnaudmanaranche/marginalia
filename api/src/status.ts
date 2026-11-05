@@ -33,7 +33,9 @@ export function writeStatus() {
 
 // An MR is told apart by its project: iids repeat from one GitLab project to the next.
 // My own MR can have two entries (own review, triage): `kind` picks one; without it, the first.
-export const sameMr = (entry: any, mr: any, kind?: string) => entry.iid === mr.iid && entry.project === mr.project.key && (!kind || entry.kind === kind);
+// A branch without an MR (iid null) is told apart by its name.
+export const sameMr = (entry: any, mr: any, kind?: string) => (mr.iid === null ? entry.iid === null && entry.sourceBranch === mr.source_branch : entry.iid === mr.iid)
+  && entry.project === mr.project.key && (!kind || entry.kind === kind);
 
 export function setMrStatus(mr: any, patch: any, kind?: string) {
   const entry = status.mrs.find((m) => sameMr(m, mr, kind));

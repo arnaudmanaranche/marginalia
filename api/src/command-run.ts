@@ -28,7 +28,7 @@ export async function commandRun({ mr, run, kind, command, tools, outputPath, st
   await run.stage('context');
   const stackContext = stack && stack.info.size > 1 ? await buildStackPrompt(mr, stack) : '';
   // A failed fetch must not block the review: it just runs without the conversation.
-  const conversation = await gitlab.listDiscussions(mr.project, mr.iid)
+  const conversation = mr.iid === null ? '' : await gitlab.listDiscussions(mr.project, mr.iid)
     .then(kind === 'review' ? discussionPrompt : triageDiscussionPrompt, (err) => { warn(mr, `Could not read the MR discussions: ${err.message}`); return ''; });
   // The report this run replaces: its findings keep their ids when they still apply.
   const previous = previousFindingsPrompt(await artifactOf(outputPath).previousFindings());
@@ -43,7 +43,7 @@ export async function commandRun({ mr, run, kind, command, tools, outputPath, st
   const team = await teamRunExtras(DATA_DIR); // --plugin-dir of the synced team skills, if any
   const { stdout, stderr } = await runStreaming(
     CLAUDE_BIN,
-    [...claudeArgs({ prompt: `${command} MR !${mr.iid}`, tools, systemPrompt, settings: withTeamDeny(runSettings(mr.project), { deny: [...team.deny, ...catalog.deny] }) }), ...team.args, ...catalog.args],
+    [...claudeArgs({ prompt: mr.iid === null ? `${command} branch ${mr.source_branch} (no merge request yet: review its diff from where it left origin/${mr.target_branch})` : `${command} MR !${mr.iid}`, tools, systemPrompt, settings: withTeamDeny(runSettings(mr.project), { deny: [...team.deny, ...catalog.deny] }) }), ...team.args, ...catalog.args],
     { cwd: BOT_WORKTREE_DIR, env: runEnv() },
     (step, info) => run.step(step, info),
     (line) => run.event(line),

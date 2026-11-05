@@ -30,7 +30,7 @@ export function parseMergeTree(out: string): string[] {
 
 /**
  * @typedef {{
- *   mr: { iid: number | string, title: string, author: string | null, description: string | null, source: string, target: string, url: string | null },
+ *   mr: { iid: number | string | null, title: string, author: string | null, description: string | null, source: string, target: string, url: string | null },
  *   base: string, head: string, files: { path: string, added: number, removed: number }[],
  *   ticket: { key: string, summary: string | null, text: string | null } | null,
  *   guidance: string[], conversation: string, previous: string, stack: string,
@@ -45,7 +45,7 @@ export function contextText(ctx: any) {
   const listed = files.slice(0, MAX_FILES).map((f: any) => `- ${f.path} (+${f.added} -${f.removed})`);
   return [
     '## The merge request',
-    `!${mr.iid} "${mr.title}"${mr.author ? ` by ${mr.author}` : ''}: ${mr.source} → ${mr.target}`,
+    `${mr.iid === null ? 'No merge request yet:' : `!${mr.iid}`} "${mr.title}"${mr.author ? ` by ${mr.author}` : ''}: ${mr.source} → ${mr.target}`,
     mr.description?.trim() ? mr.description.trim().slice(0, MAX_DESCRIPTION) : '(no description)',
     '',
     '## The ticket',

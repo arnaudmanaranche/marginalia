@@ -35,4 +35,4 @@ export const ChatRequest = z.object({
   history: z.array(z.unknown()).optional().describe('Earlier turns, `{ role: user|assistant, text }`; malformed ones are dropped, the last 6 kept.'),
 }).meta({ id: 'ChatRequest' });
 export const ChatAnswer = z.object({ answer: z.string() }).meta({ id: 'ChatAnswer' });
-export const Rerun = z.object({ ok: z.literal(true), iid: z.number().int(), kind: z.enum(['review', 'comments']) }).meta({ id: 'Rerun' });
+export const Rerun = z.object({ ok: z.literal(true), iid: z.number().int().nullable().describe('Null for a branch without an MR yet.'), kind: z.enum(['review', 'comments', 'own']) }).meta({ id: 'Rerun' });

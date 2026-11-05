@@ -23,7 +23,7 @@ export async function gatherContext(mr: any, { outputPath, stack = null }: { out
   const [head, numstat, threads, ticket, previous, stackText] = await Promise.all([
     headOf(cwd),
     git.run('diff', '--numstat', base, 'HEAD'),
-    gitlab.listDiscussions(mr.project, mr.iid).catch((err: Error) => {
+    (mr.iid === null ? Promise.resolve([]) : gitlab.listDiscussions(mr.project, mr.iid)).catch((err: Error) => {
       warn(mr, `Could not read the MR discussions: ${err.message}`);
       return [];
     }),

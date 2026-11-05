@@ -48,6 +48,7 @@ export function memoryGitlab({ me = 'me', head = 'head1', diffLines = {}, member
       return {};
     },
     getProject: async (project) => ({ path_with_namespace: project.key }),
+    listBranches: async () => [],
     getMergeRequest: async (_p, iid) => ({ iid, diff_refs: { base_sha: 'base', start_sha: 'start', head_sha: head } }),
     currentUser: async () => ({ username: me }),
     listReviewers: async () => [],

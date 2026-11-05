@@ -43,6 +43,8 @@ export function readsOf(client: any, me: string) {
     // GitLab answers 409: the approval then only covers the code that was reviewed.
     approveMergeRequest: (project: any, iid: number, sha?: string) => client.request(`${mrPath(project, iid)}/approve`, { method: 'POST', body: JSON.stringify(sha ? { sha } : {}) }),
     getProject: (project: any) => client.request(`/projects/${project.encodedId}`),
+    // The project's branches, most recently updated first (one page: the recent ones are what matter).
+    listBranches: (project: any) => client.request(`/projects/${project.encodedId}/repository/branches?sort=updated_desc&per_page=100`),
     getMergeRequest: (project: any, iid: number | string) => client.request(mrPath(project, iid)),
     currentUser: () => client.request('/user'),
     listReviewers: (project: any, iid: number) => client.request(`${mrPath(project, iid)}/reviewers`),

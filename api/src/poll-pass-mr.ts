@@ -2,6 +2,7 @@ import { failureKind, needsDoctor } from './failure-kind.ts';
 import { log, logError } from './log.ts';
 import { logger } from './logger.ts';
 import { recordBelow } from './poll-plan.ts';
+import { branchStateKey } from './own-branches-plan.ts';
 
 // The work on one MR inside a pass (see poll-pass.ts). Review and triage share one skeleton:
 // mark the MR busy, run, record what was done, notify; on a failure, say why and try again next
@@ -33,9 +34,21 @@ const KINDS: Record<string, any> = {
     path: (deps: any, mr: any) => deps.ownPath(mr),
     run: (deps: any, mr: any, { plan }: any) => {
       const info = plan.stackInfo(mr);
-      return deps.runReview(mr, deps.ownPath(mr), info && { stacks: plan.stacks, info });
+      return deps.runReview(mr, deps.ownPath(mr), info && { stacks: plan.stacks, info }, { own: true });
     },
     record: reviewRecord,
+  },
+  // My branch without an MR yet: same file as its own review once the MR exists.
+  branch: {
+    entry: 'own',
+    label: 'Own review',
+    ready: 'Own review ready',
+    command: (mr: any) => mr.project.reviewCommand,
+    path: (deps: any, mr: any) => deps.ownPath(mr),
+    run: (deps: any, mr: any) => deps.runReview(mr, deps.ownPath(mr), null, { own: true }),
+    record: (state: any, mr: any) => {
+      state[branchStateKey(mr.source_branch)] = mr.sha;
+    },
   },
   triage: {
     entry: 'comments',
@@ -81,7 +94,7 @@ export async function workOnMr(kind: string, mr: any, ctx: any, pass: any) {
     spec.record(state, mr, ctx);
     await deps.saveState(mr.project, state);
     await sink.setMr(mr, { status: 'up_to_date', reviewedAt: new Date().toISOString() }, spec.entry);
-    deps.notify(spec.ready, `!${mr.iid} ${mr.title}`, spec.path(deps, mr));
+    deps.notify(spec.ready, mr.iid === null ? mr.title : `!${mr.iid} ${mr.title}`, spec.path(deps, mr));
   } catch (err) {
     logError(mr, `${spec.label} failed`, err);
     deps.trackFailure({ mr, kind, command: spec.command(mr), error: err });

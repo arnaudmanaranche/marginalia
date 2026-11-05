@@ -22,6 +22,7 @@ function setup(open, stored = { mineComments: {}, stackBelow: {} }) {
     reviewPath: (m) => reviewOutputPath(m),
     commentsPath: (m) => `/r/mr-comments-${m.iid}.md`,
     ownPath: (m) => ownReviewOutputPath(m),
+    listOwnBranches: async () => [],
     runReview: async (m, path) => (calls.runs.push([m.iid, path]), 'reviewed'),
     runMrComments: async () => 'reviewed',
     loadState: async () => stored,

@@ -79,15 +79,18 @@ export async function branchCheckedOutElsewhere(project: any, branchName: string
   return entries.some((e: any) => e.branch === branchName && e.path !== BOT_WORKTREE_DIR);
 }
 
-export async function checkoutMergeRequest(mr: any) {
+// `detached`: an own review only reads, and my branch is usually checked out in my own clone, so
+// it never takes the branch name. A branch without an MR (mr.iid null) is fetched by its name.
+export async function checkoutMergeRequest(mr: any, { detached = false }: { detached?: boolean } = {}) {
   const BOT_WORKTREE_DIR = mr.project.worktreeDir;
   await assertBotWorktree(BOT_WORKTREE_DIR);
   // A run can leave changes to tracked files (a triage whose commit failed), which
   // `git clean` does not touch and which would make the checkout below refuse.
   await resetHard(BOT_WORKTREE_DIR);
   await cleanWorktree(BOT_WORKTREE_DIR, { ignored: true });
-  await fetchMrHead(BOT_WORKTREE_DIR, mr.iid);
-  const checkout = BOT_CHECKOUT === 'detached' ? ['--detach', 'FETCH_HEAD'] : ['-B', mr.source_branch, 'FETCH_HEAD'];
+  if (mr.iid === null) await gitIn(BOT_WORKTREE_DIR).run('fetch', '--quiet', 'origin', mr.source_branch);
+  else await fetchMrHead(BOT_WORKTREE_DIR, mr.iid);
+  const checkout = detached || BOT_CHECKOUT === 'detached' ? ['--detach', 'FETCH_HEAD'] : ['-B', mr.source_branch, 'FETCH_HEAD'];
   await gitIn(BOT_WORKTREE_DIR).run('checkout', '--quiet', ...checkout);
   await resetHard(BOT_WORKTREE_DIR, 'FETCH_HEAD');
   // A target branch that was rebased (a stack's lower layer) is not a fast-forward: fetched forced.

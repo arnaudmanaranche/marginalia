@@ -5,6 +5,7 @@ import { jsonBody, jsonOf, route } from './route-kit.ts';
 import { locate, readStatus } from './context.ts';
 import { notTracked } from './read-kit.ts';
 import { pollerAlive } from './poller-alive.ts';
+import { branchStateKey } from '../own-branches-plan.ts';
 
 // Controlling the bot: its settings, its status, polling now and re-running one MR.
 export function botRoutes(app: any) {
@@ -59,7 +60,9 @@ export function botRoutes(app: any) {
     if (status.phase !== 'idle' && status.phase !== 'error') return c.json({ error: 'a run is in progress, try again when it is done' }, 409);
     const state: any = await loadState(project);
     if (mr.kind === 'comments') state.mineComments[mr.iid] = null;
-    else state[mr.iid] = null;
+    else if (mr.iid !== null) state[mr.iid] = null;
+    // An own review is also current through its branch (reviewed before the MR existed).
+    if (mr.kind === 'own') state[branchStateKey(mr.sourceBranch)] = null;
     await saveState(project, state);
     process.kill(status.pid, 'SIGUSR1');
     return c.json({ ok: true, iid: mr.iid, kind: mr.kind }, 200);

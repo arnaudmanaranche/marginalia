@@ -35,11 +35,13 @@ export function gitlabCheck({ project = null, error = null }: { project?: any, e
 
 // `git ls-remote origin refs/merge-requests/<iid>/head`: the MR head the checkout fetches.
 /** @param {{ stdout?: string, error?: string | null, iid: number | string }} probe */
-export function branchCheck({ stdout = '', error = null, iid }: { stdout?: string, error?: string | null, iid: number | string }) {
+// A branch without an MR (iid null) is looked up by its name.
+export function branchCheck({ stdout = '', error = null, iid, branch = '' }: { stdout?: string, error?: string | null, iid: number | string | null, branch?: string }) {
   if (error) return block('Git remote', `origin could not be read: ${firstLine(error)}`);
   const sha = stdout.trim().split(/\s/)[0];
-  if (!sha) return block('Git remote', `origin has no head for !${iid}: the MR may be closed or its branch deleted`);
-  return ok('Git remote', `!${iid} is at ${sha.slice(0, 8)} on origin`);
+  const what = iid === null ? `branch ${branch}` : `!${iid}`;
+  if (!sha) return block('Git remote', `origin has no head for ${what}: ${iid === null ? 'the branch may have been deleted' : 'the MR may be closed or its branch deleted'}`);
+  return ok('Git remote', `${what} is at ${sha.slice(0, 8)} on origin`);
 }
 
 // `git push --dry-run --no-verify` (no pre-push hook runs): never sends anything, but asks origin for push access, which is what
