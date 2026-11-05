@@ -287,6 +287,10 @@ The pieces every live surface is made of, each defined once:
 - **Panel / PanelHeader / PanelFooter:** the one container of tool surfaces: a 12px surface with a hairline, header and footer rows separated by hairlines. The border is the elevation.
 - **Timeline / TimelineItem:** steps on a vertical rail, the mark on the rail, the rail solid in ok below a step that is done and dashed ahead of the current one.
 - **Elapsed:** a duration that keeps counting, in tabular figures.
+- **SpanBar:** spans on one rounded track, each at its share of the total time and coloured by state, with a 2px gap of track between spans and finished ones alternating two steps of the ok hue so stage boundaries read; a running span carries the shimmer. A job's stages in one bar, or one stage on a run's axis.
+- **Segmented:** one choice among a few (a filter), a row of segments on the sunken fill; the chosen one sits on the surface with a strong hairline (no shadow) and each may carry a count. A radio group for assistive technology.
+
+The **job trace** (`JobList`, `JobRow`, `JobTrace`) is the second composition: a Segmented filter, jobs under day headings, each row a StatusMark, its target and state, its SpanBar, when, how long and the cost; a row opens in place into a waterfall of its stages on the run's own time axis (ticks at quarters), with the command, cost, turns and tokens and the way to what it was about.
 
 The **run plan** (`RunPlan` inside `RunPanel`) is the reference composition: a Panel whose header names the run and carries its LivePill, a Timeline of the run's stages with their step count, tool chips and time, the stage in progress unfolding its last three actions (the newest on the sunken fill) as they slide in, the full log one click away, and a footer with the position (`Running · 4 of 5`) and the time and cost. Time and position are said once each: the pill holds the time, the footer the position.
 
