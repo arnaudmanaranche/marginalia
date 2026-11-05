@@ -260,7 +260,10 @@ export interface RunTrace extends RunSummary {
   calls?: ToolCallRecord[];
   droppedCalls?: number;
   usage?: Record<string, StageUsage>;
+  // Findings as each chapter gave them, before the report weighs and merges them.
+  found?: FoundFinding[];
 }
+export interface FoundFinding { id: string; stage: string; severity: Severity; title: string; path: string | null; line: number | null; at: string }
 
 async function postRun(slug: string, runId: string, tail: string): Promise<void> {
   const res = await fetch(`/api/reviews/${encodeURIComponent(slug)}/runs/${encodeURIComponent(runId)}/${tail}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' });

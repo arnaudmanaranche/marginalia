@@ -1,4 +1,4 @@
-import type { RunStage, RunTrace, StageUsage, ToolCallRecord } from './api';
+import type { FoundFinding, RunStage, RunTrace, StageUsage, ToolCallRecord } from './api';
 import type { Span } from './trace';
 
 // A run's agents, the way an agent monitor shows them: each stage that ran Claude is one agent at
@@ -63,4 +63,23 @@ export function tokens(n: number): string {
   if (n < 1000) return String(n);
   if (n < 1_000_000) return `${(n / 1000).toFixed(n < 10_000 ? 1 : 0)}k`;
   return `${(n / 1_000_000).toFixed(1)}M`;
+}
+
+// A staged review's chapter reviewers, the way a verification swarm is shown: one row each with its
+// state and how far it got, and what they found, newest first. Empty for a run without chapters.
+export interface Swarm { agents: Agent[]; found: FoundFinding[] }
+
+export function swarmOf(trace: RunTrace): Swarm {
+  const chapters = new Set(trace.stages.filter((s) => s.id.startsWith('chapter-')).map((s) => s.id));
+  if (!chapters.size) return { agents: [], found: [] };
+  const agents = agentsOf(trace).filter((a) => chapters.has(a.id));
+  // A chapter that has not started has no agent yet: it still counts as a row, waiting.
+  const waiting = trace.stages.filter((s) => chapters.has(s.id) && !agents.some((a) => a.id === s.id)).map((s): Agent => ({
+    id: s.id, label: s.label, state: s.state, startedAt: s.startedAt, endedAt: s.endedAt, usage: null, calls: [], current: null, step: null, failedCalls: 0, tools: [],
+  }));
+  const order = trace.stages.map((s) => s.id);
+  return {
+    agents: [...agents, ...waiting].sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id)),
+    found: [...(trace.found ?? [])].filter((f) => chapters.has(f.stage)).reverse(),
+  };
 }

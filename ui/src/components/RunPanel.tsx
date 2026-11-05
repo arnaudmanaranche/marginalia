@@ -13,7 +13,8 @@ import { DoctorCard } from './DoctorCard';
 import { RunSteps } from './RunSteps';
 import { RunPlan } from './RunPlan';
 import { AgentMonitor } from './AgentMonitor';
-import { agentsOf } from '../lib/agents';
+import { agentsOf, swarmOf } from '../lib/agents';
+import { AgentFindings } from './AgentFindings';
 import { LivePill, type LiveTone } from './ds/LivePill';
 import { Panel, PanelFooter, PanelHeader } from './ds/Panel';
 import { StatusMark } from './ds/StatusMark';
@@ -47,6 +48,8 @@ export function RunPanel({ slug, awaiting, failure = null, collapsible = false, 
   const at = run ? position(run.stages) : null;
   // Each stage that ran Claude, as an agent at work; when a run had many, the finished ones fold.
   const agents = trace ? agentsOf(trace) : [];
+  // A staged review's chapter reviewers, with what they found as they found it.
+  const swarm = trace ? swarmOf(trace) : null;
 
   return (
     <Panel label="Bot activity" className={cn('mb-4 shrink-0', headline.tone === 'danger' && 'border-fail/40', headline.tone === 'warning' && 'border-warn/40')}>
@@ -72,6 +75,7 @@ export function RunPanel({ slug, awaiting, failure = null, collapsible = false, 
                 </div>
               )}
               {run && <div className="max-w-3xl"><RunPlan stages={run.stages} steps={trace?.steps} now={now} /></div>}
+              {swarm && swarm.agents.length > 0 && <AgentFindings swarm={swarm} />}
               {agents.length > 0 && (
                 <section aria-label="Agents" className="grid gap-2 lg:grid-cols-2">
                   {agents.map((a) => <AgentMonitor key={`${trace!.id}:${a.id}`} agent={a} defaultFolded={agents.length > 2 && a.state === 'done'} />)}

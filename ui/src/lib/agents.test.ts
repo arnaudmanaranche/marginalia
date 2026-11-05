@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { RunTrace, ToolCallRecord } from './api';
-import { agentsOf, callSpans, callState, tokens } from './agents';
+import { agentsOf, callSpans, callState, swarmOf, tokens } from './agents';
 
 const T0 = Date.parse('2026-11-05T10:00:00.000Z');
 const at = (s: number) => new Date(T0 + s * 1000).toISOString();
@@ -40,5 +40,29 @@ describe('the agents of a run', () => {
   });
   it('says tokens short', () => {
     expect([tokens(950), tokens(12_400), tokens(3_456), tokens(1_200_000)]).toEqual(['950', '12k', '3.5k', '1.2M']);
+  });
+});
+
+describe('the chapter reviewers of a staged review', () => {
+  it('are one row per chapter, waiting ones included, and their findings come newest first', () => {
+    const t = trace({
+      stages: [
+        { id: 'map', label: 'Map', state: 'done', startedAt: at(0), endedAt: at(1) },
+        { id: 'chapter-1', label: 'Review: A', state: 'done', startedAt: at(1), endedAt: at(5) },
+        { id: 'chapter-2', label: 'Review: B', state: 'pending', startedAt: null, endedAt: null },
+      ],
+      calls: [call({ id: 'a', stage: 'chapter-1' })], usage: {},
+      found: [
+        { id: 'f1', stage: 'chapter-1', severity: 'critical', title: 'One', path: 'a.ts', line: 1, at: at(4) },
+        { id: 'f2', stage: 'chapter-1', severity: 'info', title: 'Two', path: null, line: null, at: at(5) },
+        { id: 'm', stage: 'map', severity: 'info', title: 'Not a chapter', path: null, line: null, at: at(1) },
+      ],
+    });
+    const swarm = swarmOf(t);
+    expect(swarm.agents.map((a) => [a.id, a.state, a.calls.length])).toEqual([['chapter-1', 'done', 1], ['chapter-2', 'pending', 0]]);
+    expect(swarm.found.map((f) => f.id)).toEqual(['f2', 'f1']);
+  });
+  it('is nothing for a run without chapters', () => {
+    expect(swarmOf(trace())).toEqual({ agents: [], found: [] });
   });
 });
