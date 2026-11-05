@@ -26,7 +26,7 @@
     "init": "node dist/scripts/init.js",
     "doctor": "node dist/scripts/doctor.js",
     "autostart": "node dist/scripts/autostart.js",
-    "test": "node --test test/*.test.mjs",
+    "test": "MARGINALIA_TELEMETRY=off node --test test/*.test.mjs",
     "typecheck": "tsc -p . --noEmit",
     "eval": "tsc -p . && node dist/scripts/eval.js",
     "posthog:backfill": "node dist/scripts/posthog-backfill.js"

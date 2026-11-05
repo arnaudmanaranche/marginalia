@@ -1,5 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { aiEvents } from './ai-events.ts';
+import { GITLAB_USERNAME } from './config.ts';
+import { RUNNING_VERSION } from './config-team.ts';
 import { logger } from './logger.ts';
 import { posthogFromEnv } from './posthog.ts';
 
@@ -29,7 +31,7 @@ export function captureAi({ ctx, args, model, result, tools, failed, error = nul
       name: ctx.name,
       kind: ctx.kind,
       project: ctx.project,
-      reviewer: process.env.GITLAB_USERNAME ?? 'unknown',
+      reviewer: GITLAB_USERNAME || 'unknown',
       model,
       at: new Date().toISOString(),
       result: result ?? {},
@@ -38,6 +40,7 @@ export function captureAi({ ctx, args, model, result, tools, failed, error = nul
       tools,
       prompt: argAfter(args, '-p'),
       systemPrompt: argAfter(args, '--append-system-prompt'),
+      version: RUNNING_VERSION,
       includeContent: process.env.MARGINALIA_AI_CONTENT === 'on',
     });
     void client.send(events).catch((err: unknown) => logger.debug({ err }, 'Could not send the AI observability events'));
