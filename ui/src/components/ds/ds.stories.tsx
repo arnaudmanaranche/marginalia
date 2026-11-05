@@ -7,6 +7,9 @@ import { Timeline, TimelineItem } from './Timeline';
 import { SpanBar } from './SpanBar';
 import { Segmented } from './Segmented';
 import { Chip } from './Chip';
+import { Switch } from './Switch';
+import { Input } from './Input';
+import { useState } from 'react';
 
 // The design system's primitives side by side, in both themes (the toolbar switches them).
 const meta = { title: 'Scholia/Design system/Primitives', component: StatusMark, args: { state: 'running' } } satisfies Meta<typeof StatusMark>;
@@ -68,3 +71,17 @@ export const Chips2: Story = {
     </div>
   ),
 };
+
+function Controls() {
+  const [on, setOn] = useState(true);
+  return (
+    <div className="flex max-w-sm flex-col gap-4">
+      <label className="flex items-center justify-between gap-3 text-sm">Play sounds<Switch id="s1" label="Play sounds" checked={on} onChange={setOn} /></label>
+      <label className="flex items-center justify-between gap-3 text-sm">Disabled<Switch id="s2" label="Disabled" checked={false} onChange={() => {}} disabled /></label>
+      <Input aria-label="Poll every (minutes)" defaultValue="5" />
+      <Input aria-label="Target branches" defaultValue="develop, main" changed />
+      <Input aria-label="Excluded authors" placeholder="alice, bob" />
+    </div>
+  );
+}
+export const Controls_: Story = { name: 'Controls', render: () => <Controls /> };

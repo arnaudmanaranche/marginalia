@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useSyncExternalStore } from 'react';
 
 // The studio's theme: follow the system, or be light or dark whatever the system says. The result is
 // written on <html> as data-theme, which the stylesheet reads (index.css); the choice is kept in this
@@ -30,22 +30,35 @@ export function applyTheme(choice: ThemeChoice) {
   document.documentElement.dataset.theme = resolveTheme(choice, systemDark());
 }
 
+// One shared state: the Settings control and the rest of the app (the toaster) see the same choice.
+const EVENT = 'marginalia:theme';
+
+function subscribe(notify: () => void) {
+  const on = () => {
+    applyTheme(readChoice());
+    notify();
+  };
+  window.addEventListener(EVENT, on);
+  window.addEventListener('storage', on);
+  const query = typeof matchMedia === 'function' ? matchMedia('(prefers-color-scheme: dark)') : null;
+  query?.addEventListener('change', on);
+  return () => {
+    window.removeEventListener(EVENT, on);
+    window.removeEventListener('storage', on);
+    query?.removeEventListener('change', on);
+  };
+}
+
+export function setChoice(next: ThemeChoice) {
+  try {
+    localStorage.setItem(THEME_KEY, next);
+  } catch { /* the choice still applies for this page */ }
+  window.dispatchEvent(new Event(EVENT));
+}
+
 // The choice, kept and applied; while it is "system" a change of the OS theme is followed.
 export function useTheme(): [ThemeChoice, (c: ThemeChoice) => void] {
-  const [choice, setChoice] = useState<ThemeChoice>(readChoice);
-  useEffect(() => {
-    applyTheme(choice);
-    if (choice !== 'system' || typeof matchMedia !== 'function') return undefined;
-    const query = matchMedia('(prefers-color-scheme: dark)');
-    const on = () => applyTheme('system');
-    query.addEventListener('change', on);
-    return () => query.removeEventListener('change', on);
-  }, [choice]);
-  const set = (next: ThemeChoice) => {
-    try {
-      localStorage.setItem(THEME_KEY, next);
-    } catch { /* the choice still applies for this page */ }
-    setChoice(next);
-  };
-  return [choice, set];
+  const choice = useSyncExternalStore(subscribe, readChoice, () => 'system' as ThemeChoice);
+  useEffect(() => applyTheme(choice), [choice]);
+  return [choice, setChoice];
 }

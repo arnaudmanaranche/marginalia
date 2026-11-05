@@ -1,10 +1,16 @@
 import { useEffect, useState } from 'react';
+import { AnimatePresence, m } from 'motion/react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from '../lib/toast';
-import { RotateCcw, Volume2 } from 'lucide-react';
-import { play, setSoundsOn, soundsOn } from '../lib/sounds';
+import { RotateCcw } from 'lucide-react';
 import { saveSettings, type Settings } from '../lib/api';
 import { keys } from '../lib/queryKeys';
+import { arrive } from '../lib/motion';
+import { AppearanceSettings } from './AppearanceSettings';
+import { ProjectsSettings } from './ProjectsSettings';
+import { SettingGroup, SettingRow } from './SettingRow';
+import { Input } from './ds/Input';
+import { Switch } from './ds/Switch';
 import { Button } from './ui/Button';
 
 type Draft = { pollIntervalMinutes: string; staleAfterDays: string; allowedTargetBranches: string; excludeAuthors: string; showFullDiff: boolean };
@@ -36,9 +42,11 @@ function patchOf(draft: Draft) {
   };
 }
 
-// Everything here is read fresh by the bot on its next poll: no restart. Secrets, paths and the
-// ALLOW_POSTING / ALLOW_PUSH gates stay in .env on purpose.
-export function SettingsPage({ settings, defaults, projects = 1 }: { settings: Settings | null; defaults: Settings | null; projects?: number }) {
+// Everything in the bot group is read fresh by the bot on its next poll: no restart. Secrets, paths
+// and the ALLOW_POSTING / ALLOW_PUSH gates stay in .env on purpose.
+type Project = { key: string; kind: 'back' | 'front' | null; gitlabProjectId: string; url: string | null };
+
+export function SettingsPage({ settings, defaults, projects = [] }: { settings: Settings | null; defaults: Settings | null; projects?: Project[] }) {
   const [draft, setDraft] = useState<Draft | null>(settings && toDraft(settings));
   const client = useQueryClient();
   const saveMutation = useMutation({
@@ -52,9 +60,10 @@ export function SettingsPage({ settings, defaults, projects = 1 }: { settings: S
     if (settings) setDraft(toDraft(settings));
   }, [saved]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!draft || !settings || !defaults) return <div className="mx-auto max-w-2xl px-6 py-8 text-fg-muted">Loading settings…</div>;
+  if (!draft || !settings || !defaults) return <div aria-busy="true" className="mx-auto h-64 max-w-3xl animate-pulse px-6 py-8 motion-reduce:animate-none" />;
 
   const dirty = JSON.stringify(draft) !== saved;
+  const changes = (Object.keys(draft) as (keyof Draft)[]).filter((k) => draft[k] !== toDraft(settings)[k]).length;
   const defaultDraft = toDraft(defaults);
   const save = async (patch: Parameters<typeof saveSettings>[0], message: string) => {
     try {
@@ -67,98 +76,58 @@ export function SettingsPage({ settings, defaults, projects = 1 }: { settings: S
 
   return (
     <form
-      className="mx-auto max-w-2xl px-6 py-8"
+      className="mx-auto max-w-3xl px-6 pt-8 pb-28"
       onSubmit={(e) => {
         e.preventDefault();
         void save(patchOf(draft), 'Settings saved');
       }}
     >
       <h1 className="text-3xl font-semibold tracking-tight">Settings</h1>
-      <p className="mt-1 text-fg-muted">
-        Saved to <code>settings.json</code> and applied without a restart. Each value overrides <code>.env</code>, which stays the default.
-      </p>
-      {projects > 1 && <p className="mt-1 text-fg-muted">These settings apply to all {projects} projects this install watches.</p>}
+      <p className="mt-1 text-fg-muted">What the bot watches and how this studio looks to you.</p>
 
-      <div className="mt-8 space-y-6">
+      <AppearanceSettings />
+
+      <SettingGroup title="The bot" description={<>Saved to <code className="font-mono text-xs">settings.json</code>, read by the bot on its next poll, and each value overrides <code className="font-mono text-xs">.env</code>.{projects.length > 1 ? ` They apply to all ${projects.length} projects.` : ''}</>}>
         {FIELDS.map((f) => {
           const id = `setting-${f.key}`;
           const changedFromDefault = draft[f.key] !== defaultDraft[f.key];
           return (
-            <div key={f.key}>
-              <label htmlFor={id} className="block text-sm font-medium">{f.label}</label>
-              <div className="mt-1.5 flex items-center gap-2">
-                <input
-                  id={id}
-                  value={draft[f.key]}
-                  onChange={(e) => setDraft({ ...draft, [f.key]: e.target.value })}
-                  inputMode={f.list ? undefined : 'numeric'}
-                  placeholder={f.placeholder}
-                  aria-describedby={`${id}-hint`}
-                  className="touch-target w-full rounded-lg border border-line bg-surface px-3 py-1.5 text-sm outline-none focus:border-run focus:ring-2 focus:ring-run/40"
-                />
-                {changedFromDefault && (
-                  <Button variant="ghost" size="sm" disabled={saving} onClick={() => void save({ [f.key]: null }, `${f.label} back to the .env default`)} title={`Back to the .env default (${defaultDraft[f.key] || 'empty'})`}>
-                    <RotateCcw className="size-3.5" />Default
-                  </Button>
-                )}
-              </div>
-              <p id={`${id}-hint`} className="mt-1 text-xs text-fg-muted">{f.hint}</p>
-            </div>
+            <SettingRow key={f.key} label={f.label} hint={f.hint} htmlFor={id} hintId={`${id}-hint`}>
+              {changedFromDefault && (
+                <Button variant="ghost" size="sm" disabled={saving} onClick={() => void save({ [f.key]: null }, `${f.label} back to the .env default`)} title={`Back to the .env default (${defaultDraft[f.key] || 'empty'})`}>
+                  <RotateCcw className="size-3.5" />Default
+                </Button>
+              )}
+              <Input
+                id={id} value={draft[f.key]} changed={draft[f.key] !== toDraft(settings)[f.key]}
+                onChange={(e) => setDraft({ ...draft, [f.key]: e.target.value })}
+                inputMode={f.list ? undefined : 'numeric'} placeholder={f.placeholder} aria-describedby={`${id}-hint`}
+                className="sm:max-w-[12rem]"
+              />
+            </SettingRow>
           );
         })}
-      </div>
+        <SettingRow label="Show the full diff in reviews" htmlFor="setting-showFullDiff" hintId="setting-showFullDiff-hint" hint="Off: a chapter shows only the files with a finding or a conversation, the main points. The agent reads every line, so you do not have to.">
+          <Switch id="setting-showFullDiff" label="Show the full diff in reviews" describedBy="setting-showFullDiff-hint" checked={draft.showFullDiff} onChange={(on) => setDraft({ ...draft, showFullDiff: on })} />
+        </SettingRow>
+      </SettingGroup>
 
-      <div className="mt-8 border-t border-line pt-6">
-        <label className="flex items-start gap-3 text-sm font-medium">
-          <input
-            type="checkbox"
-            checked={draft.showFullDiff}
-            onChange={(e) => setDraft({ ...draft, showFullDiff: e.target.checked })}
-            aria-describedby="setting-showFullDiff-hint"
-            className="mt-0.5 size-4 rounded border-zinc-300"
-          />
-          Show the full diff in reviews
-        </label>
-        <p id="setting-showFullDiff-hint" className="mt-1 pl-7 text-xs text-fg-muted">
-          Off: a stop shows only the files with a finding or a conversation, the main points. The agent reads every line, so you do not have to.
-        </p>
-      </div>
+      <ProjectsSettings projects={projects} />
 
-      <SoundSetting />
-
-      <div className="mt-8 flex items-center gap-3">
-        <Button type="submit" variant="primary" disabled={!dirty || saving}>{saving ? 'Saving…' : 'Save'}</Button>
-        {dirty && <Button variant="ghost" onClick={() => setDraft(toDraft(settings))}>Discard changes</Button>}
-      </div>
+      {/* Appears only when something changed, over the page's foot: Save is the one primary action. */}
+      <AnimatePresence initial={false}>
+        {dirty && (
+          <m.div {...arrive} role="region" aria-label="Unsaved changes" className="fixed inset-x-0 bottom-0 z-30 px-6 pb-4">
+            <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 rounded-xl border border-line-strong bg-surface px-4 py-3">
+              <span className="text-sm"><span className="font-medium tabular-nums">{changes}</span> unsaved change{changes > 1 ? 's' : ''}</span>
+              <span className="flex items-center gap-2">
+                <Button variant="ghost" disabled={saving} onClick={() => setDraft(toDraft(settings))}>Discard</Button>
+                <Button type="submit" variant="primary" disabled={saving}>{saving ? 'Saving…' : 'Save'}</Button>
+              </span>
+            </div>
+          </m.div>
+        )}
+      </AnimatePresence>
     </form>
-  );
-}
-
-// For this browser only, and applied at once: nothing to save.
-function SoundSetting() {
-  const [on, setOn] = useState(soundsOn);
-  return (
-    <div className="mt-8 border-t border-line pt-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <label className="flex items-start gap-3 text-sm font-medium">
-          <input
-            type="checkbox"
-            checked={on}
-            onChange={(e) => {
-              setSoundsOn(e.target.checked);
-              setOn(e.target.checked);
-              if (e.target.checked) play('done');
-            }}
-            aria-describedby="setting-sounds-hint"
-            className="mt-0.5 size-4 rounded border-zinc-300"
-          />
-          Play sounds
-        </label>
-        <Button variant="ghost" size="sm" disabled={!on} onClick={() => play('arrive')}><Volume2 className="size-3.5" />Try one</Button>
-      </div>
-      <p id="setting-sounds-hint" className="mt-1 pl-7 text-xs text-fg-muted">
-        A short sound when an MR arrives, a review or a triage is ready, a run fails, a reviewer writes on your MR, and when an action of yours goes through or fails. This browser only, applied at once.
-      </p>
-    </div>
   );
 }

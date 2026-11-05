@@ -1,4 +1,5 @@
 import type { Preview } from '@storybook/react-vite';
+import { LazyMotion, domMax } from 'motion/react';
 import '../src/index.css';
 import { applyTheme, type ThemeChoice } from '../src/lib/theme';
 
@@ -17,7 +18,8 @@ const preview: Preview = {
   decorators: [
     (Story, context) => {
       applyTheme(context.globals.theme as ThemeChoice);
-      return Story();
+      // The app loads the animation features lazily (App.tsx); a story has them from the start.
+      return <LazyMotion features={domMax} strict><Story /></LazyMotion>;
     },
   ],
 };

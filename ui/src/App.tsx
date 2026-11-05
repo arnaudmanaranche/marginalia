@@ -201,7 +201,7 @@ export function App() {
       <div className="flex">
         <main className="min-w-0 flex-1">
       {slug === SETTINGS_ROUTE ? (
-        <SettingsPage settings={data?.settings ?? null} defaults={data?.settingsDefaults ?? null} projects={projects?.length ?? 1} />
+        <SettingsPage settings={data?.settings ?? null} defaults={data?.settingsDefaults ?? null} projects={projects ?? []} />
       ) : slug === APPROVALS_ROUTE ? (
         <ApprovalsView onOpen={go} />
       ) : contextKeyOf(slug) ? (
