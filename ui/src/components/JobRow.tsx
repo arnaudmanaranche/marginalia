@@ -1,25 +1,21 @@
-import { CircleCheck, CircleSlash, Loader2, TriangleAlert } from 'lucide-react';
 import type { Job } from '../lib/api';
 import { WHAT, durationOf, routeOf, stateOf, targetOf, type JobTone } from '../lib/jobs';
 import { cn, timeAgo } from '../lib/utils';
+import { Elapsed } from './ds/Elapsed';
+import { StatusMark, type MarkState } from './ds/StatusMark';
 
-// How each state is double-coded: an icon and a word, the colour backing them up.
-const TONE: Record<JobTone, { icon: typeof CircleCheck; className: string }> = {
-  running: { icon: Loader2, className: 'text-blue-600 dark:text-blue-400' },
-  done: { icon: CircleCheck, className: 'text-emerald-600 dark:text-emerald-400' },
-  failed: { icon: TriangleAlert, className: 'text-red-600 dark:text-red-400' },
-  skipped: { icon: CircleSlash, className: 'text-fg-muted' },
-};
+// Each job state as the design system's mark: the word beside it is the second code.
+const MARK: Record<JobTone, MarkState> = { running: 'running', done: 'done', failed: 'failed', skipped: 'skipped' };
+const TEXT: Record<JobTone, string> = { running: 'text-run', done: 'text-ok', failed: 'text-fail', skipped: 'text-fg-muted' };
 
 // One job of the factory: what ran, on what, how it stands, when, how long and what it cost. A job
 // opens what it was about (the review with its run's steps, or the project's context); a failed one says why.
 export function JobRow({ job, showProject, onOpen }: { job: Job; showProject: boolean; onOpen: (slug: string) => void }) {
   const state = stateOf(job);
-  const { icon: Icon, className } = TONE[state.tone];
   const body = (
     <>
-      <span className={cn('flex w-32 shrink-0 items-center gap-2 text-sm sm:w-48', className)}>
-        <Icon aria-hidden className={cn('size-4 shrink-0 self-start mt-0.5', state.tone === 'running' && 'animate-spin motion-reduce:animate-pulse')} />
+      <span className={cn('flex w-32 shrink-0 items-start gap-2 text-sm sm:w-48', TEXT[state.tone])}>
+        <span className="mt-0.5"><StatusMark state={MARK[state.tone]} label={state.label} /></span>
         {/* A failure says why in full, on two lines at most; the raw error is in the tooltip. */}
         <span className="line-clamp-2 leading-snug" title={job.error ?? state.label}>{state.label}</span>
       </span>
@@ -30,7 +26,7 @@ export function JobRow({ job, showProject, onOpen }: { job: Job; showProject: bo
         </span>
       </span>
       <span className="hidden w-24 shrink-0 text-right text-xs text-fg-muted sm:block" title={new Date(job.startedAt).toLocaleString()}>{timeAgo(job.startedAt)}</span>
-      <span className="hidden w-16 shrink-0 text-right text-xs tabular-nums text-fg-muted sm:block">{durationOf(job)}</span>
+      <span className="hidden w-16 shrink-0 text-right text-xs tabular-nums text-fg-muted sm:block">{job.outcome === 'running' ? <Elapsed from={job.startedAt} /> : durationOf(job)}</span>
       <span className="w-14 shrink-0 text-right text-xs tabular-nums text-fg-muted">{job.cost ? `$${job.cost.usd.toFixed(2)}` : '–'}</span>
     </>
   );

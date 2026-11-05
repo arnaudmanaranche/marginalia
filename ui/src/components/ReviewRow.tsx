@@ -5,6 +5,7 @@ import { cn, timeAgo } from '../lib/utils';
 import { Badge } from './ui/Badge';
 import { RiskBadge } from './RiskBadge';
 import { VerdictBadge } from './VerdictBadge';
+import { LivePill } from './ds/LivePill';
 
 // Where I stand on the MR, from GitLab (see standingOf), when it says more than the group the row
 // sits in: "Review requested" is what "Needs your first review" means, "You commented" what
@@ -41,11 +42,11 @@ export function ReviewRow({ item, unread, reviewing = false, arrived = false, sh
       <span className={unread ? 'size-2 shrink-0 rounded-full bg-blue-500' : 'size-2 shrink-0'} aria-hidden />
       <a href={`#/${item.slug}`} className="min-w-0 flex-1 basis-64 truncate font-medium hover:underline">{title}</a>
       {arrived && <Badge tone="info">New</Badge>}
-      {reviewing && <Badge tone="info" className="animate-pulse motion-reduce:animate-none">Reviewing…</Badge>}
-      {!reviewing && item.awaiting === 'queued' && <Badge tone="neutral" title="The bot reviews it in this poll: open it to follow the run">Queued</Badge>}
+      {reviewing && <LivePill tone="run" label="Reviewing" live title="Open it to follow the run" />}
+      {!reviewing && item.awaiting === 'queued' && <LivePill tone="idle" label="Queued" title="The bot reviews it in this poll: open it to follow the run" />}
       {!reviewing && item.awaiting === 'failed' && (item.failure?.transient
-        ? <Badge tone="warning" title={`${item.failure.title}. It is tried again on its own in a few minutes.`}>Retrying soon</Badge>
-        : <Badge tone="danger" title={`${item.failure?.title ?? 'The first review failed'}: open it to see why. It is tried again on the next poll.`}>Review failed</Badge>)}
+        ? <LivePill tone="warn" label="Retrying soon" title={`${item.failure.title}. It is tried again on its own in a few minutes.`} />
+        : <LivePill tone="fail" label="Review failed" title={`${item.failure?.title ?? 'The first review failed'}: open it to see why. It is tried again on the next poll.`} />)}
       {showProject && <Badge tone="neutral" title="Project">{item.project}</Badge>}
       {(item.critical > 0 || item.important > 0) && (
         <span className="flex gap-2 text-xs tabular-nums">

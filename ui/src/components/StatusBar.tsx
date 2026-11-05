@@ -1,40 +1,30 @@
-import { Command, Loader2, RefreshCw, Eye, TriangleAlert, Power, ShieldCheck, Settings, History, Inbox } from 'lucide-react';
+import { Command, Settings, History, Inbox } from 'lucide-react';
+import { LivePill } from './ds/LivePill';
 import type { BotStatus } from '../lib/api';
 import { inTime, timeAgo } from '../lib/utils';
 import { AccountMenu } from './AccountMenu';
 import { Logo } from './Logo';
 
 function BotState({ status, connection }: { status: BotStatus | null; connection: 'connecting' | 'unreachable' | 'ok' }) {
-  if (connection === 'unreachable') {
-    return <span className="flex items-center gap-1.5 text-amber-700 dark:text-amber-300"><TriangleAlert className="size-4" />Cannot reach the studio · retrying</span>;
-  }
-  if (connection === 'connecting') {
-    return <span className="flex items-center gap-1.5 text-fg-muted"><Loader2 className="size-4 animate-spin motion-reduce:animate-pulse" />Connecting…</span>;
-  }
-  if (!status || status.phase === 'stopped') {
-    return <span className="flex items-center gap-1.5 text-fg-muted"><Power className="size-4" />Bot stopped</span>;
-  }
+  if (connection === 'unreachable') return <LivePill tone="warn" label="Cannot reach the studio" detail="retrying" live />;
+  if (connection === 'connecting') return <LivePill tone="idle" label="Connecting" live />;
+  if (!status || status.phase === 'stopped') return <LivePill tone="idle" label="Bot stopped" />;
   if (status.phase === 'reviewing' && status.current) {
     // The bot's latest step, as it happens: a passing line, gone with the run.
     const step = status.current.progress?.at(-1);
+    const what = status.current.iid != null ? `!${status.current.iid}` : status.current.title;
     return (
-      <span className="flex min-w-0 items-center gap-1.5 text-blue-600 dark:text-blue-400">
-        <Eye className="size-4 shrink-0" />Reviewing !{status.current.iid}
-        <Loader2 className="size-3.5 shrink-0 animate-spin motion-reduce:animate-pulse" />
-        {step && <span key={step} aria-live="polite" title={step} className="hidden min-w-0 max-w-[36ch] truncate text-xs text-fg-muted motion-safe:animate-[fade-in_200ms_ease-out] md:inline">{step}</span>}
+      <span className="flex min-w-0 items-center gap-2">
+        <LivePill tone="run" label={`Reviewing ${what}`} live className="shrink-0" />
+        {step && <span key={step} aria-live="polite" title={step} className="hidden min-w-0 max-w-[40ch] truncate text-xs text-fg-muted motion-safe:animate-[fade-in_200ms_ease-out] md:inline">{step}</span>}
       </span>
     );
   }
-  if (status.phase === 'polling') {
-    return <span className="flex items-center gap-1.5"><RefreshCw className="size-4 animate-spin motion-reduce:animate-pulse" />Polling…</span>;
-  }
-  if (status.phase === 'error') {
-    return <span className="flex items-center gap-1.5 text-red-600 dark:text-red-400"><TriangleAlert className="size-4" />Last poll failed</span>;
-  }
+  if (status.phase === 'polling') return <LivePill tone="run" label="Polling" live />;
+  if (status.phase === 'error') return <LivePill tone="fail" label="Last poll failed" />;
   return (
-    <span className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400">
-      <ShieldCheck className="size-4" />Idle
-      {status.nextPollAt && <span className="hidden text-fg-muted sm:inline" title={status.lastPoll ? `Last poll ${timeAgo(status.lastPoll.at)}` : undefined}>· next poll {inTime(status.nextPollAt)}</span>}
+    <span title={status.lastPoll ? `Last poll ${timeAgo(status.lastPoll.at)}` : undefined}>
+      <LivePill tone="ok" label="Idle" detail={status.nextPollAt ? <span className="hidden sm:inline">next poll {inTime(status.nextPollAt)}</span> : undefined} />
     </span>
   );
 }
