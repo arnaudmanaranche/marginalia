@@ -2,6 +2,7 @@ import { writeFile, rename } from 'node:fs/promises';
 import { STATUS_FILE } from './config.ts';
 import { PROJECTS } from './projects.ts';
 import { logger } from './logger.ts';
+import { carryOver, readPrevious } from './status-seed.ts';
 
 // What the menu bar plugin shows. Kept in memory and flushed to status.json
 // after every change.
@@ -13,7 +14,8 @@ export const status = {
   lastPoll: null as { at: string; ok: boolean; error: string | null } | null,
   nextPollAt: null as string | null,
   projects: PROJECTS.map((p: any) => ({ key: p.key, kind: p.kind, reviewsDir: p.reviewsDir })),
-  mrs: [] as any[],
+  // The last known entries until the first pass sets each project's own (status-seed.ts).
+  mrs: carryOver(readPrevious(STATUS_FILE), PROJECTS.map((p: any) => p.key)) as any[],
 };
 
 let statusWrite = Promise.resolve();
