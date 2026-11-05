@@ -1,6 +1,6 @@
 import { CircleCheck, CircleSlash, Loader2, TriangleAlert } from 'lucide-react';
 import type { Job } from '../lib/api';
-import { WHAT, durationOf, opensReview, stateOf, targetOf, type JobTone } from '../lib/jobs';
+import { WHAT, durationOf, routeOf, stateOf, targetOf, type JobTone } from '../lib/jobs';
 import { cn, timeAgo } from '../lib/utils';
 
 // How each state is double-coded: an icon and a word, the colour backing them up.
@@ -12,7 +12,7 @@ const TONE: Record<JobTone, { icon: typeof CircleCheck; className: string }> = {
 };
 
 // One job of the factory: what ran, on what, how it stands, when, how long and what it cost. A job
-// about a review opens it, where the run's steps are; a failed one says why.
+// opens what it was about (the review with its run's steps, or the project's context); a failed one says why.
 export function JobRow({ job, showProject, onOpen }: { job: Job; showProject: boolean; onOpen: (slug: string) => void }) {
   const state = stateOf(job);
   const { icon: Icon, className } = TONE[state.tone];
@@ -33,12 +33,9 @@ export function JobRow({ job, showProject, onOpen }: { job: Job; showProject: bo
       <span className="w-14 shrink-0 text-right text-xs tabular-nums text-fg-muted">{job.cost ? `$${job.cost.usd.toFixed(2)}` : '–'}</span>
     </>
   );
-  const row = 'flex w-full items-center gap-4 px-4 py-2.5 text-left';
   return (
     <li>
-      {opensReview(job)
-        ? <button type="button" onClick={() => onOpen(job.slug)} className={cn(row, 'touch-target hover:bg-zinc-50 dark:hover:bg-zinc-800/60')}>{body}</button>
-        : <div className={row}>{body}</div>}
+      <button type="button" onClick={() => onOpen(routeOf(job))} className="touch-target flex w-full items-center gap-4 px-4 py-2.5 text-left hover:bg-zinc-50 dark:hover:bg-zinc-800/60">{body}</button>
     </li>
   );
 }

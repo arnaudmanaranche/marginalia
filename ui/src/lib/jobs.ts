@@ -1,4 +1,5 @@
 import type { Job } from './api';
+import { contextRoute } from './contextApi';
 
 // How a job reads in the list: what ran, how it stands, and how long it took. Pure.
 
@@ -35,5 +36,5 @@ export function durationOf(job: Job, now = Date.now()): string {
   return s < 60 ? `${s}s` : s < 3600 ? `${Math.floor(s / 60)}m ${String(s % 60).padStart(2, '0')}s` : `${Math.floor(s / 3600)}h ${Math.floor((s % 3600) / 60)}m`;
 }
 
-// A job about a review opens it; learning the project has no review to open.
-export const opensReview = (job: Job) => job.what !== 'understand';
+// Where a job leads: the review it was about, or the project's context it learned.
+export const routeOf = (job: Job) => (job.what === 'understand' ? contextRoute(job.project) : job.slug);

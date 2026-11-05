@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Job } from './api';
-import { durationOf, opensReview, stateOf, targetOf } from './jobs';
+import { durationOf, routeOf, stateOf, targetOf } from './jobs';
 
 const job = (over: Partial<Job> = {}): Job => ({
   id: 'x', slug: 'webapp/own-feat-a', project: 'webapp', iid: null, kind: 'review', command: '/code-review',
@@ -21,8 +21,8 @@ describe('a job in the list', () => {
     expect(durationOf(job())).toBe('1m 05s');
     expect(durationOf(job({ endedAt: null }), Date.parse('2026-11-05T10:00:09.000Z'))).toBe('9s');
   });
-  it('opens the review it was about; learning the project opens nothing', () => {
-    expect(opensReview(job())).toBe(true);
-    expect(opensReview(job({ what: 'understand' }))).toBe(false);
+  it('leads to the review it was about, or to the context it learned', () => {
+    expect(routeOf(job())).toBe('webapp/own-feat-a');
+    expect(routeOf(job({ what: 'understand' }))).toBe('context:webapp');
   });
 });

@@ -22,6 +22,8 @@ const ReviewReader = lazy(() => loadReader().then((m) => ({ default: m.ReviewRea
 import { CommandPalette } from './components/CommandPalette';
 import { SettingsPage } from './components/SettingsPage';
 import { JobsView } from './components/JobsPage';
+import { ProjectView } from './components/ProjectPage';
+import { contextKeyOf, contextRoute, useContexts, waitsForApproval } from './lib/contextApi';
 import { StackBoard } from './components/StackBoard';
 import { ReviewMissing, ReviewSkeleton } from './components/ReviewSkeleton';
 
@@ -149,11 +151,12 @@ export function App() {
   const isPosted = (i: ReviewItem) => Object.keys(posted).some((k) => k.startsWith(`${i.slug}:`));
   const current = items.find((i) => i.slug === slug);
   const stack = current?.stackId ? data?.stacks.find((s) => s.id === current.stackId) : undefined;
-  const { content: review, error: reviewError, retry: retryReview } = useReview(slug === SETTINGS_ROUTE || slug === JOBS_ROUTE ? null : slug, current?.reviewedAt);
+  const { content: review, error: reviewError, retry: retryReview } = useReview(slug === SETTINGS_ROUTE || slug === JOBS_ROUTE || contextKeyOf(slug) ? null : slug, current?.reviewedAt);
 
   const { isUnread } = useSeen(current);
   const projects = data?.projects;
   const several = hasSeveralProjects(projects);
+  const pendingContexts = useContexts().filter(waitsForApproval);
   const filter = activeFilter(projectFilter, projects);
   const shown = useMemo(() => filterByProject(items, filter, projects), [items, filter, projects]);
   const groups = useHomeGroups(shown);
@@ -198,6 +201,8 @@ export function App() {
         <SettingsPage settings={data?.settings ?? null} defaults={data?.settingsDefaults ?? null} projects={projects?.length ?? 1} />
       ) : slug === JOBS_ROUTE ? (
         <JobsView showProject={several} onOpen={go} />
+      ) : contextKeyOf(slug) ? (
+        <ProjectView key={slug} projectKey={contextKeyOf(slug)!} />
       ) : slug ? (
         <>
         {stack && current && <StackBoard stack={stack} items={items} current={current} isPosted={isPosted} onSelect={go} />}
@@ -214,6 +219,9 @@ export function App() {
             {data && (waiting > 0 ? `${waiting} waiting on you.` : 'Nothing is waiting on you.')}
             {data && !data.allowPosting && ' Reviews are read-only; on your own MRs you can still reply and push.'}
           </p>
+          {pendingContexts.map((c) => (
+            <p key={c.project} className="mt-1 text-sm"><a href={`#/${contextRoute(c.project)}`} className="text-blue-600 underline-offset-2 hover:underline dark:text-blue-400">A new context for {c.project} waits for your approval.</a></p>
+          ))}
 
           {several && <ProjectFilter options={filterOptions(projects)} value={filter} onChange={setProjectFilter} />}
 
