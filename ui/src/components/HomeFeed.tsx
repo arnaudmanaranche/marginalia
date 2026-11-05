@@ -17,8 +17,9 @@ const list = 'divide-y divide-line overflow-hidden rounded-xl border border-line
 
 // Home (ADR 0007): what needs you, what runs now, what happened. Everything waiting on a person comes
 // first in one list; the jobs follow, live, then the line's measure and every job by day.
-export function HomeFeed({ items, isUnread, isReviewing, isNew, showProject, onOpen, filter }: {
-  items: ReviewItem[]; isUnread: (i: ReviewItem) => boolean; isReviewing: (i: ReviewItem) => boolean; isNew: (i: ReviewItem) => boolean;
+// `loaded`: the reviews have arrived. Before that nothing is claimed: no count, a quiet skeleton.
+export function HomeFeed({ loaded, items, isUnread, isReviewing, isNew, showProject, onOpen, filter }: {
+  loaded: boolean; items: ReviewItem[]; isUnread: (i: ReviewItem) => boolean; isReviewing: (i: ReviewItem) => boolean; isNew: (i: ReviewItem) => boolean;
   showProject: boolean; onOpen: (route: string | null) => void; filter?: React.ReactNode;
 }) {
   const { jobs } = useJobs();
@@ -29,6 +30,14 @@ export function HomeFeed({ items, isUnread, isReviewing, isNew, showProject, onO
   const failures = jobs ? failuresNeedingYou(jobs) : [];
   const running = jobs ? runningNow(jobs) : [];
   const count = reviews.length + failures.length + drafts.length + (proposals > 0 ? 1 : 0);
+  if (!loaded) {
+    return (
+      <div aria-busy="true" aria-label="Loading Home" className="mx-auto max-w-7xl px-6 py-8">
+        <div className="h-9 w-64 animate-pulse rounded-lg bg-sunken motion-reduce:animate-none" />
+        <div className="mt-8 h-48 animate-pulse rounded-xl border border-line motion-reduce:animate-none" />
+      </div>
+    );
+  }
   return (
     <div className="mx-auto max-w-7xl px-6 py-8">
       <h1 className="text-3xl font-semibold tracking-tight">{count === 0 ? 'Nothing needs you' : `${count} thing${count > 1 ? 's' : ''} need${count > 1 ? '' : 's'} you`}</h1>

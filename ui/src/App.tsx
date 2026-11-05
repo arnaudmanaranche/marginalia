@@ -215,7 +215,7 @@ export function App() {
         </>
       ) : (
         <HomeFeed
-          items={shown} isUnread={isUnread} isReviewing={isReviewing} isNew={isNew} showProject={several} onOpen={go}
+          loaded={Boolean(data)} items={shown} isUnread={isUnread} isReviewing={isReviewing} isNew={isNew} showProject={several} onOpen={go}
           filter={several ? <ProjectFilter options={filterOptions(projects)} value={filter} onChange={setProjectFilter} /> : undefined}
         />
       )}
