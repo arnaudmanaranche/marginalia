@@ -1,4 +1,5 @@
-import { Approvals, DismissRequest, Ok } from '@worldia/marginalia-contract';
+import { Approvals, DismissRequest, LineMetrics, Ok } from '@worldia/marginalia-contract';
+import { gatherLineMetrics } from '../line-metrics-data.ts';
 import { ALLOW_POSTING, GITLAB_USERNAME } from '../config.ts';
 import { listProposals } from '../approvals.ts';
 import { dismissFinding, dismissedKeys, restoreFinding } from '../dismissed-store.ts';
@@ -20,6 +21,15 @@ export function approvalRoutes(app: any) {
     const status = await readStatus();
     const proposals = await listProposals({ projects: visibleProjects(), mrs: status?.mrs ?? [], posted: posted.all(), dismissed: dismissedKeys(getDb()) });
     return c.json({ proposals, canPost: Boolean(currentScope()) || ALLOW_POSTING === 'true' }, 200);
+  });
+
+  app.openapi(route({
+    method: 'get', path: '/api/lines/review/metrics', tags: ['Runs'], operationId: 'reviewLineMetrics',
+    summary: 'The review line over the last 4 weeks', description: 'Jobs, failures, cost, and what people did with the proposed comments.',
+    responses: { 200: jsonOf(LineMetrics, 'The measure.') }, errors: [],
+  }), async (c: any) => {
+    const status = await readStatus();
+    return c.json(await gatherLineMetrics({ projects: visibleProjects(), mrs: status?.mrs ?? [], postedEntries: posted.entries(), posted: posted.all(), db: getDb() }), 200);
   });
 
   app.openapi(route({
