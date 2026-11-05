@@ -45,6 +45,8 @@ export const BotStatus = z.object({
   pid: z.number().int(),
   phase: z.enum(['idle', 'polling', 'reviewing', 'error', 'stopped']),
   current: nullable(z.object({ project: z.string().optional(), iid: z.number().int().nullable(), title: z.string(), startedAt: z.string(), progress: z.array(z.string()).optional(), runId: z.string().optional(), slug: ReviewId.optional(), stages: z.array(LiveStage).optional(), stepCount: z.number().int().optional() })),
+  running: z.array(z.object({ project: z.string().optional(), iid: z.union([z.number().int(), z.string()]).nullable(), title: z.string(), startedAt: z.string() }).passthrough()).optional()
+    .describe('Every MR under review now, one per project at most; `current` is the one that started last.'),
   lastPoll: nullable(z.object({ at: z.string(), ok: z.boolean(), error: nullable(z.string()) })),
   nextPollAt: nullable(z.string()),
   mrs: z.array(z.object({ project: z.string().optional(), iid: z.number().int().nullable(), status: z.string(), reviewPath: nullable(z.string()).optional() }).passthrough()).optional(),

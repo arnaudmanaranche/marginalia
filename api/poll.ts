@@ -8,7 +8,7 @@ import { startStudio } from './src/http/server.ts';
 import { isFancyTerminal, c } from './src/log.ts';
 import { logger } from './src/logger.ts';
 import { RETRY_AFTER_MS, failureKind } from './src/failure-kind.ts';
-import { status, statusSink, writeStatus } from './src/status.ts';
+import { settlePhase, status, statusSink, writeStatus } from './src/status.ts';
 import { notify } from './src/notify.ts';
 import { ensureBotWorktree } from './src/worktree.ts';
 import { passOver } from './src/poll-pass.ts';
@@ -23,24 +23,12 @@ import { failureTitleOf, mentionDeps } from './src/mention-deps.ts';
 // A failure that passes by itself (GitLab unreachable, Claude overloaded) brings the next poll closer.
 let retrySoon = false;
 
-// One project after the other: a project's bot worktree is never shared by two runs.
-async function poll() {
-  logger.info('Polling open MRs...');
-  status.phase = 'polling';
-  await writeStatus();
-  const failures: string[] = [];
-  for (const project of PROJECTS) {
-    try {
-      if ((await passOver(project, passDeps, statusSink)).retrySoon) retrySoon = true;
-      // After the pass, so a mention is answered with the review the pass just made available.
-      await intakePass(project, mentionDeps, failureTitleOf);
-    } catch (err) {
-      logger.error({ project: project.key, err }, 'Poll failed');
-      failures.push(`${project.key}: ${(err as Error).message}`);
-    }
-  }
-  if (failures.length) throw new Error(failures.join('; '));
-  logger.info(`Poll done. Next one in ${loadSettings().pollIntervalMinutes} minute(s).`);
+// One project's pass, then its mentions: after the pass, so a mention is answered with the review
+// the pass just made available. Runs in the project's lane of the queue: a project's bot worktree
+// is never shared by two runs, two projects run side by side.
+async function pollProject(project: any) {
+  if ((await passOver(project, passDeps, statusSink)).retrySoon) retrySoon = true;
+  await intakePass(project, mentionDeps, failureTitleOf);
 }
 
 const BANNER = [
@@ -60,50 +48,56 @@ function printBanner() {
 let pollTimer: ReturnType<typeof setTimeout> | undefined;
 let isPolling = false;
 
-botQueue.handle('poll', async () => {
-  isPolling = true;
-  try {
-    await poll();
-  } finally {
-    isPolling = false;
-  }
+const projectOf = (key: string) => {
+  const project = PROJECTS.find((p: any) => p.key === key);
+  if (!project) throw new Error(`No project "${key}" any more`);
+  return project;
+};
+
+// A poll task of one project; one with no project (queued before lanes existed) polls them all.
+botQueue.handle('poll', async ({ project: key = null } = {}) => {
+  if (key !== null) return pollProject(projectOf(key));
+  for (const project of PROJECTS) await pollProject(project);
 });
 
 // "Review again" (rerun.ts): forget the MR's recorded head, then pass over its project alone.
 botQueue.handle('rerun', async (target) => {
-  const project = PROJECTS.find((p: any) => p.key === target.project);
-  if (!project) throw new Error(`No project "${target.project}" any more`);
+  const project = projectOf(target.project);
   await saveState(project, forget(await loadState(project), target));
-  status.phase = 'polling';
-  await writeStatus();
-  try {
-    if ((await passOver(project, passDeps, statusSink)).retrySoon) retrySoon = true;
-  } finally {
-    status.phase = 'idle';
-    status.current = null;
-    await writeStatus();
-  }
+  if ((await passOver(project, passDeps, statusSink)).retrySoon) retrySoon = true;
 });
 
-// A poll is a task of the queue, behind what a person asked for. A poll asked while one waits joins
-// it; asked while one runs, it waits behind it. The next one is only scheduled once this one is
-// over: a review can take longer than the poll interval.
+// The phase follows the queue: what runs, and whether the last poll failed.
+botQueue.onChange(() => {
+  settlePhase(botQueue.running);
+  void writeStatus();
+});
+
+// A poll is one task per project, behind what a person asked for. A project's poll asked while one
+// waits joins it; asked while one runs, it waits behind it. The next poll is only scheduled once
+// every project's is over: a review can take longer than the poll interval.
 async function runPoll() {
   clearTimeout(pollTimer);
+  isPolling = true;
+  logger.info(`Polling the open MRs of ${PROJECTS.length} project(s)...`);
   try {
-    await botQueue.enqueue({ kind: 'poll', label: 'Poll the open MRs', dedupe: 'poll' });
-    status.phase = 'idle';
+    const results = await Promise.allSettled(PROJECTS.map((p: any) => botQueue.enqueue({
+      kind: 'poll', project: p.key, label: `Poll ${p.key}`, payload: { project: p.key }, dedupe: `poll:${p.key}`,
+    })));
+    const failures = results.flatMap((r, i) => (r.status === 'rejected' ? [`${PROJECTS[i].key}: ${(r.reason as Error)?.message ?? r.reason}`] : []));
+    if (failures.length) throw new Error(failures.join('; '));
     status.lastPoll = { at: new Date().toISOString(), ok: true, error: null };
+    logger.info(`Poll done. Next one in ${loadSettings().pollIntervalMinutes} minute(s).`);
   } catch (err) {
     logger.error({ err }, 'Poll failed');
     const failure = failureKind(err.message);
     if (failure.transient) retrySoon = true;
     // Only notify on the ok -> error transition, not on every failed poll, nor for a passing outage.
     else if (status.lastPoll?.ok !== false) notify('Marginalia error', err.message);
-    status.phase = 'error';
     status.lastPoll = { at: new Date().toISOString(), ok: false, error: err.message };
   } finally {
-    status.current = null;
+    isPolling = false;
+    settlePhase(botQueue.running);
     scheduleNextPoll(Date.now());
     await writeStatus();
   }
@@ -145,6 +139,7 @@ async function shutdown() {
   clearTimeout(pollTimer);
   status.phase = 'stopped';
   status.current = null;
+  status.running = [];
   status.nextPollAt = null;
   await writeStatus();
   process.exit(0);

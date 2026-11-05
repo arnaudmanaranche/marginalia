@@ -1,7 +1,7 @@
 import { basename } from 'node:path';
 import { logger } from './logger.ts';
 import { reviewId } from './review-id.ts';
-import { status, writeStatus } from './status.ts';
+import { liveEntryOf, writeStatus } from './status.ts';
 import { openTranscript, pruneTraces, runId, saveTrace } from './run-journal.ts';
 import { addStep, beginStage, endStage, enterStage, finishTrace, liveSummary, planStages, startTrace } from './run-trace.ts';
 
@@ -31,8 +31,9 @@ export async function followRun(mr: any, { kind, command, outputPath, plan }: an
   const flush = async () => {
     if (timer) clearTimeout(timer);
     timer = null;
-    if (status.current && String(status.current.iid) === String(mr.iid) && status.current.project === mr.project.key) {
-      Object.assign(status.current, liveSummary(trace));
+    const live = liveEntryOf(mr);
+    if (live) {
+      Object.assign(live, liveSummary(trace));
       void writeStatus();
     }
     saving = saving.then(() => saveTrace(trace)).catch((err) => logger.warn({ err }, 'Could not save the run trace'));

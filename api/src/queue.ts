@@ -3,8 +3,8 @@ import { afterRestart, nextTask, waitingTwin, type Priority, type Task } from '.
 import { insertTask, openTasks, pruneFinished, updateTask } from './queue-store.ts';
 
 // The bot's queue (GLOSSARY: Queue, Task): every task waits in the database, so a restart loses
-// nothing, and one worker takes them in turn (queue-plan.ts says which). One worker because the
-// tasks share each project's bot worktree. The database comes in as a function, opened on first use.
+// nothing, and up to `workers` run at once, one per project (queue-plan.ts says which goes next).
+// The database comes in as a function, opened on first use.
 
 export interface TaskRequest {
   kind: string;
@@ -17,12 +17,12 @@ export interface TaskRequest {
 
 type Handler = (payload: any, task: Task) => Promise<unknown>;
 
-export function createQueue({ db, now = () => new Date().toISOString(), newId = () => randomUUID() }: { db: () => any; now?: () => string; newId?: () => string }) {
+export function createQueue({ db, workers = 1, now = () => new Date().toISOString(), newId = () => randomUUID() }: { db: () => any; workers?: number; now?: () => string; newId?: () => string }) {
   const handlers = new Map<string, Handler>();
   const waiters = new Map<string, { resolve: (v: unknown) => void; reject: (e: unknown) => void }[]>();
   const listeners = new Set<() => void>();
   let started = false;
-  let draining = false;
+  let running = 0;
 
   const changed = () => listeners.forEach((fn) => { try { fn(); } catch { /* a listener never stops the line */ } });
   const settle = (id: string, ok: boolean, value: unknown) => {
@@ -33,8 +33,10 @@ export function createQueue({ db, now = () => new Date().toISOString(), newId = 
     waiters.set(id, [...(waiters.get(id) ?? []), { resolve, reject }]);
   });
 
+  // Marks the task running before its first await, so the next call to pump() sees its lane busy.
   async function runTask(task: Task) {
     updateTask(db(), task.id, { status: 'running', startedAt: now(), error: null });
+    running += 1;
     changed();
     const handler = handlers.get(task.kind);
     try {
@@ -46,18 +48,16 @@ export function createQueue({ db, now = () => new Date().toISOString(), newId = 
       updateTask(db(), task.id, { status: 'failed', endedAt: now(), error: String((err as Error)?.message ?? err).slice(0, 500) });
       settle(task.id, false, err);
     }
+    running -= 1;
     pruneFinished(db());
     changed();
+    pump();
   }
 
-  async function drain() {
-    if (!started || draining) return;
-    draining = true;
-    try {
-      for (let task = nextTask(openTasks(db())); task; task = nextTask(openTasks(db()))) await runTask(task);
-    } finally {
-      draining = false;
-    }
+  // Starts every task that may start now; each one that ends calls it again.
+  function pump() {
+    if (!started) return;
+    for (let task = nextTask(openTasks(db()), workers); task; task = nextTask(openTasks(db()), workers)) void runTask(task);
   }
 
   return {
@@ -78,7 +78,7 @@ export function createQueue({ db, now = () => new Date().toISOString(), newId = 
       insertTask(db(), task);
       const done = wait(task.id);
       changed();
-      void drain();
+      pump();
       return done as Promise<T>;
     },
     // Tasks a stopped process left running are queued again (or failed), then the line starts.
@@ -87,15 +87,17 @@ export function createQueue({ db, now = () => new Date().toISOString(), newId = 
       for (const task of openTasks(db()).filter((t) => t.status === 'running')) updateTask(db(), task.id, afterRestart(task, now()));
       started = true;
       changed();
-      void drain();
+      pump();
     },
     onChange(fn: () => void) {
       listeners.add(fn);
       return () => listeners.delete(fn);
     },
-    get busy() {
-      return draining;
+    // How many tasks run right now, and how many may.
+    get running() {
+      return running;
     },
+    workers,
   };
 }
 

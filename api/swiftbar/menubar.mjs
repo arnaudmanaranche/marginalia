@@ -106,7 +106,8 @@ if (!alive) {
 } else if (status.phase === 'error') {
   lines.push('| sfimage=exclamationmark.triangle.fill sfcolor=red');
 } else if (status.phase === 'reviewing' && status.current) {
-  lines.push(`!${status.current.iid} | sfimage=eye`);
+  const others = (status.running?.length ?? 1) - 1;
+  lines.push(`!${status.current.iid}${others > 0 ? ` +${others}` : ''} | sfimage=eye`);
 } else if (status.phase === 'polling') {
   lines.push('| sfimage=arrow.triangle.2.circlepath');
 } else if (failedCount > 0) {
@@ -124,8 +125,11 @@ if (!status) {
   if (status.lastPoll) lines.push(`Last poll ${ago(status.lastPoll.at)} ago | size=12`);
 } else {
   if (status.phase === 'reviewing' && status.current) {
-    lines.push(`Reviewing !${status.current.iid} for ${ago(status.current.startedAt)}`);
-    lines.push(`${clean(status.current.title)} | size=12 length=70 ${openInChrome(status.current.web_url)}`);
+    // Projects run side by side: one header line per MR under review.
+    for (const run of status.running?.length ? status.running : [status.current]) {
+      lines.push(`Reviewing ${run.project ? `${run.project} ` : ''}!${run.iid} for ${ago(run.startedAt)}`);
+      lines.push(`${clean(run.title)} | size=12 length=70 ${openInChrome(run.web_url)}`);
+    }
   } else if (status.phase === 'polling') {
     lines.push('Polling MRs…');
   } else if (status.phase === 'error') {

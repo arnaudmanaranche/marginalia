@@ -30,7 +30,7 @@ export function queueRoutes(app: any) {
     const db = getDb();
     const tasks = recentTasks(db, limit).filter((t) => t.project === null || seen.has(t.project));
     const jobs = await listJobs(keys, { limit: 200, titles });
-    const current = status?.phase === 'reviewing' ? status.current : null;
-    return c.json(queueView({ tasks, jobs, totals: countFinished(db), now: new Date().toISOString(), current }), 200);
+    const live = status?.running ?? (status?.current ? [status.current] : []);
+    return c.json(queueView({ tasks, jobs, totals: countFinished(db), now: new Date().toISOString(), workers: botQueue.workers, live }), 200);
   });
 }

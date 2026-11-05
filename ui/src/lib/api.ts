@@ -253,10 +253,14 @@ export const pushDoctorFix = (slug: string, runId: string) => postRun(slug, runI
 
 export const startDoctor = (slug: string, runId: string) => postRun(slug, runId, 'doctor');
 
+export interface LiveRun { project?: string; iid: number; title: string; startedAt: string; progress?: string[]; runId?: string; slug?: string; stages?: LiveStage[]; stepCount?: number }
+
 export interface BotStatus {
   pid: number;
   phase: 'idle' | 'polling' | 'reviewing' | 'error' | 'stopped';
-  current: { project?: string; iid: number; title: string; startedAt: string; progress?: string[]; runId?: string; slug?: string; stages?: LiveStage[]; stepCount?: number } | null;
+  current: LiveRun | null;
+  // Every MR under review now, one per project at most; `current` is the one that started last.
+  running?: LiveRun[];
   lastPoll: { at: string; ok: boolean; error: string | null } | null;
   nextPollAt: string | null;
   mrs?: { project?: string; iid: number; status: string; reviewPath?: string | null }[];

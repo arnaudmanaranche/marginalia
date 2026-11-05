@@ -1,5 +1,9 @@
 // The queue's rules on plain values: which task goes next, which one a new request joins, and what
 // a restart does to the task it cut short. No database, no clock: queue.ts brings both.
+//
+// A task's lane is its project: two tasks of one project never run together (they share its bot
+// worktree and state), two of different projects may, up to `workers` at once. A task of no
+// project (a whole poll, from before lanes) runs alone.
 
 export type Priority = 'high' | 'normal';
 export type TaskStatus = 'queued' | 'running' | 'done' | 'failed';
@@ -26,11 +30,16 @@ export const MAX_ATTEMPTS = 2;
 
 const RANK: Record<Priority, number> = { high: 0, normal: 1 };
 
-// A person's request (high) before a poll (normal), then the oldest first.
-export function nextTask(tasks: Task[]): Task | null {
-  const queued = tasks.filter((t) => t.status === 'queued');
-  queued.sort((a, b) => RANK[a.priority] - RANK[b.priority] || a.enqueuedAt.localeCompare(b.enqueuedAt) || a.id.localeCompare(b.id));
-  return queued[0] ?? null;
+const inOrder = (tasks: Task[]) => tasks.filter((t) => t.status === 'queued')
+  .sort((a, b) => RANK[a.priority] - RANK[b.priority] || a.enqueuedAt.localeCompare(b.enqueuedAt) || a.id.localeCompare(b.id));
+
+// The next task that may start now: a person's request (high) before a poll (normal), then the
+// oldest, skipping one whose lane is busy. Null when the workers are all taken or nothing may start.
+export function nextTask(tasks: Task[], workers = 1): Task | null {
+  const running = tasks.filter((t) => t.status === 'running');
+  if (running.length >= workers || running.some((t) => t.project === null)) return null;
+  const busy = new Set(running.map((t) => t.project));
+  return inOrder(tasks).find((t) => (t.project === null ? running.length === 0 : !busy.has(t.project))) ?? null;
 }
 
 // The waiting task a new request with this key joins, or null. A running one is not joined: what
@@ -45,13 +54,6 @@ export function afterRestart(task: Task, now: string): Partial<Task> {
   return { status: 'failed', endedAt: now, error: `Stopped by a restart ${task.attempt} times` };
 }
 
-// Where each task is in line (1 = next), for the queued ones only.
-export function positions(tasks: Task[]): Map<string, number> {
-  const left = [...tasks];
-  const order = new Map<string, number>();
-  for (let t = nextTask(left), n = 1; t; t = nextTask(left), n += 1) {
-    order.set(t.id, n);
-    left.splice(left.indexOf(t), 1);
-  }
-  return order;
-}
+// Where each task is in line (1 = first), for the queued ones only: the order they are taken in
+// when lanes are free.
+export const positions = (tasks: Task[]): Map<string, number> => new Map(inOrder(tasks).map((t, i) => [t.id, i + 1]));

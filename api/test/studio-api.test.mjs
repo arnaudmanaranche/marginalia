@@ -112,5 +112,5 @@ test('the queue lists a waiting task with its place in line, in the shape the AP
   for (const key of required('QueueTask')) assert.ok(key in task, `QueueTask.${key}`);
   assert.equal(task.status, 'queued');
   assert.equal(task.position, 1);
-  assert.deepEqual(body.workers.map((w) => w.taskId), [null]);
+  assert.ok(body.workers.length >= 1 && body.workers.every((w) => w.taskId === null));
 });

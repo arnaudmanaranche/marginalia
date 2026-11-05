@@ -10,7 +10,7 @@ The words below are the only ones the code, the docs and the studio use for thes
 
 **Job**: one execution of a line on one target, an MR or a branch. Starts from a trigger (poll, webhook, mention, click, branch push) and ends with a result, a visible failure, or closed without action. A run is how a job executes.
 
-**Queue**: the bot's waiting line of tasks, kept in its database so a restart loses nothing. One worker takes the next task: what a person asked for (a mention, a click, a project to learn) before a poll, then the oldest.
+**Queue**: the bot's waiting line of tasks, kept in its database so a restart loses nothing. Each project is a lane: its tasks run one at a time, and a few projects run side by side (`QUEUE_WORKERS`). The next task is what a person asked for (a mention, a click, a project to learn) before a poll, then the oldest.
 
 **Task**: one thing asked of the bot, waiting its turn in the queue: a poll, a mention to answer, a project to learn. Running a task starts zero or more jobs. The same request while its task still waits joins it.
 

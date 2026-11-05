@@ -13,9 +13,11 @@ function BotState({ status, connection }: { status: BotStatus | null; connection
     // The bot's latest step, as it happens: a passing line, gone with the run.
     const step = status.current.progress?.at(-1);
     const what = status.current.iid != null ? `!${status.current.iid}` : status.current.title;
+    // Projects run side by side: the latest run is named, the others counted.
+    const others = (status.running?.length ?? 1) - 1;
     return (
       <span className="flex min-w-0 items-center gap-2">
-        <LivePill tone="run" label={`Reviewing ${what}`} live className="shrink-0" />
+        <LivePill tone="run" label={`Reviewing ${what}`} detail={others > 0 ? `+${others}` : undefined} title={status.running?.map((r) => `${r.project ?? ''} !${r.iid} ${r.title}`).join('\n')} live className="shrink-0" />
         {step && <span key={step} aria-live="polite" title={step} className="hidden min-w-0 max-w-[40ch] truncate text-xs text-fg-muted motion-safe:animate-[fade-in_200ms_ease-out] md:inline">{step}</span>}
       </span>
     );

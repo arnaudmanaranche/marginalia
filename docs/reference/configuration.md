@@ -48,6 +48,7 @@ The bot answers `@<bot username>` in an MR comment (`GITLAB_USERNAME` is the acc
 | Variable | Default | Meaning |
 | --- | --- | --- |
 | `MENTION_DAILY_CAP` | `20` | The most runs mentions may start in a UTC day, all projects together. Past it the bot answers that it is at its limit. |
+| `QUEUE_WORKERS` | `2` | How many projects the bot works on at once, each one task at a time (a project's tasks share its bot worktree). Each worker can run Claude, so this is also how many runs may go side by side. |
 
 ### Webhook intake
 

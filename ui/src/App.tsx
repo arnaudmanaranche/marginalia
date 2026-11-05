@@ -22,7 +22,7 @@ import { CommandPalette } from './components/CommandPalette';
 import { SettingsPage } from './components/SettingsPage';
 import { ApprovalsView } from './components/ApprovalsPage';
 import { APPROVALS_ROUTE, useApprovals } from './lib/approvalsApi';
-import { isLiveFor } from './lib/liveRun';
+import { liveRunOf } from './lib/liveRun';
 import { useTheme } from './lib/theme';
 import { ProjectView } from './components/ProjectPage';
 import { contextKeyOf } from './lib/contextApi';
@@ -149,7 +149,7 @@ export function App() {
     return m;
   }, [data]);
   // The bot is reviewing it right now: its row is disabled until the new report is written.
-  const isReviewing = (i: ReviewItem) => botBySlug.get(i.slug) === 'reviewing' || isLiveFor(data?.status?.current, i);
+  const isReviewing = (i: ReviewItem) => botBySlug.get(i.slug) === 'reviewing' || liveRunOf(data?.status, i) !== null;
   const isPosted = (i: ReviewItem) => Object.keys(posted).some((k) => k.startsWith(`${i.slug}:`));
   const current = items.find((i) => i.slug === slug);
   const stack = current?.stackId ? data?.stacks.find((s) => s.id === current.stackId) : undefined;
@@ -211,7 +211,7 @@ export function App() {
         {stack && current && <StackBoard stack={stack} items={items} current={current} isPosted={isPosted} onSelect={go} />}
         {!data ? <ReviewSkeleton /> : !current ? <ReviewMissing /> : (
         <Suspense fallback={<ReviewSkeleton />}>
-        <ReviewReader item={current} review={review} reviewError={reviewError} onRetry={retryReview} projectUrl={data?.projects?.find((p) => p.key === current?.project)?.url ?? data?.projectUrl ?? null} allowPosting={data?.allowPosting ?? false} showFullDiff={data?.settings.showFullDiff ?? true} live={current && isLiveFor(data?.status?.current, current) ? data!.status!.current : null} posted={posted} reload={reload} />
+        <ReviewReader item={current} review={review} reviewError={reviewError} onRetry={retryReview} projectUrl={data?.projects?.find((p) => p.key === current?.project)?.url ?? data?.projectUrl ?? null} allowPosting={data?.allowPosting ?? false} showFullDiff={data?.settings.showFullDiff ?? true} live={current ? liveRunOf(data?.status, current) : null} posted={posted} reload={reload} />
         </Suspense>
         )}
         </>

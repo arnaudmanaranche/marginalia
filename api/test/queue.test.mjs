@@ -18,13 +18,24 @@ const task = (over) => ({ id: 'x', kind: 'poll', project: null, label: 'x', prio
 
 test('a person\'s request goes before a poll, then the oldest first', () => {
   const tasks = [
-    task({ id: 'a', enqueuedAt: '2026-11-05T10:00:00Z' }),
-    task({ id: 'b', enqueuedAt: '2026-11-05T10:01:00Z', priority: 'high' }),
-    task({ id: 'c', enqueuedAt: '2026-11-05T10:02:00Z', priority: 'high' }),
-    task({ id: 'd', status: 'running' }),
+    task({ id: 'a', project: 'app', enqueuedAt: '2026-11-05T10:00:00Z' }),
+    task({ id: 'b', project: 'app', enqueuedAt: '2026-11-05T10:01:00Z', priority: 'high' }),
+    task({ id: 'c', project: 'app', enqueuedAt: '2026-11-05T10:02:00Z', priority: 'high' }),
+    task({ id: 'd', project: 'other', status: 'running' }),
   ];
-  assert.equal(nextTask(tasks).id, 'b');
+  assert.equal(nextTask(tasks, 2).id, 'b');
   assert.deepEqual([...positions(tasks)], [['b', 1], ['c', 2], ['a', 3]]);
+});
+
+test('two projects run side by side up to the workers, one project never twice, a task of none alone', () => {
+  const run = (project) => task({ id: `r-${project}`, project, status: 'running' });
+  const wait = (id, project, priority = 'normal') => task({ id, project, priority, enqueuedAt: `2026-11-05T10:0${id.length}:00Z` });
+  // The high task of a busy project is passed over for the next free lane.
+  assert.equal(nextTask([run('app'), wait('a', 'app', 'high'), wait('bb', 'web')], 2).id, 'bb');
+  assert.equal(nextTask([run('app'), run('web'), wait('c', 'cli')], 2), null);
+  assert.equal(nextTask([run('app'), wait('n', null)], 2), null);
+  assert.equal(nextTask([task({ id: 'all', project: null, status: 'running' }), wait('w', 'web')], 2), null);
+  assert.equal(nextTask([wait('n', null), wait('ww', 'web')], 2).id, 'n');
 });
 
 test('a task cut short by a restart is tried again once, then fails', () => {
@@ -67,6 +78,36 @@ test('a high task waiting jumps the polls waiting, and a twin request joins the 
   release();
   await Promise.all([first, second, third, mention]);
   assert.deepEqual(log, ['poll', 'mention 7', 'poll']);
+});
+
+test('tasks of two projects run at the same time, those of one project in turn', async () => {
+  const db = openDatabase(':memory:');
+  let ids = 0;
+  const queue = createQueue({ db: () => db, workers: 2, newId: () => `t${++ids}` });
+  const log = [];
+  const gates = {};
+  queue.handle('work', async ({ name }) => {
+    log.push(`${name} start`);
+    await new Promise((r) => { gates[name] = r; });
+    log.push(`${name} end`);
+  });
+  queue.start();
+  const a1 = queue.enqueue({ kind: 'work', label: 'a1', project: 'app', payload: { name: 'a1' } });
+  const a2 = queue.enqueue({ kind: 'work', label: 'a2', project: 'app', payload: { name: 'a2' } });
+  const w1 = queue.enqueue({ kind: 'work', label: 'w1', project: 'web', payload: { name: 'w1' } });
+  await new Promise((r) => setImmediate(r));
+  assert.deepEqual(log, ['a1 start', 'w1 start']);
+  assert.equal(queue.running, 2);
+  gates.w1();
+  await w1;
+  assert.deepEqual(log, ['a1 start', 'w1 start', 'w1 end']);
+  gates.a1();
+  await a1;
+  await new Promise((r) => setImmediate(r));
+  gates.a2();
+  await a2;
+  assert.deepEqual(log, ['a1 start', 'w1 start', 'w1 end', 'a1 end', 'a2 start', 'a2 end']);
+  assert.equal(queue.running, 0);
 });
 
 test('tasks wait in the database until the line starts, and a running one left by a restart runs again', async () => {

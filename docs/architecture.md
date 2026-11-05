@@ -60,7 +60,7 @@ The agent sees one merged catalog (name and a one-line "use when" description) a
 
 ## Queue
 
-Every poll, webhook mention, Understand job and "Review again" from the studio (`rerun.ts`) is a task in the `task` table (`api/src/queue.ts`, rules in `queue-plan.ts`, queries in `queue-store.ts`). One worker runs them one at a time, because they share each project's bot worktree: a person's request before a poll, then the oldest. A poll asked while one waits joins it, so "Poll now" and "Review again" never answer that the bot is busy. A task left running by a stopped process is queued again once, then fails. The last 200 finished tasks are kept. The CLI's `marginalia understand` runs its job directly, in its own process.
+Every poll, webhook mention, Understand job and "Review again" from the studio (`rerun.ts`) is a task in the `task` table (`api/src/queue.ts`, rules in `queue-plan.ts`, queries in `queue-store.ts`). Each task belongs to a project, its lane: two tasks of one project never run together, since they share its bot worktree and state, and up to `QUEUE_WORKERS` projects (2 by default) run side by side. A poll is one task per project. The next task is a person's request before a poll, then the oldest. `status.json` lists every MR under review in `running`, one per project; `current` is the latest, for the menu bar. A poll asked while one waits joins it, so "Poll now" and "Review again" never answer that the bot is busy. A task left running by a stopped process is queued again once, then fails. The last 200 finished tasks are kept. The CLI's `marginalia understand` runs its job directly, in its own process.
 
 ## Storage
 

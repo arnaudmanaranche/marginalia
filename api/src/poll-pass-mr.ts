@@ -100,7 +100,7 @@ export async function workOnMr(kind: string, mr: any, ctx: any, pass: any) {
     deps.trackFailure({ mr, kind, command: spec.command(mr), error: err });
     await failed(mr, spec, err, pass);
   } finally {
-    await sink.end();
+    await sink.end(mr);
   }
 }
 

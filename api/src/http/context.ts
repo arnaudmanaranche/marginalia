@@ -25,6 +25,7 @@ export async function readStatus() {
     mrs: (status.mrs ?? []).filter((m: any) => keep.has(m.project)),
     projects: (status.projects ?? []).filter((p: any) => keep.has(p.key)),
     current: status.current && keep.has(status.current.project) ? status.current : null,
+    running: (status.running ?? []).filter((c: any) => keep.has(c.project)),
   };
 }
 

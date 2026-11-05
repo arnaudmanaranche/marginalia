@@ -12,10 +12,11 @@ const job = (id: string, title: string, min: number, cost: number) => ({ slug: `
 
 const busy: QueueView = {
   now: new Date(now).toISOString(),
-  workers: [{ id: 'bot', name: 'Bot', detail: 'webapp !4004 feat(checkout): ask whether a traveler needs assistance', taskId: 'r' }],
+  workers: [{ id: 'w1', name: 'Worker 1', detail: 'webapp !4004 feat(checkout): ask whether a traveler needs assistance', taskId: 'r' }, { id: 'w2', name: 'Worker 2', detail: 'api !88 Learn the project', taskId: 'r2' }],
   totals: { done: 41, failed: 2 },
   tasks: [
-    task({ id: 'r', status: 'running', enqueuedAt: ago(12), startedAt: ago(11), endedAt: null, detail: 'webapp !4004 feat(checkout): ask whether a traveler needs assistance', jobs: [{ ...job('feat-coupons', 'Add coupons', 10, 0.31), outcome: 'reviewed' }, { slug: 'webapp/feat-checkout', id: 'c', outcome: 'running', title: 'feat(checkout): assistance', startedAt: ago(4), endedAt: null, costUsd: null }] }),
+    task({ id: 'r', project: 'webapp', label: 'Poll webapp', status: 'running', enqueuedAt: ago(12), startedAt: ago(11), endedAt: null, detail: 'webapp !4004 feat(checkout): ask whether a traveler needs assistance', jobs: [{ ...job('feat-coupons', 'Add coupons', 10, 0.31), outcome: 'reviewed' }, { slug: 'webapp/feat-checkout', id: 'c', outcome: 'running', title: 'feat(checkout): assistance', startedAt: ago(4), endedAt: null, costUsd: null }] }),
+    task({ id: 'r2', kind: 'understand', project: 'api', label: 'Learn the project', priority: 'high', status: 'running', enqueuedAt: ago(6), startedAt: ago(5), endedAt: null, detail: null }),
     task({ id: 'm', kind: 'mention', project: 'webapp', label: 'Answer a mention on !4012', priority: 'high', status: 'queued', enqueuedAt: ago(3), startedAt: null, endedAt: null, position: 1 }),
     task({ id: 'u', kind: 'understand', project: 'webapp', label: 'Learn the project', priority: 'high', status: 'queued', enqueuedAt: ago(2), startedAt: null, endedAt: null, position: 2, attempt: 2 }),
     task({ id: 'p', status: 'queued', enqueuedAt: ago(1), startedAt: null, endedAt: null, position: 3 }),
@@ -34,5 +35,5 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Busy: Story = {};
-export const Idle: Story = { args: { queue: { ...busy, workers: [{ id: 'bot', name: 'Bot', detail: null, taskId: null }], tasks: busy.tasks.filter((t) => t.status === 'done' || t.status === 'failed') } } };
-export const Empty: Story = { args: { queue: { now: busy.now, workers: [{ id: 'bot', name: 'Bot', detail: null, taskId: null }], tasks: [], totals: { done: 0, failed: 0 } } } };
+export const Idle: Story = { args: { queue: { ...busy, workers: [{ id: 'w1', name: 'Worker 1', detail: null, taskId: null }, { id: 'w2', name: 'Worker 2', detail: null, taskId: null }], tasks: busy.tasks.filter((t) => t.status === 'done' || t.status === 'failed') } } };
+export const Empty: Story = { args: { queue: { now: busy.now, workers: [{ id: 'w1', name: 'Worker 1', detail: null, taskId: null }, { id: 'w2', name: 'Worker 2', detail: null, taskId: null }], tasks: [], totals: { done: 0, failed: 0 } } } };
