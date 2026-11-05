@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { toast } from '../lib/toast';
-import { ExternalLink, GitBranch, Loader2, Upload, Wrench } from 'lucide-react';
+import { ExternalLink, GitBranch, Upload, Wrench } from 'lucide-react';
 import { pushDoctorFix, startDoctorFix, type DoctorFix } from '../lib/api';
 import { Badge } from './ui/Badge';
 import { Button } from './ui/Button';
+import { Spinner } from './ds/Spinner';
 
 // The doctor's fix for a failure that belongs in Marginalia: prepared on a branch of its own with a
 // test, checked by the bot, and pushed only on the person's word. Nothing reaches the running bot
@@ -22,7 +23,7 @@ export function DoctorFixPanel({ slug, runId, fix, source }: { slug: string; run
       setConfirming(false);
     }
   };
-  const spinner = <Loader2 className="size-3.5 animate-spin motion-reduce:animate-pulse" />;
+  const spinner = <Spinner className="size-3.5" />;
   const prepare = (label: string) => (
     <Button size="sm" variant="primary" disabled={busy} onClick={() => act(() => startDoctorFix(slug, runId), 'Could not start the fix')}>
       {busy ? spinner : <Wrench className="size-3.5" />}{label}

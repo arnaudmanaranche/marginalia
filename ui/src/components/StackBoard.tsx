@@ -18,7 +18,7 @@ interface Row {
 
 function VerdictIcon({ item }: { item: ReviewItem | undefined }) {
   if (item?.verdict === 'APPROVE') return <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400" aria-label="Approve" />;
-  if (item?.verdict === 'REQUEST_CHANGES') return <AlertOctagon className="size-4 text-red-600 dark:text-red-400" aria-label="Request changes" />;
+  if (item?.verdict === 'REQUEST_CHANGES') return <AlertOctagon className="size-4 text-fail" aria-label="Request changes" />;
   return <CircleDashed className="size-4 text-zinc-400" aria-label="Not reviewed" />;
 }
 

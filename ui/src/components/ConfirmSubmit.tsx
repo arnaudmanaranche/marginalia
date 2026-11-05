@@ -1,7 +1,7 @@
 import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { toast } from '../lib/toast';
 import { m } from 'motion/react';
-import { Check, Loader2, MessageSquare, Send, X, type LucideIcon } from 'lucide-react';
+import { Check, MessageSquare, Send, X, type LucideIcon } from 'lucide-react';
 import { cn } from '../lib/utils';
 import type { ReviewAction } from '../lib/api';
 import { useDrafts } from '../lib/useDrafts';
@@ -9,11 +9,12 @@ import { useScrollLock } from '../lib/useScrollLock';
 import { useModalFocus } from '../lib/useModalFocus';
 import { Button } from './ui/Button';
 import { DraftRow } from './DraftRow';
+import { Spinner } from './ds/Spinner';
 
 const ACTIONS: { value: ReviewAction; label: string; submit: string; hint: string; Icon: LucideIcon; on: string }[] = [
   { value: 'comment', label: 'Comment', submit: 'Submit comments', hint: 'Publish your comments without a verdict.', Icon: MessageSquare, on: 'border-blue-500 bg-blue-500/10 text-blue-700 dark:text-blue-300' },
   { value: 'approve', label: 'Approve', submit: 'Approve', hint: 'Publish, then approve the MR as you. Refused if the MR changed since this review.', Icon: Check, on: 'border-emerald-500 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300' },
-  { value: 'request_changes', label: 'Request changes', submit: 'Request changes', hint: 'Publish and mark the MR as needing changes.', Icon: X, on: 'border-red-500 bg-red-500/10 text-red-700 dark:text-red-300' },
+  { value: 'request_changes', label: 'Request changes', submit: 'Request changes', hint: 'Publish and mark the MR as needing changes.', Icon: X, on: 'border-red-500 bg-red-500/10 text-fail' },
 ];
 
 // Publishes the pending review: every draft comment of this MR, plus an optional summary,
@@ -63,7 +64,7 @@ export function ConfirmSubmit({ slug, iid, count, canVerdict, reload, onCancel, 
         <fieldset disabled={locked} className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 pb-2 disabled:[&_textarea]:opacity-60">
           <legend className="sr-only">Review to submit</legend>
           <div className="max-h-56 space-y-2 overflow-y-auto rounded-lg" aria-label="Pending comments">
-            {draftsError && <p className="text-sm text-red-600 dark:text-red-400">Could not load the drafts: {draftsError}</p>}
+            {draftsError && <p className="text-sm text-fail">Could not load the drafts: {draftsError}</p>}
             {loading && (
               <div role="status" className="space-y-2" aria-label="Loading the pending comments">
                 {[0, 1].map((i) => <div key={i} className="h-14 animate-pulse rounded-lg bg-sunken motion-reduce:animate-none" />)}
@@ -108,7 +109,7 @@ export function ConfirmSubmit({ slug, iid, count, canVerdict, reload, onCancel, 
               }
             }}
           >
-            {busy ? <Loader2 className="size-4 animate-spin motion-reduce:animate-pulse" /> : <Send className="size-4" />}{busy ? 'Submitting…' : canVerdict ? chosen.submit : 'Send replies'}
+            {busy ? <Spinner className="size-4" /> : <Send className="size-4" />}{busy ? 'Submitting…' : canVerdict ? chosen.submit : 'Send replies'}
           </Button>
         </footer>
       </m.div>

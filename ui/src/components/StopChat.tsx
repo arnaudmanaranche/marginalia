@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { ArrowUp, Loader2, Mic } from 'lucide-react';
+import { ArrowUp, Mic } from 'lucide-react';
 import { askAboutStop, type ChatMessage } from '../lib/chatApi';
 import { useSpeechInput, withDictation } from '../lib/useSpeechInput';
 import { cn } from '../lib/utils';
 import { NoteMarkdown } from './NoteMarkdown';
+import { Spinner } from './ds/Spinner';
 
 // Ask Claude about the stop on screen. Each stop keeps its own conversation, so going
 // back to a stop finds it as it was; the answer is read-only and never posted.
@@ -55,8 +56,8 @@ export function StopChat({ slug, stopId }: { slug: string; stopId: string }) {
             ? <p key={i} className="ml-auto w-fit max-w-[90%] rounded-lg bg-sunken px-3 py-1.5 text-sm">{m.text}</p>
             : <NoteMarkdown key={i} className="text-sm">{m.text}</NoteMarkdown>
         ))}
-        {pending === stopId && <p className="flex items-center gap-1.5 text-xs text-fg-muted"><Loader2 className="size-3.5 animate-spin motion-reduce:animate-pulse" aria-hidden />Reading the code…</p>}
-        {error && <p role="alert" className="text-xs text-red-700 dark:text-red-300">Could not answer: {error}</p>}
+        {pending === stopId && <p className="flex items-center gap-1.5 text-xs text-fg-muted"><Spinner className="size-3.5" />Reading the code…</p>}
+        {error && <p role="alert" className="text-xs text-fail">Could not answer: {error}</p>}
         <div ref={endRef} />
       </div>
       <form
@@ -64,7 +65,7 @@ export function StopChat({ slug, stopId }: { slug: string; stopId: string }) {
         className="sticky bottom-0 -mx-4 bg-surface px-4 pb-4 pt-2"
       >
         <div className={cn(
-          'flex items-end gap-1 rounded-xl border bg-canvas py-1.5 pl-3.5 pr-1.5 transition-colors focus-within:border-blue-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500/40 dark:focus-within:bg-zinc-950',
+          'flex items-end gap-1 rounded-xl border bg-canvas py-1.5 pl-3.5 pr-1.5 transition-colors focus-within:border-run focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500/40 dark:focus-within:bg-zinc-950',
           speech.listening ? 'border-red-500/70' : 'border-line',
         )}>
           <textarea
@@ -109,7 +110,7 @@ export function StopChat({ slug, stopId }: { slug: string; stopId: string }) {
           </button>
         </div>
       </form>
-      {speech.error && <p role="alert" className="mt-1 text-xs text-red-700 dark:text-red-300">{speech.error}</p>}
+      {speech.error && <p role="alert" className="mt-1 text-xs text-fail">{speech.error}</p>}
     </>
   );
 }

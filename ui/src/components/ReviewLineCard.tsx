@@ -24,7 +24,7 @@ export function ReviewLineCard({ metrics }: { metrics: LineMetrics }) {
         <Tile
           label="Jobs" value={String(jobs.total)}
           note={jobs.failed > 0
-            ? <span className="inline-flex items-center gap-1 text-red-600 dark:text-red-400"><TriangleAlert className="size-3" aria-hidden />{jobs.failed} failed</span>
+            ? <span className="inline-flex items-center gap-1 text-fail"><TriangleAlert className="size-3" aria-hidden />{jobs.failed} failed</span>
             : jobs.running > 0 ? `${jobs.running} running` : 'none failed'}
         />
         <Tile label="Comments acted on" value={percent(findings.actedOnRate)} note={`${decided} decided, ${findings.pending} waiting`} />

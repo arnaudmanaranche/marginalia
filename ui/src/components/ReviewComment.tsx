@@ -98,7 +98,7 @@ export function Quote({ children, offset }: { children?: ReactNode; offset?: num
           value={edited ?? ''}
           onChange={(e) => update(e.target.value)}
           rows={Math.min(14, Math.max(4, (edited ?? '').split('\n').length + 2))}
-          className="w-full resize-y rounded-md border border-line-strong bg-surface p-3 text-sm leading-relaxed outline-none focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/50"
+          className="w-full resize-y rounded-md border border-line-strong bg-surface p-3 text-sm leading-relaxed outline-none focus-visible:border-run focus-visible:ring-2 focus-visible:ring-run/40"
         />
       ) : edited !== null ? (
         <div className="whitespace-pre-wrap text-sm leading-relaxed">{edited}</div>

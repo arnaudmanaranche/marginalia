@@ -1,10 +1,11 @@
-import { BookOpen, Check, Loader2, RefreshCw } from 'lucide-react';
+import { BookOpen, Check, RefreshCw } from 'lucide-react';
 import type { ContextState, StoredContext } from '../lib/contextApi';
 import { useContextActions, useProjectContext } from '../lib/contextApi';
 import { toast } from '../lib/toast';
 import { ContextSections } from './ContextSections';
 import { Badge } from './ui/Badge';
 import { Button } from './ui/Button';
+import { Spinner } from './ds/Spinner';
 
 const day = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : '');
 const learned = (s: StoredContext) => `Learned at ${s.commit.slice(0, 8)} on ${day(s.learnedAt)}`;
@@ -47,11 +48,11 @@ export function ProjectPage({ state, error, onRetry, busy, onApprove, onLearn }:
         <div className="flex shrink-0 items-center gap-2">
           {state.draft && (
             <Button variant="primary" disabled={busy !== null} onClick={onApprove}>
-              {busy === 'approve' ? <Loader2 className="size-3.5 animate-spin motion-reduce:animate-pulse" /> : <Check className="size-3.5" />}Approve draft
+              {busy === 'approve' ? <Spinner className="size-3.5" /> : <Check className="size-3.5" />}Approve draft
             </Button>
           )}
           <Button disabled={busy !== null || state.learning} onClick={onLearn} title="Read the repository and the team's tools again into a new draft. It runs as a job.">
-            {state.learning || busy === 'learn' ? <Loader2 className="size-3.5 animate-spin motion-reduce:animate-pulse" /> : <RefreshCw className="size-3.5" />}
+            {state.learning || busy === 'learn' ? <Spinner className="size-3.5" /> : <RefreshCw className="size-3.5" />}
             {state.learning ? 'Learning…' : shown ? 'Learn again' : 'Learn the project'}
           </Button>
         </div>

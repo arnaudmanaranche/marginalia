@@ -56,7 +56,7 @@ export function DiffFileView({ file, findings, threads, defaultOpen, focus, onSe
         {mine.length > 0 && <Badge tone="warning">{mine.length}</Badge>}
         {threadCount > 0 && <Badge tone="violet" title="Threads on GitLab">{threadCount}</Badge>}
         <span className="shrink-0 font-mono text-emerald-700 dark:text-emerald-300">+{file.additions}</span>
-        <span className="shrink-0 font-mono text-red-700 dark:text-red-300">-{file.deletions}</span>
+        <span className="shrink-0 font-mono text-fail">-{file.deletions}</span>
       </button>
       {open && (file.omitted ? (
         <p className="px-3 py-2 text-xs text-fg-muted">GitLab left this diff out (too large or collapsed). Open it in GitLab.</p>

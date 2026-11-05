@@ -28,7 +28,7 @@ export function CommandPalette({ open, setOpen, items, onSelect }: { open: boole
       <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="Search reviews" className="w-full max-w-xl" onClick={(e) => e.stopPropagation()}>
       <Command
         label="Search reviews"
-        className="w-full overflow-hidden rounded-xl border border-line bg-surface shadow-2xl transition-shadow focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/50 dark:focus-within:border-blue-500"
+        className="w-full overflow-hidden rounded-xl border border-line bg-surface shadow-2xl transition-shadow focus-within:border-run focus-within:ring-2 focus-within:ring-run/40 dark:focus-within:border-run"
         onKeyDown={(e) => e.key === 'Escape' && setOpen(false)}
       >
         <Command.Input placeholder="MR, title, branch, author…" className="w-full border-b border-line bg-transparent px-4 py-3 text-sm outline-none" />
@@ -42,7 +42,7 @@ export function CommandPalette({ open, setOpen, items, onSelect }: { open: boole
                 onSelect(it.slug);
                 setOpen(false);
               }}
-              className="touch-target flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-sm aria-selected:bg-zinc-100 dark:aria-selected:bg-zinc-800"
+              className="touch-target flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-sm aria-selected:bg-sunken"
             >
               <FileText className="size-4 shrink-0 text-fg-subtle" />
               <span className="min-w-0 flex-1 truncate">{it.iid ? <span className="mr-2 font-mono text-xs text-fg-muted">!{it.iid}</span> : null}{it.title}</span>

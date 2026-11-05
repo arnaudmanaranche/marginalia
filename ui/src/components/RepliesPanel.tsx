@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { toast } from '../lib/toast';
-import { Check, Crosshair, Loader2, Reply as ReplyIcon, Trash2, Upload } from 'lucide-react';
+import { Check, Crosshair, Reply as ReplyIcon, Trash2, Upload } from 'lucide-react';
 import { deleteDraft, postReply, pushFixes, type FixesStatus, type PostedInfo, type Reply, type ReplyVerdict, type Thread } from '../lib/api';
 import { landedFix, pendingFix, replyBody } from '../lib/replies';
 import { Badge } from './ui/Badge';
@@ -8,6 +8,7 @@ import type { BadgeTone } from './ui/badgeStyles';
 import { Button } from './ui/Button';
 import { cn } from '../lib/utils';
 import { ThreadCard } from './ThreadRow';
+import { Spinner } from './ds/Spinner';
 
 const VERDICTS: Record<ReplyVerdict, { label: string; tone: BadgeTone }> = {
   fixed: { label: 'Fixed by the triage', tone: 'success' },
@@ -116,7 +117,7 @@ function ReplyCard({ slug, thread, drafted, sent, fixes, onFixes, locked, reload
           <p className="whitespace-pre-wrap leading-relaxed">{sent.body}</p>
           {sent.state === 'draft' && (
             <Button size="sm" disabled={busy || locked} onClick={remove}>
-              {busy ? <Loader2 className="size-3.5 animate-spin motion-reduce:animate-pulse" /> : <Trash2 className="size-3.5" />}Remove
+              {busy ? <Spinner className="size-3.5" /> : <Trash2 className="size-3.5" />}Remove
             </Button>
           )}
         </div>
@@ -128,7 +129,7 @@ function ReplyCard({ slug, thread, drafted, sent, fixes, onFixes, locked, reload
             onChange={(e) => setText(e.target.value)}
             placeholder="Your answer to the reviewer"
             rows={Math.min(10, Math.max(3, text.split('\n').length + 1))}
-            className="w-full resize-y rounded-md border border-line-strong bg-surface p-3 text-sm leading-relaxed outline-none focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/50"
+            className="w-full resize-y rounded-md border border-line-strong bg-surface p-3 text-sm leading-relaxed outline-none focus-visible:border-run focus-visible:ring-2 focus-visible:ring-run/40"
           />
           {fixed && (landed
             ? <p className="text-xs text-fg-muted">Ends with <code>Fixed in {short(landed)}.</code></p>
@@ -139,7 +140,7 @@ function ReplyCard({ slug, thread, drafted, sent, fixes, onFixes, locked, reload
               Resolve the thread
             </label>
             <Button size="sm" variant="primary" disabled={busy || locked || waitingForPush || !text.trim()} onClick={add}>
-              {busy ? <Loader2 className="size-3.5 animate-spin motion-reduce:animate-pulse" /> : <ReplyIcon className="size-3.5" />}Add reply
+              {busy ? <Spinner className="size-3.5" /> : <ReplyIcon className="size-3.5" />}Add reply
             </Button>
           </div>
         </div>
@@ -179,7 +180,7 @@ function PushOne({ slug, threadId, fixes, locked, onFixes }: { slug: string; thr
         <>
           <span>Push <code>{short(fix.sha)}</code> alone to <code>{fixes.branch}</code>?{fixes.commits.length > 1 && ' The other fixes stay to push.'}</span>
           <Button size="sm" variant="primary" disabled={busy || locked} onClick={push}>
-            {busy ? <Loader2 className="size-3.5 animate-spin motion-reduce:animate-pulse" /> : <Upload className="size-3.5" />}Push
+            {busy ? <Spinner className="size-3.5" /> : <Upload className="size-3.5" />}Push
           </Button>
           <Button size="sm" disabled={busy} onClick={() => setConfirming(false)}>Cancel</Button>
         </>

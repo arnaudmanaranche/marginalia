@@ -37,7 +37,7 @@ export function TabStrip({ tabs, activeSlug, botBySlug, isUnread, isPosted, home
         >
           <LayoutGrid className="size-4" />
           Reviews
-          {homeUnread > 0 && <span className="rounded-full bg-blue-500/15 px-1.5 text-xs text-blue-700 dark:text-blue-300">{homeUnread}<span className="sr-only"> unread</span></span>}
+          {homeUnread > 0 && <span className="rounded-full bg-run/15 px-1.5 text-xs text-blue-700 dark:text-blue-300">{homeUnread}<span className="sr-only"> unread</span></span>}
         </a>
         </li>
 
@@ -78,15 +78,15 @@ export function TabStrip({ tabs, activeSlug, botBySlug, isUnread, isPosted, home
                 <span className="relative flex shrink-0">
                   <TabIcon item={item} bot={botBySlug.get(item.slug)} />
                   {/* Icon-only tabs have no room for the unread indicator, so it moves onto the icon. */}
-                  {unread && !active && <span className="absolute -right-1 -top-1 size-2 rounded-full bg-blue-500 ring-2 ring-zinc-100 @min-[96px]:hidden dark:ring-zinc-900" aria-hidden />}
+                  {unread && !active && <span className="absolute -right-1 -top-1 size-2 rounded-full bg-run ring-2 ring-zinc-100 @min-[96px]:hidden dark:ring-zinc-900" aria-hidden />}
                 </span>
                 <span className="hidden min-w-0 truncate @min-[96px]:block">
                   {item.title}
                 </span>
               </a>
               <span className={cn('w-7 shrink-0 items-center justify-center [@media(pointer:coarse)]:w-11', active ? 'flex' : 'hidden @min-[96px]:flex')}>
-                {isPosted(item) && <Check className="size-3.5 text-emerald-600 group-hover:hidden dark:text-emerald-400" aria-hidden />}
-                {unread && !isPosted(item) && <span className="size-2 rounded-full bg-blue-500 group-hover:hidden" aria-hidden />}
+                {isPosted(item) && <Check className="size-3.5 text-ok group-hover:hidden" aria-hidden />}
+                {unread && !isPosted(item) && <span className="size-2 rounded-full bg-run group-hover:hidden" aria-hidden />}
                 <button
                   onClick={() => onClose(item.slug)}
                   aria-label={`Close ${item.title}`}

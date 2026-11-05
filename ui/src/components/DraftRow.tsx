@@ -38,7 +38,7 @@ export function DraftRow({ slug, draft, disabled, onChanged }: { slug: string; d
         </span>
       </div>
       {editing ? (
-        <textarea value={text} onChange={(e) => setText(e.target.value)} rows={Math.min(10, Math.max(3, text.split('\n').length + 1))} aria-label="Draft text" className="mt-2 w-full resize-y rounded-md border border-line-strong bg-surface p-2 text-sm outline-none focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/50" />
+        <textarea value={text} onChange={(e) => setText(e.target.value)} rows={Math.min(10, Math.max(3, text.split('\n').length + 1))} aria-label="Draft text" className="mt-2 w-full resize-y rounded-md border border-line-strong bg-surface p-2 text-sm outline-none focus-visible:border-run focus-visible:ring-2 focus-visible:ring-run/40" />
       ) : (
         <NoteMarkdown className="mt-1">{draft.body}</NoteMarkdown>
       )}

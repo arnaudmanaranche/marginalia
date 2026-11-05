@@ -94,7 +94,7 @@ export function SettingsPage({ settings, defaults, projects = 1 }: { settings: S
                   inputMode={f.list ? undefined : 'numeric'}
                   placeholder={f.placeholder}
                   aria-describedby={`${id}-hint`}
-                  className="touch-target w-full rounded-lg border border-line bg-surface px-3 py-1.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/50"
+                  className="touch-target w-full rounded-lg border border-line bg-surface px-3 py-1.5 text-sm outline-none focus:border-run focus:ring-2 focus:ring-run/40"
                 />
                 {changedFromDefault && (
                   <Button variant="ghost" size="sm" disabled={saving} onClick={() => void save({ [f.key]: null }, `${f.label} back to the .env default`)} title={`Back to the .env default (${defaultDraft[f.key] || 'empty'})`}>

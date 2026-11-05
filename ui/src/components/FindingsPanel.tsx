@@ -72,7 +72,7 @@ function CommentArea({ finding, text, onText, editing, onEditing, showActions, l
           rows={Math.min(10, Math.max(3, text.split('\n').length + 1))}
           placeholder={finding.comment ? undefined : 'Write the comment to post on this point'}
           aria-label={`Comment on: ${finding.title}`}
-          className="w-full resize-y rounded-md border border-line-strong bg-surface p-2 text-sm outline-none focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/50"
+          className="w-full resize-y rounded-md border border-line-strong bg-surface p-2 text-sm outline-none focus-visible:border-run focus-visible:ring-2 focus-visible:ring-run/40"
         />
       ) : (
         <div className="whitespace-pre-wrap rounded-md border border-blue-500/30 bg-blue-500/5 p-2">{text}</div>

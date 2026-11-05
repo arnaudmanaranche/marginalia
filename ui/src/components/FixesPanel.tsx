@@ -1,11 +1,12 @@
 import { useEffect, useEffectEvent, useRef, useState, type RefObject } from 'react';
 import { toast } from '../lib/toast';
-import { GitCommitHorizontal, Loader2, RefreshCw, Upload } from 'lucide-react';
+import { GitCommitHorizontal, RefreshCw, Upload } from 'lucide-react';
 import { pushFixes, type FixesStatus } from '../lib/api';
 import type { FixesState } from '../lib/useFixes';
 import { useScrollLock } from '../lib/useScrollLock';
 import { useModalFocus } from '../lib/useModalFocus';
 import { Button } from './ui/Button';
+import { Spinner } from './ds/Spinner';
 
 const short = (sha: string | null) => sha?.slice(0, 8) ?? '';
 
@@ -19,9 +20,9 @@ export function FixesPanel({ slug, iid, locked, state }: { slug: string; iid: st
   if (error) {
     return (
       <div className="flex flex-wrap items-center gap-3 text-sm">
-        <p className="text-red-600 dark:text-red-400">Could not check the fixes: {error}</p>
+        <p className="text-fail">Could not check the fixes: {error}</p>
         <Button size="sm" disabled={checking} onClick={check}>
-          {checking ? <Loader2 className="size-3.5 animate-spin motion-reduce:animate-pulse" /> : <RefreshCw className="size-3.5" />}Try again
+          {checking ? <Spinner className="size-3.5" /> : <RefreshCw className="size-3.5" />}Try again
         </Button>
       </div>
     );
@@ -66,7 +67,7 @@ export function FixesPanel({ slug, iid, locked, state }: { slug: string; iid: st
           </Button>
         )}
         <Button disabled={checking} onClick={check} title="Check the MR branch on origin again">
-          {checking ? <Loader2 className="size-4 animate-spin motion-reduce:animate-pulse" /> : <RefreshCw className="size-4" />}Check again
+          {checking ? <Spinner className="size-4" /> : <RefreshCw className="size-4" />}Check again
         </Button>
       </div>
       {confirming && (
@@ -119,7 +120,7 @@ function ConfirmPush({ iid, fixes, fallbackRef, onCancel, onConfirm }: { iid: st
               await onConfirm();
             }}
           >
-            {busy ? <Loader2 className="size-4 animate-spin motion-reduce:animate-pulse" /> : <Upload className="size-4" />}Push
+            {busy ? <Spinner className="size-4" /> : <Upload className="size-4" />}Push
           </Button>
         </div>
       </div>
