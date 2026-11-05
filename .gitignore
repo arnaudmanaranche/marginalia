@@ -37,3 +37,4 @@ api/ui-dist/
 packages/contract/dist/
 api/dist/
 *.tsbuildinfo
+.build/
