@@ -18,14 +18,14 @@ export const STAGES = {
     ['agent', 'Claude reads the repository and the team\'s tools'],
     ['report', 'Check and save the draft context'],
   ],
-  'staged-review': [
+  review: [
     PREFLIGHT,
     ['checkout', 'Check out the MR branch'],
     ['context', 'Gather the MR, its ticket, its conversation and the last report'],
     ['map', 'Map the change: what it does and the order to read it in'],
     ['report', 'Weigh the findings and save the report'],
   ],
-  'staged-triage': [
+  triage: [
     PREFLIGHT,
     ['checkout', 'Check out the MR branch'],
     ['context', 'Gather the open reviewer threads and the code they are about'],
@@ -41,7 +41,7 @@ export const MAX_STEPS = 2000;
 /**
  * @param {{ id: string, slug: string, project: string, iid: number | string | null, kind: 'review' | 'triage' | 'understand', command: string, at: string, plan?: keyof typeof STAGES }} input
  */
-export function startTrace({ id, slug, project, iid, kind, command, at, plan = kind === 'understand' ? 'understand' : `staged-${kind}` }: { id: string, slug: string, project: string, iid: number | string | null, kind: 'review' | 'triage' | 'understand', command: string, at: string, plan?: keyof typeof STAGES }) {
+export function startTrace({ id, slug, project, iid, kind, command, at, plan = kind }: { id: string, slug: string, project: string, iid: number | string | null, kind: 'review' | 'triage' | 'understand', command: string, at: string, plan?: keyof typeof STAGES }) {
   return {
     id, slug, project, iid, kind, command,
     startedAt: at,

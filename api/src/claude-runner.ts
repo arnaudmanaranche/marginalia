@@ -17,7 +17,7 @@ import { recordFixedBefore } from './own-fixed.ts';
 // comments). The work is done by Marginalia's staged pipeline (pipeline/). Every run is traced
 // (run-tracker.ts), stage by stage, so it can be followed live and read again when it failed.
 async function runCommand(mr: any, opts: any) {
-  const run = await followRun(mr, { ...opts, command: PIPELINE, plan: `staged-${opts.kind}` });
+  const run = await followRun(mr, { ...opts, command: PIPELINE });
   try {
     const outcome = await runStages(mr, opts, run);
     await run.finish(outcome, outcome === 'skipped' ? `Branch "${mr.source_branch}" is checked out in another worktree.` : null);

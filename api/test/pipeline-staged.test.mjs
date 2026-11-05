@@ -56,7 +56,7 @@ const mr = { iid: 7, title: 'feat: coupons at checkout', description: 'Coupons.'
 
 test('a staged review maps the change, reviews each chapter, and weighs the findings', async () => {
   const outputPath = join(project.reviewsDir, 'feat-coupons.md');
-  const run = await followRun(mr, { kind: 'review', command: 'marginalia', outputPath, plan: 'staged-review' });
+  const run = await followRun(mr, { kind: 'review', command: 'marginalia', outputPath });
   const out = await stagedReview({ mr, run, outputPath, settings: null });
   const trace = await run.finish('reviewed');
 
@@ -81,7 +81,7 @@ test('a staged review maps the change, reviews each chapter, and weighs the find
 
 test('a staged triage weighs the reviewer threads, fixes one in its own commit, answers the other', async () => {
   const before = git('rev-parse', 'HEAD');
-  const run = await followRun(mr, { kind: 'triage', command: 'marginalia', outputPath: join(project.reviewsDir, 'mr-comments-feat-coupons.md'), plan: 'staged-triage' });
+  const run = await followRun(mr, { kind: 'triage', command: 'marginalia', outputPath: join(project.reviewsDir, 'mr-comments-feat-coupons.md') });
   const out = await stagedTriage({ mr, run, settings: null });
   const trace = await run.finish('reviewed');
 
@@ -112,7 +112,7 @@ test('a triage on an MR that conflicts with its target merges it in and settles 
   git('update-ref', 'refs/remotes/origin/develop', 'HEAD');
   git('checkout', '-q', 'feat/coupons');
 
-  const run = await followRun(mr, { kind: 'triage', command: 'marginalia', outputPath: join(project.reviewsDir, 'mr-comments-feat-coupons.md'), plan: 'staged-triage' });
+  const run = await followRun(mr, { kind: 'triage', command: 'marginalia', outputPath: join(project.reviewsDir, 'mr-comments-feat-coupons.md') });
   const out = await stagedTriage({ mr, run, settings: null });
   const trace = await run.finish('reviewed');
 

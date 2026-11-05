@@ -13,8 +13,8 @@ const FLUSH_MS = 750;
 
 // Follows one run of `mr`: its trace on disk (run-journal.ts), the live status the studio and the
 // menu bar read, and the raw transcript. Nothing here may fail a review: a write that fails is logged.
-// `plan`: the stage list to start from (see STAGES in run-trace.ts), the kind's staged one by default.
-/** @param {any} mr @param {{ kind: 'review' | 'triage', command: string, outputPath: string, plan?: 'review' | 'triage' | 'staged-review' | 'staged-triage' }} run */
+// `plan`: the stage list to start from (see STAGES in run-trace.ts), the kind's own by default.
+/** @param {any} mr @param {{ kind: 'review' | 'triage', command: string, outputPath: string, plan?: 'review' | 'triage' | 'understand' }} run */
 export async function followRun(mr: any, { kind, command, outputPath, plan }: any) {
   const at = new Date().toISOString();
   let trace = startTrace({ id: runId(at, kind), slug: reviewId(mr.project, basename(outputPath, '.md')), project: mr.project.key, iid: mr.iid, kind, command, at, plan });

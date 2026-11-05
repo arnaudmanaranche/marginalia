@@ -84,7 +84,7 @@ test('a run id sorts by time and is safe as a file name', () => {
 
 test('a staged run plans the stages it learns, and runs some side by side', async () => {
   const { planStages, beginStage, endStage } = await import('../dist/src/run-trace.js');
-  let t = startTrace({ id: 'r2', slug: 'webapp/feat-x', project: 'webapp', iid: 12, kind: 'review', command: 'marginalia', at: 't0', plan: 'staged-review' });
+  let t = startTrace({ id: 'r2', slug: 'webapp/feat-x', project: 'webapp', iid: 12, kind: 'review', command: 'marginalia', at: 't0' });
   t = enterStage(t, 'map', 't1');
   t = planStages(t, 'map', [['chapter-1', 'Review: coupons'], ['chapter-2', 'Review: tests'], ['map', 'dup']]);
   assert.deepEqual(t.stages.map((s) => s.id), ['preflight', 'checkout', 'context', 'map', 'chapter-1', 'chapter-2', 'report']);

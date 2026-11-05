@@ -40,7 +40,7 @@ async function evaluate(name: string) {
   const project = { key: `eval-${name}`, worktreeDir: dir, repoPath: dir, reviewsDir: join(dir, '.reviews') };
   const mr = { iid: null, title: `Eval: ${name}`, description: null, source_branch: 'feature', target_branch: 'main', project, author: null, web_url: null };
   const outputPath = join(project.reviewsDir, `${name}.md`);
-  const tracked = await followRun(mr, { kind: 'review', command: 'marginalia', outputPath, plan: 'staged-review' });
+  const tracked = await followRun(mr, { kind: 'review', command: 'marginalia', outputPath });
   const problems: string[] = [];
   const report = await stagedRun({ mr, run: tracked, kind: 'review', outputPath }).catch((err: Error) => {
     problems.push(err.message);
