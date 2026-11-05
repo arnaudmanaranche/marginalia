@@ -12,6 +12,7 @@ import { replyRoutes } from './routes-replies.ts';
 import { runRoutes } from './routes-runs.ts';
 import { jobRoutes } from './routes-jobs.ts';
 import { contextRoutes } from './routes-context.ts';
+import { approvalRoutes } from './routes-approvals.ts';
 import { liveRoutes, serveStatic } from './routes-live.ts';
 
 const DESCRIPTION = `The contract between the studio server and the React app. Generated from the zod schemas the routes validate with.
@@ -58,6 +59,7 @@ export function createApp({ hosts, gitlab, auth }: { hosts?: () => Set<string>; 
   runRoutes(app);
   jobRoutes(app);
   contextRoutes(app);
+  approvalRoutes(app);
   liveRoutes(app);
 
   app.doc31('/openapi.json', {

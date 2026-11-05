@@ -28,8 +28,8 @@ and `critical_paths` (how many of the project's critical paths the review says i
 with `$process_person_profile: false` (events, not people) under the id `marginalia:<your GitLab username>`.
 
 The review line's measure is what becomes of each finding: a `marginalia_finding` event when a finding's
-comment is added to a GitLab review from the studio, with `outcome` `posted` (as the review proposed it)
-or `posted_edited` (changed first), plus `project`, `mr_iid`, `finding_id`, `severity`, `own_review` and
+comment is added to a GitLab review from the studio, with `outcome` `posted` (as the review proposed it),
+`posted_edited` (changed first) or `dismissed` (decided not worth saying, from the approvals inbox), plus `project`, `mr_iid`, `finding_id`, `severity`, `own_review` and
 `critical_paths`. No title, comment or path. The same finding of the same review is one event.
 
 Runs the bot recorded before you turned it on are in the `run` table; `npm run posthog:backfill` shows what

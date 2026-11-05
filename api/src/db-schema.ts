@@ -40,4 +40,11 @@ export const MIGRATIONS = [
     expires_at INTEGER NOT NULL
   );
   `,
+  `
+  CREATE TABLE dismissed (
+    key TEXT PRIMARY KEY,  -- <project>/<review slug>:<finding id>, as posted
+    at  TEXT NOT NULL,
+    by  TEXT NOT NULL      -- the person who decided it is not worth saying
+  );
+  `,
 ];
