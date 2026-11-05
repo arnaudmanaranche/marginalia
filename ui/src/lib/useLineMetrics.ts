@@ -5,7 +5,7 @@ import { fetchJson } from './fetchRetry';
 // proposed comments). Under 'runs', so it follows the live events. Null while loading or on failure.
 export interface LineMetrics {
   days: number;
-  jobs: { total: number; failed: number; running: number; medianMs: number | null; costUsd: number };
+  jobs: { total: number; own: number; failed: number; running: number; medianMs: number | null; costUsd: number };
   findings: { asProposed: number; edited: number; unknown: number; dismissed: number; pending: number; fixedBefore: number; actedOnRate: number | null };
 }
 

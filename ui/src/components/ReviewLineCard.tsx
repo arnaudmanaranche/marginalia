@@ -23,9 +23,14 @@ export function ReviewLineCard({ metrics }: { metrics: LineMetrics }) {
       <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-7">
         <Tile
           label="Jobs" value={String(jobs.total)}
-          note={jobs.failed > 0
-            ? <span className="inline-flex items-center gap-1 text-fail"><TriangleAlert className="size-3" aria-hidden />{jobs.failed} failed</span>
-            : jobs.running > 0 ? `${jobs.running} running` : 'none failed'}
+          note={(
+            <>
+              {jobs.failed > 0
+                ? <span className="inline-flex items-center gap-1 text-fail"><TriangleAlert className="size-3" aria-hidden />{jobs.failed} failed</span>
+                : jobs.running > 0 ? `${jobs.running} running` : 'none failed'}
+              {jobs.own > 0 && ` · ${jobs.own} own`}
+            </>
+          )}
         />
         <Tile label="Comments acted on" value={percent(findings.actedOnRate)} note={`${decided} decided, ${findings.pending} waiting`} />
         <Tile label="Posted as proposed" value={String(findings.asProposed)} note={findings.unknown > 0 ? `${findings.unknown} more from reviews no longer kept` : undefined} />
