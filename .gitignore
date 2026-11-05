@@ -3,6 +3,8 @@ node_modules/
 state.json
 /context/
 /worktrees/
+/catalog/
+/runs/
 webapp-worktree/
 status.json
 status.json.tmp
