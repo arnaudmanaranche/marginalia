@@ -89,7 +89,7 @@ export function DiffFileView({ file, findings, threads, defaultOpen, focus, jump
                       onKeyDown={(e) => { if (e.key === 'Enter') onSelectFinding(f.id); }}
                       className="cursor-pointer"
                     >
-                      <td colSpan={3} className={cn('border-y border-warn/30 bg-warn/5 px-3 py-1.5 font-sans text-sm transition-colors hover:bg-warn/10', flash === f.id && 'bg-run/20 ring-2 ring-inset ring-run')}>
+                      <td colSpan={3} className={cn('border-y border-warn/50 bg-warn/5 px-3 py-1.5 font-sans text-sm transition-colors hover:bg-warn/10', flash === f.id && 'bg-run/20 ring-2 ring-inset ring-run')}>
                         <SeverityBadge level={f.severity} className="mr-2" />
                         <span className={cn('font-medium')}>{f.title}</span>
                       </td>
