@@ -213,10 +213,14 @@ html {
   }
 }
 
-/* Loading skeletons: a soft sweep of light across a bar. Still under reduced motion. */
-.shimmer {
-  position: relative;
-  overflow: hidden;
+/* Loading skeletons: a soft sweep of light across a bar. Still under reduced motion. In the
+   components layer, so a utility wins: a running span of a SpanBar is `absolute`, and an unlayered
+   `position: relative` here used to collapse it to nothing. */
+@layer components {
+  .shimmer {
+    position: relative;
+    overflow: hidden;
+  }
 }
 .shimmer::after {
   content: '';
