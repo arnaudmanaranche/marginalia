@@ -21,6 +21,8 @@ export async function answerMention(mr: any, mention: Mention): Promise<string> 
     CLAUDE_BIN,
     claudeArgs({ prompt: mentionPrompt(mr, thread.map((n: any) => ({ author: n.author ?? '?', body: n.body })), text), tools: MENTION_TOOLS, systemPrompt: MENTION_SYSTEM, settings: runSettings(mr.project) }),
     { cwd: mr.project.worktreeDir, timeout: TIMEOUT_MS, env: runEnv() },
+    undefined, undefined,
+    { name: 'mention', kind: 'chat', project: mr.project.key },
   );
   const { text: answer, stats } = parseRunOutput(stdout);
   if (stats) await appendRun({ project: mr.project.key, iid: mr.iid, kind: 'chat', command: 'mention', ...stats });

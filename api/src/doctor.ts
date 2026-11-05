@@ -60,7 +60,7 @@ async function diagnose(project: any, fileSlug: string, trace: any) {
     const dirs = agentDirs(project);
     const prompt = doctorPrompt({ trace, transcript: await readTranscript(project.key, fileSlug, trace.id, { maxBytes: 60_000 }), sourceDir: ROOT, agentDirs: dirs });
     const args = [...claudeArgs({ prompt, tools: DOCTOR_TOOLS, systemPrompt: SYSTEM, settings: runSettings(project) }), ...dirs.flatMap((d) => ['--add-dir', d])];
-    const { stdout } = await runStreaming(CLAUDE_BIN, args, { cwd: ROOT, timeout: TIMEOUT_MS, env: runEnv() });
+    const { stdout } = await runStreaming(CLAUDE_BIN, args, { cwd: ROOT, timeout: TIMEOUT_MS, env: runEnv() }, undefined, undefined, { name: 'doctor', kind: 'doctor' });
     const { text, stats } = parseRunOutput(stdout);
     if (stats) await appendRun({ project: project.key, iid: trace.iid, kind: 'doctor', command: 'doctor', ...stats });
     const answer = parseDoctorAnswer(text);

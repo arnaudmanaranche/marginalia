@@ -47,6 +47,12 @@ export async function followRun(mr: any, { kind, command, outputPath, plan }: an
     get id() {
       return trace.id;
     },
+    get project() {
+      return trace.project;
+    },
+    get kind() {
+      return trace.kind;
+    },
     get startedAt() {
       return trace.startedAt;
     },

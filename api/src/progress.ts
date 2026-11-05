@@ -1,5 +1,6 @@
 import { spawn } from 'node:child_process';
 import { basename } from 'node:path';
+import { captureAi, type AiContext } from './ai-observability.ts';
 import { toolOf } from './tool-label.ts';
 
 // One readable line per step of a run, for the studio's live panel: what the
@@ -48,6 +49,7 @@ export function runStreaming(
   options: Record<string, any>,
   onStep: (step: string, info: { sub: boolean; tool: string | null }) => void = () => {},
   onEvent: (line: string) => void = () => {},
+  ai: AiContext = { name: 'claude' },
 ): Promise<{ stdout: string; stderr: string }> {
   return new Promise((resolve, reject) => {
     const child = spawn(bin, args, { ...options, stdio: ['ignore', 'pipe', 'pipe'] });
@@ -55,6 +57,8 @@ export function runStreaming(
     let stderr = '';
     /** @type {any} */
     let result: any = null;
+    const tools: string[] = [];
+    let model: string | null = null;
     const handle = (line: string) => {
       if (line.trim()) onEvent(line);
       let event;
@@ -65,9 +69,12 @@ export function runStreaming(
       }
       if (event.type === 'result') result = event;
       if (event.type === 'assistant') {
+        if (typeof event.message?.model === 'string') model = event.message.model;
         for (const block of event.message?.content ?? []) {
+          const tool = toolOf(block);
+          if (block.type === 'tool_use' && tool) tools.push(tool);
           const step = describeStep(block);
-          if (step) onStep(step, { sub: Boolean(event.parent_tool_use_id), tool: toolOf(block) });
+          if (step) onStep(step, { sub: Boolean(event.parent_tool_use_id), tool });
         }
       }
     };
@@ -83,10 +90,9 @@ export function runStreaming(
     child.on('error', reject);
     child.on('close', (code) => {
       if (buffer) handle(buffer);
-      if (code !== 0) {
-        reject(new Error(`${bin} exited with code ${code}: ${stderr.slice(0, 500) || result?.result?.slice(0, 500) || ''}`));
-        return;
-      }
+      const error = code !== 0 ? `${bin} exited with code ${code}: ${stderr.slice(0, 500) || result?.result?.slice(0, 500) || ''}` : null;
+      captureAi({ ctx: ai, args, model, result, tools, failed: code !== 0, error });
+      if (error) return reject(new Error(error));
       resolve({ stdout: result ? JSON.stringify(result) : '', stderr });
     });
   });

@@ -20,7 +20,7 @@ with `outcome: failed` and a class of error (`git`, `gitlab`, `claude`, `timeout
 `other`). `MARGINALIA_TELEMETRY=off` turns it off whatever else is set. A slow or unreachable PostHog never
 delays or fails a review; it logs one warning per process.
 
-The event carries ids and numbers only, never an MR title, a branch name, a diff or any review text:
+A `marginalia_run` event carries ids and numbers only, never an MR title, a branch name, a diff or any review text:
 `project`, `mr_iid`, `kind` (`review`, `triage`, `chat`), `command`, `cost_usd`, `output_tokens`, `turns`,
 `duration_ms`, `run_number` and `rerun` (this MR had a pass of this kind before), and for reviews
 `verdict`, `risk`, `critical`, `important`, `postable`, `report_source`, `contract_warnings`, `own_review`
@@ -33,6 +33,20 @@ comment is added to a GitLab review from the studio, with `outcome` `posted` (as
 `fixed_before_mr` (an own review's finding whose code a later push changed, counted once; `mr_iid` is null for a
 branch without an MR yet), plus `project`, `mr_iid`, `finding_id`, `severity`, `own_review` and
 `critical_paths`. No title, comment or path. The same finding of the same review is one event.
+
+### AI observability
+
+The same configuration also sends every Claude call (a review stage, triage, Understand, chat, a mention
+answer, doctor) to PostHog's LLM Analytics as one `$ai_generation`, with a `$ai_span` per tool it used
+(`api/src/ai-events.ts`, `api/src/ai-observability.ts`). The calls of one job share its trace
+(`$ai_trace_id` is the run id), so a review is one trace with a generation per stage. A generation has the
+model, input, output and cache tokens, `$ai_total_cost_usd`, `$ai_latency`, turns, the line (`marginalia_kind`)
+and project, and on a failure `$ai_is_error` with the same class of error as above. A span carries a tool's
+name, never its input or output. The capture is fire and forget: it never delays or fails a run.
+
+The prompt and the answer (`$ai_input`, `$ai_output_choices`) are sent only with `MARGINALIA_AI_CONTENT=on`.
+They hold the reviewed team's code and the MR's content, so turn it on only where PostHog may keep that.
+Off, nothing but numbers and names leaves. Tests never reach PostHog: they clear these variables.
 
 Runs the bot recorded before you turned it on are in the `run` table; `npm run posthog:backfill` shows what
 would be sent, and `npm run posthog:backfill -- --send` sends it. A run always has the same event id, so

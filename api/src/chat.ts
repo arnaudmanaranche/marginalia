@@ -18,6 +18,8 @@ export async function askAboutStop({ project, iid, prompt }: { project: any; iid
     CLAUDE_BIN,
     claudeArgs({ prompt, tools: CHAT_TOOLS, systemPrompt: CHAT_SYSTEM, settings: runSettings(project) }),
     { cwd, timeout: TIMEOUT_MS, env: runEnv() },
+    undefined, undefined,
+    { name: 'chat', kind: 'chat', project: project.key },
   );
   const { text, stats } = parseRunOutput(stdout);
   if (stats) await appendRun({ project: project.key, iid, kind: 'chat', command: 'chat', ...stats });

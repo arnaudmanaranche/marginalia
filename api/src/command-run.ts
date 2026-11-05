@@ -47,6 +47,7 @@ export async function commandRun({ mr, run, kind, command, tools, outputPath, st
     { cwd: BOT_WORKTREE_DIR, env: runEnv() },
     (step, info) => run.step(step, info),
     (line) => run.event(line),
+    { name: kind, traceId: run.id, kind, project: mr.project.key },
   );
   log(mr, `${c.green}Claude finished in ${Math.round((Date.now() - startedAt) / 1000)}s.${c.reset}`);
 

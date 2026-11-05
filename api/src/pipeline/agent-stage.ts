@@ -22,6 +22,7 @@ export async function agentStage({ run, stage, prompt, system, tools, cwd, setti
       CLAUDE_BIN, args, { cwd, timeout: TIMEOUT_MS, env: runEnv() },
       (step, info) => run.step(step, { ...info, stage }),
       (line) => run.event(line),
+      { name: stage, traceId: run.id, kind: run.kind, project: run.project },
     );
     const out = parseRunOutput(stdout);
     if (out.stats) run.addCost(out.stats);

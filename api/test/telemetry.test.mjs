@@ -11,6 +11,9 @@ const { openDatabase } = await import('../dist/src/db.js');
 const { insertRun, countRuns } = await import('../dist/src/db-store.js');
 const { trackRun, trackFailure } = await import('../dist/src/telemetry.js');
 
+// Importing the config loads the developer's .env, which may configure PostHog: a test never reaches it.
+for (const key of ['POSTHOG_KEY', 'POSTHOG_HOST', 'MARGINALIA_TELEMETRY']) delete process.env[key];
+
 const run = { at: '2026-10-21T10:00:00.000Z', project: 'webapp', iid: 3979, kind: 'review', command: '/code-review', costUsd: 1.15234567, outputTokens: 9347, turns: 21, durationMs: 210_000 };
 const ctx = { reviewer: 'dev1', version: '2.0.0', container: false };
 

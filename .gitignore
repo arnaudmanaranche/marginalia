@@ -22,6 +22,7 @@ mr-review-bot.10s.sh
 .DS_Store
 worktree/
 .env.bak
+.posthog-wizard-cache/
 
 *storybook.log
 storybook-static

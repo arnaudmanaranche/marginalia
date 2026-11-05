@@ -64,7 +64,7 @@ async function prepare({ trace, doctor, save }: { trace: any, doctor: any, save:
       if (existsSync(join(SOURCE_DIR, sub))) await symlink(join(SOURCE_DIR, sub), join(dir, sub)).catch(() => {});
     }
     const args = claudeArgs({ prompt: fixPrompt({ trace, doctor }), tools: FIX_TOOLS, systemPrompt: SYSTEM });
-    const { stdout } = await runStreaming(CLAUDE_BIN, args, { cwd: dir, timeout: TIMEOUT_MS, env: runEnv() });
+    const { stdout } = await runStreaming(CLAUDE_BIN, args, { cwd: dir, timeout: TIMEOUT_MS, env: runEnv() }, undefined, undefined, { name: 'doctor-fix', kind: 'doctor' });
     const { text, stats } = parseRunOutput(stdout);
     if (stats) await appendRun({ project: trace.project, iid: trace.iid, kind: 'doctor-fix', command: 'doctor fix', ...stats });
     const fixed = await head(dir);
