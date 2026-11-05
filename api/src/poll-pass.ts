@@ -25,7 +25,7 @@ export async function passOver(project: any, deps: any, sink: any) {
     state,
     allowedTargets: deps.allowedTargets(project),
     username: deps.username,
-    triageEnabled: Boolean(project.triageCommand),
+    triageEnabled: project.triage !== false,
     reviewOwn: project.reviewOwn,
   });
   const { reviewMrs, myMrs, ownMrs } = plan;

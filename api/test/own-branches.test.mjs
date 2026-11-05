@@ -41,7 +41,7 @@ test('a branch is told apart by its name in the status, and checked by its name 
   assert.match(branchCheck({ stdout: '', iid: null, branch: 'feat/a' }).detail, /branch may have been deleted/);
 });
 
-const project = { key: 'p', reviewsDir: '/r', reviewCommand: '/code-review', triageCommand: '', reviewOwn: true };
+const project = { key: 'p', reviewsDir: '/r', triage: false, reviewOwn: true };
 const mr = (iid, author, source) => ({ iid, sha: `sha-${source}`, title: `MR ${iid}`, source_branch: source, target_branch: 'develop', author: { username: author }, project });
 
 function setup(open, branches, stored = { mineComments: {}, stackBelow: {} }) {

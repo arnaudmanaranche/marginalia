@@ -58,7 +58,7 @@ Marginalia reverses the 12 October 2026 decision to drop the mention bot. The re
 
 ## Evidence on Hand
 
-- `api/examples/commands/` and `api/examples/agents/`: sample review and triage commands (slash commands for the command path).
+- `api/examples/agents/reviewer.md`: a starting point for a repo's `.claude/agents/code-reviewer.md`, the checklist the staged review reads.
 - Real generated reviews from the author's own use exist on their machine (about thirty), used to develop the studio. They are not part of this repository.
 - No usage data, customer testimonials or benchmarks exist. None should be invented.
 

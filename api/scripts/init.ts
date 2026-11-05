@@ -11,7 +11,7 @@ import * as p from '@clack/prompts';
 import { resolveDataDir } from '../src/paths-home.ts';
 import { readConfigFile, CONFIG_FILENAME } from '../src/config-file.ts';
 import { parseEnv, defaultsFromEnv, projectFromAnswers, buildConfig } from '../src/init-config.ts';
-import { checkToken, checkProject, checkRepo, findCommands, copyStarters, expandHome, findEnvFile } from './init-checks.ts';
+import { checkToken, checkProject, checkRepo, expandHome, findEnvFile } from './init-checks.ts';
 
 const ROOT = PACKAGE_ROOT;
 
@@ -39,28 +39,6 @@ const envDefaults = (dataDir: string) => {
   return file ? defaultsFromEnv(parseEnv(readFileSync(file, 'utf8'))) : { project: {} };
 };
 
-async function askCommands(repoPath: string, d: any) {
-  let found = findCommands(repoPath);
-  if (!found.length) {
-    p.log.warn('No slash commands found in the repo\'s .claude/ or ~/.claude/.');
-    if (await ask(p.confirm({ message: `Copy the starter commands and agent from examples/ into ${join(repoPath, '.claude')}?` }))) {
-      copyStarters(ROOT, repoPath);
-      found = ['/review', '/triage'];
-      p.log.success('Copied (edit them to fit your team).');
-    }
-  }
-  const options = found.map((c) => ({ value: c, label: c }));
-  const reviewCommand = found.length
-    ? await ask(p.select({ message: 'Command that reviews other people\'s MRs', options, initialValue: found.includes(d.reviewCommand) ? d.reviewCommand : found[0] }))
-    : await text('Command that reviews other people\'s MRs', d.reviewCommand || '/code-review');
-  const triageCommand = await ask(p.select({
-    message: 'Command that triages reviewer comments on YOUR MRs (none = your own MRs are ignored)',
-    options: [...options, { value: '', label: 'none' }],
-    initialValue: found.includes(d.triageCommand) ? d.triageCommand : '',
-  }));
-  return { reviewCommand, triageCommand };
-}
-
 async function askProject(shared: Record<string, any>, d: Record<string, any> = {}) {
   const gitlabProjectId = await until('GitLab project (numeric id or group/project path)', d.gitlabProjectId, async (id) => {
     const path = await checkProject(shared.gitlabBaseUrl, shared.gitlabToken, id.trim());
@@ -74,9 +52,9 @@ async function askProject(shared: Record<string, any>, d: Record<string, any> = 
     options: [{ value: 'back', label: 'back-end' }, { value: 'front', label: 'front-end' }, { value: 'other', label: 'something else' }],
     initialValue: d.kind ?? 'back',
   }));
-  const commands = await askCommands(repo.result, d);
+  const triage = await ask(p.confirm({ message: 'Triage the reviewer comments on your own MRs (answer them, fix what is right)?', initialValue: d.triage ?? true }));
   const allowedTargetBranches = await ask(p.text({ message: 'Only review MRs targeting these branches (comma-separated, empty = all)', initialValue: Array.isArray(d.allowedTargetBranches) ? d.allowedTargetBranches.join(',') : (d.allowedTargetBranches ?? '') }));
-  return projectFromAnswers({ gitlabProjectId: gitlabProjectId.value.trim(), repoLocalPath: repo.result, kind, ...commands, allowedTargetBranches, key: d.key, excludeAuthors: d.excludeAuthors });
+  return projectFromAnswers({ gitlabProjectId: gitlabProjectId.value.trim(), repoLocalPath: repo.result, kind, triage, allowedTargetBranches, key: d.key, excludeAuthors: d.excludeAuthors });
 }
 
 async function askShared(d: any) {

@@ -32,7 +32,7 @@ The words below are the only ones the code, the docs and the studio use for thes
 
 **Studio**: the `ui/` side, the web app where a person reads a review and decides what to say. It talks to the bot over HTTP only. Not the bot.
 
-**Invocation**: one request for the bot to do something on a merge request. It comes from the studio or from a mention. Replaces "command" (`REVIEW_COMMAND`, `TRIAGE_COMMAND`), which is easy to confuse with a Claude Code slash command.
+**Invocation**: one request for the bot to do something on a merge request. It comes from the studio or from a mention. Never "command", which is easy to confuse with a Claude Code slash command.
 
 **Mention**: a GitLab comment that addresses `@marginalia`. One kind of invocation. A bare mention or `review` asks for a review, `triage` works through the comments on the author's own MR, any other text is a question. A reply in a thread that already holds a bot comment is a follow-up and needs no new mention.
 

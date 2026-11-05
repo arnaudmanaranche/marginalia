@@ -1,7 +1,6 @@
 # Several projects
 
-One install can watch several GitLab projects, each with its own repo, commands and
-bot worktree. Put them in `config.json` in the data directory (the install folder for
+One install can watch several GitLab projects, each with its own repo and bot worktree. Put them in `config.json` in the data directory (the install folder for
 a clone that has a `.env`, else `~/.marginalia`; `MARGINALIA_HOME` overrides it). It wins
 over `.env`, which keeps working as a single project:
 
@@ -13,12 +12,14 @@ over `.env`, which keeps working as a single project:
   "projects": [
     { "gitlabProjectId": "group/back-end", "repoLocalPath": "/code/back-end", "kind": "back" },
     { "gitlabProjectId": "group/front-end", "repoLocalPath": "/code/front-end", "kind": "front",
-      "reviewCommand": "/review-front", "allowedTargetBranches": ["develop"] }
+      "triage": false, "allowedTargetBranches": ["develop"] }
   ]
 }
 ```
 
-Projects are polled one after the other, so a worktree is never shared. A project's `key`
+Each project is a lane of the queue: its tasks run one at a time, so its worktree is never
+shared, and up to `QUEUE_WORKERS` projects run side by side. `"triage": false` (or `TRIAGE=false`
+in a single-project `.env`) ignores your own MRs on that project. A project's `key`
 (from the last part of its GitLab path, or set with `"key"`) prefixes its reviews in the
 studio (`back-end/feat-x`), its entries in `state.json` and `posted.json`, and its worktree
 (`<data dir>/worktrees/<key>`; the first project keeps `BOT_WORKTREE_DIR`). The first run
@@ -30,7 +31,7 @@ page overrides allowed target branches and excluded authors for all projects at 
 ## Own reviews
 
 `"reviewOwn": true` on a project (or `REVIEW_OWN=true` in a single-project `.env`) also reviews
-your own open MRs, once per push, with the project's review command. An own review is written to
+your own open MRs, once per push, with the same staged review. An own review is written to
 `own-<branch>.md`, shows only to you, and is never posted: the studio's posting routes refuse it
 whatever `ALLOW_POSTING` says. The triage of the comments on your MRs keeps working beside it.
 

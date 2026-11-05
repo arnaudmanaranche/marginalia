@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { passOver } from '../dist/src/poll-pass.js';
 
 // passOver() across its interface only: fake deps, a recording sink, plain-object state.
-const project = { key: 'p', reviewCommand: 'marginalia', triageCommand: 'marginalia' };
+const project = { key: 'p', triage: true };
 const mr = (iid, over = {}) => ({ iid, sha: `sha${iid}`, title: `MR ${iid}`, source_branch: `b${iid}`, target_branch: 'main', author: { username: 'alice' }, project, ...over });
 
 function setup({ open = [], state = {}, ...over } = {}) {

@@ -18,7 +18,7 @@ test('a legacy .env maps to a valid one-project config', () => {
   assert.equal(result.ok, true);
   assert.equal(result.config.gitlabBaseUrl, 'https://git.example.com');
   assert.deepEqual(result.config.projects[0].excludeAuthors, ['bot', 'ci']);
-  assert.equal(result.config.projects[0].reviewCommand, '/code-review');
+  assert.equal(result.config.projects[0].triage, true);
   assert.equal(result.config.studioPort, 4477);
   assert.equal(result.config.sandbox, true);
 });
@@ -30,9 +30,9 @@ test('the legacy WEBAPP_LOCAL_PATH and VIEWER_PORT names are still read', () => 
   assert.equal(config.studioPort, 5000);
 });
 
-test('an empty TRIAGE_COMMAND disables triage and is kept empty', () => {
-  const { config } = parseConfig(configFromEnv({ ...ENV, TRIAGE_COMMAND: '' }));
-  assert.equal(config.projects[0].triageCommand, '');
+test('TRIAGE=false turns off the triage of my own MRs', () => {
+  const { config } = parseConfig(configFromEnv({ ...ENV, TRIAGE: 'false' }));
+  assert.equal(config.projects[0].triage, false);
 });
 
 test('errors name the field that is wrong', () => {

@@ -7,7 +7,7 @@ import { ownReviewOutputPath, reviewOutputPath } from '../dist/src/paths.js';
 import { sameMr } from '../dist/src/status.js';
 import { parseConfig } from '../dist/src/config-schema.js';
 
-const project = { key: 'p', reviewsDir: '/r', reviewCommand: 'marginalia', triageCommand: 'marginalia', reviewOwn: true };
+const project = { key: 'p', reviewsDir: '/r', triage: true, reviewOwn: true };
 const mr = (iid, author, over = {}) => ({ iid, sha: `sha${iid}`, title: `MR ${iid}`, source_branch: `feat/b${iid}`, target_branch: 'main', author: { username: author }, project, ...over });
 
 function setup(open, stored = { mineComments: {}, stackBelow: {} }) {

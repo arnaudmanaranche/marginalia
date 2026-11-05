@@ -3,7 +3,7 @@
 // and write the result to a temp file.
 import '../src/node-check.ts';
 import { existsSync } from 'node:fs';
-import { tmpdir, homedir } from 'node:os';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
@@ -76,10 +76,8 @@ export async function runDoctor(argv: string[] = process.argv.slice(2)) {
     }
   }
 
-  const dirsOf = (project: { repoPath: string }) => [join(project.repoPath, '.claude'), join(homedir(), '.claude')];
-  const findCommand = (project: { repoPath: string }, cmd: string) => dirsOf(project).some((d) => existsSync(join(d, 'commands', `${cmd.replace(/^\//, '')}.md`)) || existsSync(join(d, 'skills', cmd.replace(/^\//, ''), 'SKILL.md')));
   for (const project of PROJECTS) {
-    console.log(`\nRepository and commands [${project.key}]`);
+    console.log(`\nRepository [${project.key}]`);
     await step(`${project.key} repository`, async () => {
       await run('git', ['rev-parse', '--git-dir'], { cwd: project.repoPath });
       ok(`${project.repoPath} is a git repository`);
@@ -92,10 +90,6 @@ export async function runDoctor(argv: string[] = process.argv.slice(2)) {
       const problem = await containerRepoProblem(project.repoPath);
       if (problem) bad(problem);
     });
-    for (const [label, cmd] of [['review command', project.reviewCommand], ['triage command', project.triageCommand]]) {
-      if (!cmd) { label === 'triage command' ? warnMsg('triage command empty: your own MRs are ignored') : bad('review command is empty'); continue; }
-      findCommand(project, cmd) ? ok(`${label} ${cmd} found`) : bad(`${label} ${cmd} not found in <repo>/.claude or ~/.claude`, 'copy one from examples/commands or fix the name (plugin commands are not detected here: use --dry-run)');
-    }
   }
 
   console.log('\nTeam');

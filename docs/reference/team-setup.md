@@ -9,8 +9,7 @@ bot: each dev still runs their own marginalia, with their own token, on their ow
 
 ```
 team.json         defaults and the list of GitLab projects (no path, no secret)
-skills/           shared Claude Code skills       (skills/<name>/SKILL.md)
-commands/         shared slash commands           (commands/<name>.md)
+skills/           shared review skills            (skills/<name>/SKILL.md)
 agents/           shared agents                   (agents/<name>.md)
 ```
 
@@ -20,8 +19,7 @@ agents/           shared agents                   (agents/<name>.md)
   "name": "Acme Web",
   "minMarginalia": "1.0.0",
   "defaults": {
-    "reviewCommand": "/acme-web:review",
-    "triageCommand": "/mr-comments",
+    "triage": true,
     "allowedTargetBranches": ["develop"],
     "excludeAuthors": ["renovate-bot"],
     "claudeExtraAllowedTools": [],
@@ -36,7 +34,7 @@ agents/           shared agents                   (agents/<name>.md)
 ```
 
 `version` is 1, `name` and `version` are required, the rest is optional. A project entry
-takes `gitlabProjectId`, `key`, `kind`, `reviewCommand`, `triageCommand`,
+takes `gitlabProjectId`, `key`, `kind`, `triage` (false ignores the dev's own MRs),
 `allowedTargetBranches` and `excludeAuthors`. Unknown fields are errors (a typo would
 otherwise be ignored), and `minMarginalia` makes an older marginalia say "update" instead
 of misreading a newer file.
@@ -55,13 +53,11 @@ is never rewritten, and a team value never replaces one you wrote. `claudeExtraA
 are added to yours, so read them in the team repo's review like any other code. A team project you
 have not mapped is not watched.
 
-The team's skills, commands and agents are loaded into each headless run with
-`claude --plugin-dir <data dir>/team-plugin` (a generated manifest plus links to the team
-copy). Nothing is written into your repo's `.claude/`, and your own commands keep working.
-Plugin commands carry the plugin's name, the slug of `name` in `team.json`:
-`"name": "Acme Web"` gives `/acme-web:review`, which is what the team defaults'
-`reviewCommand` should say. The team files are as protected as your own
-`.claude/{commands,agents,skills,hooks}`: the run cannot edit them.
+The team's skills join the review lenses each chapter's reviewer may load with the Skill
+tool, a team skill winning over a built-in of the same name; the team plugin is passed to
+those stages with `claude --plugin-dir <data dir>/team-plugin` (a generated manifest plus
+links to the team copy). Nothing is written into your repo's `.claude/`. The team files are
+as protected as your own `.claude/{agents,skills,hooks}`: the run cannot edit them.
 
 **What the bot never does.** It never posts to GitLab by itself, never listens for
 webhooks or mentions, and never runs on a server; it does not write to your repo or to the

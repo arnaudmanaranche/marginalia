@@ -9,31 +9,31 @@ const back = { gitlabProjectId: 'acme/back', repoLocalPath: '/r/back' };
 
 test('built-in default applies when neither dev nor team set a field', () => {
   const { config } = mergeTeam(dev([back]), team({}));
-  assert.equal(parseConfig(config).config.projects[0].reviewCommand, '/code-review');
+  assert.equal(parseConfig(config).config.projects[0].triage, true);
 });
 
 test('team defaults beat the built-in defaults', () => {
-  const { config, fromTeam } = mergeTeam(dev([back]), team({ reviewCommand: '/t:review', excludeAuthors: ['bot'] }));
+  const { config, fromTeam } = mergeTeam(dev([back]), team({ triage: false, excludeAuthors: ['bot'] }));
   const p = parseConfig(config).config.projects[0];
-  assert.equal(p.reviewCommand, '/t:review');
+  assert.equal(p.triage, false);
   assert.deepEqual(p.excludeAuthors, ['bot']);
-  assert.deepEqual(fromTeam.map((f) => [f.field, f.source]), [['reviewCommand', 'team defaults'], ['excludeAuthors', 'team defaults']]);
+  assert.deepEqual(fromTeam.map((f) => [f.field, f.source]), [['triage', 'team defaults'], ['excludeAuthors', 'team defaults']]);
 });
 
 test('the team project entry beats the team defaults', () => {
-  const t = team({ reviewCommand: '/default', allowedTargetBranches: ['develop'] }, [{ gitlabProjectId: 'acme/back', reviewCommand: '/specific', kind: 'back', key: 'api' }]);
+  const t = team({ triage: true, allowedTargetBranches: ['develop'] }, [{ gitlabProjectId: 'acme/back', triage: false, kind: 'back', key: 'api' }]);
   const { config, fromTeam } = mergeTeam(dev([back]), t);
   const p = config.projects[0];
-  assert.equal(p.reviewCommand, '/specific');
+  assert.equal(p.triage, false);
   assert.deepEqual(p.allowedTargetBranches, ['develop']);
   assert.equal(p.kind, 'back');
   assert.equal(p.key, 'api');
-  assert.equal(fromTeam.find((f) => f.field === 'reviewCommand').source, 'team project');
+  assert.equal(fromTeam.find((f) => f.field === 'triage').source, 'team project');
 });
 
-test('the dev beats everything, including an explicit empty triageCommand and empty list', () => {
-  const mine = { ...back, reviewCommand: '/mine', triageCommand: '', excludeAuthors: [], kind: 'front' };
-  const t = team({ reviewCommand: '/d', triageCommand: '/mr-comments', excludeAuthors: ['bot'] }, [{ gitlabProjectId: 'acme/back', reviewCommand: '/p', kind: 'back' }]);
+test('the dev beats everything, including an explicit triage: false and empty list', () => {
+  const mine = { ...back, triage: false, excludeAuthors: [], kind: 'front' };
+  const t = team({ triage: true, excludeAuthors: ['bot'] }, [{ gitlabProjectId: 'acme/back', triage: true, kind: 'back' }]);
   const { config, fromTeam } = mergeTeam(dev([mine]), t);
   assert.deepEqual(config.projects[0], mine);
   assert.deepEqual(fromTeam, []);

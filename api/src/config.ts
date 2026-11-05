@@ -39,7 +39,7 @@ export const {
   GITLAB_TOKEN,
   GITLAB_PROJECT_ID, // numeric id, or "group/subgroup/project" path
   // Your own GitLab username. MRs authored by you are routed to
-  // /mr-comments (triage reviewer comments) instead of /code-review.
+  // a triage of their reviewer comments instead of a review.
   GITLAB_USERNAME,
   CLAUDE_BIN = 'claude',
   // Used to open a review file when its "ready" notification is clicked, and
@@ -60,11 +60,6 @@ export const {
   REPO_LOCAL_PATH: RAW_REPO_LOCAL_PATH,
   // Legacy name of REPO_LOCAL_PATH, still read so existing .env files keep working.
   WEBAPP_LOCAL_PATH: LEGACY_REPO_LOCAL_PATH,
-  // Slash commands the bot runs headless. Defaults match the original setup;
-  // point them at your own. An empty TRIAGE_COMMAND disables the triage of your
-  // own MRs (they are then ignored).
-  REVIEW_COMMAND: RAW_REVIEW_COMMAND,
-  TRIAGE_COMMAND: RAW_TRIAGE_COMMAND,
   // Space-separated tools added to the built-in allow-lists (e.g. your own MCP tools).
   CLAUDE_EXTRA_ALLOWED_TOOLS = '',
   // Runs are sandboxed by default (Bash confined to the worktree, no network but
@@ -110,8 +105,6 @@ export const {
 export const BOT_WORKTREE_DIR = RAW_BOT_WORKTREE_DIR || join(DATA_DIR, 'worktree');
 export const REPO_LOCAL_PATH = RAW_REPO_LOCAL_PATH || LEGACY_REPO_LOCAL_PATH;
 export const GITLAB_BASE_URL = (RAW_GITLAB_BASE_URL ?? '').replace(/\/+$/, '');
-export const REVIEW_COMMAND = RAW_REVIEW_COMMAND === undefined ? '/code-review' : RAW_REVIEW_COMMAND.trim();
-export const TRIAGE_COMMAND = RAW_TRIAGE_COMMAND === undefined ? '/mr-comments' : RAW_TRIAGE_COMMAND.trim();
 
 // Reported together so a fresh install sees everything to fix at once.
 export function missingConfig() {

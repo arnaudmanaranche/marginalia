@@ -12,9 +12,8 @@ export const ProjectSchema = z.object({
   key: z.string().regex(/^[a-z0-9][a-z0-9-]*$/, 'lowercase letters, digits and dashes').optional(),
   repoLocalPath: z.string().trim().min(1),
   kind: z.enum(['back', 'front']).optional(),
-  reviewCommand: z.string().trim().default('/code-review'),
-  // Empty disables the triage of your own MRs.
-  triageCommand: z.string().trim().default('/mr-comments'),
+  // Triage the reviewer comments on my own MRs; false ignores my own MRs.
+  triage: z.boolean().default(true),
   allowedTargetBranches: list,
   excludeAuthors: list,
   // Review my own MRs too, for me alone (an own review is never posted).

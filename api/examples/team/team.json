@@ -3,8 +3,7 @@
   "name": "Acme Web",
   "minMarginalia": "1.0.0",
   "defaults": {
-    "reviewCommand": "/acme-web:review",
-    "triageCommand": "/mr-comments",
+    "triage": true,
     "allowedTargetBranches": ["develop"],
     "excludeAuthors": ["renovate-bot"],
     "claudeExtraAllowedTools": [],

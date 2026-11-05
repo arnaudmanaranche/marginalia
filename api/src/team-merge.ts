@@ -3,7 +3,7 @@
 // Precedence, highest first: the dev's own value > the team's entry for that project >
 // the team's defaults > the built-in defaults (which parseConfig applies afterwards).
 // It works on the RAW config.json (before parseConfig): once parsed, a value the dev
-// never wrote ("/code-review") looks the same as one they chose, and the team could
+// never wrote (`triage: true`) looks the same as one they chose, and the team could
 // not tell what it may fill. The result goes through parseConfig as usual.
 //
 // A team project reaches the dev's projects[] only when the dev has a projects[] entry
@@ -11,8 +11,8 @@
 // are returned in `unmapped`, for doctor and the CLI to say "map these".
 
 // Per-project fields a team can set. `key` and `kind` only come from the team's entry.
-const FIELDS = ['key', 'kind', 'reviewCommand', 'triageCommand', 'allowedTargetBranches', 'excludeAuthors'];
-const FROM_DEFAULTS = new Set(['reviewCommand', 'triageCommand', 'allowedTargetBranches', 'excludeAuthors']);
+const FIELDS = ['key', 'kind', 'triage', 'allowedTargetBranches', 'excludeAuthors'];
+const FROM_DEFAULTS = new Set(['triage', 'allowedTargetBranches', 'excludeAuthors']);
 
 const isSet = (v: unknown) => v !== undefined && v !== null;
 const words = (text: unknown) => String(text ?? '').split(/\s+/).filter(Boolean);

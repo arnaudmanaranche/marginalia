@@ -39,19 +39,19 @@ test('the team fills what the dev left out, and the dev keeps what they set', ()
   const team = readTeamSync(dir, '99.0.0');
   assert.ok(team, 'the shipped example is a valid team');
   const [teamProject] = team.projects;
-  const mine = { gitlabProjectId: teamProject.gitlabProjectId, repoLocalPath: '/code/mine', reviewCommand: '/my-review' };
+  const mine = { gitlabProjectId: teamProject.gitlabProjectId, repoLocalPath: '/code/mine', triage: false };
   writeFileSync(join(dir, 'config.json'), JSON.stringify(dev([mine])));
   const config = readConfigFile(dir, { team });
   const project = config.projects[0];
   assert.equal(project.repoLocalPath, '/code/mine');
-  assert.equal(project.reviewCommand, '/my-review', 'the dev\'s own command wins');
+  assert.equal(project.triage, false, 'the dev\'s own choice wins');
   assert.equal(project.kind, teamProject.kind ?? undefined, 'a field only the team knows comes from it');
 });
 
 test('without the team, the same config.json parses to the built-in defaults', () => {
   const dir = dataDirWithTeam();
   writeFileSync(join(dir, 'config.json'), JSON.stringify(dev([{ gitlabProjectId: 'g/a', repoLocalPath: '/r' }])));
-  assert.equal(readConfigFile(dir).projects[0].reviewCommand, '/code-review');
+  assert.equal(readConfigFile(dir).projects[0].triage, true);
 });
 
 test('team extras: tools are added to the dev\'s, the dev\'s prompt extra wins', () => {

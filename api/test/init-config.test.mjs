@@ -6,13 +6,13 @@ import { parseConfig } from '../dist/src/config-schema.js';
 const shared = { gitlabBaseUrl: 'https://git.example.com/', gitlabUsername: 'me', gitlabToken: 'glpat-abc' };
 
 test('an answer set becomes a project entry, with empty answers left out', () => {
-  const entry = projectFromAnswers({ gitlabProjectId: ' group/back ', repoLocalPath: '/code/back', kind: 'back', reviewCommand: '/review', triageCommand: '', allowedTargetBranches: 'develop, main', excludeAuthors: '' });
+  const entry = projectFromAnswers({ gitlabProjectId: ' group/back ', repoLocalPath: '/code/back', kind: 'back', triage: false, allowedTargetBranches: 'develop, main', excludeAuthors: '' });
   assert.deepEqual(entry, {
-    gitlabProjectId: 'group/back', repoLocalPath: '/code/back', kind: 'back', reviewCommand: '/review', triageCommand: '', allowedTargetBranches: ['develop', 'main'],
+    gitlabProjectId: 'group/back', repoLocalPath: '/code/back', kind: 'back', triage: false, allowedTargetBranches: ['develop', 'main'],
   });
 });
 
-test('"something else" has no kind, an unanswered triage command keeps the default, key and authors are kept', () => {
+test('"something else" has no kind, an unanswered triage keeps the default, key and authors are kept', () => {
   const entry = projectFromAnswers({ gitlabProjectId: '7', repoLocalPath: '/r', kind: 'other', key: 'api', excludeAuthors: ['bot'] });
   assert.deepEqual(entry, { gitlabProjectId: '7', repoLocalPath: '/r', key: 'api', excludeAuthors: ['bot'] });
 });
@@ -20,7 +20,7 @@ test('"something else" has no kind, an unanswered triage command keeps the defau
 test('two projects make a config the schema accepts', () => {
   const projects = [
     projectFromAnswers({ gitlabProjectId: 'g/back', repoLocalPath: '/b', kind: 'back' }),
-    projectFromAnswers({ gitlabProjectId: 'g/front', repoLocalPath: '/f', kind: 'front', reviewCommand: '/review-front' }),
+    projectFromAnswers({ gitlabProjectId: 'g/front', repoLocalPath: '/f', kind: 'front', triage: true }),
   ];
   const built = buildConfig({ shared, projects });
   assert.equal(built.ok, true);
@@ -50,8 +50,7 @@ GITLAB_PROJECT_ID=group/back
 GITLAB_TOKEN=glpat-real
 GITLAB_USERNAME=me
 REPO_LOCAL_PATH=/code/back
-REVIEW_COMMAND=/review
-TRIAGE_COMMAND=
+TRIAGE=false
 ALLOWED_TARGET_BRANCHES=develop,main
 STUDIO_PORT=5555
 CLAUDE_SANDBOX=false
@@ -62,7 +61,7 @@ BOT_WORKTREE_DIR=/w
 test('parseEnv reads KEY=value lines only', () => {
   const env = parseEnv(ENV);
   assert.equal(env.GITLAB_PROJECT_ID, 'group/back');
-  assert.equal(env.TRIAGE_COMMAND, '');
+  assert.equal(env.TRIAGE, 'false');
   assert.equal(env.GITLAB_TOKEN, 'glpat-real');
 });
 
@@ -70,7 +69,7 @@ test('migrate maps the .env to one project and lists what stays in the .env', ()
   const r = migrateEnv(parseEnv(ENV));
   assert.equal(r.ok, true);
   assert.deepEqual(r.raw.projects, [{
-    gitlabProjectId: 'group/back', repoLocalPath: '/code/back', reviewCommand: '/review', triageCommand: '', allowedTargetBranches: ['develop', 'main'], excludeAuthors: [],
+    gitlabProjectId: 'group/back', repoLocalPath: '/code/back', triage: false, allowedTargetBranches: ['develop', 'main'], excludeAuthors: [],
   }]);
   assert.equal(r.raw.studioPort, '5555');
   assert.equal(r.raw.sandbox, false);

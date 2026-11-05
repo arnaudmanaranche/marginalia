@@ -4,7 +4,7 @@ import { gatherContext } from './context.ts';
 import { contextText } from './context-text.ts';
 import { renderReview } from './report-render.ts';
 import { mergeReview } from './review-merge.ts';
-import { DATA_DIR } from '../config.ts';
+import { DATA_DIR, REVIEW_PROMPT_EXTRA } from '../config.ts';
 import { lensPrompt } from '../catalog.ts';
 import { assembleCatalog } from '../catalog-assemble.ts';
 import { teamRunExtras } from '../team-claude.ts';
@@ -27,7 +27,9 @@ export async function stagedReview({ mr, run, outputPath, stack = null, settings
   await run.stage('context');
   const { context } = await gatherContext(mr, { outputPath, stack });
   run.step(`${context.files.length} changed files${context.ticket ? `, ticket ${context.ticket.key}${context.ticket.text ? '' : ' (not readable here)'}` : ', no ticket'}, rules in ${context.guidance.join(', ') || 'no file'}`, { stage: 'context' });
-  const text = [contextText(context), projectContextPrompt(await readContext(DATA_DIR, mr.project.key, 'approved'))].filter(Boolean).join('\n\n');
+  // REVIEW_PROMPT_EXTRA: what the dev (or the team) asks of every review, for every stage.
+  const extra = REVIEW_PROMPT_EXTRA.trim() ? `What the team asks of every review:\n${REVIEW_PROMPT_EXTRA.trim()}` : '';
+  const text = [contextText(context), projectContextPrompt(await readContext(DATA_DIR, mr.project.key, 'approved')), extra].filter(Boolean).join('\n\n');
 
   await run.stage('map');
   const changed = context.files.map((f: any) => f.path);

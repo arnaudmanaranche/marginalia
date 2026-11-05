@@ -22,7 +22,7 @@ export function mrCommentsOutputPath(mr: any) {
   return join(mr.project.reviewsDir, `${TRIAGE_FILE_PREFIX}${branchSlug(mr.source_branch)}.md`);
 }
 
-// A local-only branch ref (never pushed) recording where /mr-comments' fixes
+// A local-only branch ref (never pushed) recording where the triage's fixes
 // for this MR ended up. The bot worktree shares its object database and refs
 // with REPO_LOCAL_PATH (it's a `git worktree` of it), so this ref is
 // immediately visible from your real checkout too — `git log

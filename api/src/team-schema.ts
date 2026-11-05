@@ -9,9 +9,8 @@ const semver = z.string().regex(/^\d+\.\d+\.\d+$/, 'a version like 2.0.0');
 
 // Fields a team can set for a project (and as the default of every project).
 const reviewFields = {
-  reviewCommand: z.string().trim().min(1).optional(),
-  // Empty disables the triage of your own MRs.
-  triageCommand: z.string().trim().optional(),
+  // false ignores the dev's own MRs (no triage of their reviewer comments).
+  triage: z.boolean().optional(),
   allowedTargetBranches: list.optional(),
   excludeAuthors: list.optional(),
 };

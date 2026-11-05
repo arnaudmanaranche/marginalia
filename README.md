@@ -21,16 +21,16 @@ or Maintainer rights are needed. Hosted, it sits behind HTTPS and GitLab OAuth
 
 ```bash
 npm run setup                 # npm install + build the studio + interactive setup
-                              # (asks GitLab URL/project/token, repo path, your commands;
+                              # (asks GitLab URL/project/token, repo path, triage on/off;
                               # checks each answer live and writes .env)
 npm run doctor                # read-only checks (also run at the end of setup), each failure says how to fix it
 npm run doctor -- --dry-run 123   # runs the real chain on MR !123 into a temp file
 npm start
 ```
 
-No commands yet? Copy `api/examples/commands/*.md` and `api/examples/agents/*.md` into
-your repo's (or `~/.claude`'s) `commands/` and `agents/`, then set
-`REVIEW_COMMAND=/review` and `TRIAGE_COMMAND=/triage`.
+Every review and triage runs Marginalia's staged pipeline (see `docs/reference/review-flow.md`).
+It reads your repo's `CLAUDE.md`, `AGENTS.md`, `CONTRIBUTING` and `.claude/agents/code-reviewer.md`
+as its rules: `api/examples/agents/reviewer.md` is a starting point for the last one.
 
 ## Install for the team
 

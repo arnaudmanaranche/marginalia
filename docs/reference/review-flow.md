@@ -33,17 +33,18 @@ a stack (rebuilt from the open MR list on every poll). For these:
 - The studio shows the stack above the review as a merge board.
 - Layers you authored yourself are not shown on the board (they go through triage).
 
-## Marginalia's staged pipeline (`REVIEW_COMMAND=marginalia`, `TRIAGE_COMMAND=marginalia`)
+## Marginalia's staged pipeline
 
-Instead of one long Claude call running your repo's slash command, the bot drives the work
-itself, in stages you follow live in the studio (each with its steps, time and cost):
+Every review and triage is driven by the bot itself, in stages you follow live in the studio
+(each stage an agent with its tool calls, time, tokens and cost):
 
 - **Review of a colleague's MR.** The bot checks out the MR and gathers, in code, the diff from
   where the branch left its target, the ticket (when Jira is configured), the conversation and
   the last report. One agent **maps** the change: before/after, risk, and chapters (one idea
   each, core first, tests and generated files last). Then one agent **per chapter** reviews it,
   three at a time, reading the repo's own rules (`CLAUDE.md`, `AGENTS.md`, `CONTRIBUTING`,
-  `docs/adr`, and `.claude/agents/code-reviewer.md` as its checklist). The bot merges their
+  `docs/adr`, and `.claude/agents/code-reviewer.md` as its checklist) and loading the review
+  lenses its files call for (the built-in skills and the team's, with the Skill tool). The bot merges their
   findings by rule: duplicates dropped, stable ids, the verdict from the severities. A chapter
   that fails is said in the report; the others still count.
 - **Triage of my own MR.** The bot gathers the open reviewer threads with the code they are
@@ -55,47 +56,31 @@ itself, in stages you follow live in the studio (each with its steps, time and c
   its own with the thread in a `Marginalia-Thread` trailer. In the studio, each thread's fix can
   be **pushed alone** from its card (the others are replayed on top of it, still to push), and
   its reply names the commit that landed. A fix that fails is rolled back.
-- **Preflight.** Every run, staged or not, starts by checking in a few seconds that Claude is
+- **Preflight.** Every run starts by checking in a few seconds that Claude is
   logged in, the GitLab token reads the project, origin serves the MR's head, and for a triage
   that this machine can push to the branch (`git push --dry-run --no-verify`). One that would
   stop the run half way stops it there, before any agent is paid for, with what to do. The
   ticket is checked too, but a run without it goes on and says so.
-- Each stage has only the tools its job needs (read-only for the review; edit, never commit,
-  for a fix or a conflict), and its answer is checked against a contract: one that does not fit
+- Each stage has only the tools its job needs (read-only for the review, the connectors
+  included; edit, never commit, for a fix or a conflict), and its answer is checked against a contract: one that does not fit
   is sent back once, in the same session, with what was wrong.
-
-A slash command (`/code-review`, `/mr-comments`) still works as before, as described below.
 
 ## MRs authored by someone else (`GITLAB_USERNAME` doesn't match)
 
-- Runs `claude -p "/code-review MR !<iid>"` in the bot worktree. The command
-  handles ticket/MR lookup, diffing, the nested review worktree, and writing
-  the result — this bot only triggers it and parses the review out of stdout.
+- The staged review above runs in the bot worktree.
 - **The bot never posts anything to GitLab.** (The only way to post is the studio's opt-in button, see [Review studio](studio.md).) Each review lands at
   `<REPO_LOCAL_PATH>/.claude/reviews/<branch-slug>.md`, for you to read and
-  decide what to do with — the review command's own instructions forbid it from
-  posting anything itself.
-- State (last SHA reviewed per MR) is kept in `state.json`, at the project
-  root (gitignored). Deleting it forces a re-review of all open MRs on the
-  next poll.
+  decide what to do with.
+- State (last SHA reviewed per MR) is kept in the database. Clearing it forces a re-review of
+  all open MRs on the next poll.
 
 ## MRs you authored yourself (`mr.author.username === GITLAB_USERNAME`)
 
-- Instead of the review command, polls the MR's GitLab discussions for comments
-  left by someone other than you. Runs `claude -p "/mr-comments MR !<iid>"`
-  in the bot worktree only when a new (or newer) peer comment appears since
-  the last triage — a fresh push with no new comment does **not** retrigger
-  it.
-- the triage command triages every unresolved comment against the ticket AC and
-  the diff: applies fixes for the ones it judges relevant directly in the bot
-  worktree, and drafts (but never posts) a reply for the rest. In bot mode it
-  writes its report to a plain file (`.marginalia-report.md`) in the bot
-  worktree rather than printing it — a subagent's output only reaches the
-  orchestrating command as a tool result, never as text `claude -p
-  --output-format text` captures, so relying on the orchestrator re-emitting
-  it verbatim as its own final message proved unreliable in practice (see
-  `api/src/claude-runner.ts`'s comment on `MR_COMMENTS_REPORT_FILE`). This bot
-  reads that file directly and writes the real report to
+- Instead of a review, polls the MR's GitLab discussions for comments left by someone other
+  than you, and runs the staged triage above only when a new (or newer) peer comment appears
+  since the last triage, or the MR conflicts with its target — a fresh push with no new comment
+  does **not** retrigger it. `"triage": false` on the project turns this off.
+- The report is written to
   `<REPO_LOCAL_PATH>/.claude/reviews/mr-comments-<branch-slug>.md`.
 - **Fixes are committed locally in the bot worktree, never pushed.** Since
   the worktree gets `git clean -fdx` + `git reset --hard` before the next
@@ -122,8 +107,8 @@ A slash command (`/code-review`, `/mr-comments`) still works as before, as descr
   `Fixed in <sha>.`. None of this needs `ALLOW_POSTING`, which is about other
   people's MRs.
 - **Everything the triage writes is in English** (report, drafted replies,
-  findings, commit messages): the bot's injected contract says so, whatever
-  language the command or the comments are in.
+  findings, commit messages): every stage is told so, whatever language the
+  comments are in.
 - State (last peer-comment timestamp triaged per MR) is kept in `state.json`
   under `mineComments`, separately from the SHA-based state above.
 

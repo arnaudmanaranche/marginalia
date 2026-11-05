@@ -11,7 +11,7 @@ export const parseEnv = (text: string) => Object.fromEntries(
 const csv = (v: unknown) => String(v ?? '').split(',').map((s) => s.trim()).filter(Boolean);
 
 // One project entry from the answers of the prompts. Empty answers are left out
-// (the schema's defaults apply), except the triage command, where empty means "off".
+// (the schema's defaults apply).
 export function projectFromAnswers(a: any) {
   const entry: Record<string, any> = {
     gitlabProjectId: String(a.gitlabProjectId ?? '').trim(),
@@ -19,8 +19,7 @@ export function projectFromAnswers(a: any) {
   };
   if (a.key) entry.key = a.key;
   if (a.kind === 'back' || a.kind === 'front') entry.kind = a.kind;
-  if (a.reviewCommand?.trim()) entry.reviewCommand = a.reviewCommand.trim();
-  if (a.triageCommand !== undefined) entry.triageCommand = a.triageCommand.trim();
+  if (typeof a.triage === 'boolean') entry.triage = a.triage;
   const branches = Array.isArray(a.allowedTargetBranches) ? a.allowedTargetBranches : csv(a.allowedTargetBranches);
   if (branches.length) entry.allowedTargetBranches = branches;
   const authors = Array.isArray(a.excludeAuthors) ? a.excludeAuthors : csv(a.excludeAuthors);

@@ -3,7 +3,6 @@
 const csv = (v: unknown) => String(v ?? '').split(',').map((s) => s.trim()).filter(Boolean);
 
 export function configFromEnv(env: any) {
-  const command = (value: string | undefined, fallback: any) => (value === undefined ? fallback : value.trim());
   return {
     gitlabBaseUrl: env.GITLAB_BASE_URL,
     gitlabUsername: env.GITLAB_USERNAME,
@@ -15,8 +14,7 @@ export function configFromEnv(env: any) {
     projects: [{
       gitlabProjectId: env.GITLAB_PROJECT_ID,
       repoLocalPath: env.REPO_LOCAL_PATH || env.WEBAPP_LOCAL_PATH,
-      reviewCommand: command(env.REVIEW_COMMAND, '/code-review'),
-      triageCommand: command(env.TRIAGE_COMMAND, '/mr-comments'),
+      ...(env.TRIAGE !== undefined && { triage: env.TRIAGE !== 'false' }),
       allowedTargetBranches: csv(env.ALLOWED_TARGET_BRANCHES),
       excludeAuthors: csv(env.EXCLUDE_AUTHORS),
       ...(env.REVIEW_OWN !== undefined && { reviewOwn: env.REVIEW_OWN === 'true' }),
@@ -38,8 +36,7 @@ export function envFromConfig(config: any) {
     STUDIO_PORT: String(config.studioPort),
     GITLAB_PROJECT_ID: project.gitlabProjectId,
     REPO_LOCAL_PATH: project.repoLocalPath,
-    REVIEW_COMMAND: project.reviewCommand,
-    TRIAGE_COMMAND: project.triageCommand,
+    TRIAGE: String(project.triage ?? true),
     ALLOWED_TARGET_BRANCHES: project.allowedTargetBranches.join(','),
     EXCLUDE_AUTHORS: project.excludeAuthors.join(','),
     REVIEW_OWN: String(project.reviewOwn ?? false),
@@ -49,6 +46,6 @@ export function envFromConfig(config: any) {
 // The global settings a container or a CI job sets from the outside. A config.json always has a
 // value for them (the schema fills in defaults), so without this it would override the real
 // environment even when the file never mentions them: `docker run -e CLAUDE_SANDBOX=false`
-// would be ignored. Everything else (GitLab, projects, commands) is config.json's.
+// would be ignored. Everything else (GitLab, projects) is config.json's.
 export const ENV_OVERRIDES = ['CLAUDE_BIN', 'CLAUDE_SANDBOX', 'NOTIFICATIONS', 'STUDIO_PORT'];
 export const envOverrides = (env: any) => Object.fromEntries(ENV_OVERRIDES.filter((k) => env[k] !== undefined && env[k] !== '').map((k) => [k, env[k]]));
