@@ -1,6 +1,10 @@
 @import 'tailwindcss';
 @plugin '@tailwindcss/typography';
 
+/* Dark is an attribute on <html> (lib/theme.ts), not the OS media query, so a person can choose it:
+   every `dark:` utility and every dark token below reads it. */
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
 @theme {
   --font-sans: ui-sans-serif, -apple-system, 'Inter', 'Segoe UI', system-ui, sans-serif;
   --font-mono: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, monospace;
@@ -15,7 +19,7 @@
 }
 
 :root {
-  color-scheme: light dark;
+  color-scheme: light;
 
   /* Height of the sticky chrome (top bar 3.5rem + open-review strip). The strip grows for
      touch so its tabs are 44px tall; everything pinned under it reads these variables. */
@@ -63,24 +67,23 @@
     --chrome-h: 6.5rem;
   }
 }
-@media (prefers-color-scheme: dark) {
-  :root {
-    --fg-muted: var(--color-zinc-400);
-    --fg-subtle: var(--color-zinc-500);
-    --canvas: var(--color-zinc-950);
-    --surface: var(--color-zinc-900);
-    --sunken: var(--color-zinc-800);
-    --strip: var(--color-zinc-900);
-    --line: var(--color-zinc-800);
-    --line-strong: var(--color-zinc-700);
-    --ok: var(--color-emerald-400);
-    --run: var(--color-blue-400);
-    --warn: var(--color-amber-400);
-    --fail: var(--color-red-400);
-    --idle: var(--color-zinc-600);
-    --run-ink: var(--color-blue-300);
-    --ok-ink: var(--color-emerald-300);
-  }
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --fg-muted: var(--color-zinc-400);
+  --fg-subtle: var(--color-zinc-500);
+  --canvas: var(--color-zinc-950);
+  --surface: var(--color-zinc-900);
+  --sunken: var(--color-zinc-800);
+  --strip: var(--color-zinc-900);
+  --line: var(--color-zinc-800);
+  --line-strong: var(--color-zinc-700);
+  --ok: var(--color-emerald-400);
+  --run: var(--color-blue-400);
+  --warn: var(--color-amber-400);
+  --fail: var(--color-red-400);
+  --idle: var(--color-zinc-600);
+  --run-ink: var(--color-blue-300);
+  --ok-ink: var(--color-emerald-300);
 }
 
 @theme inline {
@@ -157,10 +160,8 @@
 body {
   @apply bg-canvas text-zinc-900 antialiased;
 }
-@media (prefers-color-scheme: dark) {
-  body {
-    @apply text-zinc-100;
-  }
+[data-theme='dark'] body {
+  @apply text-zinc-100;
 }
 
 html {
@@ -180,13 +181,11 @@ html {
 .hljs-number, .hljs-built_in, .hljs-type { color: #d97706; }
 .hljs-title, .hljs-function { color: #2563eb; }
 .hljs-deletion { color: #dc2626; }
-@media (prefers-color-scheme: dark) {
-  .hljs-keyword, .hljs-selector-tag, .hljs-literal { color: #e879f9; }
-  .hljs-string, .hljs-attr, .hljs-addition { color: #34d399; }
-  .hljs-number, .hljs-built_in, .hljs-type { color: #fbbf24; }
-  .hljs-title, .hljs-function { color: #60a5fa; }
-  .hljs-deletion { color: #f87171; }
-}
+[data-theme='dark'] .hljs-keyword, [data-theme='dark'] .hljs-selector-tag, [data-theme='dark'] .hljs-literal { color: #e879f9; }
+[data-theme='dark'] .hljs-string, [data-theme='dark'] .hljs-attr, [data-theme='dark'] .hljs-addition { color: #34d399; }
+[data-theme='dark'] .hljs-number, [data-theme='dark'] .hljs-built_in, [data-theme='dark'] .hljs-type { color: #fbbf24; }
+[data-theme='dark'] .hljs-title, [data-theme='dark'] .hljs-function { color: #60a5fa; }
+[data-theme='dark'] .hljs-deletion { color: #f87171; }
 
 /* Tailwind's preflight resets buttons to cursor: default. */
 @layer base {
@@ -227,10 +226,8 @@ html {
   animation: shimmer 1.5s ease-in-out infinite;
   animation-delay: inherit;
 }
-@media (prefers-color-scheme: dark) {
-  .shimmer::after {
-    background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.08), transparent);
-  }
+[data-theme='dark'] .shimmer::after {
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.08), transparent);
 }
 @media (prefers-reduced-motion: reduce) {
   .shimmer::after {

@@ -23,6 +23,7 @@ import { SettingsPage } from './components/SettingsPage';
 import { ApprovalsView } from './components/ApprovalsPage';
 import { APPROVALS_ROUTE, useApprovals } from './lib/approvalsApi';
 import { isLiveFor } from './lib/liveRun';
+import { useTheme } from './lib/theme';
 import { ProjectView } from './components/ProjectPage';
 import { contextKeyOf } from './lib/contextApi';
 import { StackBoard } from './components/StackBoard';
@@ -163,6 +164,7 @@ export function App() {
   // The Home tab counts what waits on you in every project, whatever the filter hides.
   const waitingAll = waitingOnYou(useHomeGroups(items));
 
+  const [theme] = useTheme();
   const go = (s: string | null) => {
     location.hash = s ? `#/${s}` : '';
     window.scrollTo({ top: 0 });
@@ -180,7 +182,7 @@ export function App() {
     // reducedMotion="user": no layout animation if the OS asks for less motion.
     <MotionConfig reducedMotion="user">
     <LazyMotion features={loadMotionFeatures} strict>
-      <Toaster position="bottom-right" theme="system" richColors />
+      <Toaster position="bottom-right" theme={theme} richColors />
       <header className="sticky top-0 z-40 bg-canvas">
         <StatusBar status={data?.status ?? null} connection={data ? 'ok' : error ? 'unreachable' : 'connecting'} settingsActive={slug === SETTINGS_ROUTE} approvalsActive={slug === APPROVALS_ROUTE} approvals={approvalCount} onApprovals={() => go(APPROVALS_ROUTE)} onOpenPalette={() => setPalette(true)} onHome={() => go(null)} onSettings={() => go(SETTINGS_ROUTE)} />
         <TabStrip
