@@ -50,3 +50,21 @@ export const StoredProjectContext = z.object({
   approvedAt: text.nullable(),
   context: AgentProjectContext,
 }).meta({ id: 'StoredProjectContext' });
+
+// A project's context as the studio sees it: the draft waiting for a person, and the approved one
+// reviews use. Either can be missing.
+export const ProjectContextState = z.object({
+  project: text,
+  draft: StoredProjectContext.nullable(),
+  approved: StoredProjectContext.nullable(),
+  learning: z.boolean().describe('An Understand job of this project is queued or running in this bot.'),
+}).meta({ id: 'ProjectContextState' });
+
+// What Home needs to say a draft waits: per project, when each version was learned.
+export const ContextSummaries = z.object({
+  contexts: z.array(z.object({
+    project: text,
+    draftLearnedAt: text.nullable(),
+    approvedAt: text.nullable(),
+  })),
+}).meta({ id: 'ContextSummaries' });
