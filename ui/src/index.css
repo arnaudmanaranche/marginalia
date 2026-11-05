@@ -247,3 +247,12 @@ html {
     transform: translateY(2px);
   }
 }
+
+/* A job that just started drops into the list and its row settles from a tint. */
+@keyframes job-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+    background-color: color-mix(in srgb, var(--run) 14%, transparent);
+  }
+}

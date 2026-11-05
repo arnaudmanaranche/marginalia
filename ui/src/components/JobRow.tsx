@@ -17,15 +17,18 @@ const TEXT: Record<JobTone, string> = { running: 'text-run', done: 'text-fg-mute
 // One job as a line of a trace: its state, what it ran on, its stages as one bar (each as long as it
 // took), when, how long and what it cost. It opens in place into its waterfall; a failed one says
 // why on the line itself.
-export function JobRow({ job, showProject, open, onToggle, onOpen }: { job: Job; showProject: boolean; open: boolean; onToggle: () => void; onOpen: (route: string) => void }) {
+export function JobRow({ job, showProject, open, fresh = false, onToggle, onOpen }: { job: Job; showProject: boolean; open: boolean; fresh?: boolean; onToggle: () => void; onOpen: (route: string) => void }) {
   const state = stateOf(job);
   const { spans, total } = spansOf(job.stages, job.startedAt, Date.now());
   return (
-    <li>
+    <li className={fresh ? 'animate-[job-in_0.6s_cubic-bezier(0.16,1,0.3,1)] motion-reduce:animate-none' : undefined}>
       <button type="button" onClick={onToggle} aria-expanded={open} className={cn('touch-target grid w-full grid-cols-[1rem_minmax(0,1fr)_auto] items-center gap-x-3 px-4 py-2.5 text-left transition-colors duration-150 sm:grid-cols-[1rem_minmax(0,1fr)_minmax(6rem,14rem)_5rem_4rem_3.5rem]', open ? 'bg-sunken/60' : 'hover:bg-sunken/40')}>
         <StatusMark state={MARK[state.tone]} label={state.label} />
         <span className="min-w-0">
-          <span className="block truncate text-sm font-medium" title={targetOf(job)}>{targetOf(job)}</span>
+          <span className="flex items-center gap-2 text-sm font-medium">
+            <span className="truncate" title={targetOf(job)}>{targetOf(job)}</span>
+            {fresh && <span className="shrink-0 rounded-full bg-run/10 px-1.5 py-px text-[10px] font-medium uppercase tracking-wide text-run">New</span>}
+          </span>
           <span className="block truncate text-xs text-fg-muted">
             <span className={TEXT[state.tone]}>{state.tone === 'done' ? WHAT[job.what] : state.label}</span>
             {state.tone !== 'done' && ` · ${WHAT[job.what]}`}{job.iid !== null && ` · !${job.iid}`}{showProject && ` · ${job.project}`}

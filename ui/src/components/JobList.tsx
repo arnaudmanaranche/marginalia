@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { Job } from '../lib/api';
 import { FILTERS, byDay, matches, type JobFilter } from '../lib/trace';
 import { Segmented } from './ds/Segmented';
+import { useFreshJobs } from '../lib/jobArrivals';
 import { JobRow } from './JobRow';
 
 // The jobs as a trace list: one filter row above, the jobs under the day they started, one opened
@@ -9,6 +10,7 @@ import { JobRow } from './JobRow';
 export function JobList({ jobs, showProject, onOpen }: { jobs: Job[]; showProject: boolean; onOpen: (route: string) => void }) {
   const [filter, setFilter] = useState<JobFilter>('all');
   const [open, setOpen] = useState<string | null>(null);
+  const isFresh = useFreshJobs(jobs);
   const shown = jobs.filter((j) => matches(j, filter));
   const options = FILTERS.map((f) => ({ ...f, count: f.id === 'all' ? undefined : jobs.filter((j) => matches(j, f.id)).length }));
   return (
@@ -22,7 +24,7 @@ export function JobList({ jobs, showProject, onOpen }: { jobs: Job[]; showProjec
           <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface">
             {those.map((job) => {
               const id = `${job.slug}:${job.id}`;
-              return <JobRow key={id} job={job} showProject={showProject} open={open === id} onToggle={() => setOpen((o) => (o === id ? null : id))} onOpen={onOpen} />;
+              return <JobRow key={id} job={job} showProject={showProject} fresh={isFresh(job)} open={open === id} onToggle={() => setOpen((o) => (o === id ? null : id))} onOpen={onOpen} />;
             })}
           </ul>
         </section>

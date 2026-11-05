@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Volume2 } from 'lucide-react';
+import { notificationsOn, notificationsSupported, setNotificationsOn } from '../lib/notify';
 import { play, setSoundsOn, soundsOn } from '../lib/sounds';
 import { CHOICES, useTheme } from '../lib/theme';
 import { Segmented } from './ds/Segmented';
@@ -11,6 +12,7 @@ import { Button } from './ui/Button';
 export function AppearanceSettings() {
   const [theme, setTheme] = useTheme();
   const [sounds, setSounds] = useState(soundsOn);
+  const [notifs, setNotifs] = useState(notificationsOn);
   return (
     <SettingGroup title="This browser" description="Applied at once and kept in this browser only.">
       <SettingRow label="Theme" hint="Follow the system, or always light or dark." hintId="setting-theme-hint">
@@ -27,6 +29,11 @@ export function AppearanceSettings() {
           }}
         />
       </SettingRow>
+      {notificationsSupported() && (
+        <SettingRow label="Notifications" htmlFor="setting-notifs" hintId="setting-notifs-hint" hint="A system notification for the same moments when this tab is not in front. The browser asks once; it may be blocked in its site settings.">
+          <Switch id="setting-notifs" label="Show notifications" describedBy="setting-notifs-hint" checked={notifs} onChange={(on) => void setNotificationsOn(on).then(setNotifs)} />
+        </SettingRow>
+      )}
     </SettingGroup>
   );
 }

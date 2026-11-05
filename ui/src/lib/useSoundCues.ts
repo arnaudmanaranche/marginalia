@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import type { BotStatus, ReviewItem } from './api';
 import { cuesBetween, snapshot, type Snapshot } from './soundCues';
+import { notify } from './notify';
 import { play } from './sounds';
 
 // Plays what changed in the list while the page is open: an MR arriving, a report ready, a run that
@@ -10,7 +11,10 @@ export function useSoundCues(items: ReviewItem[] | undefined, status: BotStatus 
   useEffect(() => {
     if (!items) return;
     const now = snapshot(items, status);
-    for (const cue of cuesBetween(last.current, now)) play(cue);
+    for (const cue of cuesBetween(last.current, now)) {
+      play(cue);
+      notify(cue);
+    }
     last.current = now;
   }, [items, status]);
 }
