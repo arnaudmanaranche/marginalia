@@ -38,6 +38,20 @@
   --strip: var(--color-zinc-50);
   --line: var(--color-zinc-200);
   --line-strong: var(--color-zinc-300);
+
+  /* Run states, one hue each, for marks and live pills (ds/StatusMark, ds/LivePill): ok = done,
+     run = in progress (the signal blue), warn = retrying or skipped by choice, fail = failed,
+     idle = not started. Text that sits on them stays in the text roles. */
+  --ok: var(--color-emerald-600);
+  --run: var(--color-blue-600);
+  --warn: var(--color-amber-600);
+  --fail: var(--color-red-600);
+  --idle: var(--color-zinc-400);
+
+  /* Motion: state changes are short and land softly (exponential ease-out). */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-fast: 150ms;
+  --dur: 220ms;
 }
 @media (pointer: coarse) {
   :root {
@@ -55,6 +69,11 @@
     --strip: var(--color-zinc-900);
     --line: var(--color-zinc-800);
     --line-strong: var(--color-zinc-700);
+    --ok: var(--color-emerald-400);
+    --run: var(--color-blue-400);
+    --warn: var(--color-amber-400);
+    --fail: var(--color-red-400);
+    --idle: var(--color-zinc-600);
   }
 }
 
@@ -69,6 +88,62 @@
   --color-strip: var(--strip);
   --color-line: var(--line);
   --color-line-strong: var(--line-strong);
+  --color-ok: var(--ok);
+  --color-run: var(--run);
+  --color-warn: var(--warn);
+  --color-fail: var(--fail);
+  --color-idle: var(--idle);
+}
+
+/* The parts of the page the browser draws carry the studio too: selection in the signal blue,
+   thin scrollbars on the hairline, one focus ring everywhere. */
+::selection {
+  background: color-mix(in oklab, var(--run) 30%, transparent);
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+}
+:focus-visible {
+  outline: 2px solid var(--run);
+  outline-offset: 2px;
+}
+
+/* A live dot breathes: a ring grows out of it and fades. Under reduced motion it stays still. */
+@keyframes ping-ring {
+  from { transform: scale(1); opacity: 0.55; }
+  to { transform: scale(2.6); opacity: 0; }
+}
+@utility live-ping {
+  animation: ping-ring 1.6s var(--ease-out) infinite;
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+/* A running mark turns: the arc of the ring goes round. Under reduced motion it pulses instead. */
+/* A check draws itself when a step lands. Under reduced motion it is simply there. */
+@keyframes draw {
+  from { stroke-dashoffset: 1; }
+}
+@utility mark-draw {
+  stroke-dasharray: 1;
+  animation: draw var(--dur) var(--ease-out) both;
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+@keyframes breathe {
+  50% { opacity: 0.45; }
+}
+@keyframes turn {
+  to { transform: rotate(360deg); }
+}
+@utility mark-turn {
+  transform-origin: center;
+  animation: turn 1s linear infinite;
+  @media (prefers-reduced-motion: reduce) {
+    animation: breathe 2s ease-in-out infinite;
+  }
 }
 
 body {
