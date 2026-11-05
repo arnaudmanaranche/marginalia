@@ -6,7 +6,7 @@ import type { Finding } from './api';
 // the pending review (pendingPosts.ts), no is dismissing it here.
 export interface Proposal {
   slug: string; project: string; iid: number; mrTitle: string; webUrl: string | null; reviewedAt: string | null;
-  findingId: string; severity: Finding['severity']; title: string; path: string | null; line: number | null;
+  findingId: string; severity: Finding['severity']; title: string; body: string; path: string | null; line: number | null;
   comment: string; criticalPaths: string[];
 }
 

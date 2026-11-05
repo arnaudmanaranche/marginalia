@@ -4,7 +4,7 @@ import type { Proposal } from '../lib/approvalsApi';
 
 const p = (over: Partial<Proposal>): Proposal => ({
   slug: 'webapp/feat-pam-748', project: 'webapp', iid: 4004, mrTitle: 'feat(checkout): ask whether a traveler needs assistance at information step', webUrl: 'https://git.example.com/mr/4004',
-  reviewedAt: '2026-11-05T10:36:00Z', findingId: 'f1', severity: 'important', title: 'The default ignores the API default', path: 'src/app/features/checkout/information/InformationForm.tsx', line: 88,
+  reviewedAt: '2026-11-05T10:36:00Z', findingId: 'f1', severity: 'important', title: 'The default ignores the API default', body: 'The form starts at No even when the schema sends a default, so a channel that wants Yes by default never gets it.', path: 'src/app/features/checkout/information/InformationForm.tsx', line: 88,
   comment: 'When the schema sends a default for `assistanceRequested`, this still starts at No. Could it read the default first?', criticalPaths: ['Checkout and payment'], ...over,
 });
 const proposals = [

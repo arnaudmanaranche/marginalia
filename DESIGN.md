@@ -288,7 +288,11 @@ The pieces every live surface is made of, each defined once:
 - **Timeline / TimelineItem:** steps on a vertical rail, the mark on the rail, the rail solid in ok below a step that is done and dashed ahead of the current one.
 - **Elapsed:** a duration that keeps counting, in tabular figures.
 - **SpanBar:** spans on one rounded track, each at its share of the total time and coloured by state, with a 2px gap of track between spans and finished ones alternating two steps of the ok hue so stage boundaries read; a running span carries the shimmer. A job's stages in one bar, or one stage on a run's axis.
+- **SeverityBadge / SeverityDot:** how much a finding matters: the word on a badge where there is room, a dot (fail, warn, run, idle) in a dense list, the word kept for screen readers.
+- **Kbd:** a key beside its action (`a`, `e`, `d`, `j`, `k`), the typed character in micro mono on the sunken fill.
 - **Segmented:** one choice among a few (a filter), a row of segments on the sunken fill; the chosen one sits on the surface with a strong hairline (no shadow) and each may carry a count. A radio group for assistive technology.
+
+The **approvals inbox** (`ApprovalsPage`, `InboxList`, `ProposalPane`) is the third: a list of proposals under their MR on the left (a SeverityDot, the title, the file and line; the selected one on a 10% run fill with a run ring), and the selected proposal in full on the right (MR, SeverityBadge, title, path, critical paths, the explanation, the comment, editable), its actions in a footer with their keys. The one primary button in view is Add to review; Add goes through the post preview. After a decision the next proposal is selected; under 1024px the pane sits under the list.
 
 The **job trace** (`JobList`, `JobRow`, `JobTrace`) is the second composition: a Segmented filter, jobs under day headings, each row a StatusMark, its target and state, its SpanBar, when, how long and the cost; a row opens in place into a waterfall of its stages on the run's own time axis (ticks at quarters), with the command, cost, turns and tokens and the way to what it was about.
 
