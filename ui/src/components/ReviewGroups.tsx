@@ -2,13 +2,12 @@ import { ChevronRight } from 'lucide-react';
 import type { ReviewItem } from '../lib/api';
 import type { Group } from '../lib/dashboard';
 import { ReviewRow } from './ReviewRow';
-import { Badge } from './ui/Badge';
 
 function Heading({ group }: { group: Group }) {
   return (
     <>
       <span className="font-medium">{group.title}</span>
-      <Badge tone={group.needsYou ? 'info' : 'neutral'} className="tabular-nums">{group.items.length}</Badge>
+      <span className={group.needsYou ? 'rounded-md bg-run/15 px-1.5 font-mono text-[11px] leading-4 tabular-nums text-run' : 'rounded-md bg-sunken px-1.5 font-mono text-[11px] leading-4 tabular-nums text-fg-muted'}>{group.items.length}</span>
       <span className="hidden text-xs font-normal text-fg-muted sm:inline">{group.hint}</span>
     </>
   );
@@ -25,7 +24,7 @@ interface RowState {
 
 function List({ group, isUnread, isReviewing, isNew, showProject }: { group: Group } & RowState) {
   return (
-    <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line">
+    <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface">
       {group.items.map((i) => <ReviewRow key={i.slug} item={i} unread={isUnread(i)} reviewing={isReviewing(i)} arrived={isNew(i)} showProject={showProject} />)}
     </ul>
   );

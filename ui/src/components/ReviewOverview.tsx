@@ -1,18 +1,19 @@
 import { ArrowRight } from 'lucide-react';
 import type { Overview } from '../lib/api';
 
-// The change at a glance, before and after, in plain words: the first thing to read.
+// The change at a glance, before and after, in plain words: the first thing to read. One panel
+// split by a hairline; the arrow and the ok dot say which way the change went.
 export function ReviewOverview({ overview }: { overview: Overview }) {
   return (
-    <section aria-label="Before and after" className="mb-4 grid shrink-0 items-stretch gap-3 md:grid-cols-[1fr_auto_1fr]">
-      <div className="rounded-lg border border-line bg-canvas p-3">
-        <h2 className="text-xs font-medium uppercase tracking-wide text-fg-muted">Before</h2>
-        <p className="mt-1 text-sm">{overview.before}</p>
+    <section aria-label="Before and after" className="mb-4 grid shrink-0 overflow-hidden rounded-xl border border-line bg-surface md:grid-cols-[1fr_auto_1fr]">
+      <div className="p-4">
+        <h2 className="flex items-center gap-1.5 text-xs font-medium text-fg-muted"><span aria-hidden className="size-1.5 rounded-full bg-idle" />Before</h2>
+        <p className="mt-1.5 text-sm leading-relaxed text-fg-muted">{overview.before}</p>
       </div>
-      <ArrowRight className="hidden size-5 self-center text-fg-subtle md:block" aria-hidden />
-      <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3">
-        <h2 className="text-xs font-medium uppercase tracking-wide text-emerald-700 dark:text-emerald-300">After</h2>
-        <p className="mt-1 text-sm">{overview.after}</p>
+      <span className="hidden items-center border-x border-line px-2 md:flex" aria-hidden><ArrowRight className="size-4 text-fg-subtle" /></span>
+      <div className="border-t border-line p-4 md:border-t-0">
+        <h2 className="flex items-center gap-1.5 text-xs font-medium"><span aria-hidden className="size-1.5 rounded-full bg-ok" />After</h2>
+        <p className="mt-1.5 text-sm leading-relaxed">{overview.after}</p>
       </div>
     </section>
   );

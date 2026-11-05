@@ -6,6 +6,9 @@ import { Badge } from './ui/Badge';
 import { RiskBadge } from './RiskBadge';
 import { VerdictBadge } from './VerdictBadge';
 import { LivePill } from './ds/LivePill';
+import { SeverityDot } from './ds/Severity';
+import { ChevronRight } from 'lucide-react';
+import { EASE_OUT } from '../lib/motion';
 
 // Where I stand on the MR, from GitLab (see standingOf), when it says more than the group the row
 // sits in: "Review requested" is what "Needs your first review" means, "You commented" what
@@ -22,7 +25,7 @@ function StandingBadge({ item }: { item: ReviewItem }) {
 export function ReviewRow({ item, unread, reviewing = false, arrived = false, showProject = false }: { item: ReviewItem; unread: boolean; reviewing?: boolean; arrived?: boolean; showProject?: boolean }) {
   const title = (
     <>
-      {item.iid && <span className="mr-2 font-mono text-xs text-fg-muted">!{item.iid}</span>}
+      {item.iid && <span className="mr-2 font-mono text-[11px] tabular-nums text-fg-muted">!{item.iid}</span>}
       {item.title}
       {unread && <span className="sr-only"> (unread)</span>}
     </>
@@ -32,14 +35,14 @@ export function ReviewRow({ item, unread, reviewing = false, arrived = false, sh
       layout="position"
       initial={arrived ? { opacity: 0, y: -12 } : false}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ duration: 0.35, ease: EASE_OUT }}
       className={cn(
-        'flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 text-sm transition-colors duration-1000 motion-reduce:transition-none',
-        arrived ? 'bg-blue-50 dark:bg-blue-950/50' : 'bg-surface',
-        'hover:bg-zinc-50 dark:hover:bg-zinc-800/60',
+        'group/row flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2.5 text-sm transition-colors duration-1000 motion-reduce:transition-none',
+        arrived ? 'bg-run/10' : 'bg-surface',
+        'hover:bg-sunken/40',
       )}
     >
-      <span className={unread ? 'size-2 shrink-0 rounded-full bg-blue-500' : 'size-2 shrink-0'} aria-hidden />
+      <span className={unread ? 'size-2 shrink-0 rounded-full bg-run' : 'size-2 shrink-0'} aria-hidden />
       <a href={`#/${item.slug}`} className="min-w-0 flex-1 basis-64 truncate font-medium hover:underline">{title}</a>
       {arrived && <Badge tone="info">New</Badge>}
       {reviewing && <LivePill tone="run" label="Reviewing" live title="Open it to follow the run" />}
@@ -49,9 +52,9 @@ export function ReviewRow({ item, unread, reviewing = false, arrived = false, sh
         : <LivePill tone="fail" label="Review failed" title={`${item.failure?.title ?? 'The first review failed'}: open it to see why. It is tried again on the next poll.`} />)}
       {showProject && <Badge tone="neutral" title="Project">{item.project}</Badge>}
       {(item.critical > 0 || item.important > 0) && (
-        <span className="flex gap-2 text-xs tabular-nums">
-          {item.critical > 0 && <span className="text-red-700 dark:text-red-300">{item.critical} critical</span>}
-          {item.important > 0 && <span className="text-amber-700 dark:text-amber-300">{item.important} important</span>}
+        <span className="flex gap-3 text-xs tabular-nums text-fg-muted">
+          {item.critical > 0 && <span className="inline-flex items-center gap-1.5" title={`${item.critical} critical`}><SeverityDot level="critical" />{item.critical}<span className="sr-only"> critical</span></span>}
+          {item.important > 0 && <span className="inline-flex items-center gap-1.5" title={`${item.important} important`}><SeverityDot level="important" />{item.important}<span className="sr-only"> important</span></span>}
         </span>
       )}
       <StandingBadge item={item} />
@@ -59,7 +62,7 @@ export function ReviewRow({ item, unread, reviewing = false, arrived = false, sh
       {item.risk !== 'low' && <RiskBadge level={item.risk ?? null} />}
       {/* My own MR gets no verdict from me: I answer it, I do not review it. */}
       {item.kind !== 'comments' && <VerdictBadge verdict={item.verdict} />}
-      <span className="w-20 shrink-0 whitespace-nowrap text-right text-xs text-fg-muted">{timeAgo(item.reviewedAt)}</span>
+      <span className="flex w-24 shrink-0 items-center justify-end gap-1 whitespace-nowrap text-xs text-fg-muted">{timeAgo(item.reviewedAt)}<ChevronRight className="size-3.5 opacity-0 transition-opacity duration-150 group-hover/row:opacity-100" aria-hidden /></span>
     </m.li>
   );
 }

@@ -12,6 +12,8 @@ import { useThreads } from '../lib/useThreads';
 import type { Focus } from '../lib/tourFocus';
 import { DiffPane } from './DiffPane';
 import { StopChat } from './StopChat';
+import { SeverityBadge } from './ds/Severity';
+import { transition } from '../lib/motion';
 
 interface Post {
   slug: string;
@@ -79,7 +81,7 @@ export function ReviewTour({ stops, findings, post, diff: source, showFullDiff, 
   return (
     // Without a diff (an MR no longer tracked) the stop takes the width: no empty column beside it.
     <div className={cn('mb-6 grid gap-4 lg:mb-0 lg:min-h-0 lg:flex-1 lg:grid-rows-[minmax(0,1fr)]', source ? 'lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]' : 'mx-auto w-full max-w-3xl')}>
-    <section ref={pane} aria-label="Review tour" className={cn('rounded-lg border border-line bg-surface px-4 lg:overflow-y-auto', source ? 'lg:h-full' : 'lg:self-start', post ? 'pb-0' : 'pb-4')}>
+    <section ref={pane} aria-label="Review tour" className={cn('rounded-xl border border-line bg-surface px-4 lg:overflow-y-auto', source ? 'lg:h-full' : 'lg:self-start', post ? 'pb-0' : 'pb-4')}>
       {/* Where the read is: one segment per stop (click one to jump), the count, and the way on.
           A single stop has nowhere to go. */}
       {stops.length > 1 && (
@@ -87,7 +89,7 @@ export function ReviewTour({ stops, findings, post, diff: source, showFullDiff, 
         <ol className="flex flex-1 gap-1" aria-label="Stops">
           {stops.map((s, i) => (
             <li key={s.id} className="flex-1">
-              <button aria-label={`Stop ${i + 1}: ${s.title}`} title={s.title} aria-current={i === index} onClick={() => setIndex(i)} className={cn('block h-1.5 w-full rounded-full transition-colors duration-300 motion-reduce:transition-none', i === index ? 'bg-blue-500' : i < index ? 'bg-blue-500/40' : 'bg-zinc-300 dark:bg-zinc-700')} />
+              <button aria-label={`Stop ${i + 1}: ${s.title}`} title={s.title} aria-current={i === index} onClick={() => setIndex(i)} className={cn('block h-1 w-full rounded-full transition-colors duration-300 motion-reduce:transition-none', i === index ? 'bg-run' : i < index ? 'bg-run/40' : 'bg-sunken ring-1 ring-inset ring-line')} />
             </li>
           ))}
         </ol>
@@ -98,7 +100,7 @@ export function ReviewTour({ stops, findings, post, diff: source, showFullDiff, 
         </div>
       </div>
       )}
-      <m.div key={stop.id} initial={{ opacity: 0, x: direction * 14 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}>
+      <m.div key={stop.id} initial={{ opacity: 0, x: direction * 14 }} animate={{ opacity: 1, x: 0 }} transition={transition.base}>
         <h2 className={cn('text-lg font-semibold tracking-tight', stops.length > 1 ? 'mt-1' : 'mt-4')}>{stop.title}{stop.supporting && <Badge className="ml-2 align-middle">Supporting</Badge>}</h2>
         {stop.summary && <NoteMarkdown className="mt-1 text-fg-muted">{stop.summary}</NoteMarkdown>}
         <p className="mt-2 text-xs text-fg-subtle">{meta}</p>
@@ -106,7 +108,7 @@ export function ReviewTour({ stops, findings, post, diff: source, showFullDiff, 
           <div className="mt-4">
             {post ? <FindingsPanel findings={here} threads={threads} compact focus={focus} onFocus={(id) => select(id, 'list')} {...post} /> : (
               <ul className="space-y-1 text-sm">
-                {here.map((f) => <li key={f.id}><Badge tone={f.severity === 'critical' ? 'danger' : f.severity === 'important' ? 'warning' : 'neutral'}>{f.severity}</Badge> {f.title}</li>)}
+                {here.map((f) => <li key={f.id} className="flex items-start gap-2"><SeverityBadge level={f.severity} /><span>{f.title}</span></li>)}
               </ul>
             )}
           </div>
