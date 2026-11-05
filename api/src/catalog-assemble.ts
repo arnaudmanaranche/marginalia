@@ -17,7 +17,21 @@ export async function readSkills(dir: string) {
   return found;
 }
 
-export async function assembleCatalog(dataDir: string, builtInDir = BUILT_IN_SKILLS): Promise<{ skills: CatalogSkill[]; args: string[]; deny: string[] }> {
+type Assembled = { skills: CatalogSkill[]; args: string[]; deny: string[] };
+
+// Runs of two projects can start together; they share one build, since both write the same
+// temp names (`.tmp-<pid>`) and the same plugin. A build asked after it ends starts a new one.
+const building = new Map<string, Promise<Assembled>>();
+export function assembleCatalog(dataDir: string, builtInDir = BUILT_IN_SKILLS): Promise<Assembled> {
+  const key = `${dataDir}\0${builtInDir}`;
+  const found = building.get(key);
+  if (found) return found;
+  const next = build(dataDir, builtInDir).finally(() => building.delete(key));
+  building.set(key, next);
+  return next;
+}
+
+async function build(dataDir: string, builtInDir: string): Promise<Assembled> {
   const skills = planCatalog({ builtIn: await readSkills(builtInDir), team: await readSkills(join(dataDir, 'team', 'skills')) });
   const pluginDir = join(dataDir, 'catalog');
   const manifest = join(pluginDir, '.claude-plugin', 'plugin.json');

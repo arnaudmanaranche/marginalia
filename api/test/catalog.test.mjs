@@ -51,3 +51,12 @@ test('the catalog folder links built-ins and team skills, and drops what is gone
   assert.ok(!(await readdir(join(data, 'catalog', 'skills'))).includes('stale'));
   assert.ok(deny.some((d) => d.includes(join(data, 'catalog'))));
 });
+
+test('two runs starting together share one catalog build instead of racing on its temp names', async () => {
+  const data = await mkdtemp(join(tmpdir(), 'marginalia-catalog-'));
+  const [a, b] = await Promise.all([assembleCatalog(data), assembleCatalog(data)]);
+  assert.equal(a, b);
+  const later = await assembleCatalog(data);
+  assert.notEqual(later, a);
+  assert.deepEqual(later.args, a.args);
+});
