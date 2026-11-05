@@ -90,3 +90,16 @@ test('only the latest finished tasks are kept', () => {
   pruneFinished(db, 2);
   assert.deepEqual(recentTasks(db).map((t) => t.id), ['q', 'd4', 'd3']);
 });
+
+test('a rerun forgets the recorded head of the MR, its triage, or its own branch, and keeps the rest', async () => {
+  const { forget } = await import('../dist/src/rerun.js');
+  const { branchStateKey } = await import('../dist/src/own-branches-plan.js');
+  const state = () => ({ 7: 'abc', 8: 'def', mineComments: { 7: '2026-11-05' }, stackBelow: {}, [branchStateKey('feat/a')]: 'abc' });
+  assert.deepEqual(forget(state(), { project: 'app', iid: 7, kind: 'review', sourceBranch: 'feat/a' })[7], null);
+  assert.equal(forget(state(), { project: 'app', iid: 7, kind: 'review', sourceBranch: 'feat/a' })[8], 'def');
+  assert.equal(forget(state(), { project: 'app', iid: 7, kind: 'comments', sourceBranch: null }).mineComments[7], null);
+  assert.equal(forget(state(), { project: 'app', iid: 7, kind: 'comments', sourceBranch: null })[7], 'abc');
+  const own = forget(state(), { project: 'app', iid: 7, kind: 'own', sourceBranch: 'feat/a' });
+  assert.equal(own[branchStateKey('feat/a')], null);
+  assert.equal(own[7], null);
+});

@@ -15,7 +15,7 @@ export function useRerun(item: ReviewItem | undefined, live: BotStatus['current'
     setRerunning(true);
     sawLive.current = false;
     request.mutate(item.slug, {
-      onSuccess: () => toast.success(`Review of !${item.iid} queued`, { description: 'It starts now; this page updates when it is done.' }),
+      onSuccess: () => toast.success(`Review of !${item.iid} queued`, { description: 'Ahead of the polls, behind anything already running: the queue on Home shows where it stands.' }),
       onError: (e) => {
         toast.error('Could not re-run the review', { description: e.message });
         setRerunning(false);
@@ -28,7 +28,7 @@ export function useRerun(item: ReviewItem | undefined, live: BotStatus['current'
       sawLive.current = true;
       return;
     }
-    // The run came and went: unlock. If it never showed up (skipped, bot busy), give up after a minute.
+    // The run came and went: unlock. If it never showed up (skipped, or still waiting in the queue), give up after a minute.
     if (sawLive.current) {
       setRerunning(false);
       return;

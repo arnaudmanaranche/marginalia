@@ -14,6 +14,8 @@ import { ensureBotWorktree } from './src/worktree.ts';
 import { passOver } from './src/poll-pass.ts';
 import { passDeps } from './src/poll-pass-deps.ts';
 import { botQueue } from './src/bot-queue.ts';
+import { forget } from './src/rerun.ts';
+import { loadState, saveState } from './src/state.ts';
 import { startWebhookIfConfigured } from './src/webhook-intake.ts';
 import { intakePass } from './src/mention-pass.ts';
 import { failureTitleOf, mentionDeps } from './src/mention-deps.ts';
@@ -64,6 +66,22 @@ botQueue.handle('poll', async () => {
     await poll();
   } finally {
     isPolling = false;
+  }
+});
+
+// "Review again" (rerun.ts): forget the MR's recorded head, then pass over its project alone.
+botQueue.handle('rerun', async (target) => {
+  const project = PROJECTS.find((p: any) => p.key === target.project);
+  if (!project) throw new Error(`No project "${target.project}" any more`);
+  await saveState(project, forget(await loadState(project), target));
+  status.phase = 'polling';
+  await writeStatus();
+  try {
+    if ((await passOver(project, passDeps, statusSink)).retrySoon) retrySoon = true;
+  } finally {
+    status.phase = 'idle';
+    status.current = null;
+    await writeStatus();
   }
 });
 
