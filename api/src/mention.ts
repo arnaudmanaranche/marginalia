@@ -33,17 +33,22 @@ export function invocationOf(text: string): Invocation {
 
 // The mentions in raw GitLab discussions, oldest first. A note is skipped when it is a system note,
 // the bot's own or another bot's, or not newer than `since` (a time, ms). A reply in a thread that
-// already holds one of the bot's notes is a follow-up and needs no mention.
+// already holds one of the bot's answers is a follow-up and needs no mention. A bot note is an
+// answer only when someone mentioned the bot earlier in the thread: a thread a person started
+// (a studio comment posted under the bot's own account in local mode) never opens the bot up.
 export function findMentions(discussions: any[], { bot, since = 0 }: { bot: string; since?: number }): Mention[] {
   const found: Mention[] = [];
   for (const d of discussions) {
+    let asked = false;
     let botSpoke = false;
     for (const n of d.notes ?? []) {
       if (n.system) continue;
       const mine = n.author?.username === bot;
-      if (mine) { botSpoke = true; continue; }
-      if (isBotAuthor(n.author) || new Date(n.created_at).getTime() <= since) continue;
+      if (mine) { botSpoke = botSpoke || asked; continue; }
+      if (isBotAuthor(n.author)) continue;
       const text = textAfterMention(n.body ?? '', bot);
+      if (text !== null) asked = true;
+      if (new Date(n.created_at).getTime() <= since) continue;
       const invocation = text !== null ? invocationOf(text) : botSpoke ? { kind: 'followup' as const, text: String(n.body).trim() } : null;
       if (invocation) found.push({ noteId: n.id, discussionId: d.id, author: n.author?.username, at: n.created_at, invocation });
     }

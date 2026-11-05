@@ -39,6 +39,20 @@ test('a reply under one of the bot notes is a follow-up without a mention; elsew
   assert.deepEqual(found.map((m) => [m.noteId, m.invocation.kind]), [[1, 'question'], [3, 'followup']]);
 });
 
+test('a thread started from the studio is never a follow-up, even when its notes carry the bot account (local mode)', () => {
+  const found = findMentions([
+    { id: 'd1', notes: [note(1, 'Consider a guard here', { author: { username: 'marginalia' } }), note(2, 'why though?'), note(3, 'agreed')] },
+  ], { bot: 'marginalia' });
+  assert.deepEqual(found, []);
+});
+
+test('a studio thread stays silent, but a mention inside it is still an ask and what follows is a follow-up', () => {
+  const found = findMentions([
+    { id: 'd1', notes: [note(1, 'Consider a guard here', { author: { username: 'marginalia' } }), note(2, 'why?'), note(3, '@marginalia explain'), note(4, 'Because...', { author: { username: 'marginalia' } }), note(5, 'thanks, and the edge case?')] },
+  ], { bot: 'marginalia' });
+  assert.deepEqual(found.map((m) => [m.noteId, m.invocation.kind]), [[3, 'question'], [5, 'followup']]);
+});
+
 const mention = (noteId, kind = 'review') => ({ noteId, discussionId: 'd', author: 'bob', at: 'x', invocation: { kind, text: 't' } });
 const standing = (over = {}) => ({ seenNoteIds: new Set(), accessLevel: 30, runsToday: 0, dailyCap: 20, busy: false, ...over });
 
