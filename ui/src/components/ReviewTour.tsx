@@ -1,9 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import * as m from 'motion/react-m';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { Finding, PostedInfo, TourStop } from '../lib/api';
 import { Badge } from './ui/Badge';
-import { Button } from './ui/Button';
 import { FindingsPanel } from './FindingsPanel';
 import { NoteMarkdown } from './NoteMarkdown';
 import { cn } from '../lib/utils';
@@ -13,7 +10,7 @@ import type { Focus } from '../lib/tourFocus';
 import { DiffPane } from './DiffPane';
 import { StopChat } from './StopChat';
 import { SeverityBadge } from './ds/Severity';
-import { transition } from '../lib/motion';
+import { ChapterRail } from './ChapterRail';
 
 interface Post {
   slug: string;
@@ -77,35 +74,16 @@ export function ReviewTour({ stops, findings, post, diff: source, showFullDiff, 
   const here = findings.filter((f) => stop.findingIds.includes(f.id));
   const nothing = here.length === 0 ? 'no findings, skim' : null;
   const meta = [fileCount === null ? null : `${fileCount} file${fileCount === 1 ? '' : 's'}`, nothing].filter(Boolean).join(' · ') || ' ';
-  const last = index === stops.length - 1;
   return (
     // Without a diff (an MR no longer tracked) the stop takes the width: no empty column beside it.
     <div className={cn('mb-6 grid gap-4 lg:mb-0 lg:min-h-0 lg:flex-1 lg:grid-rows-[minmax(0,1fr)]', source ? 'lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]' : 'mx-auto w-full max-w-3xl')}>
     <section ref={pane} aria-label="Review tour" className={cn('rounded-xl border border-line bg-surface px-4 lg:overflow-y-auto', source ? 'lg:h-full' : 'lg:self-start', post ? 'pb-0' : 'pb-4')}>
-      {/* Where the read is: one segment per stop (click one to jump), the count, and the way on.
-          A single stop has nowhere to go. */}
-      {stops.length > 1 && (
-      <div className="sticky top-0 z-10 -mx-4 flex items-center gap-3 bg-surface px-4 py-3">
-        <ol className="flex flex-1 gap-1" aria-label="Stops">
-          {stops.map((s, i) => (
-            <li key={s.id} className="flex-1">
-              <button aria-label={`Stop ${i + 1}: ${s.title}`} title={s.title} aria-current={i === index} onClick={() => setIndex(i)} className={cn('block h-1 w-full rounded-full transition-colors duration-300 motion-reduce:transition-none', i === index ? 'bg-run' : i < index ? 'bg-run/40' : 'bg-sunken ring-1 ring-inset ring-line')} />
-            </li>
-          ))}
-        </ol>
-        <span className="text-xs tabular-nums text-fg-muted" aria-live="polite">{index + 1}/{stops.length}</span>
-        <div className="flex items-center gap-1">
-          <Button size="sm" disabled={index === 0} onClick={() => setIndex(index - 1)} aria-label="Previous stop" title="Previous stop (←)"><ChevronLeft className="size-3.5" /></Button>
-          <Button size="sm" title="Next stop (→)" disabled={last} onClick={() => setIndex(index + 1)}>Next<ChevronRight className="size-3.5" /></Button>
-        </div>
-      </div>
-      )}
-      <m.div key={stop.id} initial={{ opacity: 0, x: direction * 14 }} animate={{ opacity: 1, x: 0 }} transition={transition.base}>
-        <h2 className={cn('text-lg font-semibold tracking-tight', stops.length > 1 ? 'mt-1' : 'mt-4')}>{stop.title}{stop.supporting && <Badge className="ml-2 align-middle">Supporting</Badge>}</h2>
+      <ChapterRail stops={stops} findings={findings} index={index} direction={direction} onGo={setIndex}>
+        {stop.supporting && <Badge className="mt-1">Supporting</Badge>}
         {stop.summary && <NoteMarkdown className="mt-1 text-fg-muted">{stop.summary}</NoteMarkdown>}
         <p className="mt-2 text-xs text-fg-muted">{meta}</p>
         {here.length > 0 && (
-          <div className="mt-4">
+          <div className="mt-3">
             {post ? <FindingsPanel findings={here} threads={threads} compact focus={focus} onFocus={(id) => select(id, 'list')} {...post} /> : (
               <ul className="space-y-1 text-sm">
                 {here.map((f) => <li key={f.id} className="flex items-start gap-2"><SeverityBadge level={f.severity} /><span>{f.title}</span></li>)}
@@ -113,7 +91,7 @@ export function ReviewTour({ stops, findings, post, diff: source, showFullDiff, 
             )}
           </div>
         )}
-      </m.div>
+      </ChapterRail>
       {post && <StopChat key={post.slug} slug={post.slug} stopId={stops[index].id} />}
     </section>
     {source && <div ref={diffPane} className="min-w-0 lg:h-full lg:overflow-y-auto lg:pr-1">

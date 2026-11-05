@@ -1,6 +1,7 @@
-export type MarkState = 'done' | 'running' | 'pending' | 'failed' | 'skipped';
+// `current`: where a person is in a sequence they are reading (a chapter), not work going on.
+export type MarkState = 'done' | 'running' | 'pending' | 'failed' | 'skipped' | 'current';
 
-const LABEL: Record<MarkState, string> = { done: 'Done', running: 'In progress', pending: 'Not started', failed: 'Failed', skipped: 'Skipped' };
+const LABEL: Record<MarkState, string> = { done: 'Done', running: 'In progress', pending: 'Not started', failed: 'Failed', skipped: 'Skipped', current: 'Here' };
 
 // The state of a step, a job or a run, drawn the same everywhere: a filled disc with a check when
 // done (the check draws itself when it lands), a turning arc while running, a dashed ring before it
@@ -17,6 +18,14 @@ export function StatusMark({ state, size = 16, label }: { state: MarkState; size
         ) : (
           <path d="M5.4 5.4l5.2 5.2M10.6 5.4l-5.2 5.2" stroke="var(--color-white)" strokeWidth="1.8" strokeLinecap="round" />
         )}
+      </svg>
+    );
+  }
+  if (state === 'current') {
+    return (
+      <svg {...common}>
+        <circle cx="8" cy="8" r="6.5" fill="none" stroke="var(--run)" strokeWidth="1.75" />
+        <circle cx="8" cy="8" r="3" fill="var(--run)" />
       </svg>
     );
   }

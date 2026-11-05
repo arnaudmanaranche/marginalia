@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import * as m from 'motion/react-m';
 import type { Finding, Pushes, Thread } from '../lib/api';
 import type { DiffState } from '../lib/useMrDiff';
@@ -7,6 +8,7 @@ import { DiffSkeleton } from './DiffSkeleton';
 import { Button } from './ui/Button';
 import type { DiffScope } from '../lib/useMrDiff';
 import { PushTimeline } from './PushTimeline';
+import { FileStrip } from './FileStrip';
 
 // The code of the current stop: its files from the MR diff, findings inline. Over it, the MR's
 // pushes say which code that is: the whole MR, or what came after one push. An earlier review
@@ -14,6 +16,8 @@ import { PushTimeline } from './PushTimeline';
 export function DiffPane({ showAll, state, findings, focus, threads: allThreads, scope, pushes, onFrom, onReport, onSelectFinding, onRetry }: { showAll: boolean; state: DiffState; findings: Finding[]; threads: Thread[]; focus: Focus | null; scope: DiffScope; pushes: Pushes | null; onFrom: (from: string | null) => void; onReport?: (id: string) => void; onSelectFinding: (id: string) => void; onRetry: () => void }) {
   // A bot's note (a CI table, a preview link) is not a conversation about the code: left out.
   const threads = allThreads.filter((t) => !t.notes[0]?.bot);
+  // The file a click on its chip points at; a new nonce each time, so the same file can be asked twice.
+  const [jump, setJump] = useState<{ path: string; nonce: number } | null>(null);
   const toggle = scope.version !== null
     ? <p className="mb-3 text-xs text-fg-muted">The code as this earlier review saw it.</p>
     : pushes && pushes.pushes.length > 0 ? <PushTimeline pushes={pushes} from={scope.from} onFrom={onFrom} onReport={onReport} /> : null;
@@ -40,10 +44,11 @@ export function DiffPane({ showAll, state, findings, focus, threads: allThreads,
   return (
     <>
       {toggle}
+      <FileStrip files={files} findings={inline} onJump={(path) => setJump({ path, nonce: Date.now() })} />
       {state.approximate && <p className="mb-3 text-xs text-fg-muted">This review did not record its version: the code shown is the one pushed just before it was written.</p>}
       {!files.length ? <p className="text-sm text-fg-muted">{hidden > 0 ? `Nothing flagged here: ${hidden} file${hidden === 1 ? '' : 's'} hidden by the Settings page's "Show the full diff" option.` : since ? 'Nothing in this stop changed after that push.' : "None of this stop's files is in the MR diff."}</p> : (
         <m.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }} className="space-y-3">
-          {files.map((f, i) => <DiffFileView key={f.path} file={f} findings={inline} threads={since ? [] : threads} defaultOpen={i < 3} focus={focus} onSelectFinding={onSelectFinding} />)}
+          {files.map((f, i) => <DiffFileView key={f.path} file={f} findings={inline} threads={since ? [] : threads} defaultOpen={i < 3} focus={focus} jump={jump} onSelectFinding={onSelectFinding} />)}
         </m.div>
       )}
       {hidden > 0 && files.length > 0 && <p className="mt-3 text-xs text-fg-muted">{hidden} file{hidden === 1 ? '' : 's'} with nothing flagged hidden (Settings, "Show the full diff").</p>}

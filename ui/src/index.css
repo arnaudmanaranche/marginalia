@@ -49,6 +49,8 @@
   --idle: var(--color-zinc-400);
   /* Run-blue text on a run tint (a count on bg-run/15): one step deeper than --run, for AA. */
   --run-ink: var(--color-blue-700);
+  /* Green as text (added lines in a file chip): ok itself is for marks, this step is for AA. */
+  --ok-ink: var(--color-emerald-700);
 
   /* Motion: state changes are short and land softly (exponential ease-out). */
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
@@ -77,6 +79,7 @@
     --fail: var(--color-red-400);
     --idle: var(--color-zinc-600);
     --run-ink: var(--color-blue-300);
+    --ok-ink: var(--color-emerald-300);
   }
 }
 
@@ -97,6 +100,7 @@
   --color-fail: var(--fail);
   --color-idle: var(--idle);
   --color-run-ink: var(--run-ink);
+  --color-ok-ink: var(--ok-ink);
 }
 
 /* The parts of the page the browser draws carry the studio too: selection in the signal blue,

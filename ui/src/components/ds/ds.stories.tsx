@@ -6,6 +6,7 @@ import { Panel, PanelFooter, PanelHeader } from './Panel';
 import { Timeline, TimelineItem } from './Timeline';
 import { SpanBar } from './SpanBar';
 import { Segmented } from './Segmented';
+import { Chip } from './Chip';
 
 // The design system's primitives side by side, in both themes (the toolbar switches them).
 const meta = { title: 'Scholia/Design system/Primitives', component: StatusMark, args: { state: 'running' } } satisfies Meta<typeof StatusMark>;
@@ -15,7 +16,7 @@ type Story = StoryObj<typeof meta>;
 export const Marks: Story = {
   render: () => (
     <div className="flex items-center gap-4 text-xs text-fg-muted">
-      {(['done', 'running', 'pending', 'failed', 'skipped'] as const).map((s) => <span key={s} className="flex items-center gap-1.5"><StatusMark state={s} />{s}</span>)}
+      {(['done', 'running', 'pending', 'failed', 'skipped', 'current'] as const).map((s) => <span key={s} className="flex items-center gap-1.5"><StatusMark state={s} />{s}</span>)}
     </div>
   ),
 };
@@ -57,4 +58,13 @@ export const Spans: Story = {
 };
 export const Segments: Story = {
   render: () => <Segmented label="Show jobs" value="all" onChange={() => {}} options={[{ id: 'all', label: 'All' }, { id: 'running', label: 'Running', count: 1 }, { id: 'failed', label: 'Failed', count: 4 }]} />,
+};
+export const Chips2: Story = {
+  name: 'Facts',
+  render: () => (
+    <div className="flex flex-wrap items-center gap-1.5 text-xs text-fg-muted">
+      <span>Touches</span><Chip>Checkout and payment</Chip><Chip>Agent sign-in and session refresh</Chip>
+      <Chip mono title="Source branch">feat/COL-1049</Chip><Chip mono>COL-1049</Chip>
+    </div>
+  ),
 };

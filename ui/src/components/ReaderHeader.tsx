@@ -1,9 +1,10 @@
 import { ExternalLink, RefreshCw, Send } from 'lucide-react';
 import type { Risk, ReviewItem } from '../lib/api';
-import { cn } from '../lib/utils';
+import { cn, timeAgo } from '../lib/utils';
 import { RiskBadge } from './RiskBadge';
 import { VerdictBadge } from './VerdictBadge';
 import { Button } from './ui/Button';
+import { Chip } from './ds/Chip';
 import { Spinner } from './ds/Spinner';
 
 // Title, verdict and the actions on a review. On my own MR there is no verdict to give: the
@@ -33,8 +34,20 @@ export function ReaderHeader({ item, risk, criticalPaths = [], showSubmit, draft
             <RiskBadge level={risk?.level ?? null} why={risk?.rationale} />
           </span>
         </div>
+        {item && (
+          <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-fg-muted">
+            {item.iid != null && <span className="font-mono tabular-nums">!{item.iid}</span>}
+            {item.author && <span>@{item.author}</span>}
+            {item.branch && <Chip mono title="Source branch">{item.branch}</Chip>}
+            {item.jira && <Chip mono title={item.jira.priority ? `Ticket, priority ${item.jira.priority}` : 'Ticket'}>{item.jira.key}</Chip>}
+            <span title={new Date(item.reviewedAt).toLocaleString()}>reviewed {timeAgo(item.reviewedAt)}</span>
+          </p>
+        )}
         {criticalPaths.length > 0 && (
-          <p className="mt-1 truncate text-sm text-fg-muted" title={criticalPaths.join(', ')}>Touches {criticalPaths.length > 1 ? 'critical paths' : 'a critical path'}: {criticalPaths.join(', ')}</p>
+          <p className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs text-fg-muted">
+            <span>Touches</span>
+            {criticalPaths.map((p) => <Chip key={p}>{p}</Chip>)}
+          </p>
         )}
         {item?.kind === 'own' && <p className="mt-1 text-sm text-fg-muted">Your own work, reviewed for you. Nothing here is posted.</p>}
       </div>

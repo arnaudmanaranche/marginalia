@@ -20,8 +20,8 @@ export function ReportDelta({ previous, at, current, onRead }: { previous: Findi
   const delta = reportDelta(previous, current);
   if (!delta.added.length && !delta.gone.length) return null;
   return (
-    <section aria-label="Since the previous report" className="mb-4 shrink-0 rounded-lg border border-line text-xs">
-      <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
+    <section aria-label="Since the previous report" className="mb-4 shrink-0 rounded-xl border border-line bg-surface text-xs">
+      <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5">
         <button aria-expanded={open} onClick={() => setOpen(!open)} className="flex min-w-0 flex-wrap items-center gap-2 text-left">
           <span className="text-fg-muted">Since the previous report ({timeAgo(at)})</span>
           {GROUPS.filter((g) => g.key !== 'kept' && delta[g.key].length).map((g) => <Badge key={g.key} tone={g.tone}>{delta[g.key].length} {g.label}</Badge>)}
@@ -30,7 +30,7 @@ export function ReportDelta({ previous, at, current, onRead }: { previous: Findi
         <button onClick={onRead} className="shrink-0 text-fg-muted underline hover:text-zinc-900 dark:hover:text-zinc-100">Read it</button>
       </div>
       {open && (
-        <div className="grid gap-3 border-t border-line px-3 py-2 md:grid-cols-3">
+        <div className="grid gap-4 border-t border-line px-4 py-3 md:grid-cols-3">
           {GROUPS.map((g) => (
             <div key={g.key}>
               <h3 className="mb-1 font-medium capitalize">{g.label}</h3>
