@@ -1,7 +1,6 @@
 import { basename } from 'node:path';
 import { head } from './git-refs.ts';
 import { c, log, warn } from './log.ts';
-import { CLAUDE_ALLOWED_TOOLS, CLAUDE_MR_COMMENTS_ALLOWED_TOOLS } from './allowed-tools.ts';
 import { artifactOf } from './artifact.ts';
 import { branchCheckedOutElsewhere, checkoutMergeRequest } from './worktree.ts';
 import { reviewOutputPath, mrCommentsOutputPath } from './paths.ts';
@@ -11,17 +10,15 @@ import { appendRun } from './runlog.ts';
 import { trackRun } from './telemetry.ts';
 import { listFields } from './findings.ts';
 import { followRun } from './run-tracker.ts';
-import { commandRun } from './command-run.ts';
 import { preflight } from './preflight.ts';
-import { isStaged, stagedRun } from './pipeline/staged.ts';
+import { PIPELINE, stagedRun } from './pipeline/staged.ts';
 import { recordFixedBefore } from './own-fixed.ts';
 
 // Shared by both flows. `kind` is 'review' (someone else's MR) or 'triage' (my own MR, reviewer
-// comments). The work is done by the project's command (command-run.ts) or, when it is
-// `marginalia`, by Marginalia's staged pipeline (pipeline/). Every run is traced (run-tracker.ts),
-// stage by stage, so it can be followed live and read again when it failed.
+// comments). The work is done by Marginalia's staged pipeline (pipeline/). Every run is traced
+// (run-tracker.ts), stage by stage, so it can be followed live and read again when it failed.
 async function runCommand(mr: any, opts: any) {
-  const run = await followRun(mr, { ...opts, plan: isStaged(opts.command) ? `staged-${opts.kind}` : opts.kind });
+  const run = await followRun(mr, { ...opts, command: PIPELINE, plan: `staged-${opts.kind}` });
   try {
     const outcome = await runStages(mr, opts, run);
     await run.finish(outcome, outcome === 'skipped' ? `Branch "${mr.source_branch}" is checked out in another worktree.` : null);
@@ -34,7 +31,7 @@ async function runCommand(mr: any, opts: any) {
   }
 }
 
-async function runStages(mr: any, { kind, command, tools, outputPath, label, stack = null, detached = false }: any, run: any) {
+async function runStages(mr: any, { kind, outputPath, label, stack = null, detached = false }: any, run: any) {
   const { worktreeDir: BOT_WORKTREE_DIR, reviewsDir: REVIEWS_DIR } = mr.project;
   log(mr, `Starting ${label}: ${c.bold}"${mr.title}"${c.reset} (${mr.source_branch} -> ${mr.target_branch})`);
 
@@ -50,12 +47,10 @@ async function runStages(mr: any, { kind, command, tools, outputPath, label, sta
   await clearStaleReport(BOT_WORKTREE_DIR);
   const baseSha = await head(BOT_WORKTREE_DIR);
 
-  const report = isStaged(command)
-    ? await stagedRun({ mr, run, kind, outputPath, stack })
-    : await commandRun({ mr, run, kind, command, tools, outputPath, stack });
+  const report = await stagedRun({ mr, run, kind, outputPath, stack });
   const { content, source, shape } = report;
   const cost = run.cost;
-  const row = cost ? await appendRun({ project: mr.project.key, iid: mr.iid, kind, command, costUsd: cost.usd, outputTokens: cost.outputTokens, turns: cost.turns, durationMs: Date.now() - Date.parse(run.startedAt) }) : null;
+  const row = cost ? await appendRun({ project: mr.project.key, iid: mr.iid, kind, command: PIPELINE, costUsd: cost.usd, outputTokens: cost.outputTokens, turns: cost.turns, durationMs: Date.now() - Date.parse(run.startedAt) }) : null;
   if (cost) log(mr, `Cost: $${cost.usd.toFixed(2)}, ${cost.outputTokens} output tokens, ${cost.turns} turns.`);
   if (shape.warnings.length) warn(mr, `Report contract: ${shape.warnings.join(' ')}`);
   // An own review replaces the last one: first, which of its findings did this push fix?
@@ -74,8 +69,6 @@ export function runReview(mr: any, outputPath = reviewOutputPath(mr), stack = /*
     stack,
     detached: own,
     kind: 'review',
-    command: mr.project.reviewCommand,
-    tools: CLAUDE_ALLOWED_TOOLS,
     outputPath,
     label: 'review',
   });
@@ -84,8 +77,6 @@ export function runReview(mr: any, outputPath = reviewOutputPath(mr), stack = /*
 export function runMrComments(mr: any) {
   return runCommand(mr, {
     kind: 'triage',
-    command: mr.project.triageCommand,
-    tools: CLAUDE_MR_COMMENTS_ALLOWED_TOOLS,
     outputPath: mrCommentsOutputPath(mr),
     label: 'comment triage',
   });

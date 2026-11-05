@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 process.env.MR_REVIEW_BOT_SKIP_CONFIG_CHECK = '1';
 const { claudeSettings, denyRules } = await import('../dist/src/claude-sandbox.js');
 const { claudeEnv, claudeArgs } = await import('../dist/src/claude-cli.js');
-const { CLAUDE_ALLOWED_TOOLS, CLAUDE_MR_COMMENTS_ALLOWED_TOOLS } = await import('../dist/src/allowed-tools.js');
+const { STAGE_READ_TOOLS, STAGE_FIX_TOOLS } = await import('../dist/src/allowed-tools.js');
 
 const paths = {
   rootDir: '/bot',
@@ -49,12 +49,11 @@ test('the tools that read secrets or rewrite trusted config are denied, in both 
   assert.ok(!deny.some((r) => r.includes('.claude/reviews')), 'the reports stay writable');
 });
 
-test('no blanket git permission: only named subcommands, and commits only for the triage', () => {
-  assert.ok(!CLAUDE_ALLOWED_TOOLS.includes('Bash(git:*)'));
-  assert.ok(CLAUDE_ALLOWED_TOOLS.includes('Bash(git diff:*)'));
-  assert.ok(!CLAUDE_ALLOWED_TOOLS.includes('Bash(git commit:*)'));
-  assert.ok(CLAUDE_MR_COMMENTS_ALLOWED_TOOLS.includes('Bash(git commit:*)'));
-  for (const tools of [CLAUDE_ALLOWED_TOOLS, CLAUDE_MR_COMMENTS_ALLOWED_TOOLS]) {
+test('no blanket git permission: only named subcommands that read, and no commit: the bot commits', () => {
+  for (const tools of [STAGE_READ_TOOLS, STAGE_FIX_TOOLS]) {
+    assert.ok(!tools.includes('Bash(git:*)'));
+    assert.ok(tools.includes('Bash(git diff:*)'));
+    assert.ok(!tools.some((t) => /git (commit|fetch|worktree|push)/.test(t)));
     assert.ok(tools.includes('mcp__claude_ai_Atlassian__atlassianUserInfo'));
     assert.ok(tools.includes('mcp__claude_ai_Gitlab__who_am_i'));
   }

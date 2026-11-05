@@ -1,3 +1,4 @@
+import { PIPELINE } from './pipeline/staged.ts';
 import { failureKind, needsDoctor } from './failure-kind.ts';
 import { log, logError } from './log.ts';
 import { logger } from './logger.ts';
@@ -18,7 +19,6 @@ const KINDS: Record<string, any> = {
     entry: 'review',
     label: 'Review',
     ready: 'Review ready',
-    command: (mr: any) => mr.project.reviewCommand,
     path: (deps: any, mr: any) => deps.reviewPath(mr),
     run: (deps: any, mr: any, { plan }: any) => {
       const info = plan.stackInfo(mr);
@@ -30,7 +30,6 @@ const KINDS: Record<string, any> = {
     entry: 'own',
     label: 'Own review',
     ready: 'Own review ready',
-    command: (mr: any) => mr.project.reviewCommand,
     path: (deps: any, mr: any) => deps.ownPath(mr),
     run: (deps: any, mr: any, { plan }: any) => {
       const info = plan.stackInfo(mr);
@@ -43,7 +42,6 @@ const KINDS: Record<string, any> = {
     entry: 'own',
     label: 'Own review',
     ready: 'Own review ready',
-    command: (mr: any) => mr.project.reviewCommand,
     path: (deps: any, mr: any) => deps.ownPath(mr),
     run: (deps: any, mr: any) => deps.runReview(mr, deps.ownPath(mr), null, { own: true }),
     record: (state: any, mr: any) => {
@@ -54,7 +52,6 @@ const KINDS: Record<string, any> = {
     entry: 'comments',
     label: 'Comment triage',
     ready: 'Comments triaged',
-    command: (mr: any) => mr.project.triageCommand,
     path: (deps: any, mr: any) => deps.commentsPath(mr),
     run: (deps: any, mr: any) => deps.runMrComments(mr),
     record: (state: any, mr: any, { signal }: any) => {
@@ -97,7 +94,7 @@ export async function workOnMr(kind: string, mr: any, ctx: any, pass: any) {
     deps.notify(spec.ready, mr.iid === null ? mr.title : `!${mr.iid} ${mr.title}`, spec.path(deps, mr));
   } catch (err) {
     logError(mr, `${spec.label} failed`, err);
-    deps.trackFailure({ mr, kind, command: spec.command(mr), error: err });
+    deps.trackFailure({ mr, kind, command: PIPELINE, error: err });
     await failed(mr, spec, err, pass);
   } finally {
     await sink.end(mr);

@@ -1,23 +1,22 @@
 // Manual, before a release: `npm run eval [-- <case>]`. Each case in evals/cases is a base and a head
-// (a branch with one planted problem, or a clean change). The real `claude` reviews it with the
-// contract prompt and the catalog, and the result is checked: it passes the contract, the planted
+// (a branch with one planted problem, or a clean change). The real `claude` reviews it through the
+// staged pipeline, as the bot does, and the result is checked: it passes the contract, the planted
 // problem is found at its file and line, a clean change has no critical finding. It costs a run each.
 import { execFile } from 'node:child_process';
 import { cp, mkdtemp, readdir, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
-import { PACKAGE_ROOT } from '../src/package-root.ts';
-import { assembleCatalog } from '../src/catalog-assemble.ts';
-import { catalogPrompt } from '../src/catalog.ts';
-import { claudeArgs, claudeEnv, parseRunOutput } from '../src/claude-cli.ts';
-import { contractPrompt } from '../src/run-contract.ts';
-import { enforceContract } from '../src/guardrail.ts';
-import { buildReport, clearStaleReport } from '../src/report.ts';
 
 const run = promisify(execFile);
+// The runs, the catalog and the journal go to a throwaway data dir, never the bot's own.
+process.env.MARGINALIA_HOME = await mkdtemp(join(tmpdir(), 'marginalia-eval-home-'));
+process.env.MR_REVIEW_BOT_SKIP_CONFIG_CHECK = '1';
+process.env.MARGINALIA_DB = ':memory:';
+const { PACKAGE_ROOT } = await import('../src/package-root.ts');
+const { stagedRun } = await import('../src/pipeline/staged.ts');
+const { followRun } = await import('../src/run-tracker.ts');
 const CASES = join(PACKAGE_ROOT, 'evals', 'cases');
-const TOOLS = ['Read', 'Grep', 'Glob', 'Skill', 'Write', 'Bash(git diff:*)', 'Bash(git log:*)', 'Bash(git show:*)', 'Bash(git status:*)'];
 
 async function seed(name: string) {
   const dir = await mkdtemp(join(tmpdir(), `marginalia-eval-${name}-`));
@@ -26,6 +25,7 @@ async function seed(name: string) {
   await cp(join(CASES, name, 'base'), dir, { recursive: true });
   await git('add', '-A');
   await git('commit', '-qm', 'base');
+  await git('update-ref', 'refs/remotes/origin/main', 'HEAD');
   await git('checkout', '-qb', 'feature');
   await cp(join(CASES, name, 'head'), dir, { recursive: true });
   await git('add', '-A');
@@ -33,16 +33,21 @@ async function seed(name: string) {
   return dir;
 }
 
-async function evaluate(name: string, catalog: Awaited<ReturnType<typeof assembleCatalog>>) {
+async function evaluate(name: string) {
   const expect = JSON.parse(await readFile(join(CASES, name, 'expect.json'), 'utf8'));
   const dir = await seed(name);
-  await clearStaleReport(dir);
-  const systemPrompt = contractPrompt('review', catalogPrompt(catalog.skills), dir);
-  const prompt = 'Review the change on this branch against main (git diff main...HEAD), following the skills you were told about.';
-  const { stdout } = await run(process.env.CLAUDE_BIN || 'claude', [...claudeArgs({ prompt, tools: TOOLS, systemPrompt }), ...catalog.args], { cwd: dir, env: claudeEnv(process.env), maxBuffer: 64 << 20 });
-  const report = await buildReport({ worktreeDir: dir, stdout: parseRunOutput(stdout).text });
+  // A branch without an MR: nothing is read from GitLab.
+  const project = { key: `eval-${name}`, worktreeDir: dir, repoPath: dir, reviewsDir: join(dir, '.reviews') };
+  const mr = { iid: null, title: `Eval: ${name}`, description: null, source_branch: 'feature', target_branch: 'main', project, author: null, web_url: null };
+  const outputPath = join(project.reviewsDir, `${name}.md`);
+  const tracked = await followRun(mr, { kind: 'review', command: 'marginalia', outputPath, plan: 'staged-review' });
   const problems: string[] = [];
-  try { enforceContract('review', report.findingsRaw); } catch (err) { problems.push((err as Error).message); }
+  const report = await stagedRun({ mr, run: tracked, kind: 'review', outputPath }).catch((err: Error) => {
+    problems.push(err.message);
+    return null;
+  });
+  await tracked.finish(report ? 'reviewed' : 'failed');
+  if (!report) return problems;
   const serious = (report.shape.findings ?? []).filter((f: any) => f.severity === 'critical' || f.severity === 'important');
   if (expect.planted) {
     const [from, to] = expect.planted.lines;
@@ -53,10 +58,9 @@ async function evaluate(name: string, catalog: Awaited<ReturnType<typeof assembl
 
 const only = process.argv[2];
 const names = (await readdir(CASES)).filter((n) => !only || n === only);
-const catalog = await assembleCatalog(await mkdtemp(join(tmpdir(), 'marginalia-eval-data-')));
 let failed = 0;
 for (const name of names) {
-  const problems = await evaluate(name, catalog).catch((err) => [`the run failed: ${String(err.message).slice(0, 200)}`]);
+  const problems = await evaluate(name).catch((err) => [`the run failed: ${String(err.message).slice(0, 200)}`]);
   console.log(`${problems.length ? 'FAIL' : 'ok  '} ${name}${problems.map((p) => `\n       ${p}`).join('')}`);
   failed += problems.length ? 1 : 0;
 }

@@ -7,7 +7,6 @@ import { runMrComments, runReview } from './claude-runner.ts';
 import { fetchReviewStates } from './mr-state.ts';
 import { notify } from './notify.ts';
 import { mrCommentsOutputPath, mtimeOrNull, ownReviewOutputPath, reviewOutputPath } from './paths.ts';
-import { isStaged } from './pipeline/staged.ts';
 import { allowedTargets } from './settings.ts';
 import { loadState, saveState } from './state.ts';
 import { trackFailure } from './telemetry.ts';
@@ -30,7 +29,8 @@ export const passDeps = {
   loadState,
   saveState,
   allowedTargets,
-  settlesConflicts: (project: any) => isStaged(project.triageCommand ?? ''),
+  // The staged triage merges the target in and settles its conflicts.
+  settlesConflicts: () => true,
   username: GITLAB_USERNAME,
   notify,
   trackFailure,

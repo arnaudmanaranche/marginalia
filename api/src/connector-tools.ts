@@ -41,8 +41,6 @@ const SLACK = tools('Slack', [
 // gets PostHog data from the bot instead.
 export const CONNECTOR_READ_TOOLS = [...GITLAB, ...JIRA, ...JIRA_V1, ...NOTION, ...SLACK];
 
-// The ticket alone, for the staged pipelines' read-only stages.
-export const TICKET_READ_TOOLS = [`mcp__claude_ai_Atlassian_MCP__getJiraIssue`, `mcp__claude_ai_Atlassian__getJiraIssue`];
 
 // A connector tool whose name says it changes something. Matched on the words after the server
 // name, so `executeRead` and `notion-fetch` stay readable while `executeWrite` does not.

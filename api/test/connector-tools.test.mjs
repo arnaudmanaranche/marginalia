@@ -1,11 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { CONNECTOR_READ_TOOLS, TICKET_READ_TOOLS, isConnectorWrite, withoutConnectorWrites } from '../dist/src/connector-tools.js';
-import { CLAUDE_ALLOWED_TOOLS, CLAUDE_MR_COMMENTS_ALLOWED_TOOLS, STAGE_FIX_TOOLS, STAGE_READ_TOOLS } from '../dist/src/allowed-tools.js';
+import { CONNECTOR_READ_TOOLS, isConnectorWrite, withoutConnectorWrites } from '../dist/src/connector-tools.js';
+import { STAGE_FIX_TOOLS, STAGE_READ_TOOLS, UNDERSTAND_TOOLS } from '../dist/src/allowed-tools.js';
 import { connectorChecks } from '../dist/src/connector-checks.js';
 
 test('every connector tool a run gets only reads', () => {
-  for (const list of [CLAUDE_ALLOWED_TOOLS, CLAUDE_MR_COMMENTS_ALLOWED_TOOLS, STAGE_READ_TOOLS, STAGE_FIX_TOOLS]) {
+  for (const list of [STAGE_READ_TOOLS, STAGE_FIX_TOOLS, UNDERSTAND_TOOLS]) {
     assert.deepEqual(list.filter(isConnectorWrite), []);
   }
   assert.deepEqual(CONNECTOR_READ_TOOLS.filter(isConnectorWrite), []);
@@ -13,9 +13,8 @@ test('every connector tool a run gets only reads', () => {
 
 test('the reviews read Jira through the v2 Atlassian connector, plus Notion and Slack', () => {
   for (const tool of ['mcp__claude_ai_Atlassian_MCP__getJiraIssue', 'mcp__claude_ai_Notion__notion-fetch', 'mcp__claude_ai_Slack__slack_read_thread']) {
-    assert.ok(CLAUDE_ALLOWED_TOOLS.includes(tool), tool);
+    assert.ok(STAGE_READ_TOOLS.includes(tool), tool);
   }
-  assert.ok(TICKET_READ_TOOLS.every((tool) => STAGE_READ_TOOLS.includes(tool)));
 });
 
 test('a write tool is recognised by its name, and dropped from an extra list', () => {
