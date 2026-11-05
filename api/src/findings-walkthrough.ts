@@ -67,7 +67,9 @@ export function buildTour(raw: any, findings: any[]) {
       return;
     }
     const files = (Array.isArray(s.files) ? s.files : []).map((f: any) => cleanPath(typeof f === 'object' ? f?.path : f)).filter(Boolean);
-    const ids = (Array.isArray(s.findings) ? s.findings : []).filter((id: any) => known.has(id));
+    const named = Array.isArray(s.findings) ? s.findings : [];
+    const ids = named.filter((id: any) => known.has(id));
+    if (ids.length < named.length) warnings.push(`tour stop #${i + 1} names a finding that does not exist: dropped`);
     ids.forEach((id: any) => claimed.add(id));
     const threadIds = (Array.isArray(s.threads) ? s.threads : []).map((t: any) => String(t).trim()).filter((t: string) => DISCUSSION_ID.test(t));
     stops.push({ title: title ?? clip(plain(summary as string), 80), summary: summary ?? null, files, findingIds: ids, threadIds, supporting: isSupportingStop(files), ...(s.unreviewed === true && { unreviewed: true }) });

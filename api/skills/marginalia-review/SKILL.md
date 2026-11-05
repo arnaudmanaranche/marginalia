@@ -81,4 +81,6 @@ Follow the run contract you were given for where to write the markdown report an
 }
 ```
 
+A chapter's `findings` may only list ids that appear in the top-level `findings` array. A finding from the last report that is now fixed belongs in the markdown's "Resolved" part and in the chapter's `summary`, never in `findings` or in a chapter's id list.
+
 `APPROVE` when nothing critical or important remains; otherwise `REQUEST_CHANGES`. Never post to the MR yourself.

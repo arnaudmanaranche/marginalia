@@ -1,4 +1,6 @@
 import { AgentProjectContext, AgentReview, AgentTriage } from '@worldia/marginalia-contract';
+import { repairReview } from './findings-repair.ts';
+import { logger } from './logger.ts';
 
 // The gate between a run and everything that shows or posts its result: the findings file must
 // satisfy the contract (packages/contract, agent-result.ts), whatever the agent did to get there.
@@ -17,7 +19,9 @@ export function enforceContract(kind: keyof typeof SCHEMA, findingsRaw: string |
   } catch {
     throw new Error(`${CONTRACT_BROKEN}: the findings file is not valid JSON.`);
   }
-  const parsed = SCHEMA[kind].safeParse(data);
+  const { data: repaired, repairs } = kind === 'review' ? repairReview(data) : { data, repairs: [] };
+  if (repairs.length) logger.warn({ repairs }, 'The review was repaired before the contract check');
+  const parsed = SCHEMA[kind].safeParse(repaired);
   if (parsed.success) return parsed.data;
   const issues = parsed.error.issues.slice(0, 5).map((i) => `${i.path.join('.') || 'file'}: ${i.message}`);
   throw new Error(`${CONTRACT_BROKEN}: ${issues.join('; ')}.`);

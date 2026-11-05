@@ -28,7 +28,13 @@ test('no findings file, bad JSON and a half-written review are failures', () => 
 test('a finding must be anchored properly and the tour may only name real findings', () => {
   const finding = { severity: 'info', title: 't', body: 'b' };
   assert.throws(() => enforceContract('review', review({ findings: [{ ...finding, line: 3 }], tour: [{ title: 'a', summary: 'b', files: ['x'] }] })), /needs a path/);
-  assert.throws(() => enforceContract('review', review({ tour: [{ title: 'a', summary: 'b', files: ['x'], findings: ['ghost'] }] })), /ghost/);
+});
+
+test('a chapter naming a finding that does not exist is repaired, not failed', () => {
+  const out = enforceContract('review', review({ tour: [{ title: 'a', summary: 'b', files: ['x'], findings: ['neg-total', 'ghost'] }] }));
+  assert.deepEqual(out.tour[0].findings, ['neg-total']);
+  const alone = enforceContract('review', review({ findings: [], tour: [{ title: 'a', summary: 'b', files: ['x'], findings: ['ghost'] }] }));
+  assert.deepEqual(alone.tour[0].findings, []);
 });
 
 test('APPROVE cannot leave a critical or important finding', () => {
