@@ -17,13 +17,10 @@ export const DATA_DIR = resolveDataDir({ root: ROOT });
 export const TEAM = readTeamSync(DATA_DIR);
 export const FILE_CONFIG = readConfigFile(DATA_DIR, { team: TEAM });
 export const ensureDataDir = () => mkdirSync(DATA_DIR, { recursive: true });
-export const STATE_FILE = join(DATA_DIR, 'state.json');
 // Live status for the SwiftBar menu bar plugin (swiftbar/menubar.mjs).
 export const STATUS_FILE = join(DATA_DIR, 'status.json');
 // Settings changed at runtime from the studio (see src/settings.ts).
 export const SETTINGS_FILE = process.env.SETTINGS_FILE || join(DATA_DIR, 'settings.json');
-// Comments posted to GitLab from the studio (src/posted.ts).
-export const POSTED_FILE = join(DATA_DIR, 'posted.json');
 
 // core.hooksPath=.husky is shared with the real checkout, but `git clean -fdx`
 // wipes the generated .husky/_/husky.sh from the bot worktree, so every hook
@@ -134,7 +131,4 @@ if (!process.env.MR_REVIEW_BOT_SKIP_CONFIG_CHECK) {
   }
 }
 
-export const encodedProjectId = /^\d+$/.test(GITLAB_PROJECT_ID)
-  ? GITLAB_PROJECT_ID
-  : encodeURIComponent(GITLAB_PROJECT_ID);
 export const REVIEWS_DIR = join(REPO_LOCAL_PATH ?? ROOT, '.claude', 'reviews');
