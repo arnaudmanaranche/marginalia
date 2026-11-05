@@ -192,7 +192,7 @@ Five state hues, one per run state, exposed as `--ok`, `--run`, `--warn`, `--fai
 - **Subtle Mark** (oklch(55.2% 0.016 285.938)): `--fg-subtle`, for icons and non-text marks only (3:1), never for sentences.
 
 ### Tokens in code
-Each neutral role is one Tailwind class that switches with the theme (`studio/src/index.css`), so a component names the role and never pairs a light and a dark shade by hand:
+Each neutral role is one Tailwind class that switches with the theme (`ui/src/index.css`), so a component names the role and never pairs a light and a dark shade by hand:
 
 | Role | Class | Light | Dark |
 |---|---|---|---|
@@ -322,7 +322,7 @@ What the browser draws carries the studio: text selection in the run blue at 30%
 
 ### Sound
 
-The studio answers in sound as well as on screen (`studio/src/lib/sounds.ts`), so a person reading another tab still knows when something happens. The sounds follow the voice: short (under 0.4s), quiet, made of plain tones, never a jingle. Each kind of moment has one sound, the same everywhere:
+The studio answers in sound as well as on screen (`ui/src/lib/sounds.ts`), so a person reading another tab still knows when something happens. The sounds follow the voice: short (under 0.4s), quiet, made of plain tones, never a jingle. Each kind of moment has one sound, the same everywhere:
 
 - **Arrive**: two soft rising notes, a new MR in the list.
 - **Done**: a short major arpeggio, a review or a triage ready.

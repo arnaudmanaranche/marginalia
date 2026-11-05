@@ -1,7 +1,5 @@
 # Local helpers: autostart, menu bar, notifications
 
-> Reference for the V1 behavior as shipped. V2 changes are in `../architecture.md` and `../adr/`; where they differ, those win.
-
 On macOS, let it start at every login (a per-user LaunchAgent, no sudo, no
 extra tool). It runs `npm start`, so the studio is the built one on
 http://localhost:4477:
@@ -25,7 +23,7 @@ Elsewhere, use a process manager, for example `pm2`:
 
 ```bash
 npm install -g pm2
-pm2 start poll.mjs --name marginalia
+pm2 start api/dist/poll.js --name marginalia
 pm2 save
 pm2 startup   # to restart on machine boot
 ```

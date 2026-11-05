@@ -1,6 +1,6 @@
 # Architecture
 
-Target architecture for V2. Terms are defined in `GLOSSARY.md`; the reasons are in `docs/adr/`. Step 2 of the delivery order is done: the repo is an npm workspace of `packages/contract` (the HTTP schemas, in eight modules), `api/` (the bot: `src`, `src/http`, `bin`, `scripts`, `docker`, `skills`, `examples`, `swiftbar`, `test`) and `ui/`. `scripts/check-file-size.mjs` stays at the root as repo tooling. The `.ts` migration (step 3) is done: the code is TypeScript, builds to `dist/` and is `strict` with `noImplicitAny`.
+How Marginalia is built. Terms are defined in `GLOSSARY.md`; the reasons are in `docs/adr/`. The repo is an npm workspace of `packages/contract` (the HTTP schemas, in eight modules), `api/` (the bot: `src`, `src/http`, `bin`, `scripts`, `docker`, `skills`, `examples`, `swiftbar`, `test`) and `ui/`. `scripts/check-file-size.mjs` stays at the root as repo tooling. The code is TypeScript, builds to `dist/` with `tsc` and is `strict` with `noImplicitAny` (ADR 0005).
 
 ## Factory
 
@@ -13,7 +13,7 @@ npm workspaces at the repo root:
 | Package | Holds | May import |
 | --- | --- | --- |
 | `packages/contract` | zod schemas and the types derived from them: the review, the HTTP request and response shapes | nothing in the repo |
-| `api/` | the bot: intake, poller, runs, guardrails, GitLab client, HTTP routes, SQLite | `contract` |
+| `api/` | the bot: intake (webhook and polling), runs, guardrails, GitLab client, HTTP routes, SQLite | `contract` |
 | `ui/` | the studio (React, Vite, Tailwind) | `contract` (types and schemas only), never `api/` |
 
 `api/` is the only thing that touches GitLab, git, `claude` or the database. `ui/` reaches them through HTTP, in one place (`ui/src/api`). `api/` serves the built studio: `ui/dist` in the repo, `api/ui-dist` in a packaged install (`prepack` copies it).
@@ -62,9 +62,14 @@ The agent sees one merged catalog (name and a one-line "use when" description) a
 
 SQLite on a persistent volume, one instance. Postgres is the step if more than one instance is ever needed.
 
-## Delivery order
+## How it was delivered
 
-1. Docs and rules. 2. Mechanical restructure, no behavior change: `lib/` to `api/src`, the studio server to `api/src/http`, `studio/` to `ui/` and the three workspaces with their own `package.json` (done). A clone keeps its `.env` and state files at the repo root. The contract is published as `@worldia/marginalia-contract` next to the bot, with the same version. 3. `.mjs` to `.ts` together with the `tsc` build (done, `strict` with `noImplicitAny`), since Node cannot run `.ts` without the build. 4. Contract, guardrails and catalog, with evals from here on (done: the strict `AgentReview`/`AgentTriage` schemas and `api/src/guardrail.ts` fail a command run whose findings file breaks them, the catalog with the seven built-ins is loaded into runs, `api/test/flow-contract.test.mjs` runs a command with a scripted fake `claude`, and `npm run eval` reviews the seeded cases in `api/evals/cases` with the real one). 5. Mention intake: polling, then webhook, then bot replies (polling and replies are done: `api/src/mention-pass.ts` runs after each project's pass, reads the notes since its cursor, applies `mention-guardrail.ts` and answers in the thread; the webhook listener is `webhook-server.ts`, started by `webhook-intake.ts` when `WEBHOOK_SECRET` is set, and it shares `serial.ts` with the poll so nothing overlaps). A mention run does not show live in the studio's status yet. 6. Hosted: OAuth, click-to-post, Docker/HTTPS recipe (done: `api/src/auth*.ts` and `http/auth-*.ts` for the login, `http/request-scope.ts` for the person's projects and token, `compose.hosted.yaml` and `docs/reference/hosting.md`). A migration covers the V1 `.env`, `posted.json`, `runs.jsonl`, `state.json` and `marginalia.db`.
+Every step is done. A clone keeps its `.env` and state files at the repo root, and the contract is published as `@worldia/marginalia-contract` next to the bot, with the same version.
+
+1. Docs and rules, then the three workspaces (`api/`, `ui/`, `packages/contract`) with their own `package.json`, then `.mjs` to `.ts` with the `tsc` build.
+2. Contract, guardrails and catalog, with evals from here on (the strict `AgentReview`/`AgentTriage` schemas and `api/src/guardrail.ts` fail a command run whose findings file breaks them, the catalog with the seven built-ins is loaded into runs, `api/test/flow-contract.test.mjs` runs a command with a scripted fake `claude`, and `npm run eval` reviews the seeded cases in `api/evals/cases` with the real one).
+3. Mention intake: polling, then webhook, then bot replies (polling and replies are done: `api/src/mention-pass.ts` runs after each project's pass, reads the notes since its cursor, applies `mention-guardrail.ts` and answers in the thread; the webhook listener is `webhook-server.ts`, started by `webhook-intake.ts` when `WEBHOOK_SECRET` is set, and it shares `serial.ts` with the poll so nothing overlaps). A mention run does not show live in the studio's status yet.
+4. Hosted: OAuth, click-to-post, Docker/HTTPS recipe (done: `api/src/auth*.ts` and `http/auth-*.ts` for the login, `http/request-scope.ts` for the person's projects and token, `compose.hosted.yaml` and `docs/reference/hosting.md`). `marginalia migrate` covers the `.env`, `posted.json`, `runs.jsonl`, `state.json` and `marginalia.db`.
 
 ## Tests
 

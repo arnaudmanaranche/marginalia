@@ -1,8 +1,6 @@
 # Run in a container
 
-> Reference for the V1 behavior as shipped. V2 changes are in `../architecture.md` and `../adr/`; where they differ, those win.
-
-The `Dockerfile` packages the poller, the studio and the `claude` CLI (a pinned version, 2.1.306, changed
+The `Dockerfile` packages the bot, the studio and the `claude` CLI (a pinned version, 2.1.306, changed
 with `--build-arg CLAUDE_CODE_VERSION=...`). Nothing personal is baked in; it is all mounted:
 
 | Mounted at | What | How |

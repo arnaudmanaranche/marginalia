@@ -1,7 +1,5 @@
 # Logs, type checking and monitoring
 
-> Reference for the V1 behavior as shipped. V2 changes are in `../architecture.md` and `../adr/`; where they differ, those win.
-
 The bot logs through [pino](https://getpino.io): one human line per event, with the project and MR
 when there is one (`[2026-10-21T15:17:14.285Z] INFO: [webapp] [MR !3987] Starting review`),
 coloured only in a terminal so `tail -f ~/Library/Logs/marginalia.log` stays readable. Set

@@ -1,12 +1,12 @@
 # Marginalia — rules for AI agents
 
 Marginalia is a software factory (ADR 0006): it learns a project, runs lines of jobs on it (review
-is the first) and a studio shows every job and holds every decision. V2 is
-moving the code into `api/` (bot), `ui/` (studio) and `packages/contract`. Read these first:
+is the first) and a studio shows every job and holds every decision. The code lives in
+`api/` (bot), `ui/` (studio) and `packages/contract`. Read these first:
 
 - `GLOSSARY.md`: the words to use. A new concept gets an entry before it gets a name in code.
 - `PRODUCT.md`: what it is and the promises that must not break.
-- `docs/architecture.md`: packages, listeners, run flow, skills, delivery order.
+- `docs/architecture.md`: packages, listeners, run flow, skills, credentials, storage, tests.
 - `docs/guidelines/api.md` and `docs/guidelines/ui.md`: how code is written on each side.
 - `docs/adr/`: why each decision was made. `DESIGN.md`: how the studio looks.
 
@@ -33,5 +33,5 @@ moving the code into `api/` (bot), `ui/` (studio) and `packages/contract`. Read 
 - Near the limit, split by responsibility rather than compacting: pure logic in its own module
   with no config or I/O import, requests and side effects in another. Do not raise the limit to
   make a change fit.
-- Import a function from the module that defines it; only `findings.mjs` re-exports, as the
+- Import a function from the module that defines it; only `findings.ts` re-exports, as the
   public entry point of the findings shape.

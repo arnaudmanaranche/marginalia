@@ -1,7 +1,5 @@
 # Team setup
 
-> Reference for the V1 behavior as shipped. V2 changes are in `../architecture.md` and `../adr/`; where they differ, those win.
-
 A team shares its review skills and defaults through a **team repo**: an ordinary git
 repo that every dev pulls. Everyone then reviews with the same skills and the same
 defaults, and the codebase stays the memory. It is not a hosted service and not a GitLab
@@ -44,7 +42,7 @@ otherwise be ignored), and `minMarginalia` makes an older marginalia say "update
 of misreading a newer file.
 
 **How a dev joins.** Set `"teamRepo": "git@git.example.com:acme/marginalia-team.git"` in
-`config.json` (or `MARGINALIA_TEAM_REPO`), run `node scripts/team-sync.mjs`, then add to
+`config.json` (or `MARGINALIA_TEAM_REPO`), run `marginalia sync`, then add to
 `projects` an entry with your `repoLocalPath` for each team project you review: the report
 lists the ones you have not mapped. The repo is cloned into `<data dir>/team`; later syncs
 fetch and fast-forward only. Offline, a local change in the copy, or a rewritten history

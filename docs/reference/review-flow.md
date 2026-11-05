@@ -1,7 +1,5 @@
 # Review flow
 
-> Reference for the V1 behavior as shipped. V2 changes are in `../architecture.md` and `../adr/`; where they differ, those win.
-
 - Optional filter on the target branch via `ALLOWED_TARGET_BRANCHES` (e.g. `develop`).
 - Always ignores draft MRs, and those whose author is listed in
   `EXCLUDE_AUTHORS` (GitLab usernames, not emails, comma-separated).
@@ -96,7 +94,7 @@ A slash command (`/code-review`, `/mr-comments`) still works as before, as descr
   orchestrating command as a tool result, never as text `claude -p
   --output-format text` captures, so relying on the orchestrator re-emitting
   it verbatim as its own final message proved unreliable in practice (see
-  `api/src/claude-runner.mjs`'s comment on `MR_COMMENTS_REPORT_FILE`). This bot
+  `api/src/claude-runner.ts`'s comment on `MR_COMMENTS_REPORT_FILE`). This bot
   reads that file directly and writes the real report to
   `<REPO_LOCAL_PATH>/.claude/reviews/mr-comments-<branch-slug>.md`.
 - **Fixes are committed locally in the bot worktree, never pushed.** Since

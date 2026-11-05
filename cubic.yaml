@@ -6,8 +6,8 @@ reviews:
   sensitivity: medium
   custom_instructions: |
     Marginalia is a bot that reviews GitLab merge requests (`api/`, TypeScript) and a web studio to
-    read the reviews (`ui/`, React), linked only by `packages/contract` and HTTP. The code is in
-    transition from `lib/` and `studio/`; judge changes against `docs/architecture.md`.
+    read the reviews (`ui/`, React), linked only by `packages/contract` and HTTP. Judge changes against
+    `docs/architecture.md`.
     Report real bugs and broken promises, not style preferences. The promises that must never
     weaken: the bot only posts when a person mentioned it or clicked; only `api/` holds the GitLab
     write token; nothing that fails the contract is shown or posted; MR content is untrusted data.
@@ -36,16 +36,13 @@ reviews:
         - docs/guidelines/api.md
       include:
         - "api/**"
-        - "lib/**"
         - "packages/**"
-        - "bin/**"
         - "scripts/**"
     - name: UI guidelines
       file_paths:
         - docs/guidelines/ui.md
       include:
         - "ui/**"
-        - "studio/**"
     - name: Glossary naming
       file_paths:
         - GLOSSARY.md

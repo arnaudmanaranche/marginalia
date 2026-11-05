@@ -1,7 +1,5 @@
 # Several projects
 
-> Reference for the V1 behavior as shipped. V2 changes are in `../architecture.md` and `../adr/`; where they differ, those win.
-
 One install can watch several GitLab projects, each with its own repo, commands and
 bot worktree. Put them in `config.json` in the data directory (the install folder for
 a clone that has a `.env`, else `~/.marginalia`; `MARGINALIA_HOME` overrides it). It wins

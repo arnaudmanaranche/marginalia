@@ -1,18 +1,21 @@
 # marginalia
 
-A bot that reviews GitLab merge requests, and a studio to read the reviews. Ask for a review from
-the studio (V2 adds mentioning `@marginalia` in an MR). An agent reviews the MR with whatever skills and
-sub-agents it chooses, and the bot checks the result against a fixed contract before showing it
-or replying. The bot only posts when a person asked for it, by clicking (or, in V2, by mentioning it).
+Marginalia is a software factory (see [ADR 0006](docs/adr/0006-marginalia-is-a-software-factory.md)):
+it learns a project, runs jobs on it and leaves every decision to a person. Review is the first line.
+The **bot** (`api/`) runs the agent on a merge request, with whatever skills and sub-agents it
+chooses, and checks the review against a fixed contract before it is shown or posted. The
+**studio** (`ui/`) is where a person reads the review, decides what to say and follows every job.
+The bot only posts when a person asked for it, by mentioning `@marginalia` in an MR or by clicking
+in the studio.
 
-> **V2 is in progress.** This README describes what runs today (V1: a local poller and studio).
-> The target is in [`docs/architecture.md`](docs/architecture.md) and the decisions in
-> [`docs/adr/`](docs/adr/). Product and promises: [`PRODUCT.md`](PRODUCT.md). Words:
-> [`GLOSSARY.md`](GLOSSARY.md).
+Architecture and decisions: [`docs/architecture.md`](docs/architecture.md) and
+[`docs/adr/`](docs/adr/). Product and promises: [`PRODUCT.md`](PRODUCT.md). Words:
+[`GLOSSARY.md`](GLOSSARY.md).
 
-Today it runs on your machine under your own `claude` login and GitLab token, in a git worktree
-so it never touches the branch you work on, and it **polls** the GitLab API, so no webhook or
-Maintainer rights are needed.
+Locally it runs on your machine under your own `claude` login and GitLab token, in an ephemeral git
+worktree so it never touches the branch you work on, and it **polls** the GitLab API, so no webhook
+or Maintainer rights are needed. Hosted, it sits behind HTTPS and GitLab OAuth
+([`docs/reference/hosting.md`](docs/reference/hosting.md)) and can also take mentions by webhook.
 
 ## Quickstart
 

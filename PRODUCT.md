@@ -31,7 +31,7 @@ The contract is fixed, the method is free. The bot decides the shape of a review
 
 **The bot only posts when a person asked for it**, by mentioning it or by clicking. A mention is the request, so the bot replies in the thread. From the studio, a person reads, edits and clicks, and the comment goes out under their own name. The bot never reviews and posts unprompted.
 
-V2 reverses the 12 October 2026 decision to drop the mention bot. The reading experience stays the core and the mention is a second way in. See `docs/adr/0002-v2-supersedes-the-mention-bot-revert.md`.
+Marginalia reverses the 12 October 2026 decision to drop the mention bot. The reading experience stays the core and the mention is a second way in. See `docs/adr/0002-v2-supersedes-the-mention-bot-revert.md`.
 
 ## Operating Context
 
@@ -58,7 +58,7 @@ V2 reverses the 12 October 2026 decision to drop the mention bot. The reading ex
 
 ## Evidence on Hand
 
-- `api/examples/commands/` and `api/examples/agents/`: sample review and triage commands from V1.
+- `api/examples/commands/` and `api/examples/agents/`: sample review and triage commands (slash commands for the command path).
 - Real generated reviews from the author's own use exist on their machine (about thirty), used to develop the studio. They are not part of this repository.
 - No usage data, customer testimonials or benchmarks exist. None should be invented.
 
