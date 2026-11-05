@@ -31,6 +31,15 @@ program.command('doctor').description('read-only checks of the install, with how
     done(await (await import('../scripts/doctor.ts')).runDoctor(argv));
   });
 
+program.command('understand').description('learn a project (glossary, stack, features, critical paths) into a draft context to approve')
+  .option('--project <key>', 'project to learn (default: the first)')
+  .action(async (o) => done(await (await import('../scripts/understand.ts')).runUnderstand(o)));
+
+program.command('context').description('show or approve the learned context of a project')
+  .argument('<action>', 'show | approve')
+  .option('--project <key>', 'project (default: the first)')
+  .action(async (action, o) => done(await (await import('../scripts/understand.ts')).runContext(action, o)));
+
 program.command('start').description('run the poller and the studio in the foreground')
   .action(async () => { await import('../poll.ts'); });
 

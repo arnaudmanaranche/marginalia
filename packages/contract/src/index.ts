@@ -8,3 +8,4 @@ export * from './reviews-payload.ts';
 export * from './discussion.ts';
 export * from './requests.ts';
 export * from './agent-result.ts';
+export * from './project-context.ts';

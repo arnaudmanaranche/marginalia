@@ -12,6 +12,8 @@ The words below are the only ones the code, the docs and the studio use for thes
 
 **Project context**: what the factory has learned about one project: glossary, stack, features and critical paths, each item citing its source. Data stored outside the reviewed repo, approved by a person before reviews use it. Never code in Marginalia.
 
+**Understand**: the job that learns a project into a draft project context, from the repo at its default branch and the read-only connectors (`marginalia understand`). A person approves the draft (`marginalia context approve`); until then reviews keep the last approved one.
+
 **Critical path**: a flow in a project whose breakage costs the most (a user journey for a front-end, a request flow, data write or payment for a back-end). Listed in the project context.
 
 **Own review**: a review of the configured user's own branch or MR, shown only to them, never posted. Not triage, which works through comments other people left.

@@ -61,3 +61,7 @@ export const STAGE_READ_TOOLS = ['Read', 'Grep', 'Glob', ...STAGE_GIT, ...TICKET
 // Fixing a reviewer comment on my own MR, or settling a merge's conflicts: edit only. The bot
 // commits what the stage changed, so each commit holds one stage's work under a known message.
 export const STAGE_FIX_TOOLS = [...STAGE_READ_TOOLS, 'Edit', 'Write'];
+
+// An Understand job reads the repo at its default branch and the connectors, and writes only its
+// context file (the sandbox keeps writes in its worktree). It neither fetches nor nests worktrees.
+export const UNDERSTAND_TOOLS = ['Read', 'Grep', 'Glob', 'Write', ...STAGE_GIT, ...CONNECTOR_READ_TOOLS, ...extraTools];

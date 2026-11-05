@@ -11,6 +11,7 @@
     "dist",
     "ui-dist",
     "skills",
+    "jobs",
     "examples",
     "swiftbar",
     ".env.example"

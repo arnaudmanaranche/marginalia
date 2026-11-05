@@ -1,6 +1,8 @@
 node_modules/
 .env
 state.json
+/context/
+/worktrees/
 webapp-worktree/
 status.json
 status.json.tmp

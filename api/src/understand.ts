@@ -1,0 +1,70 @@
+import { existsSync } from 'node:fs';
+import { readFile, rm } from 'node:fs/promises';
+import { join } from 'node:path';
+import { CLAUDE_BIN, DATA_DIR } from './config.ts';
+import { PACKAGE_ROOT } from './package-root.ts';
+import { gitlab } from './gitlab-api.ts';
+import { gitIn } from './git.ts';
+import { fetchBranch } from './git-refs.ts';
+import { addWorktree } from './git-worktree.ts';
+import { UNDERSTAND_TOOLS } from './allowed-tools.ts';
+import { claudeArgs, parseRunOutput } from './claude-cli.ts';
+import { runEnv, runSettings } from './run-settings.ts';
+import { runStreaming } from './progress.ts';
+import { enforceContract } from './guardrail.ts';
+import { saveDraft } from './context-store.ts';
+import { CONTEXT_FILE, UNDERSTAND_SYSTEM, understandPrompt } from './understand-prompt.ts';
+import { serial } from './serial.ts';
+
+const METHOD = join(PACKAGE_ROOT, 'jobs', 'understand.md');
+const TIMEOUT_MS = 45 * 60_000;
+
+// A worktree of its own, detached at the default branch as origin has it: an Understand job never
+// shares the review worktree, and starts from a clean tree each time.
+async function checkoutDefault(project: any) {
+  const branch = (await gitlab.getProject(project)).default_branch;
+  const ref = `refs/marginalia/understand/${project.key}`;
+  await fetchBranch(project.repoPath, branch, ref);
+  const dir = join(DATA_DIR, 'worktrees', `${project.key}-understand`);
+  if (existsSync(dir)) {
+    await gitIn(dir).run('checkout', '--quiet', '--detach', '--force', ref);
+    await gitIn(dir).run('clean', '-fdxq');
+  } else {
+    await addWorktree(project.repoPath, dir, ref);
+  }
+  const commit = (await gitIn(dir).run('rev-parse', 'HEAD')).trim();
+  return { branch, dir, commit };
+}
+
+// Learns a project into a draft context (context-store.ts), for a person to approve. `onStep` gets
+// what the agent is doing, as a review run's live panel does. Throws on a broken contract: nothing
+// is stored then.
+/** @param {any} project @param {{ onStep?: (step: string) => void }} [opts] */
+export function understandProject(project: any, { onStep = (_step: string) => {} } = {}) {
+  return serial.run(async () => {
+    onStep(`Checking out the default branch of ${project.gitlabProjectId}`);
+    const { branch, dir, commit } = await checkoutDefault(project);
+    const output = join(dir, CONTEXT_FILE);
+    await rm(output, { force: true });
+    const prompt = understandPrompt({ methodPath: METHOD, worktreeDir: dir, project, branch });
+    const settings = runSettings({ ...project, worktreeDir: dir });
+    let costUsd = 0;
+    const call = async (text: string, resume: string | null) => {
+      const args = [...claudeArgs({ prompt: text, tools: UNDERSTAND_TOOLS, systemPrompt: UNDERSTAND_SYSTEM, settings, resume }), '--add-dir', join(PACKAGE_ROOT, 'jobs')];
+      const out = parseRunOutput((await runStreaming(CLAUDE_BIN, args, { cwd: dir, env: runEnv(), timeout: TIMEOUT_MS }, (step) => onStep(step))).stdout);
+      costUsd += out.stats?.costUsd ?? 0;
+      return out;
+    };
+    const check = async () => enforceContract('context', await readFile(output, 'utf8').catch(() => null));
+    const first = await call(prompt, null);
+    // A context that does not fit the contract is sent back once, in the same session, with what was wrong.
+    const context = await check().catch(async (err) => {
+      if (!first.sessionId) throw err;
+      onStep(`${err.message}: asking again`);
+      await call(`${err.message} Fix the file at ${output} so it fits the shape asked, then stop.`, first.sessionId);
+      return check();
+    });
+    const path = await saveDraft(DATA_DIR, { key: project.key, commit, context });
+    return { path, commit, branch, costUsd };
+  });
+}
