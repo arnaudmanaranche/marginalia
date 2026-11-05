@@ -21,6 +21,8 @@ services:
       POSTHOG_KEY: '${POSTHOG_KEY:-}'
       MARGINALIA_TELEMETRY: '${MARGINALIA_TELEMETRY:-}'
       MARGINALIA_AI_CONTENT: '${MARGINALIA_AI_CONTENT:-}'
+      # A git clone of Marginalia under /repos (e.g. /repos/marginalia-source) lets the doctor prepare fixes on a branch.
+      MARGINALIA_SOURCE_DIR: '${MARGINALIA_SOURCE_DIR:-}'
       MARGINALIA_GIT_NAME: '${MARGINALIA_GIT_NAME:-Marginalia}'
       MARGINALIA_GIT_EMAIL: '${MARGINALIA_GIT_EMAIL:-marginalia@localhost}'
     volumes:
