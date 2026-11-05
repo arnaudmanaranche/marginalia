@@ -237,11 +237,29 @@ export interface Job extends RunSummary {
   title: string | null;
 }
 
+// One tool call of a run, paired with its result (ToolCallRecord in the contract).
+export interface ToolCallRecord {
+  id: string; tool: string; what: string; sub: boolean; stage: string | null;
+  startedAt: string; endedAt: string | null; ms: number | null;
+  // Null while it runs, or when the run ended before its result.
+  ok: boolean | null;
+  error: string | null;
+}
+// What one stage's Claude calls used.
+export interface StageUsage {
+  model: string | null; calls: number; turns: number; usd: number; ms: number;
+  inputTokens: number; outputTokens: number; cacheReadTokens: number; cacheWriteTokens: number;
+}
+
 export interface RunTrace extends RunSummary {
   steps: RunStep[];
   doctor: Doctor | null;
   fix: DoctorFix | null;
   fixSource: { available: boolean; why?: string };
+  // Absent on a run from before tool calls were kept.
+  calls?: ToolCallRecord[];
+  droppedCalls?: number;
+  usage?: Record<string, StageUsage>;
 }
 
 async function postRun(slug: string, runId: string, tail: string): Promise<void> {
