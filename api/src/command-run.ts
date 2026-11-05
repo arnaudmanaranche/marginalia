@@ -41,19 +41,20 @@ export async function commandRun({ mr, run, kind, command, tools, outputPath, st
   const catalog = await assembleCatalog(DATA_DIR);
   const systemPrompt = contractPrompt(kind, [REVIEW_PROMPT_EXTRA, projectContext, catalogPrompt(catalog.skills), stackContext, conversation, previous].filter(Boolean).join('\n\n'), BOT_WORKTREE_DIR);
   const team = await teamRunExtras(DATA_DIR); // --plugin-dir of the synced team skills, if any
-  const { stdout, stderr } = await runStreaming(
+  const { stdout, stderr, model } = await runStreaming(
     CLAUDE_BIN,
     [...claudeArgs({ prompt: mr.iid === null ? `${command} branch ${mr.source_branch} (no merge request yet: review its diff from where it left origin/${mr.target_branch})` : `${command} MR !${mr.iid}`, tools, systemPrompt, settings: withTeamDeny(runSettings(mr.project), { deny: [...team.deny, ...catalog.deny] }) }), ...team.args, ...catalog.args],
     { cwd: BOT_WORKTREE_DIR, env: runEnv() },
     (step, info) => run.step(step, info),
     (line) => run.event(line),
     { name: kind, traceId: run.id, kind, project: mr.project.key },
+    (call) => run.call(call, 'agent'),
   );
   log(mr, `${c.green}Claude finished in ${Math.round((Date.now() - startedAt) / 1000)}s.${c.reset}`);
 
   await run.stage('report');
   const { text, stats } = parseRunOutput(stdout);
-  if (stats) run.addCost(stats);
+  if (stats) run.addCost({ ...stats, model }, 'agent');
   const report = await buildReport({ worktreeDir: BOT_WORKTREE_DIR, stdout: text, stderr });
   enforceContract(kind, report.findingsRaw);
   return report;

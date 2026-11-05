@@ -36,8 +36,20 @@ export const DoctorFix = z.object({
   testsPassed: z.boolean().optional(), note: z.string().optional(), error: z.string().optional(),
   url: nullable(z.string()).optional().describe('Where the remote offers to open a merge request for the branch.'),
 }).passthrough().describe('The fix the doctor prepared on a branch of Marginalia.').meta({ id: 'DoctorFix' });
+export const ToolCallRecord = z.object({
+  id: z.string(), tool: z.string().describe('Short, for a chip: `read`, `git`, `jira.search`.'), what: z.string().describe('The step in words: `Reading app.ts`.'),
+  sub: z.boolean(), stage: nullable(z.string()), startedAt: z.string(), endedAt: nullable(z.string()), ms: nullable(z.number()),
+  ok: nullable(z.boolean()).describe('Null while it runs, or when the run ended before its result.'), error: nullable(z.string()).describe('The first line of a failed result.'),
+}).describe('One tool call of a run, paired with its result.').meta({ id: 'ToolCallRecord' });
+export const StageUsage = z.object({
+  model: nullable(z.string()), calls: z.number().int(), turns: z.number(), usd: z.number(), ms: z.number(),
+  inputTokens: z.number(), outputTokens: z.number(), cacheReadTokens: z.number(), cacheWriteTokens: z.number(),
+}).describe("What one stage's Claude calls used.").meta({ id: 'StageUsage' });
 export const RunTrace = z.object({
   ...RunFields, steps: z.array(RunStep), doctor: nullable(Doctor), fix: nullable(DoctorFix),
+  calls: z.array(ToolCallRecord).optional().describe('Absent on a run from before tool calls were kept.'),
+  droppedCalls: z.number().int().optional(),
+  usage: z.record(z.string(), StageUsage).optional().describe('By stage id.'),
   fixSource: z.object({ available: z.boolean(), why: z.string().optional() }).describe('Whether the doctor can prepare fixes on this install.'),
 }).describe('One run with every step it took.').meta({ id: 'RunTrace' });
 

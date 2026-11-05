@@ -4,6 +4,7 @@ import { GITLAB_USERNAME } from './config.ts';
 import { RUNNING_VERSION } from './config-team.ts';
 import { logger } from './logger.ts';
 import { posthogFromEnv } from './posthog.ts';
+import type { ToolCall } from './tool-calls.ts';
 
 // Sends what a Claude call did to PostHog AI Observability (ai-events.ts), off unless POSTHOG_KEY and
 // POSTHOG_HOST are set (MARGINALIA_TELEMETRY=off turns it off whatever else is set). Fire and forget:
@@ -21,8 +22,7 @@ export interface AiContext {
 
 const argAfter = (args: string[], flag: string) => (args.includes(flag) ? args[args.indexOf(flag) + 1] ?? '' : '');
 
-/** @param {{ ctx: AiContext, args: string[], model: string | null, result: any, tools: string[], failed: boolean, error?: string | null }} call */
-export function captureAi({ ctx, args, model, result, tools, failed, error = null }: { ctx: AiContext; args: string[]; model: string | null; result: any; tools: string[]; failed: boolean; error?: string | null }): void {
+export function captureAi({ ctx, args, model, result, calls, failed, error = null }: { ctx: AiContext; args: string[]; model: string | null; result: any; calls: ToolCall[]; failed: boolean; error?: string | null }): void {
   try {
     const { client } = posthogFromEnv(process.env);
     if (!client) return;
@@ -37,7 +37,7 @@ export function captureAi({ ctx, args, model, result, tools, failed, error = nul
       result: result ?? {},
       failed,
       error,
-      tools,
+      calls,
       prompt: argAfter(args, '-p'),
       systemPrompt: argAfter(args, '--append-system-prompt'),
       version: RUNNING_VERSION,

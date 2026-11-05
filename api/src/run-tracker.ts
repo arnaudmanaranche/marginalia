@@ -3,6 +3,8 @@ import { logger } from './logger.ts';
 import { reviewId } from './review-id.ts';
 import { liveEntryOf, writeStatus } from './status.ts';
 import { openTranscript, pruneTraces, runId, saveTrace } from './run-journal.ts';
+import { addUsage, recordCall, type CallStats } from './run-calls.ts';
+import type { ToolCall } from './tool-calls.ts';
 import { addStep, beginStage, endStage, enterStage, finishTrace, liveSummary, planStages, startTrace } from './run-trace.ts';
 
 // Steps come in bursts (a tool call, its narration): the trace and the live status are written
@@ -90,11 +92,17 @@ export async function followRun(mr: any, { kind, command, outputPath, plan }: an
     event(line: string) {
       transcript?.write(`${line}\n`);
     },
-    // Adds up: a staged run makes one Claude call per stage.
-    /** @param {{ costUsd: number, turns: number, outputTokens: number }} stats */
-    addCost(stats: any) {
+    // A tool call that started or ended, under the stage that made it (run-calls.ts).
+    call(c: ToolCall, stage: string | null = null) {
+      trace = recordCall(trace, c, stage ?? trace.stages.find((s: any) => s.state === 'running')?.id ?? null);
+      later();
+    },
+    // Adds up, for the run and for the stage: a staged run makes one Claude call per stage.
+    addCost(stats: CallStats, stage: string | null = null) {
       const was = trace.cost ?? { usd: 0, turns: 0, outputTokens: 0 };
       trace = { ...trace, cost: { usd: was.usd + stats.costUsd, turns: was.turns + stats.turns, outputTokens: was.outputTokens + stats.outputTokens } };
+      const where = stage ?? trace.stages.find((s: any) => s.state === 'running')?.id;
+      if (where) trace = addUsage(trace, where, stats);
     },
     /** @param {'reviewed' | 'skipped' | 'failed'} outcome @param {string | null} [error] */
     async finish(outcome: 'reviewed' | 'skipped' | 'failed', error: string | null = null) {

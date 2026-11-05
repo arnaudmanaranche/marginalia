@@ -46,6 +46,9 @@ export function parseRunOutput(stdout: string) {
       stats: {
         costUsd: Number(out.total_cost_usd ?? 0),
         outputTokens: out.usage?.output_tokens ?? 0,
+        inputTokens: out.usage?.input_tokens ?? 0,
+        cacheReadTokens: out.usage?.cache_read_input_tokens ?? 0,
+        cacheWriteTokens: out.usage?.cache_creation_input_tokens ?? 0,
         turns: out.num_turns ?? 0,
         durationMs: out.duration_ms ?? null,
       },

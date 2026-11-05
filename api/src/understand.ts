@@ -76,9 +76,9 @@ export async function learnProject(project: any, { onStep = (_step: string) => {
     const settings = runSettings({ ...project, worktreeDir: dir });
     const call = async (text: string, resume: string | null) => {
       const args = [...claudeArgs({ prompt: text, tools: UNDERSTAND_TOOLS, systemPrompt: UNDERSTAND_SYSTEM, settings, resume }), '--add-dir', join(PACKAGE_ROOT, 'jobs')];
-      const { stdout } = await runStreaming(CLAUDE_BIN, args, { cwd: dir, env: runEnv(), timeout: TIMEOUT_MS }, (step, info) => say(step, 'agent', info.tool), (line) => run.event(line), { name: 'understand', traceId: run.id, kind: 'understand', project: project.key });
+      const { stdout, model } = await runStreaming(CLAUDE_BIN, args, { cwd: dir, env: runEnv(), timeout: TIMEOUT_MS }, (step, info) => say(step, 'agent', info.tool), (line) => run.event(line), { name: 'understand', traceId: run.id, kind: 'understand', project: project.key }, (c) => run.call(c, 'agent'));
       const out = parseRunOutput(stdout);
-      if (out.stats) run.addCost(out.stats);
+      if (out.stats) run.addCost({ ...out.stats, model }, 'agent');
       return out;
     };
     const check = async () => enforceContract('context', await readFile(output, 'utf8').catch(() => null));

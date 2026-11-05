@@ -18,14 +18,15 @@ const TIMEOUT_MS = 20 * 60_000;
 export async function agentStage({ run, stage, prompt, system, tools, cwd, settings = null, addDirs = [], parse }: { run: any; stage: string; prompt: string; system: string; tools: string[]; cwd: string; settings?: object | null; addDirs?: string[]; parse: (text: string) => { ok: boolean; value?: any; error?: string } }) {
   const call = async (text: string, resume: string | null) => {
     const args = [...claudeArgs({ prompt: text, tools, systemPrompt: system, settings, resume }), ...addDirs.flatMap((d) => ['--add-dir', d])];
-    const { stdout } = await runStreaming(
+    const { stdout, model } = await runStreaming(
       CLAUDE_BIN, args, { cwd, timeout: TIMEOUT_MS, env: runEnv() },
       (step, info) => run.step(step, { ...info, stage }),
       (line) => run.event(line),
       { name: stage, traceId: run.id, kind: run.kind, project: run.project },
+      (c) => run.call(c, stage),
     );
     const out = parseRunOutput(stdout);
-    if (out.stats) run.addCost(out.stats);
+    if (out.stats) run.addCost({ ...out.stats, model }, stage);
     return out;
   };
   let out = await call(prompt, null);

@@ -1,10 +1,11 @@
 import { eventUuid, errorKind } from './run-events.ts';
+import type { ToolCall } from './tool-calls.ts';
 
 // PostHog AI Observability events for one Claude call (a `claude -p` run): a `$ai_generation` with the
-// model, tokens, cost and latency, and a `$ai_span` per tool it used. Pure, so what leaves the machine
-// is tested. The call's trace is its JOB's (a review job makes several calls: one trace, a generation
-// per stage); content (the prompt and the answer) only when `includeContent` is on, never a tool's
-// input or output.
+// model, tokens, cost and latency, and under it a `$ai_span` per tool call, with when it started, how
+// long it took and whether it failed. Pure, so what leaves the machine is tested. The call's trace is
+// its JOB's (a review job makes several calls: one trace, a generation per stage); content (the prompt
+// and the answer) only when `includeContent` is on, never a tool's input, output or error text.
 const CONTENT_MAX = 100_000;
 const clip = (text: string) => (text.length > CONTENT_MAX ? `${text.slice(0, CONTENT_MAX)}\n[cut at ${CONTENT_MAX} characters]` : text);
 // PostHog ids allow a limited alphabet.
@@ -21,7 +22,7 @@ export interface AiCall {
   result: any;
   failed: boolean;
   error?: string | null;
-  tools: string[];
+  calls: ToolCall[];
   prompt: string;
   systemPrompt: string;
   includeContent: boolean;
@@ -45,6 +46,7 @@ export function aiEvents(call: AiCall) {
     $ai_session_id: sessionId,
   };
   const distinct_id = `marginalia:${call.reviewer}`;
+  const generationId = aiId(`${traceId}:${call.name}:${call.at}`);
   const generation = {
     event: '$ai_generation',
     distinct_id,
@@ -53,6 +55,8 @@ export function aiEvents(call: AiCall) {
     properties: {
       ...base,
       $ai_span_name: call.name,
+      $ai_span_id: generationId,
+      $ai_parent_id: aiId(traceId),
       $ai_model: call.model ?? 'claude-code',
       $ai_provider: 'anthropic',
       $ai_input_tokens: number(usage.input_tokens),
@@ -62,7 +66,8 @@ export function aiEvents(call: AiCall) {
       $ai_total_cost_usd: number(result?.total_cost_usd),
       $ai_latency: number(result?.duration_ms) === undefined ? undefined : result.duration_ms / 1000,
       marginalia_turns: number(result?.num_turns),
-      marginalia_tool_calls: call.tools.length,
+      marginalia_tool_calls: call.calls.length,
+      marginalia_tool_errors: call.calls.filter((t) => t.ok === false).length,
       ...(call.failed && { $ai_is_error: true, $ai_error: errorKind(call.error ?? '') }),
       ...(call.includeContent && {
         $ai_input: [{ role: 'system', content: clip(call.systemPrompt) }, { role: 'user', content: clip(call.prompt) }],
@@ -70,12 +75,18 @@ export function aiEvents(call: AiCall) {
       }),
     },
   };
-  const spans = call.tools.map((tool, i) => ({
+  const spans = call.calls.map((tool, i) => ({
     event: '$ai_span',
     distinct_id,
     uuid: eventUuid(`ai|${traceId}|${call.name}|${call.at}|span|${i}`),
-    timestamp: call.at,
-    properties: { ...base, $ai_span_id: aiId(`${traceId}:${call.name}:${i}`), $ai_parent_id: aiId(traceId), $ai_span_name: tool },
+    timestamp: tool.startedAt,
+    properties: {
+      ...base, $ai_span_id: aiId(`${traceId}:${call.name}:${tool.id}`), $ai_parent_id: generationId, $ai_span_name: tool.tool,
+      $ai_latency: tool.ms === null ? undefined : tool.ms / 1000,
+      marginalia_sub_agent: tool.sub,
+      ...(tool.ok === false && { $ai_is_error: true }),
+      ...(tool.ok === null && { marginalia_unfinished: true }),
+    },
   }));
   return [generation, ...spans];
 }
