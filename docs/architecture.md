@@ -58,6 +58,10 @@ The agent sees one merged catalog (name and a one-line "use when" description) a
 - Click-to-post: the signed-in person's OAuth token.
 - Connectors: a run reads GitLab, Jira (Atlassian v2), Notion and Slack through the claude.ai connectors of the logged-in account, read tools only (`api/src/connector-tools.ts`). A connector write tool is refused even when a config lists it. PostHog has no read-only tool, so the agent gets PostHog data from the bot. The preflight and `marginalia doctor` say which connectors are missing, and a run goes on without them.
 
+## Queue
+
+Every poll, webhook mention and Understand job is a task in the `task` table (`api/src/queue.ts`, rules in `queue-plan.ts`, queries in `queue-store.ts`). One worker runs them one at a time, because they share each project's bot worktree: a person's request before a poll, then the oldest. A poll asked while one waits joins it. A task left running by a stopped process is queued again once, then fails. The last 200 finished tasks are kept. The CLI's `marginalia understand` runs its job directly, in its own process.
+
 ## Storage
 
 SQLite on a persistent volume, one instance. Postgres is the step if more than one instance is ever needed.
@@ -68,7 +72,7 @@ Every step is done. A clone keeps its `.env` and state files at the repo root, a
 
 1. Docs and rules, then the three workspaces (`api/`, `ui/`, `packages/contract`) with their own `package.json`, then `.mjs` to `.ts` with the `tsc` build.
 2. Contract, guardrails and catalog, with evals from here on (the strict `AgentReview`/`AgentTriage` schemas and `api/src/guardrail.ts` fail a command run whose findings file breaks them, the catalog with the seven built-ins is loaded into runs, `api/test/flow-contract.test.mjs` runs a command with a scripted fake `claude`, and `npm run eval` reviews the seeded cases in `api/evals/cases` with the real one).
-3. Mention intake: polling, then webhook, then bot replies (polling and replies are done: `api/src/mention-pass.ts` runs after each project's pass, reads the notes since its cursor, applies `mention-guardrail.ts` and answers in the thread; the webhook listener is `webhook-server.ts`, started by `webhook-intake.ts` when `WEBHOOK_SECRET` is set, and it shares `serial.ts` with the poll so nothing overlaps). A mention run does not show live in the studio's status yet.
+3. Mention intake: polling, then webhook, then bot replies (polling and replies are done: `api/src/mention-pass.ts` runs after each project's pass, reads the notes since its cursor, applies `mention-guardrail.ts` and answers in the thread; the webhook listener is `webhook-server.ts`, started by `webhook-intake.ts` when `WEBHOOK_SECRET` is set, and its mentions are tasks of the same queue as the poll, so nothing overlaps). A mention run does not show live in the studio's status yet.
 4. Hosted: OAuth, click-to-post, Docker/HTTPS recipe (done: `api/src/auth*.ts` and `http/auth-*.ts` for the login, `http/request-scope.ts` for the person's projects and token, `compose.hosted.yaml` and `docs/reference/hosting.md`). `marginalia migrate` covers the `.env`, `posted.json`, `runs.jsonl`, `state.json` and `marginalia.db`.
 
 ## Tests

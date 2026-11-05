@@ -54,4 +54,22 @@ export const MIGRATIONS = [
     sha TEXT NOT NULL      -- the commit whose push changed the code the finding pointed at
   );
   `,
+  `
+  CREATE TABLE task (
+    id          TEXT PRIMARY KEY,
+    kind        TEXT NOT NULL,  -- 'poll', 'mention', 'understand', 'rerun'
+    project     TEXT,           -- null for a task about every project (a poll)
+    label       TEXT NOT NULL,
+    priority    TEXT NOT NULL,  -- 'high' (a person asked), 'normal' (a poll)
+    status      TEXT NOT NULL,  -- 'queued', 'running', 'done', 'failed'
+    payload     TEXT NOT NULL,  -- JSON: what the handler of the kind needs
+    dedupe      TEXT,           -- a request with the same key joins the waiting task
+    enqueued_at TEXT NOT NULL,
+    started_at  TEXT,
+    ended_at    TEXT,
+    attempt     INTEGER NOT NULL,
+    error       TEXT
+  );
+  CREATE INDEX task_status ON task (status, ended_at);
+  `,
 ];

@@ -2,7 +2,6 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { parseNoteHook, projectOfEvent, tokenMatches } from '../dist/src/webhook.js';
 import { createWebhookApp } from '../dist/src/webhook-server.js';
-import { createSerial } from '../dist/src/serial.js';
 import { intakeNote } from '../dist/src/mention-pass.js';
 import { openDatabase } from '../dist/src/db.js';
 import { markMention, mentionRunsSince, readCursor, seenMentionIds, writeCursor } from '../dist/src/mention-store.js';
@@ -44,17 +43,6 @@ test('the route refuses a wrong token before reading, drops other hooks, and ans
   assert.deepEqual(seen, [11]);
   release();
   assert.equal((await app.request('/other', { method: 'POST' })).status, 404);
-});
-
-test('the serial queue runs one job at a time in order, and goes on after a failure', async () => {
-  const serial = createSerial();
-  const log = [];
-  const slow = serial.run(async () => { log.push('a start'); await new Promise((r) => setTimeout(r, 20)); log.push('a end'); });
-  const bad = serial.run(async () => { log.push('b'); throw new Error('x'); });
-  const last = serial.run(async () => { log.push('c'); });
-  await assert.rejects(bad);
-  await Promise.all([slow, last]);
-  assert.deepEqual(log, ['a start', 'a end', 'b', 'c']);
 });
 
 test('a note announced by webhook and found again by polling runs once', async () => {

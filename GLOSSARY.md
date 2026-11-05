@@ -10,6 +10,10 @@ The words below are the only ones the code, the docs and the studio use for thes
 
 **Job**: one execution of a line on one target, an MR or a branch. Starts from a trigger (poll, webhook, mention, click, branch push) and ends with a result, a visible failure, or closed without action. A run is how a job executes.
 
+**Queue**: the bot's waiting line of tasks, kept in its database so a restart loses nothing. One worker takes the next task: what a person asked for (a mention, a click, a project to learn) before a poll, then the oldest.
+
+**Task**: one thing asked of the bot, waiting its turn in the queue: a poll, a mention to answer, a project to learn. Running a task starts zero or more jobs. The same request while its task still waits joins it.
+
 **Project context**: what the factory has learned about one project: glossary, stack, features and critical paths, each item citing its source. Data stored outside the reviewed repo, approved by a person before reviews use it. Never code in Marginalia.
 
 **Understand**: the job that learns a project into a draft project context, from the repo at its default branch and the read-only connectors (`marginalia understand`). A person approves the draft (`marginalia context approve`); until then reviews keep the last approved one.

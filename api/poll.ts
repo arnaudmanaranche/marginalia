@@ -13,7 +13,7 @@ import { notify } from './src/notify.ts';
 import { ensureBotWorktree } from './src/worktree.ts';
 import { passOver } from './src/poll-pass.ts';
 import { passDeps } from './src/poll-pass-deps.ts';
-import { serial } from './src/serial.ts';
+import { botQueue } from './src/bot-queue.ts';
 import { startWebhookIfConfigured } from './src/webhook-intake.ts';
 import { intakePass } from './src/mention-pass.ts';
 import { failureTitleOf, mentionDeps } from './src/mention-deps.ts';
@@ -58,18 +58,22 @@ function printBanner() {
 let pollTimer: ReturnType<typeof setTimeout> | undefined;
 let isPolling = false;
 
-// The next poll is only scheduled once this one is over: a review can take
-// longer than the poll interval, and two polls must never share the bot
-// worktree at the same time.
-async function runPoll() {
-  if (isPolling) {
-    logger.info('A poll is already running, ignoring this request.');
-    return;
-  }
-  clearTimeout(pollTimer);
+botQueue.handle('poll', async () => {
   isPolling = true;
   try {
-    await serial.run(poll);
+    await poll();
+  } finally {
+    isPolling = false;
+  }
+});
+
+// A poll is a task of the queue, behind what a person asked for. A poll asked while one waits joins
+// it; asked while one runs, it waits behind it. The next one is only scheduled once this one is
+// over: a review can take longer than the poll interval.
+async function runPoll() {
+  clearTimeout(pollTimer);
+  try {
+    await botQueue.enqueue({ kind: 'poll', label: 'Poll the open MRs', dedupe: 'poll' });
     status.phase = 'idle';
     status.lastPoll = { at: new Date().toISOString(), ok: true, error: null };
   } catch (err) {
@@ -81,7 +85,6 @@ async function runPoll() {
     status.phase = 'error';
     status.lastPoll = { at: new Date().toISOString(), ok: false, error: err.message };
   } finally {
-    isPolling = false;
     status.current = null;
     scheduleNextPoll(Date.now());
     await writeStatus();
@@ -142,6 +145,7 @@ async function main() {
   for (const project of PROJECTS) await ensureBotWorktree(project);
   // `kill -USR1 <pid>` (the menu bar's "Poll now") triggers a poll right away.
   process.on('SIGUSR1', runPoll);
+  botQueue.start();
   await runPoll();
 }
 

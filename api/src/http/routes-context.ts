@@ -56,7 +56,7 @@ export function contextRoutes(app: any) {
 
   app.openapi(route({
     method: 'post', path: '/api/projects/{key}/understand', tags: ['Projects'], operationId: 'learnProject',
-    summary: 'Learn the project again into a new draft', description: 'Queued behind the running poll; it shows in the jobs.', request: projectParam,
+    summary: 'Learn the project again into a new draft', description: 'A task of the queue, ahead of the polls; it shows in the jobs.', request: projectParam,
     responses: { 200: jsonOf(ProjectContextState, 'Learning has started.') }, errors: [400, 404, 409, 415],
   }), async (c: any) => {
     const project = find(c.req.valid('param').key);

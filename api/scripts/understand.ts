@@ -12,10 +12,10 @@ async function pickProject(key?: string) {
 export async function runUnderstand({ project: key }: { project?: string }) {
   const project = await pickProject(key);
   if (!project) return 1;
-  const { understandProject } = await import('../src/understand.ts');
+  const { learnProject } = await import('../src/understand.ts');
   console.log(`Learning ${project.gitlabProjectId} (this can take a while)...`);
   try {
-    const out = await understandProject(project, { onStep: (step) => console.log(`  ${step}`) });
+    const out = await learnProject(project, { onStep: (step) => console.log(`  ${step}`) });
     console.log(`\nDraft context at ${out.commit.slice(0, 8)} on ${out.branch}: ${out.path}${out.costUsd === null ? '' : ` ($${out.costUsd.toFixed(2)})`}`);
     console.log(`Read it, then: marginalia context approve --project ${project.key}`);
     return 0;
