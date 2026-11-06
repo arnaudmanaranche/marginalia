@@ -69,15 +69,17 @@ botQueue.handle('rerun', async (target) => {
   if ((await passOver(project, passDeps, statusSink, target)).retrySoon) retrySoon = true;
 });
 
-// Once a day, when the budget runs out: the polls go on (they cost nothing), their work waits.
+// Today's spend, kept in status.json for the menu bar, and told once a day when the budget runs out:
+// the polls go on (they cost nothing), their work waits.
 let budgetToldFor: string | null = null;
-function tellBudget() {
+function followBudget() {
   let budget;
   try {
     budget = todayBudget();
   } catch (err) {
     return logger.warn({ err }, 'Could not read today\'s budget');
   }
+  status.budget = { spentUsd: budget.spentUsd, limitUsd: budget.limitUsd, over: budget.over };
   if (!budget.over || budgetToldFor === budget.since) return;
   budgetToldFor = budget.since;
   logger.warn(heldReason(budget));
@@ -86,6 +88,7 @@ function tellBudget() {
 
 // The phase follows the queue: what runs, and whether the last poll failed.
 botQueue.onChange(() => {
+  followBudget();
   settlePhase(botQueue.running);
   void writeStatus();
 });
@@ -114,7 +117,7 @@ async function runPoll() {
     status.lastPoll = { at: new Date().toISOString(), ok: false, error: err.message };
   } finally {
     isPolling = false;
-    tellBudget();
+    followBudget();
     settlePhase(botQueue.running);
     scheduleNextPoll(Date.now());
     await writeStatus();
@@ -165,6 +168,7 @@ async function shutdown() {
 
 async function main() {
   printBanner();
+  followBudget();
   await writeStatus();
   process.on('SIGINT', shutdown);
   process.on('SIGTERM', shutdown);

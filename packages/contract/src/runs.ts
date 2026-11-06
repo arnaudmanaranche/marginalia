@@ -64,7 +64,12 @@ export const BotStatus = z.object({
     .describe('Every MR under review now, one per project at most; `current` is the one that started last.'),
   lastPoll: nullable(z.object({ at: z.string(), ok: z.boolean(), error: nullable(z.string()) })),
   nextPollAt: nullable(z.string()),
-  mrs: z.array(z.object({ project: z.string().optional(), iid: z.number().int().nullable(), status: z.string(), reviewPath: nullable(z.string()).optional() }).passthrough()).optional(),
+  mrs: z.array(z.object({
+    project: z.string().optional(), iid: z.number().int().nullable(), status: z.string(), reviewPath: nullable(z.string()).optional(),
+    held: z.literal('budget').optional().describe('Set when the daily budget made its automatic work wait until midnight.'),
+  }).passthrough()).optional(),
+  budget: nullable(z.object({ spentUsd: z.number(), limitUsd: nullable(z.number()), over: z.boolean() })).optional()
+    .describe('Today\'s spend against the daily budget (GLOSSARY: Budget), as of the last task that ended.'),
 }).describe('Content of `status.json`, written by the poller.').meta({ id: 'BotStatus' });
 
 export const BotState = z.object({ status: nullable(BotStatus), alive: z.boolean() }).meta({ id: 'BotState' });

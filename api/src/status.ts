@@ -14,6 +14,8 @@ export const status = {
   running: [] as any[], // every MR being reviewed right now, one per project at most
   lastPoll: null as { at: string; ok: boolean; error: string | null } | null,
   nextPollAt: null as string | null,
+  // Today's spend against the daily budget, refreshed as each task ends (poll.ts).
+  budget: null as { spentUsd: number; limitUsd: number | null; over: boolean } | null,
   projects: PROJECTS.map((p: any) => ({ key: p.key, kind: p.kind, reviewsDir: p.reviewsDir })),
   // The last known entries until the first pass sets each project's own (status-seed.ts).
   mrs: carryOver(readPrevious(STATUS_FILE), PROJECTS.map((p: any) => p.key)) as any[],

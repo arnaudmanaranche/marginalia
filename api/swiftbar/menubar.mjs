@@ -101,6 +101,8 @@ const lines = [];
 
 // --- Menu bar item ---
 const failedCount = alive ? status.mrs.filter((m) => m.status === 'failed').length : 0;
+const budget = alive ? status.budget ?? null : null;
+const money = (usd) => `$${Number(usd).toFixed(2)}`;
 if (!alive) {
   lines.push('| sfimage=xmark.octagon sfcolor=gray');
 } else if (status.phase === 'error') {
@@ -112,6 +114,9 @@ if (!alive) {
   lines.push('| sfimage=arrow.triangle.2.circlepath');
 } else if (failedCount > 0) {
   lines.push(`${failedCount} | sfimage=checkmark.seal sfcolor=orange`);
+} else if (budget?.over) {
+  // Idle because the day's budget is spent: automatic work waits until midnight.
+  lines.push('| sfimage=dollarsign.circle sfcolor=orange');
 } else {
   lines.push(`| templateImage=${LOGO_B64}`);
 }
@@ -143,6 +148,12 @@ if (!status) {
     status.nextPollAt && status.phase !== 'polling' && status.phase !== 'reviewing' && `next ${inTime(status.nextPollAt)}`,
   ].filter(Boolean);
   if (pollInfo.length) lines.push(`${pollInfo.join(' · ')} | size=12`);
+  if (budget?.over) {
+    lines.push(`Daily budget reached: ${money(budget.spentUsd)} of ${money(budget.limitUsd)} | color=orange sfimage=dollarsign.circle`);
+    lines.push('Automatic reviews wait until midnight; a mention or "Review again" still runs | size=12');
+  } else if (budget) {
+    lines.push(`Spent today ${money(budget.spentUsd)}${budget.limitUsd ? ` of ${money(budget.limitUsd)}` : ', no daily limit'} | size=12`);
+  }
 }
 const lastReviewed = (status?.mrs ?? [])
   .filter((m) => m.reviewedAt)
