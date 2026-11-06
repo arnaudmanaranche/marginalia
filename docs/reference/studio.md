@@ -12,7 +12,7 @@ or request for changes, pushes, open threads and drafts, and the studio refreshe
 or delete a draft. A review row shows the author, what you decided, the Critical / Important counts, the risk, the verdict
 and the age (most urgent Jira ticket first when all three `JIRA_*` are set in `.env`; `JIRA_BASE_URL` alone only links the
 ticket, newest first otherwise). A review opens as a tour with its diff, has a copy button on the "Comment to post"
-blocks, and a `⌘K` search. It refreshes live when a review file or `status.json` changes.
+blocks, and a `⌘K` search. Under the before/after, a medium or high risk says why: the five risk axes (see the glossary) and what would lower it. It refreshes live when a review file or `status.json` changes.
 
 ```bash
 npm run studio:build     # after any change under ui/src

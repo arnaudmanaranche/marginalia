@@ -23,6 +23,7 @@ import { ReaderHeader } from './ReaderHeader';
 import { ReportSections } from './ReportSections';
 import { ReaderNotices } from './ReaderNotices';
 import { ReviewOverview } from './ReviewOverview';
+import { ReviewRisk } from './ReviewRisk';
 import { ReplyBoard } from './ReplyBoard';
 import { ReportDelta } from './ReportDelta';
 import { ReviewTour } from './ReviewTour';
@@ -120,6 +121,7 @@ export function ReviewReader({ item, review: currentReview, reviewError, onRetry
         </div>
       ) : <TourSkeleton />)}
       {markdown !== null && shape?.overview && <ReviewOverview overview={shape.overview} />}
+      {markdown !== null && <ReviewRisk risk={shape?.risk ?? null} />}
       {markdown !== null && !viewingOld && previous && (
         <ReportDelta previous={previous.review.shape?.findings ?? []} at={previous.at} current={shape?.findings ?? []} onRead={() => setVersionId(previous.id)} />
       )}

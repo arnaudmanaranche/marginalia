@@ -50,10 +50,20 @@ export interface ReviewItem {
 
 export type RiskLevel = 'low' | 'medium' | 'high';
 
+// One of the five questions behind a risk level.
+export interface RiskAxis {
+  axis: 'verification' | 'alignment' | 'impact' | 'rollback' | 'detection';
+  level: RiskLevel;
+  note: string | null;
+}
+
 export interface Risk {
   level: RiskLevel;
   rationale: string | null;
   factors: string[];
+  // Absent on a review made before the axes existed.
+  axes?: RiskAxis[];
+  mitigations?: string[];
 }
 
 // One stop of the guided read: a group of changes, what to check in it, and its findings.
