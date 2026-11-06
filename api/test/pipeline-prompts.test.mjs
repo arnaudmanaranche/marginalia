@@ -94,6 +94,14 @@ test('the chapters make one review: deduplicated, unique ids, the verdict from t
   assert.match(md, /## Important\n\n- `a:1` \*\*Other\*\*/);
 });
 
+test('the report lists the risk axes and what would lower the risk, and stays as it was without them', () => {
+  const base = { verdict: 'APPROVE', summary: 'S.', overview: { before: 'a', after: 'b' }, tour: [], findings: [] };
+  const plain = renderReview({ title: 'T', iid: 1, branch: 'b' }, { ...base, risk: { level: 'low', rationale: 'Small.' } });
+  assert.doesNotMatch(plain, /To lower it/);
+  const md = renderReview({ title: 'T', iid: 1, branch: 'b' }, { ...base, risk: { level: 'high', rationale: 'R.', axes: [{ axis: 'rollback', level: 'high', note: 'Drops a column.' }], mitigations: ['Split the migration.'] } });
+  assert.match(md, /\*\*Risk:\*\* high, R\.\n\n- rollback: high, Drops a column\.\n\nTo lower it:\n- Split the migration\./);
+});
+
 const THREADS = [
   { id: 'aaaaaaaa11', path: 'src/a.ts', line: 3, notes: [{ author: 'bob', mine: false, body: 'Rename this.' }], code: '    3> const x = 1;' },
   { id: 'bbbbbbbb22', path: null, line: null, notes: [{ author: 'eve', mine: false, body: 'Why not a flag?' }], code: null },

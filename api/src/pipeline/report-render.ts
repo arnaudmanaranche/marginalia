@@ -3,6 +3,12 @@
 
 const SECTIONS = [['critical', 'Critical'], ['important', 'Important'], ['suggestion', 'Suggestions'], ['info', 'Notes']];
 const quote = (s: string) => s.split('\n').map((l: string) => `> ${l}`).join('\n');
+const axisLine = (a: any) => `- ${a.axis}: ${a.level}${a.note ? `, ${a.note}` : ''}`;
+const riskLines = (risk: any) => [
+  ...(risk.axes?.length ? ['', ...risk.axes.map(axisLine)] : []),
+  ...(risk.mitigations?.length ? ['', 'To lower it:', ...risk.mitigations.map((m: string) => `- ${m}`)] : []),
+  '',
+];
 const place = (f: any) => (f.path ? `\`${f.path}${f.line ? `:${f.line}` : ''}\` ` : '');
 
 /** @param {{ title: string, iid: number | string, branch: string }} mr @param {any} data the findings file of a review */
@@ -13,7 +19,7 @@ export function renderReview(mr: { title: string; iid: number | string; branch: 
     '## Review Summary', '', data.summary, '',
     `**Before:** ${data.overview.before}`, '',
     `**After:** ${data.overview.after}`, '',
-    `**Risk:** ${data.risk.level}, ${data.risk.rationale}`, '',
+    `**Risk:** ${data.risk.level}, ${data.risk.rationale}`, ...riskLines(data.risk),
     '## The change, chapter by chapter', '',
     ...data.tour.flatMap((c: any, i: number) => [`### ${i + 1}. ${c.title}`, '', c.summary, '', `Files: ${c.files.map((f: string) => `\`${f}\``).join(', ')}`, '']),
   ];
