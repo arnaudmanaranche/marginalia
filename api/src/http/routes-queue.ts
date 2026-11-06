@@ -5,13 +5,14 @@ import { botQueue } from '../bot-queue.ts';
 import { listJobs } from '../job-list.ts';
 import { countFinished, recentTasks } from '../queue-store.ts';
 import { queueView } from '../queue-view.ts';
+import { todayBudget } from '../budget-today.ts';
 import { getDb } from '../store.ts';
 import { visibleProjects } from './request-scope.ts';
 import { broadcast, readStatus } from './context.ts';
 import { jsonOf, route } from './route-kit.ts';
 
 // The bot's queue as the studio shows it: what waits and in which order, what runs and on what,
-// what ended and the jobs each task started. A change in the queue wakes the open pages.
+// what ended and the jobs each task started, and today's budget. A change in the queue wakes the open pages.
 export function queueRoutes(app: any) {
   botQueue.onChange(broadcast);
   app.openapi(route({
@@ -31,6 +32,12 @@ export function queueRoutes(app: any) {
     const tasks = recentTasks(db, limit).filter((t) => t.project === null || seen.has(t.project));
     const jobs = await listJobs(keys, { limit: 200, titles });
     const live = status?.running ?? (status?.current ? [status.current] : []);
-    return c.json(queueView({ tasks, jobs, totals: countFinished(db), now: new Date().toISOString(), workers: botQueue.workers, live }), 200);
+    // Every project's spend: the budget is the bot's, not one project's.
+    let budget = null;
+    try {
+      const all = todayBudget();
+      budget = { ...all, byMr: all.byMr.filter((m) => m.project !== null && seen.has(m.project)) };
+    } catch { /* the queue shows without it */ }
+    return c.json({ ...queueView({ tasks, jobs, totals: countFinished(db), now: new Date().toISOString(), workers: botQueue.workers, live }), budget }, 200);
   });
 }

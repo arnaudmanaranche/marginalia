@@ -4,6 +4,7 @@ import { log, logError } from './log.ts';
 import { logger } from './logger.ts';
 import { recordBelow } from './poll-plan.ts';
 import { branchStateKey } from './own-branches-plan.ts';
+import { heldReason } from './budget.ts';
 
 // The work on one MR inside a pass (see poll-pass.ts). Review and triage share one skeleton:
 // mark the MR busy, run, record what was done, notify; on a failure, say why and try again next
@@ -68,17 +69,39 @@ async function failed(mr: any, { label, entry }: any, err: any, { deps, sink, ou
   await sink.setMr(mr, { status: 'failed', error: err.message, failure }, entry);
   if (failure.transient) outcome.retrySoon = true;
   else deps.notify(`${label} failed: ${failure.title}`, `!${mr.iid} ${mr.title}`);
-  if (needsDoctor(failure) && err.run) {
+  // The doctor a failure starts by itself is automatic work: it waits too once the budget is spent.
+  if (needsDoctor(failure) && err.run && !readBudget(deps)?.over) {
     void deps.startDoctor({ project: mr.project, fileSlug: err.run.fileSlug, runId: err.run.id, auto: true })
       .catch((e: any) => logger.warn({ err: e }, 'Could not start the doctor'));
   }
 }
 
+// A budget that cannot be read holds nothing back: the limit protects spend, never blocks the line.
+const readBudget = (deps: any) => {
+  try {
+    return deps.budget?.() ?? null;
+  } catch (err) {
+    logger.warn({ err }, 'Could not read today\'s budget');
+    return null;
+  }
+};
+
+// The MR a person asked to review again (a rerun task's target), which the budget never holds back.
+const askedFor = (asked: any, entry: string, mr: any) => Boolean(asked) && asked.kind === entry
+  && (asked.iid !== null ? String(asked.iid) === String(mr.iid) : asked.sourceBranch === mr.source_branch);
+
 // `ctx` is what the kind needs of the pass: { plan } for a review, { signal } for a triage.
-// `pass` is { deps, sink, state, outcome }.
+// `pass` is { deps, sink, state, outcome, asked, held }. Once the day's budget is spent, automatic
+// work waits: not recorded in the state, so the first poll after midnight takes it.
 export async function workOnMr(kind: string, mr: any, ctx: any, pass: any) {
   const { deps, sink, state } = pass;
   const spec = KINDS[kind];
+  const budget = askedFor(pass.asked, spec.entry, mr) ? null : readBudget(deps);
+  if (budget?.over) {
+    pass.held = (pass.held ?? 0) + 1;
+    await sink.setMr(mr, { status: 'skipped', error: heldReason(budget), held: 'budget' }, spec.entry);
+    return;
+  }
   await sink.begin(mr, spec.entry);
   try {
     const outcome = await spec.run(deps, mr, ctx);

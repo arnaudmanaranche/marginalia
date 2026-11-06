@@ -11,6 +11,7 @@ import { allowedTargets } from './settings.ts';
 import { loadState, saveState } from './state.ts';
 import { trackFailure } from './telemetry.ts';
 import { listOwnBranches } from './own-branches.ts';
+import { todayBudget } from './budget-today.ts';
 
 // The real collaborators of passOver() (poll-pass.ts).
 export const passDeps = {
@@ -35,4 +36,5 @@ export const passDeps = {
   notify,
   trackFailure,
   startDoctor,
+  budget: () => todayBudget(),
 };

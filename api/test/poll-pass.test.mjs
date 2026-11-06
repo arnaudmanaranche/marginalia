@@ -125,3 +125,41 @@ test('an unreadable review state keeps what the MR had', async () => {
   await passOver(project, deps, sink);
   assert.equal(calls.entries[0].myState, 'approved');
 });
+
+const spent = (over) => () => ({ over, spentUsd: over ? 26 : 1, limitUsd: 25 });
+
+test('once the daily budget is spent, automatic work waits and is not recorded', async () => {
+  const { deps, sink, calls, stored } = setup({ open: [mr(1)], budget: spent(true) });
+  await passOver(project, deps, sink);
+  assert.deepEqual(calls.reviewed, []);
+  assert.equal(stored[1], undefined);
+  assert.deepEqual(calls.mrStatus, [[1, 'skipped']]);
+  assert.equal(calls.busy, 0);
+});
+
+test('under the budget, work runs as usual', async () => {
+  const { deps, sink, calls } = setup({ open: [mr(1)], budget: spent(false) });
+  await passOver(project, deps, sink);
+  assert.deepEqual(calls.reviewed, [1]);
+});
+
+test('the MR a person asked to review again runs past the budget, the others still wait', async () => {
+  const { deps, sink, calls } = setup({ open: [mr(1), mr(2)], budget: spent(true) });
+  await passOver(project, deps, sink, { project: 'p', iid: 2, kind: 'review', sourceBranch: 'b2' });
+  assert.deepEqual(calls.reviewed, [2]);
+  assert.deepEqual(calls.mrStatus, [[1, 'skipped'], [2, 'up_to_date']]);
+});
+
+test('a budget that cannot be read holds nothing back', async () => {
+  const { deps, sink, calls } = setup({ open: [mr(1)], budget: () => { throw new Error('no db'); } });
+  await passOver(project, deps, sink);
+  assert.deepEqual(calls.reviewed, [1]);
+});
+
+test('over the budget, a failure does not start the doctor by itself', async () => {
+  const err = Object.assign(new Error('Something nobody planned for happened'), { run: { id: 'run-1', fileSlug: 'mr-1' } });
+  const { deps, sink, calls } = setup({ open: [mr(1)], runReview: async () => { throw err; }, budget: spent(true) });
+  await passOver(project, deps, sink, { project: 'p', iid: 1, kind: 'review', sourceBranch: 'b1' });
+  assert.deepEqual(calls.failed, ['review']);
+  assert.deepEqual(calls.doctor, []);
+});

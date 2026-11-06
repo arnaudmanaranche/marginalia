@@ -59,7 +59,7 @@ export function defaultsFromEnv(env: Record<string, any> = {}) {
 // .env variables a config.json does not carry: they are still read from the
 // environment, so `migrate` tells the user to keep the .env.
 export const ENV_ONLY = [
-  'BOT_WORKTREE_DIR', 'POLL_INTERVAL_MINUTES', 'STALE_AFTER_DAYS', 'VSCODE_BIN', 'ALLOW_POSTING',
+  'BOT_WORKTREE_DIR', 'POLL_INTERVAL_MINUTES', 'STALE_AFTER_DAYS', 'DAILY_BUDGET_USD', 'VSCODE_BIN', 'ALLOW_POSTING',
   'BOT_CHECKOUT', 'JIRA_BASE_URL', 'JIRA_EMAIL', 'JIRA_API_TOKEN', 'CLAUDE_EXTRA_ALLOWED_TOOLS',
   'CLAUDE_ENV_PASSTHROUGH', 'REVIEW_PROMPT_EXTRA',
 ];

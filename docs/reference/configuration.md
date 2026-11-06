@@ -50,6 +50,7 @@ The bot answers `@<bot username>` in an MR comment (`GITLAB_USERNAME` is the acc
 | --- | --- | --- |
 | `MENTION_DAILY_CAP` | `20` | The most runs mentions may start in a UTC day, all projects together. Past it the bot answers that it is at its limit. |
 | `QUEUE_WORKERS` | `2` | How many projects the bot works on at once, each one task at a time (a project's tasks share its bot worktree). Each worker can run Claude, so this is also how many runs may go side by side. |
+| `DAILY_BUDGET_USD` | `25` | What a day of automatic work may cost, every Claude run of the day counted from local midnight; `0` is no limit. Past it, a poll's reviews and triages wait until midnight (not recorded, so the next day takes them) and a failure no longer starts the doctor by itself; mentions, "Review again", chats and Understand still run. A review already running finishes, so the spend can go a little past. The studio's Settings page overrides it. |
 
 ### Webhook intake
 

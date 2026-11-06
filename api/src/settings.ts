@@ -1,14 +1,17 @@
 import { readFileSync } from 'node:fs';
 import { writeFile, rename } from 'node:fs/promises';
-import { POLL_INTERVAL_MINUTES, STALE_AFTER_DAYS, ALLOWED_TARGET_BRANCHES, EXCLUDE_AUTHORS, SETTINGS_FILE } from './config.ts';
+import { DAILY_BUDGET_USD, POLL_INTERVAL_MINUTES, STALE_AFTER_DAYS, ALLOWED_TARGET_BRANCHES, EXCLUDE_AUTHORS, SETTINGS_FILE } from './config.ts';
 
 export const MIN_POLL_MINUTES = 1;
 export const MAX_POLL_MINUTES = 1440;
 export const MAX_STALE_DAYS = 365;
+export const MAX_BUDGET_USD = 10_000;
 
 const clamp = (n: number, min: number, max: number) => Math.min(max, Math.max(min, Math.round(n)));
 const toList = (v: unknown) => (Array.isArray(v) ? v : String(v ?? '').split(',')).map((s) => String(s).trim()).filter(Boolean);
 const number = (v: unknown, fallback: any) => (Number.isFinite(Number(v)) && v !== '' && v !== null ? Number(v) : fallback);
+// Dollars and cents; 0 is no limit.
+const budget = (v: unknown, fallback: number) => Math.round(Math.min(MAX_BUDGET_USD, Math.max(0, number(v, fallback))) * 100) / 100;
 
 // What .env says: the default of every setting.
 export const envDefaults = () => ({
@@ -17,6 +20,7 @@ export const envDefaults = () => ({
   allowedTargetBranches: toList(ALLOWED_TARGET_BRANCHES),
   excludeAuthors: toList(EXCLUDE_AUTHORS),
   showFullDiff: true,
+  dailyBudgetUsd: budget(DAILY_BUDGET_USD, 25),
 });
 
 // Only the values changed from the studio; the rest stays on the .env default.
@@ -41,6 +45,7 @@ export function loadSettings() {
     allowedTargetBranches: file.allowedTargetBranches === undefined ? defaults.allowedTargetBranches : toList(file.allowedTargetBranches),
     excludeAuthors: file.excludeAuthors === undefined ? defaults.excludeAuthors : toList(file.excludeAuthors),
     showFullDiff: typeof file.showFullDiff === 'boolean' ? file.showFullDiff : defaults.showFullDiff,
+    dailyBudgetUsd: budget(file.dailyBudgetUsd, defaults.dailyBudgetUsd),
   };
 }
 
@@ -65,12 +70,17 @@ const booleanOf = (key: string) => (v: any) => {
   if (typeof v !== 'boolean') throw new Error(`${key} must be true or false`);
   return v;
 };
+const amountUpTo = (key: string, max: number) => (v: any) => {
+  if (typeof v !== 'number' || !Number.isFinite(v) || v < 0 || v > max) throw new Error(`${key} must be an amount between 0 and ${max}`);
+  return Math.round(v * 100) / 100;
+};
 const VALIDATORS: Record<string, (v: any) => any> = {
   pollIntervalMinutes: integerIn('pollIntervalMinutes', MIN_POLL_MINUTES, MAX_POLL_MINUTES),
   staleAfterDays: integerIn('staleAfterDays', 1, MAX_STALE_DAYS),
   allowedTargetBranches: listOf('allowedTargetBranches'),
   excludeAuthors: listOf('excludeAuthors'),
   showFullDiff: booleanOf('showFullDiff'),
+  dailyBudgetUsd: amountUpTo('dailyBudgetUsd', MAX_BUDGET_USD),
 };
 
 // A key set to null goes back to its .env default. Throws on invalid input so

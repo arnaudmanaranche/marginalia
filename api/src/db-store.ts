@@ -55,7 +55,11 @@ export function insertRun(db: any, { at, project = null, ...rest }: any) {
   db.prepare('INSERT INTO run (at, project, data) VALUES (?, ?, ?)').run(at, project, JSON.stringify(rest));
 }
 
-export const readRuns = (db: any) => db.prepare('SELECT at, project, data FROM run ORDER BY id').all().map((r: any) => ({ at: r.at, project: r.project, ...JSON.parse(r.data) }));
+// The runs recorded at or after `since` (an ISO time), for the daily budget.
+export const runsSince = (db: any, since: string) => db.prepare('SELECT at, project, data FROM run WHERE at >= ? ORDER BY id').all(since)
+  .map((r: any) => ({ at: r.at, project: r.project, ...JSON.parse(r.data) }));
+
+export const readRuns = (db: any) =>db.prepare('SELECT at, project, data FROM run ORDER BY id').all().map((r: any) => ({ at: r.at, project: r.project, ...JSON.parse(r.data) }));
 
 // How many passes of this kind this MR has had, the one just recorded included.
 export const countRuns = (db: any, { project, iid, kind }: any) => Number(db.prepare(

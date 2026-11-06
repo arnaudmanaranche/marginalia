@@ -12,6 +12,8 @@ The words below are the only ones the code, the docs and the studio use for thes
 
 **Queue**: the bot's waiting line of tasks, kept in its database so a restart loses nothing. Each project is a lane: its tasks run one at a time, and a few projects run side by side (`QUEUE_WORKERS`). The next task is what a person asked for (a mention, a click, a project to learn) before a poll, then the oldest.
 
+**Budget**: what a day of automatic work may cost (`DAILY_BUDGET_USD`, or the studio's Settings). Every Claude run of the day counts, from local midnight. Once the spend reaches it, automatic work (a poll's reviews and triages, the doctor a failure starts) waits until midnight and its MRs say so; what a person asks for still runs.
+
 **Task**: one thing asked of the bot, waiting its turn in the queue: a poll, a mention to answer, a project to learn. Running a task starts zero or more jobs. The same request while its task still waits joins it.
 
 **Project context**: what the factory has learned about one project: glossary, stack, features and critical paths, each item citing its source. Data stored outside the reviewed repo, approved by a person before reviews use it. Never code in Marginalia.

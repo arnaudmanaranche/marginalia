@@ -29,9 +29,22 @@ export const QueueWorker = z.object({
   id: z.string(), name: z.string(), detail: nullable(z.string()), taskId: nullable(z.string()),
 }).describe('A slot that runs one task at a time.').meta({ id: 'QueueWorker' });
 
+export const Budget = z.object({
+  since: z.string().describe('Local midnight: the day the spend counts from.'),
+  resetsAt: z.string().describe('The next local midnight, when the spend starts again from zero.'),
+  limitUsd: nullable(z.number()).describe('What a day of automatic work may cost; null when there is no limit.'),
+  spentUsd: z.number().describe('What every Claude run recorded today cost, asked for or automatic.'),
+  leftUsd: nullable(z.number()),
+  over: z.boolean().describe('True once the spend reaches the limit: automatic work waits, what a person asks for still runs.'),
+  runs: z.number().int(),
+  byKind: z.array(z.object({ kind: z.string(), usd: z.number(), runs: z.number().int() })).describe('Most expensive first.'),
+  byMr: z.array(z.object({ project: nullable(z.string()), iid: z.union([z.number(), z.string()]), usd: z.number(), runs: z.number().int() })).describe('The MRs that cost the most today, every run on them together.'),
+}).describe('The daily budget (GLOSSARY: Budget).').meta({ id: 'Budget' });
+
 export const QueueView = z.object({
   now: z.string().describe('The bot\'s clock, on the same scale as the task times.'),
   workers: z.array(QueueWorker),
   tasks: z.array(QueueTask).describe('Waiting and running tasks, then the latest finished ones, newest first.'),
   totals: z.object({ done: z.number().int(), failed: z.number().int() }).describe('Finished tasks the database still keeps.'),
+  budget: nullable(Budget).describe('Null when it could not be read.'),
 }).meta({ id: 'QueueView' });

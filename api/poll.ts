@@ -15,6 +15,8 @@ import { passOver } from './src/poll-pass.ts';
 import { passDeps } from './src/poll-pass-deps.ts';
 import { botQueue } from './src/bot-queue.ts';
 import { forget } from './src/rerun.ts';
+import { todayBudget } from './src/budget-today.ts';
+import { heldReason } from './src/budget.ts';
 import { loadState, saveState } from './src/state.ts';
 import { startWebhookIfConfigured } from './src/webhook-intake.ts';
 import { intakePass } from './src/mention-pass.ts';
@@ -64,8 +66,23 @@ botQueue.handle('poll', async ({ project: key = null } = {}) => {
 botQueue.handle('rerun', async (target) => {
   const project = projectOf(target.project);
   await saveState(project, forget(await loadState(project), target));
-  if ((await passOver(project, passDeps, statusSink)).retrySoon) retrySoon = true;
+  if ((await passOver(project, passDeps, statusSink, target)).retrySoon) retrySoon = true;
 });
+
+// Once a day, when the budget runs out: the polls go on (they cost nothing), their work waits.
+let budgetToldFor: string | null = null;
+function tellBudget() {
+  let budget;
+  try {
+    budget = todayBudget();
+  } catch (err) {
+    return logger.warn({ err }, 'Could not read today\'s budget');
+  }
+  if (!budget.over || budgetToldFor === budget.since) return;
+  budgetToldFor = budget.since;
+  logger.warn(heldReason(budget));
+  notify('Marginalia: daily budget reached', heldReason(budget));
+}
 
 // The phase follows the queue: what runs, and whether the last poll failed.
 botQueue.onChange(() => {
@@ -97,6 +114,7 @@ async function runPoll() {
     status.lastPoll = { at: new Date().toISOString(), ok: false, error: err.message };
   } finally {
     isPolling = false;
+    tellBudget();
     settlePhase(botQueue.running);
     scheduleNextPoll(Date.now());
     await writeStatus();

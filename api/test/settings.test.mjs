@@ -50,3 +50,15 @@ test('showFullDiff defaults to true, can be turned off and must be a boolean', a
   await assert.rejects(saveSettings({ showFullDiff: 'no' }), /true or false/);
   assert.equal((await saveSettings({ showFullDiff: null })).showFullDiff, true);
 });
+
+test('the daily budget: 25 by default, an amount in cents, 0 for no limit', async () => {
+  assert.equal(loadSettings().dailyBudgetUsd, 25);
+  await saveSettings({ dailyBudgetUsd: 12.345 });
+  assert.equal(loadSettings().dailyBudgetUsd, 12.35);
+  await saveSettings({ dailyBudgetUsd: 0 });
+  assert.equal(loadSettings().dailyBudgetUsd, 0);
+  await assert.rejects(saveSettings({ dailyBudgetUsd: -1 }), /dailyBudgetUsd/);
+  await assert.rejects(saveSettings({ dailyBudgetUsd: '10' }), /dailyBudgetUsd/);
+  await saveSettings({ dailyBudgetUsd: null });
+  assert.equal(loadSettings().dailyBudgetUsd, 25);
+});

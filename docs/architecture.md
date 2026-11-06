@@ -63,6 +63,8 @@ A review is also told the project's approved context, inline (`api/src/context-p
 
 Every poll, webhook mention, Understand job and "Review again" from the studio (`rerun.ts`) is a task in the `task` table (`api/src/queue.ts`, rules in `queue-plan.ts`, queries in `queue-store.ts`). Each task belongs to a project, its lane: two tasks of one project never run together, since they share its bot worktree and state, and up to `QUEUE_WORKERS` projects (2 by default) run side by side. A poll is one task per project. The next task is a person's request before a poll, then the oldest. `status.json` lists every MR under review in `running`, one per project; `current` is the latest, for the menu bar. A poll asked while one waits joins it, so "Poll now" and "Review again" never answer that the bot is busy. A task left running by a stopped process is queued again once, then fails. The last 200 finished tasks are kept. The CLI's `marginalia understand` runs its job directly, in its own process.
 
+Every Claude run writes a row with its cost in the `run` table. The daily budget (`budget.ts`, read by `budget-today.ts`) adds up today's rows against `DAILY_BUDGET_USD`; once it is reached, a pass leaves its automatic work waiting (`poll-pass-mr.ts`), except the MR a "Review again" task names. `GET /api/queue` carries the budget, so the studio shows it beside the queue.
+
 ## Storage
 
 SQLite on a persistent volume, one instance. Postgres is the step if more than one instance is ever needed.

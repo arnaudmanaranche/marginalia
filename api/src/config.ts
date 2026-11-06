@@ -53,6 +53,9 @@ export const {
   // stale/abandoned and skipped, so we don't waste time reviewing something
   // that's likely out of date with develop already.
   STALE_AFTER_DAYS = '14',
+  // What a day of automatic work may cost in USD (the studio's Settings page wins); 0 is no limit.
+  // What a person asks for always runs.
+  DAILY_BUDGET_USD = '25',
   // Your real local checkout of the webapp repo: the one with .claude/commands,
   // .claude/agents, .claude/settings.json and the GitLab/Atlassian connectors
   // already authorized. .claude/ is gitignored, so it only exists here, never

@@ -15,9 +15,11 @@ import { branchStateKey } from './own-branches-plan.ts';
 //   fetchReviewStates(project, mrs), jiraPriorityOf(mr), mtime(path), reviewPath(mr), commentsPath(mr),
 //   ownPath(mr), listOwnBranches(project, openMrs, state), runReview(mr, path, stack, { own }), runMrComments(mr), loadState(project), saveState(project, state),
 //   allowedTargets(project), settlesConflicts(project), username, notify(title, message, path),
-//   trackFailure({ mr, kind, command, error }), startDoctor({ project, fileSlug, runId, auto }).
+//   trackFailure({ mr, kind, command, error }), startDoctor({ project, fileSlug, runId, auto }),
+//   budget() (optional: today's budget, budget.ts; once it is over, automatic work waits).
 // sink: begin(mr), setMr(mr, patch), end(), entriesOf(project), setEntries(project, entries).
-export async function passOver(project: any, deps: any, sink: any) {
+// `asked`: the MR a person asked to review again (a rerun task), or null for a poll.
+export async function passOver(project: any, deps: any, sink: any, asked: any = null) {
   const state = await deps.loadState(project);
   const openMrs = await deps.listOpenMergeRequests(project);
   const plan = planMergeRequests({
@@ -47,13 +49,15 @@ export async function passOver(project: any, deps: any, sink: any) {
   logger.info({ project: project.key }, `${reviewMrs.length} MR(s) to review, ${myMrs.length} of my own — ${toReview.length} need a review, ${toOwn.length + branches.filter((b: any) => !b.current).length} an own review, ${toTriage.length} comment triage.`);
 
   const outcome = { retrySoon: false };
-  const pass = { deps, sink, state, outcome };
+  const pass: any = { deps, sink, state, outcome, asked, held: 0 };
   for (const mr of toReview) {
     if (!(await trustExistingReview(mr, plan, pass))) await workOnMr('review', mr, { plan }, pass);
   }
   for (const mr of toOwn) await workOnMr('own', mr, { plan }, pass);
   for (const { target } of branches.filter((b: any) => !b.current)) await workOnMr('branch', target, {}, pass);
   for (const { mr, signal } of toTriage) await workOnMr('triage', mr, { signal }, pass);
+
+  if (pass.held) logger.info({ project: project.key }, `Daily budget reached: ${pass.held} MR(s) wait until midnight.`);
 
   pruneState(state, new Set([...[...reviewMrs, ...ownMrs].map((mr: any) => String(mr.iid)), ...[...ownMrs, ...branches.map((b: any) => b.target)].map((t: any) => branchStateKey(t.source_branch))]), new Set(myMrs.map((mr: any) => String(mr.iid))));
   await deps.saveState(project, state);
