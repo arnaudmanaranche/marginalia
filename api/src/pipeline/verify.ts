@@ -27,6 +27,7 @@ function gate(mr: any, recipe: any) {
   return null;
 }
 
+const sentence = (reason: string) => `${reason[0].toUpperCase()}${reason.slice(1)}.`;
 const mark = (findings: any[], ids: string[], verification: any) => findings.map((f) => (ids.includes(f.id) ? { ...f, verification } : f));
 
 /** @param {{ run: any, mr: any, findings: any[], tour: any[], recipe: any, context: string, after: string, settings: object | null }} input */
@@ -34,11 +35,11 @@ export async function verifyFindings({ run, mr, findings, tour, recipe, context,
   const wanted = findings.filter((f) => f.proof === 'runtime' && ['critical', 'important'].includes(f.severity));
   const blocked = wanted.length ? gate(mr, recipe) : { silent: true as const };
   if (blocked && 'silent' in blocked) return { findings, warnings: [] as string[] };
-  if (blocked) return { findings: mark(findings, wanted.map((f) => f.id), { status: 'skipped', evidence: `Not run: ${blocked.reason}.` }), warnings: [`verification did not run: ${blocked.reason}`] };
+  if (blocked) return { findings: mark(findings, wanted.map((f) => f.id), { status: 'skipped', evidence: sentence(blocked.reason) }), warnings: [`verification did not run: ${blocked.reason}`] };
 
   const picked = selectForVerify(findings, Number(VERIFY_MAX_PER_REVIEW) || 4);
   let out = findings;
-  for (const f of wanted.filter((w) => !picked.includes(w.id))) out = mark(out, [f.id], { status: 'skipped', evidence: `Not run: ${skipReason(f, picked)}.` });
+  for (const f of wanted.filter((w) => !picked.includes(w.id))) out = mark(out, [f.id], { status: 'skipped', evidence: sentence(skipReason(f, picked) ?? 'it was not selected') });
   const todo = picked.map((id, i) => ({ id, stage: `verify-${i + 1}`, finding: findings.find((f) => f.id === id) }));
   await run.plan(after, todo.map((t) => [t.stage, `Reproduce: ${t.finding.title}`]));
   const limits = verifyLimits(mr.project);

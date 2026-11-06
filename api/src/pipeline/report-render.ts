@@ -9,6 +9,8 @@ const riskLines = (risk: any) => [
   ...(risk.mitigations?.length ? ['', 'To lower it:', ...risk.mitigations.map((m: string) => `- ${m}`)] : []),
   '',
 ];
+const REPRODUCTION = { reproduced: 'Reproduced', not_reproduced: 'Not reproduced', inconclusive: 'Could not be reproduced here', skipped: 'Not run' } as Record<string, string>;
+const proofLines = (v: any) => (v ? [`**${REPRODUCTION[v.status] ?? v.status}.**${v.evidence ? ` ${v.evidence}` : ''}${v.command ? ` Command: \`${v.command}\`.` : ''}`, ''] : []);
 const place = (f: any) => (f.path ? `\`${f.path}${f.line ? `:${f.line}` : ''}\` ` : '');
 
 /** @param {{ title: string, iid: number | string, branch: string }} mr @param {any} data the findings file of a review */
@@ -28,7 +30,7 @@ export function renderReview(mr: { title: string; iid: number | string; branch: 
     if (!here.length) continue;
     lines.push(`## ${heading}`, '');
     for (const f of here) {
-      lines.push(`- ${place(f)}**${f.title}**`, '', f.body, '');
+      lines.push(`- ${place(f)}**${f.title}**`, '', f.body, '', ...proofLines(f.verification));
       if (f.comment) lines.push('**Comment to post:**', '', quote(f.comment), '');
     }
   }

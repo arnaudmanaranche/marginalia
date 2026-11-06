@@ -122,6 +122,16 @@ test('a chapter finding says whether it is provable by running, and only blockin
   assert.equal(skipReason(fs[0], ['b', 'a']), null);
 });
 
+test('the report says what a reproduction found under its finding', () => {
+  const finding = (v) => ({ id: 'a', severity: 'important', title: 'Total below zero', body: 'A 150% coupon.', path: 'a.ts', line: 1, ...(v && { verification: v }) });
+  const base = { verdict: 'REQUEST_CHANGES', summary: 'S.', overview: { before: 'a', after: 'b' }, risk: { level: 'low', rationale: 'R.' }, tour: [] };
+  const md = (v) => renderReview({ title: 'T', iid: 1, branch: 'b' }, { ...base, findings: [finding(v)] });
+  assert.match(md({ status: 'reproduced', evidence: 'It printed -50.', command: 'run the tests x' }), /A 150% coupon\.\n\n\*\*Reproduced\.\*\* It printed -50\. Command: `run the tests x`\./);
+  assert.match(md({ status: 'not_reproduced', evidence: 'It printed 0.' }), /\*\*Not reproduced\.\*\* It printed 0\./);
+  assert.match(md({ status: 'skipped', evidence: 'The approved context has no recipe.' }), /\*\*Not run\.\*\* The approved context has no recipe\./);
+  assert.doesNotMatch(md(null), /Reproduced|Not run/);
+});
+
 const THREADS = [
   { id: 'aaaaaaaa11', path: 'src/a.ts', line: 3, notes: [{ author: 'bob', mine: false, body: 'Rename this.' }], code: '    3> const x = 1;' },
   { id: 'bbbbbbbb22', path: null, line: null, notes: [{ author: 'eve', mine: false, body: 'Why not a flag?' }], code: null },
