@@ -144,7 +144,7 @@ export function App() {
     const m = new Map<string, BotState>();
     for (const mr of data?.status?.mrs ?? []) {
       const file = mr.reviewPath?.split('/').pop();
-      if (file) m.set(`${mr.project}/${file.replace(/\.md$/, '')}`, mr.status as BotState);
+      if (file) m.set(`${mr.project}/${file.replace(/\.md$/, '')}`, mr.held === 'budget' ? 'held' : mr.status as BotState);
     }
     return m;
   }, [data]);

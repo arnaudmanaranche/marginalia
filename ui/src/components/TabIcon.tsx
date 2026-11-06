@@ -3,7 +3,8 @@ import type { ReviewItem } from '../lib/api';
 import { cn } from '../lib/utils';
 import { StatusMark } from './ds/StatusMark';
 
-export type BotState = 'pending' | 'reviewing' | 'failed' | 'skipped' | 'up_to_date' | undefined;
+// `held`: its automatic review waits for tomorrow's budget (GLOSSARY: Budget).
+export type BotState = 'pending' | 'reviewing' | 'failed' | 'skipped' | 'held' | 'up_to_date' | undefined;
 
 // What the bot is doing with this review, shown before the verdict so live
 // work is visible at a glance: running, waiting, or broken.
@@ -12,6 +13,7 @@ export function TabIcon({ item, bot }: { item: ReviewItem; bot: BotState }) {
   if (bot === 'reviewing') return <StatusMark state="running" label="Review in progress" />;
   if (bot === 'failed') return <StatusMark state="failed" label="Review failed" />;
   if (bot === 'pending') return <StatusMark state="pending" label="Waiting for review" />;
+  if (bot === 'held') return <StatusMark state="skipped" label="Waits for tomorrow: today's budget is spent. Review again to run it now." />;
   const { Icon, cls } = VERDICT_ICON[item.verdict ?? 'OTHER'];
   return <Icon className={cn('size-4 shrink-0', cls)} aria-hidden />;
 }

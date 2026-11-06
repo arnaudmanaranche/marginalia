@@ -284,7 +284,10 @@ export interface BotStatus {
   running?: LiveRun[];
   lastPoll: { at: string; ok: boolean; error: string | null } | null;
   nextPollAt: string | null;
-  mrs?: { project?: string; iid: number; status: string; reviewPath?: string | null }[];
+  // `held`: the daily budget made its automatic work wait until midnight.
+  mrs?: { project?: string; iid: number; status: string; reviewPath?: string | null; held?: 'budget' }[];
+  // Today's spend against the daily budget, as of the last task that ended.
+  budget?: { spentUsd: number; limitUsd: number | null; over: boolean } | null;
 }
 
 export interface PostedInfo {
