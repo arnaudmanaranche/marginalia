@@ -2,7 +2,6 @@
 // at a time, removed at the end or when its time is up. The agent never runs code itself: it goes
 // through exec(). Side effects only; what the container may have is decided in verify-runner-args.ts.
 import { randomUUID } from 'node:crypto';
-import { DOCKER_BIN, VERIFY_EGRESS_NETWORK, VERIFY_EGRESS_PROXY } from './config.ts';
 import { execFileAsync } from './exec.ts';
 import { commandAllowed, execArgs, removeArgs, runArgs, truncateOutput } from './verify-runner-args.ts';
 import type { VerifyLimits } from './verify-limits.ts';
@@ -12,11 +11,13 @@ export interface Runner {
   stop: () => Promise<void>;
 }
 
-/** @param {{ image: string, workdir: string, limits: VerifyLimits, steps: { run: string }[], hosts?: string[], forbidden?: string[], docker?: string }} input */
-export async function startRunner({ image, workdir, limits, steps, hosts = [], forbidden = [], docker = DOCKER_BIN }: { image: string; workdir: string; limits: VerifyLimits; steps: { run: string }[]; hosts?: string[]; forbidden?: string[]; docker?: string }): Promise<Runner> {
+// No config import: the runner is also started by the verify tool server (bin/verify-mcp.ts), a
+// process of its own, so everything it needs is handed to it.
+export interface RunnerOptions { image: string; workdir: string; limits: VerifyLimits; steps: { run: string }[]; hosts?: string[]; forbidden?: string[]; docker?: string; egress?: { network: string; proxy: string } | null }
+
+export async function startRunner({ image, workdir, limits, steps, hosts = [], forbidden = [], docker = 'docker', egress = null }: RunnerOptions): Promise<Runner> {
   if (!image) throw new Error('no runner image: set VERIFY_RUNNER_IMAGE');
   const name = `marginalia-verify-${randomUUID().slice(0, 8)}`;
-  const egress = VERIFY_EGRESS_NETWORK && VERIFY_EGRESS_PROXY ? { network: VERIFY_EGRESS_NETWORK, proxy: VERIFY_EGRESS_PROXY } : null;
   const user = `${process.getuid?.() ?? 1000}:${process.getgid?.() ?? 1000}`;
   await execFileAsync(docker, runArgs({ name, image, workdir, limits, user, egress, hosts, forbidden }), { timeout: 60_000 });
   const deadline = Date.now() + limits.timeoutMinutes * 60_000;

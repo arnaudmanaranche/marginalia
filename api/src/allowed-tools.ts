@@ -1,4 +1,5 @@
 import { CLAUDE_EXTRA_ALLOWED_TOOLS } from './config.ts';
+import { TOOL_NAMES as VERIFY_RUNNER_TOOLS } from './verify-mcp-protocol.ts';
 import { CONNECTOR_READ_TOOLS, withoutConnectorWrites } from './connector-tools.ts';
 
 // The tools each headless run may use, passed to `claude --allowedTools`.
@@ -29,3 +30,8 @@ export const STAGE_FIX_TOOLS = [...STAGE_READ_TOOLS, 'Edit', 'Write'];
 // An Understand job reads the repo at its default branch and the connectors, and writes only its
 // context file (the sandbox keeps writes in its worktree). It neither fetches nor nests worktrees.
 export const UNDERSTAND_TOOLS = ['Read', 'Grep', 'Glob', 'Write', ...READ_GIT, ...CONNECTOR_READ_TOOLS, ...extraTools];
+
+// A verify stage (ADR 0009) reads the code and reproduces a finding through the two tools of the
+// disposable runner. It has no Bash, no Edit, no Write, no connector and no network of its own: the
+// only code that runs is in the runner, and nothing but a new file can be put there.
+export const STAGE_VERIFY_TOOLS = ['Read', 'Grep', 'Glob', ...VERIFY_RUNNER_TOOLS];
