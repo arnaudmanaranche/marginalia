@@ -2,6 +2,7 @@ import { existsSync } from 'node:fs';
 import { readFile, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { CLAUDE_BIN, DATA_DIR } from './config.ts';
+import { appendRun } from './runlog.ts';
 import { PACKAGE_ROOT } from './package-root.ts';
 import { gitlab } from './gitlab-api.ts';
 import { gitIn } from './git.ts';
@@ -54,6 +55,12 @@ botQueue.handle('understand', async ({ project: key }) => {
   return learnProject(project);
 });
 
+// Its row in the run table, like a review's: the daily budget counts it.
+const recordCost = (project: any, run: any) => (run.cost ? appendRun({
+  project: project.key, iid: null, kind: 'understand', command: 'understand', costUsd: run.cost.usd,
+  outputTokens: run.cost.outputTokens, turns: run.cost.turns, durationMs: Date.now() - Date.parse(run.startedAt),
+}) : null);
+
 type Learned = { path: string; commit: string; branch: string; costUsd: number };
 
 // The job itself, outside the queue: the CLI (scripts/understand.ts) runs it in its own process,
@@ -94,9 +101,11 @@ export async function learnProject(project: any, { onStep = (_step: string) => {
     });
     const path = await saveDraft(DATA_DIR, { key: project.key, commit, context });
     await run.finish('reviewed');
+    await recordCost(project, run);
     return { path, commit, branch, costUsd: run.cost?.usd ?? 0 };
   } catch (err) {
     await run.finish('failed', err.message);
+    await recordCost(project, run);
     throw err;
   }
 }
