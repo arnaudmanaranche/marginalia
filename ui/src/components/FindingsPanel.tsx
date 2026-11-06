@@ -9,6 +9,7 @@ import { Button } from './ui/Button';
 import { ConfirmPost } from './ConfirmPost';
 import { NoteMarkdown } from './NoteMarkdown';
 import { PostedBadge } from './PostedBadge';
+import { FindingProof } from './FindingProof';
 import { CopyButton } from './CopyButton';
 import { SeverityBadge, SeverityDot } from './ds/Severity';
 
@@ -159,6 +160,7 @@ function FindingCard({ finding, raised, compact = false, focus = null, onFocus, 
       <div ref={rootRef} tabIndex={-1} className="rounded-lg border border-line bg-canvas p-3 text-sm focus:outline-none">
         <FindingHeader finding={finding} info={info} />
         {finding.body !== finding.title && <NoteMarkdown className="mt-2 text-fg-muted">{finding.body}</NoteMarkdown>}
+        <FindingProof verification={finding.verification} />
         {comment}
         {confirm}
       </div>
@@ -180,6 +182,7 @@ function FindingCard({ finding, raised, compact = false, focus = null, onFocus, 
             <button type="button" onClick={() => onFocus?.(finding.id)} title="Show it in the diff" className="break-all text-left font-mono text-xs text-blue-600 hover:underline dark:text-blue-400">{finding.path}{finding.line ? `:${finding.line}` : ''}</button>
           )}
           {finding.body !== finding.title && <NoteMarkdown className="mt-2 text-fg-muted">{finding.body}</NoteMarkdown>}
+          <FindingProof verification={finding.verification} />
           {comment}
         </div>
       )}
