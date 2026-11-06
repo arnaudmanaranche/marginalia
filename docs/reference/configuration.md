@@ -49,6 +49,13 @@ runner (ADR 0009). It needs Docker and an approved project context with a `verif
 and is off by default. `"verifyLimits"` overrides what one verification may use; the defaults are
 `{ "cpus": 2, "memoryMb": 4096, "pids": 256, "timeoutMinutes": 10 }`.
 
+The runner is a Docker container per verification, removed after it: `VERIFY_RUNNER_IMAGE` is its
+image (it needs the project's toolchain), `DOCKER_BIN` the client (`docker` by default). It mounts
+a copy of the MR's worktree and nothing of the bot, has no login and no token, and no network.
+The hosts a recipe names are reachable only through an egress proxy you run: `VERIFY_EGRESS_NETWORK`
+is a Docker network where only that proxy sits and `VERIFY_EGRESS_PROXY` its URL (both or neither);
+the proxy enforces the allowlist, Marginalia cannot.
+
 ## Mentions
 
 The bot answers `@<bot username>` in an MR comment (`GITLAB_USERNAME` is the account whose token it uses). Each poll, after a project's pass, it reads the notes that came in since the last poll; the first poll only sets the starting point. A bare mention or `review` runs a review, `triage` works through the comments (the MR's author only), anything else is a question, and a reply under one of the bot's own notes is a follow-up. Only Developer and above can ask; others get one refusal. A note is handled once.

@@ -56,6 +56,14 @@ export const {
   // What a day of automatic work may cost in USD (the studio's Settings page wins); 0 is no limit.
   // What a person asks for always runs.
   DAILY_BUDGET_USD = '25',
+  // Verification (ADR 0009): the runner container a reproduction runs in. The image needs the
+  // project's toolchain; the egress network and proxy, both or neither, are how a recipe's hosts are
+  // reached: an operator-made network that only the proxy sits on, the proxy enforcing the allowlist.
+  // Without them a runner has no network at all.
+  VERIFY_RUNNER_IMAGE = '',
+  VERIFY_EGRESS_NETWORK = '',
+  VERIFY_EGRESS_PROXY = '',
+  DOCKER_BIN = 'docker',
   // Your real local checkout of the webapp repo: the one with .claude/commands,
   // .claude/agents, .claude/settings.json and the GitLab/Atlassian connectors
   // already authorized. .claude/ is gitignored, so it only exists here, never
