@@ -11,6 +11,7 @@ import { teamRunExtras } from '../team-claude.ts';
 import { withTeamDeny } from '../team-plugin.ts';
 import { readContext } from '../context-store.ts';
 import { projectContextPrompt } from '../context-prompt.ts';
+import { verifyFindings } from './verify.ts';
 import { REVIEW_SYSTEM, chapterPrompt, mapPrompt, parseChapter, parseMap } from './review-prompts.ts';
 
 // Chapters reviewed side by side, at most this many at once.
@@ -29,7 +30,8 @@ export async function stagedReview({ mr, run, outputPath, stack = null, settings
   run.step(`${context.files.length} changed files${context.ticket ? `, ticket ${context.ticket.key}${context.ticket.text ? '' : ' (not readable here)'}` : ', no ticket'}, rules in ${context.guidance.join(', ') || 'no file'}`, { stage: 'context' });
   // REVIEW_PROMPT_EXTRA: what the dev (or the team) asks of every review, for every stage.
   const extra = REVIEW_PROMPT_EXTRA.trim() ? `What the team asks of every review:\n${REVIEW_PROMPT_EXTRA.trim()}` : '';
-  const text = [contextText(context), projectContextPrompt(await readContext(DATA_DIR, mr.project.key, 'approved')), extra].filter(Boolean).join('\n\n');
+  const approved = await readContext(DATA_DIR, mr.project.key, 'approved');
+  const text = [contextText(context), projectContextPrompt(approved), extra].filter(Boolean).join('\n\n');
 
   await run.stage('map');
   const changed = context.files.map((f: any) => f.path);
@@ -59,7 +61,10 @@ export async function stagedReview({ mr, run, outputPath, stack = null, settings
   });
   if (chapters.every((c) => !c.result)) throw new Error(`No chapter could be reviewed: ${chapters[0].error}`);
 
+  const merged = mergeReview({ map, chapters });
+  // The blocking findings about behaviour are tried against the project, when it opted in (ADR 0009).
+  const verified = await verifyFindings({ run, mr, findings: merged.data.findings, tour: merged.data.tour, recipe: approved?.context.verification ?? null, context: text, after: ids.at(-1), settings });
   await run.stage('report');
-  const { data, warnings } = mergeReview({ map, chapters });
-  return { content: renderReview({ title: mr.title, iid: mr.iid, branch: mr.source_branch }, data), findingsRaw: JSON.stringify(data), warnings };
+  const data = { ...merged.data, findings: verified.findings };
+  return { content: renderReview({ title: mr.title, iid: mr.iid, branch: mr.source_branch }, data), findingsRaw: JSON.stringify(data), warnings: [...merged.warnings, ...verified.warnings] };
 }

@@ -64,6 +64,8 @@ export const {
   VERIFY_EGRESS_NETWORK = '',
   VERIFY_EGRESS_PROXY = '',
   DOCKER_BIN = 'docker',
+  // How many findings one review may try to reproduce (the most severe first).
+  VERIFY_MAX_PER_REVIEW = '4',
   // Your real local checkout of the webapp repo: the one with .claude/commands,
   // .claude/agents, .claude/settings.json and the GitLab/Atlassian connectors
   // already authorized. .claude/ is gitignored, so it only exists here, never

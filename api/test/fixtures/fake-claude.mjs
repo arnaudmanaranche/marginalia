@@ -19,6 +19,13 @@ if (!resumed && allowed.includes('Skill') && args.includes('--plugin-dir')) step
 
 if (resumed) {
   answer({ findings: [], verified: 'The tests cover the rounding.' });
+} else if (prompt.includes('Your stage: try to reproduce this finding')) {
+  // The verify stage: what it was given is recorded, and it answers as FAKE_VERIFY says.
+  if (process.env.FAKE_CLAUDE_LOG) appendFileSync(process.env.FAKE_CLAUDE_LOG, `${JSON.stringify({ args, prompt })}\n`);
+  step('mcp__verify__run', { command: 'run the tests' });
+  if (process.env.FAKE_VERIFY === 'crash') process.exit(1);
+  if (process.env.FAKE_VERIFY === 'garbage') answer('I could not tell.');
+  else answer({ status: process.env.FAKE_VERIFY || 'reproduced', evidence: 'Ran the total with a 150% coupon: it printed -50.', command: 'run the tests repro.test.mjs' });
 } else if (prompt.includes('Your stage: map the change')) {
   step('Bash', { command: 'git diff b HEAD -- src/pricing.ts' });
   answer({
@@ -31,7 +38,7 @@ if (resumed) {
   });
 } else if (prompt.includes('Your stage: review chapter 1')) {
   step('Read', { file_path: '/w/src/pricing.mjs' });
-  answer({ findings: [{ id: 'neg-total', severity: 'important', title: 'The total can go below zero', path: 'src/pricing.mjs', line: 2, body: 'A 150% coupon gives a negative total.', comment: 'A coupon above 100% makes the total negative. I would clamp it at zero.' }], verified: 'Rounding is right.' });
+  answer({ findings: [{ id: 'neg-total', severity: 'important', title: 'The total can go below zero', path: 'src/pricing.mjs', line: 2, body: 'A 150% coupon gives a negative total.', comment: 'A coupon above 100% makes the total negative. I would clamp it at zero.', ...(process.env.FAKE_PROOF && { proof: process.env.FAKE_PROOF }) }], verified: 'Rounding is right.' });
 } else if (prompt.includes('Your stage: review chapter 2')) {
   answer('I looked and everything is fine.');
 } else if (prompt.includes('Your stage: weigh each open reviewer comment')) {
