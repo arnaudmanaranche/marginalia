@@ -117,6 +117,16 @@ export interface Finding {
   line: number | null;
   body: string;
   comment: string | null;
+  proof?: 'runtime' | 'static';
+  verification?: Verification;
+}
+
+export type ReproductionStatus = 'reproduced' | 'not_reproduced' | 'inconclusive' | 'skipped';
+// What reproducing a finding against the project found.
+export interface Verification {
+  status: ReproductionStatus;
+  evidence?: string | null;
+  command?: string | null;
 }
 
 interface ReviewShape {

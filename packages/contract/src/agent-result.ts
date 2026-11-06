@@ -12,6 +12,14 @@ const RiskAxis = z.object({
   note: text.optional(),
 });
 
+// Whether a finding could be reproduced by running the project (ADR 0009), and what a reproduction found.
+export const FindingProof = z.enum(['runtime', 'static']);
+export const FindingVerification = z.object({
+  status: z.enum(['reproduced', 'not_reproduced', 'inconclusive', 'skipped']),
+  evidence: text.nullish(),
+  command: text.nullish(),
+});
+
 const AgentFinding = z.object({
   id: z.string().regex(/^[\w-]{1,56}$/).optional(),
   severity: z.enum(['critical', 'important', 'suggestion', 'info']),
@@ -20,6 +28,8 @@ const AgentFinding = z.object({
   line: z.number().int().min(1).nullish(),
   body: text,
   comment: text.nullish(),
+  proof: FindingProof.optional(),
+  verification: FindingVerification.optional(),
 }).refine((f) => !f.line || f.path, { message: 'a line needs a path', path: ['line'] });
 
 const AgentChapter = z.object({

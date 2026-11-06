@@ -9,6 +9,12 @@ export const Finding = z.object({
   line: nullable(z.number().int().min(1)).describe('Only set together with `path`.'),
   body: z.string(),
   comment: nullable(z.string()).describe('The comment to post on the merge request, ready as is.'),
+  proof: z.enum(['runtime', 'static']).optional().describe('runtime: a claim about behaviour that running the project could reproduce; static: a pattern or a rule, never run.'),
+  verification: z.object({
+    status: z.enum(['reproduced', 'not_reproduced', 'inconclusive', 'skipped']),
+    evidence: z.string().nullable().optional(),
+    command: z.string().nullable().optional(),
+  }).optional().describe('What reproducing the finding against the project found (ADR 0009). Absent when no verification was asked.'),
 }).meta({ id: 'Finding' });
 
 export const Reply = z.object({

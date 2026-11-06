@@ -139,6 +139,19 @@ test('risk axes come through in a fixed order, and the level is never lower than
   assert.deepEqual(shape.risk.mitigations, ['Split the migration out.']);
 });
 
+test('a finding keeps its proof and verification when they are valid, and drops them otherwise', () => {
+  const shape = parseFindingsJson(JSON.stringify({ findings: [
+    { title: 'A', proof: 'Runtime', verification: { status: 'not-reproduced', evidence: 'Ran it, total stayed positive.', command: 'run the pricing test' } },
+    { title: 'B', proof: 'maybe', verification: { status: 'sure' } },
+    { title: 'C' },
+  ] }));
+  const [a, b, c] = shape.findings;
+  assert.equal(a.proof, 'runtime');
+  assert.deepEqual(a.verification, { status: 'not_reproduced', evidence: 'Ran it, total stayed positive.', command: 'run the pricing test' });
+  assert.ok(!('proof' in b) && !('verification' in b), 'an unknown value is no claim');
+  assert.ok(!('proof' in c));
+});
+
 test('a shape without risk or tour stays valid', () => {
   const shape = buildShape({ markdown: '**Verdict:** APPROVE\n\n## Suggestion\n\n- **Nit** in `src/a.ts:1`.\n' });
   assert.equal(shape.risk, null);

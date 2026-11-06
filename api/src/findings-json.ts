@@ -1,6 +1,7 @@
 import { normalizeSeverity, normalizeVerdict } from './findings-vocabulary.ts';
 import { buildTour, normalizeOverview, normalizeRisk } from './findings-walkthrough.ts';
 import { assignIds, cleanPath, clip, locate, plain, str } from './findings-text.ts';
+import { normalizeProof, normalizeVerification } from './finding-proof.ts';
 import { normalizeReplies } from './findings-replies.ts';
 
 // A finding as written by a command (any extra field is ignored). Returns
@@ -15,6 +16,8 @@ function normalizeFinding(raw: any, index: number) {
   const path = cleanPath(raw.path ?? raw.file) ?? null;
   const line = Number.isInteger(raw.line) && raw.line >= 1 ? raw.line : null;
   const id = typeof raw.id === 'string' && /^[\w-]{1,56}$/.test(raw.id) ? raw.id : undefined;
+  const proof = normalizeProof(raw.proof);
+  const verification = normalizeVerification(raw.verification);
   return {
     finding: {
       id,
@@ -24,6 +27,8 @@ function normalizeFinding(raw: any, index: number) {
       line: path ? line : null,
       body: body ?? title,
       comment: str(raw.comment ?? raw.suggestedComment ?? raw.suggested_comment, 10_000),
+      ...(proof && { proof }),
+      ...(verification && { verification }),
       // A skill that names the place in the text but not in `path` still gets anchored.
       ...(path === null && fallback.path ? { path: fallback.path, line: fallback.line } : {}),
     },
