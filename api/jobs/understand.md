@@ -21,6 +21,13 @@ Five sections, the same for every project:
   blocked), ranked from 1. For a front-end: user journeys (sign-in, search, checkout, payment...).
   For a back-end: request flows, data writes, payments, migrations, integrations. For each: the
   steps, where they live, the tests that cover them, and the known fragile spots.
+- **verification** (optional): how to run the project so a finding about its behaviour can be
+  reproduced, taken only from what the repo's own docs and CI configuration say. One step each
+  for `setup` (install what it needs), `run` (start it) and `test` (run its tests): the exact
+  command from the repository root. `hosts`: the only hosts it must reach (a package registry,
+  a staging API), nothing else. `notes`: environment variables to set to fake values, a seeded
+  database, ports. A person approves these commands, so never invent one, never put a secret in
+  one, and leave the whole section out when the repo does not say.
 
 ## How
 

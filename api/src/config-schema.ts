@@ -18,6 +18,14 @@ export const ProjectSchema = z.object({
   excludeAuthors: list,
   // Review my own MRs too, for me alone (an own review is never posted).
   reviewOwn: z.boolean().default(false),
+  // Reproduce findings about behaviour in a disposable runner (ADR 0009). Off until a person opts in.
+  verify: z.boolean().default(false),
+  verifyLimits: z.object({
+    cpus: z.number().positive().max(16),
+    memoryMb: z.number().int().min(256).max(65_536),
+    pids: z.number().int().min(16).max(8192),
+    timeoutMinutes: z.number().positive().max(120),
+  }).partial().optional(),
 });
 
 export const ConfigSchema = z.object({

@@ -45,5 +45,7 @@ export function buildProjects(config: any, { dataDir, legacyWorktreeDir }: { dat
     allowedTargetBranches: p.allowedTargetBranches,
     excludeAuthors: p.excludeAuthors,
     reviewOwn: p.reviewOwn ?? false,
+    verify: p.verify ?? false,
+    verifyLimits: p.verifyLimits ?? null,
   }));
 }

@@ -42,6 +42,13 @@ The review goes to the same `own-<branch>.md`, so when you open the MR its own r
 there, and is not run again at the same commit. Own reviews use a detached checkout: your branch
 can stay checked out in your own clone.
 
+## Verification
+
+`"verify": true` on a project lets a review reproduce its findings about behaviour in a disposable
+runner (ADR 0009). It needs Docker and an approved project context with a `verification` section,
+and is off by default. `"verifyLimits"` overrides what one verification may use; the defaults are
+`{ "cpus": 2, "memoryMb": 4096, "pids": 256, "timeoutMinutes": 10 }`.
+
 ## Mentions
 
 The bot answers `@<bot username>` in an MR comment (`GITLAB_USERNAME` is the account whose token it uses). Each poll, after a project's pass, it reads the notes that came in since the last poll; the first poll only sets the starting point. A bare mention or `review` runs a review, `triage` works through the comments (the MR's author only), anything else is a question, and a reply under one of the bot's own notes is a follow-up. Only Developer and above can ask; others get one refusal. A note is handled once.

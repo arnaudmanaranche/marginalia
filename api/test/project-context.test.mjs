@@ -61,3 +61,13 @@ test('the Understand job is told where to write, and gets no write tool on a con
   assert.deepEqual(UNDERSTAND_TOOLS.filter(isConnectorWrite), []);
   assert.ok(!UNDERSTAND_TOOLS.some((t) => /git (fetch|worktree)/.test(t)));
 });
+
+test('a recipe is optional, needs a sourced step with a purpose, and an old context still passes', () => {
+  const step = { purpose: 'test', run: 'run the unit tests', summary: 'The unit tests.', sources: src('README.md') };
+  const ok = enforceContract('context', JSON.stringify(context({ verification: { steps: [step], hosts: ['registry.example.org'], notes: 'Set the API key to a fake value.' } })));
+  assert.equal(ok.verification.steps[0].run, 'run the unit tests');
+  assert.equal(enforceContract('context', JSON.stringify(context())).verification, undefined);
+  assert.throws(() => enforceContract('context', JSON.stringify(context({ verification: { steps: [] } }))), /verification/);
+  assert.throws(() => enforceContract('context', JSON.stringify(context({ verification: { steps: [{ ...step, purpose: 'deploy' }] } }))), /purpose/);
+  assert.throws(() => enforceContract('context', JSON.stringify(context({ verification: { steps: [{ ...step, sources: [] }] } }))), /sources/);
+});

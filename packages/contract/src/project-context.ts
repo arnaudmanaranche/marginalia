@@ -28,12 +28,30 @@ export const ContextCriticalPath = ContextItem.extend({
   fragile: z.array(text).optional().describe('Known weak spots, from bug history or the code.'),
 }).meta({ id: 'ContextCriticalPath' });
 
+// How to run the project to reproduce a finding (ADR 0009). Only what the repo's own docs and CI
+// say: a step the team did not write down is left out. A person approves it with the context, and
+// approving it is approving what may run.
+export const ContextRecipeStep = z.object({
+  purpose: z.enum(['setup', 'run', 'test']).describe('Install what it needs, start it, or run its tests.'),
+  run: text.max(300).describe('One exact command, run from the repository root.'),
+  summary: text.describe('What it does, in a sentence.'),
+  sources,
+}).meta({ id: 'ContextRecipeStep' });
+
+export const ContextRecipe = z.object({
+  steps: z.array(ContextRecipeStep).min(1),
+  hosts: z.array(text).optional().describe('The only hosts a run may reach, for example a package registry or a staging API. Empty or absent: no network.'),
+  notes: text.optional().describe('What a reproduction needs to know: environment variables to set to fake values, a seeded database, ports.'),
+}).meta({ id: 'ContextRecipe' });
+
 export const AgentProjectContext = z.object({
   summary: text.describe('What this repository is for, in two or three plain sentences.'),
   glossary: z.array(ContextTerm).min(1),
   stack: z.array(ContextItem).min(1),
   features: z.array(ContextItem).min(1),
   criticalPaths: z.array(ContextCriticalPath).min(1),
+  // Absent when the repo does not say how to run it, and on contexts learned before ADR 0009.
+  verification: ContextRecipe.optional(),
 }).superRefine((c, ctx) => {
   const ranks = c.criticalPaths.map((p) => p.rank);
   if (new Set(ranks).size !== ranks.length) ctx.addIssue({ code: 'custom', message: 'two critical paths share a rank', path: ['criticalPaths'] });

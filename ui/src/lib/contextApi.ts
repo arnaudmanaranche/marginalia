@@ -8,7 +8,10 @@ export interface ContextSource { kind: 'file' | 'ticket' | 'page' | 'thread' | '
 export interface ContextItem { name: string; summary: string; where?: string[]; sources: ContextSource[] }
 export interface ContextTerm extends ContextItem { codeNames?: string[]; avoid?: string[] }
 export interface ContextCriticalPath extends ContextItem { rank: number; steps?: string[]; tests?: string[]; fragile?: string[] }
-export interface ProjectContext { summary: string; glossary: ContextTerm[]; stack: ContextItem[]; features: ContextItem[]; criticalPaths: ContextCriticalPath[] }
+export interface ContextRecipeStep { purpose: 'setup' | 'run' | 'test'; run: string; summary: string; sources: ContextSource[] }
+// How to run the project to reproduce a finding. Approving the context approves these commands.
+export interface ContextRecipe { steps: ContextRecipeStep[]; hosts?: string[]; notes?: string }
+export interface ProjectContext { summary: string; glossary: ContextTerm[]; stack: ContextItem[]; features: ContextItem[]; criticalPaths: ContextCriticalPath[]; verification?: ContextRecipe }
 export interface StoredContext {
   project: string; commit: string; learnedAt: string; state: 'draft' | 'approved';
   approvedBy: string | null; approvedAt: string | null; context: ProjectContext;

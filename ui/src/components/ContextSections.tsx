@@ -72,6 +72,29 @@ function Item({ item }: { item: ContextItem }) {
   );
 }
 
+const PURPOSE = { setup: 'Set up', run: 'Run', test: 'Test' } as const;
+
+// The commands a verification may run: shown plainly, since approving the context approves them.
+function Recipe({ recipe }: { recipe: NonNullable<ProjectContext['verification']> }) {
+  return (
+    <Section id="ctx-verification" title="How to run it (verification)">
+      <ul>
+        {recipe.steps.map((s) => (
+          <li key={`${s.purpose}:${s.run}`} className="p-4">
+            <p className="text-sm"><span className="font-medium">{PURPOSE[s.purpose]}</span>: {s.summary}</p>
+            <p className="mt-1"><code className="font-mono text-xs [overflow-wrap:anywhere]">{s.run}</code></p>
+            <Sources sources={s.sources} />
+          </li>
+        ))}
+        <li className="p-4 text-sm text-fg-muted">
+          {recipe.hosts?.length ? <>May reach only: {recipe.hosts.map((h, i) => <span key={h}>{i > 0 && ', '}<code className="font-mono">{h}</code></span>)}.</> : 'No network.'}
+          {recipe.notes ? <> {recipe.notes}</> : null}
+        </li>
+      </ul>
+    </Section>
+  );
+}
+
 export function ContextSections({ context }: { context: ProjectContext }) {
   return (
     <>
@@ -88,6 +111,7 @@ export function ContextSections({ context }: { context: ProjectContext }) {
       <Section id="ctx-stack" title={`Stack (${context.stack.length})`}>
         <ul>{context.stack.map((s) => <Item key={s.name} item={s} />)}</ul>
       </Section>
+      {context.verification && <Recipe recipe={context.verification} />}
     </>
   );
 }
