@@ -52,6 +52,17 @@ test('a map puts the files it left out in a last chapter, and refuses what does 
   assert.match(mapPrompt(contextText(ctx)), /Your stage: map the change/);
 });
 
+test('a map keeps the risk axes in order, raises the level to the worst one and asks for the rest', () => {
+  const risk = '"risk":{"level":"low","rationale":"R.","axes":[{"axis":"rollback","level":"high","note":"Drops a column."},{"axis":"verification","level":"low","note":"Tested."}],"mitigations":["Split the migration."]}';
+  const map = parseMap(MAP.replace(/"risk":\{[^}]*\}\}?/, risk), ['src/pricing.ts']);
+  assert.equal(map.ok, true);
+  assert.deepEqual(map.value.risk.axes.map((a) => a.axis), ['verification', 'rollback']);
+  assert.equal(map.value.risk.level, 'high');
+  assert.deepEqual(map.value.risk.mitigations, ['Split the migration.']);
+  assert.match(map.value.warnings[0], /five axes/);
+  assert.match(mapPrompt(contextText(ctx)), /risk\.axes[\s\S]*rollback/);
+});
+
 test('a chapter answer keeps the findings that have a title and a known severity', () => {
   const r = parseChapter('```json\n{"findings":[{"id":"neg-total","severity":"important","title":"Total can go negative","path":"src/pricing.ts","line":42,"body":"B","comment":"C"},{"severity":"loud","title":"x"}],"verified":"Rounding is right."}\n```');
   assert.equal(r.value.findings.length, 1);

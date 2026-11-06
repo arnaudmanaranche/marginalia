@@ -23,7 +23,7 @@ if (resumed) {
   step('Bash', { command: 'git diff b HEAD -- src/pricing.ts' });
   answer({
     overview: { before: 'A coupon typed at checkout was ignored.', after: 'A coupon takes its percentage off the total.' },
-    risk: { level: 'medium', rationale: 'It changes how totals are computed.', factors: ['payments'] },
+    risk: { level: 'medium', rationale: 'It changes how totals are computed.', factors: ['payments'], axes: [{ axis: 'verification', level: 'medium', note: 'Tests cover the happy path only.' }, { axis: 'impact', level: 'medium', note: 'Touches totals.' }], mitigations: ['Add a negative-total test.'] },
     chapters: [
       { title: 'A coupon takes its percentage off', summary: 'The total applies the coupon.', files: ['src/pricing.mjs'], check: 'The total never goes below zero.' },
       { title: 'Tests for the coupon', summary: 'Covers the percentage.', files: ['src/pricing.test.mjs'], check: 'A coupon larger than the order.' },

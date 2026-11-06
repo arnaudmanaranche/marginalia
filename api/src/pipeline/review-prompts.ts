@@ -2,6 +2,7 @@
 // chapters), then one agent per chapter reviews it. Each answer is checked here before the next
 // stage uses it. Pure: tested on plain values.
 import { jsonAnswer, matchesPattern, text } from './json-answer.ts';
+import { atLeastWorst, normalizeAxes, normalizeMitigations } from '../risk-axes.ts';
 
 export const REVIEW_SYSTEM = "You are a senior engineer reviewing a colleague's merge request, as one stage of Marginalia's review. You only read and run read-only commands: never edit a file, never commit, never post anything on GitLab. Write everything in English, whatever language the MR, the ticket or the code comments use.";
 
@@ -15,11 +16,13 @@ export function mapPrompt(context: any) {
     'Read the diff (start with the files that carry the idea), the ticket and the description. Then answer:',
     '- overview: what the system did before this MR and what it does now, one or two plain sentences each. ' + PLAIN,
     '- risk: low (contained, tested, nothing sensitive), medium (behaviour change in shared code, or real logic with thin tests) or high (auth, payments, data, migrations, a public contract, concurrency, wide blast radius with weak tests), why in one sentence, and the factors as short strings.',
+    '- risk.axes: the same question asked five ways, each low, medium or high with one plain sentence: verification (is it proven to work: tests that exercise the change, before/after; thin or none is high), alignment (does it do what the ticket and description ask and nothing else; drive-by changes or side effects raise it), impact (blast radius, and sensitive areas such as auth, permissions, billing, data), rollback (can it be undone: a destructive migration or a public contract change is a one-way door, high), detection (would a failure be seen: swallowed errors, no log or alert on a new path). The level above is never lower than the worst axis.',
+    '- risk.mitigations: up to 5 short lines on what would lower the risk (cut the unrelated change, add a test or monitoring on the new path, split the high-impact part into its own MR), or [].',
     '- criticalPaths: the exact names of the project\'s critical paths this change touches, when a project context is given above; else [].',
     '- chapters: one idea each, the core change first, then what supports it, and database, tests and generated files last. Every changed file belongs to exactly one chapter (a glob such as `src/flights/**` is fine). 1 or 2 chapters for a tiny MR, 3 to 8 otherwise. Each has a title naming the idea, a summary of two or three plain sentences (what changed and why, then what is safe to skim), and `check`: what the reviewer of this chapter must verify, concretely (the input that could break it, the caller that could be missed).',
     '',
     'Answer with only this JSON, in a ```json block:',
-    '{"overview": {"before": "...", "after": "..."}, "criticalPaths": ["..."], "risk": {"level": "low|medium|high", "rationale": "...", "factors": ["..."]}, "chapters": [{"title": "...", "summary": "...", "files": ["path or glob"], "check": "..."}]}',
+    '{"overview": {"before": "...", "after": "..."}, "criticalPaths": ["..."], "risk": {"level": "low|medium|high", "rationale": "...", "factors": ["..."], "axes": [{"axis": "verification|alignment|impact|rollback|detection", "level": "low|medium|high", "note": "..."}], "mitigations": ["..."]}, "chapters": [{"title": "...", "summary": "...", "files": ["path or glob"], "check": "..."}]}',
   ].join('\n');
 }
 
@@ -40,17 +43,19 @@ export function parseMap(answer: any, changed: any) {
     .filter((c) => c.title && c.files.length)
     .slice(0, 12);
   if (!kept.length) return { ok: false, error: 'no chapter has a title and files' };
+  const axes = normalizeAxes(risk.axes);
   const warnings: string[] = [];
   const left = changed.filter((p: any) => !kept.some((c) => c.files.some((f: any) => matchesPattern(f, p))));
   if (left.length) {
     kept.push({ title: 'The rest of the change', summary: 'Files the map did not place in a chapter.', check: 'Whatever these files change on their own.', files: left });
     warnings.push(`${left.length} changed file(s) were in no chapter of the map: reviewed in a last one`);
   }
+  if (axes.length < 5) warnings.push('the risk was not judged on all five axes');
   return {
     ok: true,
     value: {
       overview: { before: text(overview.before, 600), after: text(overview.after, 600) },
-      risk: { level: risk.level, rationale: text(risk.rationale, 400) ?? '', factors: (Array.isArray(risk.factors) ? risk.factors : []).map((f: any) => text(f, 120)).filter(Boolean).slice(0, 8) },
+      risk: { level: atLeastWorst(risk.level, axes), rationale: text(risk.rationale, 400) ?? '', factors: (Array.isArray(risk.factors) ? risk.factors : []).map((f: any) => text(f, 120)).filter(Boolean).slice(0, 8), axes, mitigations: normalizeMitigations(risk.mitigations) },
       criticalPaths: (Array.isArray(json.value.criticalPaths) ? json.value.criticalPaths : []).map((p: any) => text(p, 200)).filter(Boolean).slice(0, 12),
       chapters: kept,
       warnings,
