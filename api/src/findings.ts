@@ -19,7 +19,8 @@ export { deriveFromMarkdown, extractSummary, findingsFromMarkdown, parseVerdict 
 // - findings: [{ id, severity, title, path, line, body, comment }]
 //             severity is 'critical' | 'important' | 'suggestion' | 'info'
 //             comment is the text ready to post on the MR, or null
-// - risk:     { level: 'low' | 'medium' | 'high', rationale, factors } or null
+// - risk:     { level: 'low' | 'medium' | 'high', rationale, factors, axes, mitigations } or null
+//             axes: [{ axis, level, note }] (verification, alignment, impact, rollback, detection)
 // - overview: { before, after } in plain words, or null
 // - criticalPaths: names of the project's critical paths the MR touches, or []
 // - tour:     [{ id, title, summary, files, findingIds, supporting }]: the order to read the

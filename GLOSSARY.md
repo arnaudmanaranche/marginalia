@@ -52,6 +52,8 @@ The words below are the only ones the code, the docs and the studio use for thes
 
 **Finding**: one issue in a review, with a severity, a `path:line` on the MR's new file version and a proposed comment.
 
+**Risk axes**: the five questions behind a review's risk level, each low, medium or high with a short note: verification (is it proven to work: tests, before/after), alignment (does it do what the ticket asked and nothing else), impact (blast radius, sensitive areas), rollback (can it be undone: a one-way or two-way door), detection (would a failure be seen: swallowed, logged or reported). The review also lists what would lower the risk (its mitigations). The level is never lower than its worst axis.
+
 **Tour**: the chapters of a review, each explaining one idea in plain words, core change first, database, tests and generated files last.
 
 **Skill**: a unit of review expertise a chapter's reviewer can load, a lens: the global built-in skills and the team's skills, a team skill winning over a built-in of the same name.

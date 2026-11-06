@@ -6,6 +6,12 @@ import { DiscussionId } from './common.ts';
 const text = z.string().trim().min(1);
 const paths = z.array(text).min(1);
 
+const RiskAxis = z.object({
+  axis: z.enum(['verification', 'alignment', 'impact', 'rollback', 'detection']),
+  level: z.enum(['low', 'medium', 'high']),
+  note: text.optional(),
+});
+
 const AgentFinding = z.object({
   id: z.string().regex(/^[\w-]{1,56}$/).optional(),
   severity: z.enum(['critical', 'important', 'suggestion', 'info']),
@@ -27,7 +33,14 @@ const AgentChapter = z.object({
 export const AgentReview = z.object({
   verdict: z.enum(['APPROVE', 'REQUEST_CHANGES']),
   summary: text,
-  risk: z.object({ level: z.enum(['low', 'medium', 'high']), rationale: text.optional(), factors: z.array(text).optional() }).optional(),
+  risk: z.object({
+    level: z.enum(['low', 'medium', 'high']),
+    rationale: text.optional(),
+    factors: z.array(text).optional(),
+    // The five questions behind the level, and what would lower it.
+    axes: z.array(RiskAxis).optional(),
+    mitigations: z.array(text).optional(),
+  }).optional(),
   overview: z.object({ before: text, after: text }),
   // The project's critical paths this MR touches, by name, when the project has an approved context.
   criticalPaths: z.array(text).optional(),

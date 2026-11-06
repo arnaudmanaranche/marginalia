@@ -24,7 +24,7 @@ export const ReviewShape = z.object({
   source: ShapeSource,
   verdict: Verdict,
   summary: nullable(z.string()),
-  risk: z.object({ level: z.enum(['low', 'medium', 'high']) }).passthrough().nullable().optional(),
+  risk: z.object({ level: z.enum(['low', 'medium', 'high']), axes: z.array(z.object({ axis: z.string(), level: z.enum(['low', 'medium', 'high']), note: z.string().nullable().optional() })).optional(), mitigations: z.array(z.string()).optional() }).passthrough().nullable().optional(),
   overview: z.object({ before: z.string(), after: z.string() }).nullable().optional(),
   criticalPaths: z.array(z.string()).optional().describe('The project\'s critical paths this MR touches, by name (from its approved project context).'),
   tour: z.array(z.object({ id: z.string(), title: z.string(), summary: z.string(), files: z.array(z.string()) }).passthrough()).optional(),

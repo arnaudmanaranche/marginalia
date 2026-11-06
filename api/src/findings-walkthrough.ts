@@ -1,3 +1,4 @@
+import { atLeastWorst, normalizeAxes, normalizeMitigations } from './risk-axes.ts';
 import { cleanPath, clip, plain, str } from './findings-text.ts';
 import { firstSentence, technicalWord } from './plain-words.ts';
 import { coreFirst, isSupportingStop } from './supporting-files.ts';
@@ -21,7 +22,7 @@ export function normalizeRiskLevel(value: unknown) {
   return RISK_ALIASES.find(([re]) => re.test(key))?.[1] ?? null;
 }
 
-// { level, rationale, factors } or null. A bare string ("high") is accepted.
+// { level, rationale, factors, axes, mitigations } or null (axes and mitigations may be empty). A bare string ("high") is accepted.
 export function normalizeRisk(raw: any) {
   const level = normalizeRiskLevel(raw && typeof raw === 'object' ? raw.level ?? raw.risk : raw);
   if (!level) return null;
@@ -31,7 +32,8 @@ export function normalizeRisk(raw: any) {
     .map((f: any) => str(f, 200))
     .filter(Boolean)
     .slice(0, 6);
-  return { level, rationale: rationale ? clip(plain(rationale), 400) : null, factors };
+  const axes = normalizeAxes(obj.axes);
+  return { level: atLeastWorst(level, axes), rationale: rationale ? clip(plain(rationale), 400) : null, factors, axes, mitigations: normalizeMitigations(obj.mitigations) };
 }
 
 // The before and after of the change, in plain words: { before, after } or null. Both are

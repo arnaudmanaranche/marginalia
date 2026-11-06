@@ -123,6 +123,22 @@ test('risk and tour come through the findings file, with levels normalized', () 
   assert.ok(r.warnings.some((w) => /tour stop #3/.test(w)));
 });
 
+test('risk axes come through in a fixed order, and the level is never lower than the worst axis', () => {
+  const shape = parseFindingsJson(JSON.stringify({
+    risk: { level: 'low', rationale: 'Small.', axes: [
+      { axis: 'rollback', level: 'high', note: 'Drops a column.' },
+      { axis: 'verification', level: 'low' },
+      { axis: 'bogus', level: 'high' },
+      { axis: 'verification', level: 'high' },
+    ], mitigations: ['Split the migration out.', ''] },
+    findings: [],
+  }));
+  assert.deepEqual(shape.risk.axes.map((a) => a.axis), ['verification', 'rollback']);
+  assert.equal(shape.risk.axes[1].note, 'Drops a column.');
+  assert.equal(shape.risk.level, 'high');
+  assert.deepEqual(shape.risk.mitigations, ['Split the migration out.']);
+});
+
 test('a shape without risk or tour stays valid', () => {
   const shape = buildShape({ markdown: '**Verdict:** APPROVE\n\n## Suggestion\n\n- **Nit** in `src/a.ts:1`.\n' });
   assert.equal(shape.risk, null);
