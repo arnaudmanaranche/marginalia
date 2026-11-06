@@ -59,6 +59,10 @@ A review is also told the project's approved context, inline (`api/src/context-p
 - Click-to-post: the signed-in person's OAuth token.
 - Connectors: a run reads GitLab, Jira (Atlassian v2), Notion and Slack through the claude.ai connectors of the logged-in account, read tools only (`api/src/connector-tools.ts`). A connector write tool is refused even when a config lists it. PostHog has no read-only tool, so the agent gets PostHog data from the bot. The preflight and `marginalia doctor` say which connectors are missing, and a run goes on without them.
 
+## Verification
+
+A finding about behaviour may be reproduced before a person reads it (ADR 0009). It runs in a disposable runner container, never in the bot's: the worktree copy only, no Claude login, no `/data`, no token, limits on CPU, memory, processes and time, no network but the hosts of the approved recipe. The verify stage's agent has the read tools and one `run` tool the bot serves, which runs a single command of the recipe in the runner. Opt-in per project; without Docker, the opt-in or a recipe, the finding is `skipped` and says why.
+
 ## Queue
 
 Every poll, webhook mention, Understand job and "Review again" from the studio (`rerun.ts`) is a task in the `task` table (`api/src/queue.ts`, rules in `queue-plan.ts`, queries in `queue-store.ts`). Each task belongs to a project, its lane: two tasks of one project never run together, since they share its bot worktree and state, and up to `QUEUE_WORKERS` projects (2 by default) run side by side. A poll is one task per project. The next task is a person's request before a poll, then the oldest. `status.json` lists every MR under review in `running`, one per project; `current` is the latest, for the menu bar. A poll asked while one waits joins it, so "Poll now" and "Review again" never answer that the bot is busy. A task left running by a stopped process is queued again once, then fails. The last 200 finished tasks are kept. The CLI's `marginalia understand` runs its job directly, in its own process.

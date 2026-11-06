@@ -31,6 +31,8 @@ The contract is fixed, the method is free. The bot decides the shape of a review
 
 **The bot only posts when a person asked for it**, by mentioning it or by clicking. A mention is the request, so the bot replies in the thread. From the studio, a person reads, edits and clicks, and the comment goes out under their own name. The bot never reviews and posts unprompted.
 
+A review reads. The one exception is verification (ADR 0009): when a project opted in and a person approved its recipe, the bot may reproduce a finding about behaviour in a disposable runner that holds no login and no token. Nothing else runs the reviewed code.
+
 Marginalia reverses the 12 October 2026 decision to drop the mention bot. The reading experience stays the core and the mention is a second way in. See `docs/adr/0002-v2-supersedes-the-mention-bot-revert.md`.
 
 ## Operating Context

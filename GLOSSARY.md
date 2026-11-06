@@ -54,6 +54,14 @@ The words below are the only ones the code, the docs and the studio use for thes
 
 **Risk axes**: the five questions behind a review's risk level, each low, medium or high with a short note: verification (is it proven to work: tests, before/after), alignment (does it do what the ticket asked and nothing else), impact (blast radius, sensitive areas), rollback (can it be undone: a one-way or two-way door), detection (would a failure be seen: swallowed, logged or reported). The review also lists what would lower the risk (its mitigations). The level is never lower than its worst axis.
 
+**Verification**: trying to reproduce a finding about behaviour against the project, before a person is asked to trust it (ADR 0009). A finding about a pattern is never verified. It runs in a **runner**, not in the bot, from a **recipe** the person approved with the project context. Opt-in per project.
+
+**Reproduction**: the outcome of a verification, on the finding: `reproduced`, `not_reproduced` (kept and flagged, a person decides), `inconclusive` (it failed or timed out) or `skipped` (not behaviour, no recipe, no opt-in, no Docker).
+
+**Runner**: the disposable container a verification runs in: a copy of the MR's worktree, no login and no token, limits on CPU, memory, processes and time, no network but the hosts the recipe names. Not the bot's container.
+
+**Recipe**: the `verification` part of the project context: the commands to set up, run and test the project, the hosts it may reach, and notes. A person approves it with the rest of the context.
+
 **Tour**: the chapters of a review, each explaining one idea in plain words, core change first, database, tests and generated files last.
 
 **Skill**: a unit of review expertise a chapter's reviewer can load, a lens: the global built-in skills and the team's skills, a team skill winning over a built-in of the same name.
