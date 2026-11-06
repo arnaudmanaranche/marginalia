@@ -4,6 +4,7 @@ import { contextText, parseMergeTree, parseNumstat } from '../dist/src/pipeline/
 import { jsonAnswer, matchesPattern } from '../dist/src/pipeline/json-answer.js';
 import { chapterPrompt, mapPrompt, parseChapter, parseMap } from '../dist/src/pipeline/review-prompts.js';
 import { mergeReview } from '../dist/src/pipeline/review-merge.js';
+import { selectForVerify, skipReason } from '../dist/src/pipeline/verify-select.js';
 import { renderReview } from '../dist/src/pipeline/report-render.js';
 import { conflictPrompt, judgePrompt, parseConflict, parseFix, parseJudge } from '../dist/src/pipeline/triage-prompts.js';
 import { landedByThread, parseFixLog } from '../dist/src/fixes-log.js';
@@ -100,6 +101,25 @@ test('the report lists the risk axes and what would lower the risk, and stays as
   assert.doesNotMatch(plain, /To lower it/);
   const md = renderReview({ title: 'T', iid: 1, branch: 'b' }, { ...base, risk: { level: 'high', rationale: 'R.', axes: [{ axis: 'rollback', level: 'high', note: 'Drops a column.' }], mitigations: ['Split the migration.'] } });
   assert.match(md, /\*\*Risk:\*\* high, R\.\n\n- rollback: high, Drops a column\.\n\nTo lower it:\n- Split the migration\./);
+});
+
+test('a chapter finding says whether it is provable by running, and only blocking runtime ones are selected', () => {
+  const r = parseChapter('```json\n{"findings":[{"severity":"critical","title":"A","proof":"runtime"},{"severity":"important","title":"B"}],"verified":"x"}\n```');
+  assert.deepEqual(r.value.findings.map((f) => f.proof), ['runtime', 'static'], 'no label means static');
+  const fs = [
+    { id: 'a', severity: 'important', proof: 'runtime' },
+    { id: 'b', severity: 'critical', proof: 'runtime' },
+    { id: 'c', severity: 'critical', proof: 'static' },
+    { id: 'd', severity: 'suggestion', proof: 'runtime' },
+    { id: 'e', severity: 'important', proof: 'runtime' },
+    { id: 'f', severity: 'critical', proof: 'runtime', verification: { status: 'reproduced' } },
+  ];
+  assert.deepEqual(selectForVerify(fs, 2), ['b', 'a'], 'most severe first, capped, one already verified is left alone');
+  assert.deepEqual(selectForVerify(fs, 0), []);
+  assert.match(skipReason(fs[2], []), /pattern/);
+  assert.match(skipReason(fs[3], []), /block the merge/);
+  assert.match(skipReason(fs[4], ['b', 'a']), /limit/);
+  assert.equal(skipReason(fs[0], ['b', 'a']), null);
 });
 
 const THREADS = [

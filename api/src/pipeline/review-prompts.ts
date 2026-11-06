@@ -2,6 +2,7 @@
 // chapters), then one agent per chapter reviews it. Each answer is checked here before the next
 // stage uses it. Pure: tested on plain values.
 import { jsonAnswer, matchesPattern, text } from './json-answer.ts';
+import { normalizeProof } from '../finding-proof.ts';
 import { atLeastWorst, normalizeAxes, normalizeMitigations } from '../risk-axes.ts';
 
 export const REVIEW_SYSTEM = "You are a senior engineer reviewing a colleague's merge request, as one stage of Marginalia's review. You only read and run read-only commands: never edit a file, never commit, never post anything on GitLab. Write everything in English, whatever language the MR, the ticket or the code comments use.";
@@ -79,9 +80,10 @@ export function chapterPrompt({ context, map, chapter, index, checklist }: any) 
     '- Verify, do not guess: for each behaviour change read the callers and the callees, not only the diff, and ask what input breaks it (empty, negative, concurrent, repeated, untrusted). Report what you confirmed; a suspicion you could not verify is at most a suggestion and says so.',
     '- Severity: critical (wrong behaviour, data loss, security hole, broken build: blocks the merge), important (likely bug, missing test on risky logic, breaks a repo rule), suggestion (an improvement the author may skip), info (a question). Few and real: no restating the diff, no praise, no nit a linter enforces.',
     '- Each finding has the file and the line of the new version it is about (a line the MR changed), `body`: what is wrong and why, with the evidence, and `comment`: the comment to post, written to the author, first person, two or three short sentences, precise about what is wrong and the direction of the fix, no code, no greeting, no dash used as a connector. A finding about no file (the description, the ticket) has no path and no line.',
+    '- `proof` on each finding: "runtime" when the claim is about behaviour someone could observe by running the project (a wrong result, a crash on some input, a broken flow, a race), "static" when it is about a pattern, a naming, a rule of the repo or a missing test, which running proves nothing about. When unsure, "static".',
     '',
     'Answer with only this JSON, in a ```json block (an empty "findings" is a fine answer):',
-    '{"findings": [{"id": "short-kebab-id", "severity": "critical|important|suggestion|info", "title": "...", "path": "repo/relative/path", "line": 42, "body": "...", "comment": "..."}], "verified": "what you checked and found sound, one or two sentences"}',
+    '{"findings": [{"id": "short-kebab-id", "severity": "critical|important|suggestion|info", "title": "...", "path": "repo/relative/path", "line": 42, "body": "...", "comment": "...", "proof": "runtime|static"}], "verified": "what you checked and found sound, one or two sentences"}',
   ].filter((l) => l !== '').join('\n');
 }
 
@@ -98,6 +100,7 @@ export function parseChapter(answer: any) {
       id: typeof f.id === 'string' && /^[a-z0-9-]{2,40}$/.test(f.id) ? f.id : null,
       severity: f.severity, title: text(f.title, 200), body: text(f.body, 6000) ?? text(f.title, 200),
       path: text(f.path, 300), line: Number.isInteger(f.line) && f.line > 0 ? f.line : null, comment: text(f.comment, 3000),
+      proof: normalizeProof(f.proof) ?? 'static',
     }));
   return { ok: true, value: { findings, verified: text(json.value.verified, 800) ?? '' } };
 }
