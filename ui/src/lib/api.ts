@@ -347,6 +347,8 @@ export interface Settings {
   excludeAuthors: string[];
   // false: the tour's diff shows only the files with findings or conversation.
   showFullDiff: boolean;
+  // What a day of automatic work may cost in USD; 0 is no limit.
+  dailyBudgetUsd: number;
 }
 
 // Only the keys to change; null puts a key back on its .env default. The bot applies it without a restart.

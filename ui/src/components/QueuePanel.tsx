@@ -6,6 +6,7 @@ import { useNow } from '../lib/useNow';
 import { LivePill } from './ds/LivePill';
 import { StatusMark } from './ds/StatusMark';
 import { Panel, PanelHeader } from './ds/Panel';
+import { BudgetMeter } from './BudgetMeter';
 import { QueueDepth } from './QueueDepth';
 import { QueueTaskRow } from './QueueTaskRow';
 
@@ -32,7 +33,8 @@ function Lane({ title, count, children, empty }: { title: string; count: number;
   );
 }
 
-// The bot's queue (GLOSSARY: Queue), the way a CI tool shows its runners: four numbers, the backlog
+// The bot's queue (GLOSSARY: Queue), the way a CI tool shows its runners: four numbers, today's
+// budget, the backlog
 // over the last two hours, then the line from left to right: what waits in order, what each worker
 // runs (one project each) and how far it is against the usual time of its kind, and what just ended. Any task opens
 // into its card. Stacks on a narrow screen.
@@ -58,6 +60,7 @@ export function QueuePanel({ queue, onOpen }: { queue: QueueView; onOpen: (route
         <Measure label="Median run" value={m.medianRun === null ? '–' : duration(m.medianRun)} />
         <Measure label="Done · failed" value={`${m.done} · ${m.failed}`} warn={m.failed > 0} />
       </div>
+      {queue.budget && <BudgetMeter budget={queue.budget} className="px-4 pt-3" />}
       <QueueDepth tasks={queue.tasks} now={now} className="px-4 pt-3" />
       <div className="mt-2 grid border-t border-line lg:grid-cols-3 lg:divide-x lg:divide-line">
         <Lane title="Waiting" count={line.waiting.length} empty="Nothing waits.">{line.waiting.map(row)}</Lane>

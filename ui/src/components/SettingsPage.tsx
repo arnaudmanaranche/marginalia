@@ -13,21 +13,23 @@ import { Input } from './ds/Input';
 import { Switch } from './ds/Switch';
 import { Button } from './ui/Button';
 
-type Draft = { pollIntervalMinutes: string; staleAfterDays: string; allowedTargetBranches: string; excludeAuthors: string; showFullDiff: boolean };
+type Draft = { pollIntervalMinutes: string; staleAfterDays: string; dailyBudgetUsd: string; allowedTargetBranches: string; excludeAuthors: string; showFullDiff: boolean };
 type TextKey = Exclude<keyof Draft, 'showFullDiff'>;
 
 const toDraft = (s: Settings): Draft => ({
   pollIntervalMinutes: String(s.pollIntervalMinutes),
   staleAfterDays: String(s.staleAfterDays),
+  dailyBudgetUsd: String(s.dailyBudgetUsd),
   allowedTargetBranches: s.allowedTargetBranches.join(', '),
   excludeAuthors: s.excludeAuthors.join(', '),
   showFullDiff: s.showFullDiff,
 });
 const toList = (v: string) => [...new Set(v.split(/[,\s]+/).filter(Boolean))];
 
-const FIELDS: { key: TextKey; label: string; hint: string; list?: boolean; placeholder?: string }[] = [
+const FIELDS: { key: TextKey; label: string; hint: string; list?: boolean; decimal?: boolean; placeholder?: string }[] = [
   { key: 'pollIntervalMinutes', label: 'Poll every (minutes)', hint: 'How often the bot looks for new or updated MRs. 1 to 1440.' },
   { key: 'staleAfterDays', label: 'Skip MRs idle for (days)', hint: 'No push or comment for this long and the MR is assumed stale. 1 to 365.' },
+  { key: 'dailyBudgetUsd', label: 'Daily budget (USD)', hint: 'What a day of automatic reviews and triages may cost; past it they wait until midnight. A mention or "Review again" always runs. 0 is no limit.', decimal: true },
   { key: 'allowedTargetBranches', label: 'Target branches', hint: 'Only MRs based on these branches are reviewed. Empty reviews all of them.', list: true, placeholder: 'develop, main' },
   { key: 'excludeAuthors', label: 'Excluded authors', hint: 'GitLab usernames (not emails) whose MRs are never touched. Drafts are always skipped.', list: true, placeholder: 'alice, bob' },
 ];
@@ -36,6 +38,7 @@ function patchOf(draft: Draft) {
   return {
     pollIntervalMinutes: Number(draft.pollIntervalMinutes),
     staleAfterDays: Number(draft.staleAfterDays),
+    dailyBudgetUsd: Number(draft.dailyBudgetUsd),
     allowedTargetBranches: toList(draft.allowedTargetBranches),
     excludeAuthors: toList(draft.excludeAuthors),
     showFullDiff: draft.showFullDiff,
@@ -101,7 +104,7 @@ export function SettingsPage({ settings, defaults, projects = [] }: { settings: 
               <Input
                 id={id} value={draft[f.key]} changed={draft[f.key] !== toDraft(settings)[f.key]}
                 onChange={(e) => setDraft({ ...draft, [f.key]: e.target.value })}
-                inputMode={f.list ? undefined : 'numeric'} placeholder={f.placeholder} aria-describedby={`${id}-hint`}
+                inputMode={f.list ? undefined : f.decimal ? 'decimal' : 'numeric'} placeholder={f.placeholder} aria-describedby={`${id}-hint`}
                 className="sm:max-w-[12rem]"
               />
             </SettingRow>

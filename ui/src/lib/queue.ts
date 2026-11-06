@@ -1,5 +1,6 @@
 // The bot's queue (GLOSSARY: Queue, Task), as GET /api/queue gives it (QueueView in the contract),
 // and the measures the studio draws from it. Pure: the clock comes in as `now`.
+import type { Budget } from './budget';
 
 export type TaskStatus = 'queued' | 'running' | 'done' | 'failed';
 
@@ -18,6 +19,8 @@ export interface QueueWorker { id: string; name: string; detail: string | null; 
 
 export interface QueueView {
   now: string; workers: QueueWorker[]; tasks: QueueTask[]; totals: { done: number; failed: number };
+  // Today's budget; null when the bot could not read it.
+  budget: Budget | null;
 }
 
 // A kind of task in words.

@@ -14,6 +14,11 @@ const busy: QueueView = {
   now: new Date(now).toISOString(),
   workers: [{ id: 'w1', name: 'Worker 1', detail: 'webapp !4004 feat(checkout): ask whether a traveler needs assistance', taskId: 'r' }, { id: 'w2', name: 'Worker 2', detail: 'api !88 Learn the project', taskId: 'r2' }],
   totals: { done: 41, failed: 2 },
+  budget: {
+    since: new Date(new Date(now).setHours(0, 0, 0, 0)).toISOString(), resetsAt: new Date(new Date(now).setHours(24, 0, 0, 0)).toISOString(), limitUsd: 25, spentUsd: 12.4, leftUsd: 12.6, over: false, runs: 9,
+    byKind: [{ kind: 'review', usd: 10.2, runs: 6 }, { kind: 'triage', usd: 1.4, runs: 2 }, { kind: 'mention', usd: 0.8, runs: 1 }],
+    byMr: [{ project: 'webapp', iid: 4004, usd: 4.1, runs: 3 }, { project: 'webapp', iid: 3990, usd: 2.9, runs: 1 }, { project: 'api', iid: 88, usd: 1.7, runs: 2 }],
+  },
   tasks: [
     task({ id: 'r', project: 'webapp', label: 'Poll webapp', status: 'running', enqueuedAt: ago(12), startedAt: ago(11), endedAt: null, detail: 'webapp !4004 feat(checkout): ask whether a traveler needs assistance', jobs: [{ ...job('feat-coupons', 'Add coupons', 10, 0.31), outcome: 'reviewed' }, { slug: 'webapp/feat-checkout', id: 'c', outcome: 'running', title: 'feat(checkout): assistance', startedAt: ago(4), endedAt: null, costUsd: null }] }),
     task({ id: 'r2', kind: 'understand', project: 'api', label: 'Learn the project', priority: 'high', status: 'running', enqueuedAt: ago(6), startedAt: ago(5), endedAt: null, detail: null }),
@@ -36,4 +41,7 @@ type Story = StoryObj<typeof meta>;
 
 export const Busy: Story = {};
 export const Idle: Story = { args: { queue: { ...busy, workers: [{ id: 'w1', name: 'Worker 1', detail: null, taskId: null }, { id: 'w2', name: 'Worker 2', detail: null, taskId: null }], tasks: busy.tasks.filter((t) => t.status === 'done' || t.status === 'failed') } } };
-export const Empty: Story = { args: { queue: { now: busy.now, workers: [{ id: 'w1', name: 'Worker 1', detail: null, taskId: null }, { id: 'w2', name: 'Worker 2', detail: null, taskId: null }], tasks: [], totals: { done: 0, failed: 0 } } } };
+export const Empty: Story = { args: { queue: { now: busy.now, workers: [{ id: 'w1', name: 'Worker 1', detail: null, taskId: null }, { id: 'w2', name: 'Worker 2', detail: null, taskId: null }], tasks: [], totals: { done: 0, failed: 0 }, budget: { ...busy.budget!, spentUsd: 0, leftUsd: 25, runs: 0, byKind: [], byMr: [] } } } };
+export const NearTheLimit: Story = { args: { queue: { ...busy, budget: { ...busy.budget!, spentUsd: 21.3, leftUsd: 3.7 } } } };
+export const BudgetReached: Story = { args: { queue: { ...busy, budget: { ...busy.budget!, spentUsd: 26.12, leftUsd: 0, over: true, runs: 14 } } } };
+export const NoDailyLimit: Story = { args: { queue: { ...busy, budget: { ...busy.budget!, limitUsd: null, leftUsd: null } } } };

@@ -28,7 +28,7 @@ describe('the queue', () => {
   });
   it('counts what waits, the medians, the totals and what the jobs cost', () => {
     const view: QueueView = {
-      now: at(100), workers: [], totals: { done: 7, failed: 1 },
+      now: at(100), workers: [], totals: { done: 7, failed: 1 }, budget: null,
       tasks: [
         task({ id: 'q' }),
         task({ id: 'r', status: 'running', startedAt: at(10), jobs: [{ slug: 'a/b', id: 'j', outcome: 'running', title: null, startedAt: at(11), endedAt: null, costUsd: 0.5 }] }),

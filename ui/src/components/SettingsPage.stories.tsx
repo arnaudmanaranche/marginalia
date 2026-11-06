@@ -4,7 +4,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '../lib/queryClient';
 import type { Settings } from '../lib/api';
 
-const settings: Settings = { pollIntervalMinutes: 5, staleAfterDays: 14, allowedTargetBranches: [], excludeAuthors: ['renovate-bot'], showFullDiff: true };
+const settings: Settings = { pollIntervalMinutes: 5, staleAfterDays: 14, allowedTargetBranches: [], excludeAuthors: ['renovate-bot'], showFullDiff: true, dailyBudgetUsd: 25 };
 const defaults: Settings = { ...settings, pollIntervalMinutes: 10, excludeAuthors: [] };
 
 const meta = {
