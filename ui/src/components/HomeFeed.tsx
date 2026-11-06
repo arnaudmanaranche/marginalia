@@ -5,20 +5,18 @@ import { contextRoute, useContexts, waitsForApproval } from '../lib/contextApi';
 import { failuresNeedingYou, reviewsNeedingYou, runningNow } from '../lib/feed';
 import { WHAT, targetOf } from '../lib/jobs';
 import { useJobs } from '../lib/useJobs';
-import { useLineMetrics } from '../lib/useLineMetrics';
 import { useQueue } from '../lib/useQueue';
 import { StatusMark } from './ds/StatusMark';
 import { FeedRow } from './FeedRow';
 import { JobList } from './JobList';
 import { JobRow } from './JobRow';
 import { QueuePanel } from './QueuePanel';
-import { ReviewLineCard } from './ReviewLineCard';
 import { ReviewRow } from './ReviewRow';
 
 const list = 'divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface';
 
 // Home (ADR 0007): what needs you, what runs now, what happened. Everything waiting on a person comes
-// first in one list; the jobs follow, live, then the line's measure and every job by day.
+// first in one list; the jobs follow, live, then every job by day.
 // `loaded`: the reviews have arrived. Before that nothing is claimed: no count, a quiet skeleton.
 export function HomeFeed({ loaded, items, isUnread, isReviewing, isNew, showProject, onOpen, filter }: {
   loaded: boolean; items: ReviewItem[]; isUnread: (i: ReviewItem) => boolean; isReviewing: (i: ReviewItem) => boolean; isNew: (i: ReviewItem) => boolean;
@@ -26,7 +24,6 @@ export function HomeFeed({ loaded, items, isUnread, isReviewing, isNew, showProj
 }) {
   const { jobs } = useJobs();
   const queue = useQueue();
-  const metrics = useLineMetrics();
   const proposals = useApprovals().data?.proposals.length ?? 0;
   const drafts = useContexts().filter(waitsForApproval);
   const reviews = reviewsNeedingYou(items);
@@ -78,7 +75,6 @@ export function HomeFeed({ loaded, items, isUnread, isReviewing, isNew, showProj
 
       <section aria-labelledby="activity" className="mt-8">
         <h2 id="activity" className="text-sm font-medium">Activity</h2>
-        {metrics && <ReviewLineCard metrics={metrics} />}
         {jobs === null ? <div aria-busy="true" className="mt-6 h-40 animate-pulse rounded-xl border border-line motion-reduce:animate-none" />
           : jobs.length === 0 ? <p className="mt-4 text-sm text-fg-muted">Nothing has run yet. A review, a triage or learning a project shows here as it runs.</p>
           : <JobList jobs={jobs} showProject={showProject} onOpen={onOpen} />}

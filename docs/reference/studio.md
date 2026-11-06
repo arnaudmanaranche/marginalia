@@ -6,7 +6,7 @@ The **studio** is where a person reads a review and decides what to say, at `htt
 
 Home is the **feed** (ADR 0007, `docs/adr/0007-home-is-the-feed.md`), in three sections: *Needs you* (reviews whose turn is
 yours, a pending review to send, comments to decide, a failed job, a project context draft to approve), *Running now*
-(each job in progress, opening on its plan) and *Activity* (the review line's measure and every job by day).
+(each job in progress, opening on its plan) and *Activity* (every job by day).
 The turn comes from GitLab, not from what this browser has opened: for each MR the pass reads your notes, your approval
 or request for changes, pushes, open threads and drafts, and the studio refreshes the one MR right after you post, submit
 or delete a draft. A review row shows the author, what you decided, the Critical / Important counts, the risk, the verdict

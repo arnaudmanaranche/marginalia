@@ -46,11 +46,3 @@ test('a dismissed comment leaves the inbox and comes back on undo; an unknown re
   assert.equal((await dismiss({ slug: 'demo/nope', commentId: 'a' })).status, 404);
   assert.equal((await dismiss({ slug: 'demo/feat-x', commentId: 'a b' })).status, 400);
 });
-
-test('the review line counts a dismissal and what still waits', async () => {
-  await dismiss({ slug: 'demo/feat-x', commentId: 'a' });
-  const m = await (await app.request('/api/lines/review/metrics', { headers: { host: 'localhost:4477' } })).json();
-  assert.equal(m.days, 28);
-  assert.deepEqual([m.findings.dismissed, m.findings.pending, m.findings.actedOnRate], [1, 0, 1]);
-  await dismiss({ slug: 'demo/feat-x', commentId: 'a', undo: true });
-});

@@ -22,19 +22,3 @@ export const DismissRequest = z.object({
   commentId: z.string().regex(/^[\w-]{1,64}$/),
   undo: z.boolean().optional().describe('Bring a dismissed finding back to the inbox.'),
 }).meta({ id: 'DismissRequest' });
-
-// The review line's measure over a window, computed by the bot from what it recorded.
-export const LineMetrics = z.object({
-  days: z.number().int(),
-  jobs: z.object({
-    total: z.number().int(), own: z.number().int().describe('Of the total, the own reviews.'), failed: z.number().int(), running: z.number().int(),
-    medianMs: nullable(z.number()).describe('Median duration of the runs that ended with a review.'),
-    costUsd: z.number(),
-  }),
-  findings: z.object({
-    asProposed: z.number().int(), edited: z.number().int(), dismissed: z.number().int(), pending: z.number().int(),
-    unknown: z.number().int().describe('Added to a review whose finding can no longer be read: neither as proposed nor edited can be told.'),
-    fixedBefore: z.number().int().describe('Findings of an own review whose code a later push changed.'),
-    actedOnRate: nullable(z.number()).describe('Decided comments over decided plus pending; null with none.'),
-  }),
-}).meta({ id: 'LineMetrics' });
