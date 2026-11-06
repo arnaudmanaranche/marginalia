@@ -65,6 +65,25 @@ Every review and triage is driven by the bot itself, in stages you follow live i
   included; edit, never commit, for a fix or a conflict), and its answer is checked against a contract: one that does not fit
   is sent back once, in the same session, with what was wrong.
 
+## Verification
+
+Off by default; a project opts in with `"verify": true` (see Configuration). After the chapters,
+the blocking findings the reviewers labelled `proof: runtime` (a claim about behaviour, not about a
+pattern) are each tried against the project, a few at most (`VERIFY_MAX_PER_REVIEW`, 4), most
+severe first. One agent per finding, in a stage of its own (`Reproduce: <title>`, two at a time),
+reads the code, creates a throwaway test or script with `write_file` and runs it through `run`.
+Both tools are served by the bot (`api/bin/verify-mcp.ts`) and act on a **disposable runner**, not
+on the agent's machine: a container per verification with a copy of the worktree (no `.git`, no
+`.env`, no symlink), no login, no token, a read-only root, no capability, limits on CPU, memory,
+processes and time, and no network unless an egress proxy is configured (ADR 0009). `run` accepts
+only a step of the **recipe** a person approved with the project context, plus arguments, never
+chained; `write_file` only creates new files.
+
+Each finding then carries `verification`: `reproduced`, `not_reproduced` (kept, flagged: a person
+decides), `inconclusive` (the run failed or timed out) or `skipped` with the reason (no runner
+image, no recipe, the daily budget reached, over the limit). A verification never fails the review.
+`marginalia doctor` checks Docker, the image and the recipe for each project that opted in.
+
 ## MRs authored by someone else (`GITLAB_USERNAME` doesn't match)
 
 - The staged review above runs in the bot worktree.

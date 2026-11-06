@@ -76,6 +76,16 @@ export async function runDoctor(argv: string[] = process.argv.slice(2)) {
     }
   }
 
+  for (const project of PROJECTS.filter((p: any) => p.verify)) {
+    console.log(`\nVerification [${project.key}] (findings about behaviour are reproduced in a disposable runner)`);
+    const probe = (args: string[]): Promise<{ stdout?: string; error?: string | null }> => run(cfg.DOCKER_BIN, args).then((r: any) => ({ stdout: String(r.stdout) }), (err: any) => ({ stdout: '', error: String(err.stderr || err.message || err) as string | null }));
+    const { readContext } = await import('../src/context-store.ts');
+    const { verifyChecks } = await import('../src/verify-checks.ts');
+    const approved = await readContext(cfg.DATA_DIR, project.key, 'approved');
+    const egress = cfg.VERIFY_EGRESS_NETWORK && cfg.VERIFY_EGRESS_PROXY ? { network: cfg.VERIFY_EGRESS_NETWORK, proxy: cfg.VERIFY_EGRESS_PROXY } : null;
+    for (const c of verifyChecks({ image: cfg.VERIFY_RUNNER_IMAGE, docker: await probe(['version', '--format', '{{.Server.Version}}']), imageProbe: cfg.VERIFY_RUNNER_IMAGE ? await probe(['image', 'inspect', cfg.VERIFY_RUNNER_IMAGE]) : { error: null }, recipe: approved?.context.verification ?? null, egress })) (c.level === 'ok' ? ok : warnMsg)(`${c.label}: ${c.detail}`);
+  }
+
   for (const project of PROJECTS) {
     console.log(`\nRepository [${project.key}]`);
     await step(`${project.key} repository`, async () => {
