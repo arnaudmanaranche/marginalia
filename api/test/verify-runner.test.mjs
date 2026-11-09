@@ -24,6 +24,12 @@ test('a runner always has its limits, a read-only root, no capability and no net
   assert.ok(!a.some((x) => /--privileged|--network=host|docker\.sock|\.claude/.test(x)));
 });
 
+test('hosted, the copy is a subfolder of a named volume, still the one and only mount', () => {
+  const a = runArgs({ ...base, work: { volume: 'marginalia-verify-work', subpath: 'marginalia-verify-ab12/project' } });
+  assert.ok(!a.includes('-v'), 'no bind mount of a host path');
+  assert.deepEqual(a.filter((x, i) => a[i - 1] === '--mount'), ['type=volume,src=marginalia-verify-work,dst=/work,volume-subpath=marginalia-verify-ab12/project']);
+});
+
 test('named hosts need the operator\'s egress network; without it the runner stays offline', () => {
   assert.equal(flag(runArgs({ ...base, hosts: ['registry.example.org'] }), '--network'), 'none');
   const a = runArgs({ ...base, hosts: ['registry.example.org'], egress: { network: 'verify-egress', proxy: 'http://proxy:3128' } });

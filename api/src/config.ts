@@ -64,6 +64,10 @@ export const {
   VERIFY_EGRESS_NETWORK = '',
   VERIFY_EGRESS_PROXY = '',
   DOCKER_BIN = 'docker',
+  // Hosted, with the runner reached through the docker guard (compose.verify.yaml): the named volume
+  // the runners mount, and where the bot has that volume mounted, to put each copy in it.
+  VERIFY_WORK_VOLUME = '',
+  VERIFY_WORK_DIR = '',
   // How many findings one review may try to reproduce (the most severe first).
   VERIFY_MAX_PER_REVIEW = '4',
   // Your real local checkout of the webapp repo: the one with .claude/commands,

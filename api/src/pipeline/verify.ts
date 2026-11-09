@@ -2,11 +2,11 @@
 // project in a disposable runner, a few at most, and each carries what was found. Never fails the
 // review: a verification that cannot run is `inconclusive` or `skipped`, and says why.
 import { writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { homedir } from 'node:os';
 import { STAGE_VERIFY_TOOLS } from '../allowed-tools.ts';
-import { DATA_DIR, DOCKER_BIN, VERIFY_EGRESS_NETWORK, VERIFY_EGRESS_PROXY, VERIFY_MAX_PER_REVIEW, VERIFY_RUNNER_IMAGE } from '../config.ts';
+import { DATA_DIR, DOCKER_BIN, VERIFY_EGRESS_NETWORK, VERIFY_EGRESS_PROXY, VERIFY_MAX_PER_REVIEW, VERIFY_RUNNER_IMAGE, VERIFY_WORK_DIR, VERIFY_WORK_VOLUME } from '../config.ts';
 import { todayBudget } from '../budget-today.ts';
 import { verifyLimits } from '../verify-limits.ts';
 import { agentStage, mapLimit } from './agent-stage.ts';
@@ -45,12 +45,12 @@ export async function verifyFindings({ run, mr, findings, tour, recipe, context,
   const limits = verifyLimits(mr.project);
   const results = await mapLimit(todo, CONCURRENCY, async ({ stage, finding }) => {
     await run.begin(stage);
-    const copy = await copyWorktree(mr.project.worktreeDir).catch(() => null);
+    const copy = await copyWorktree(mr.project.worktreeDir, VERIFY_WORK_VOLUME ? VERIFY_WORK_DIR : undefined).catch(() => null);
     try {
       if (!copy) throw new Error('the project could not be copied for the runner');
       const config = join(copy.dir, '..', 'runner.json');
       const egress = VERIFY_EGRESS_NETWORK && VERIFY_EGRESS_PROXY ? { network: VERIFY_EGRESS_NETWORK, proxy: VERIFY_EGRESS_PROXY } : null;
-      await writeFile(config, JSON.stringify({ image: VERIFY_RUNNER_IMAGE, workdir: copy.dir, limits, steps: recipe.steps, hosts: recipe.hosts ?? [], forbidden: [DATA_DIR, join(homedir(), '.claude'), mr.project.repoPath, mr.project.worktreeDir], docker: DOCKER_BIN, egress }));
+      await writeFile(config, JSON.stringify({ image: VERIFY_RUNNER_IMAGE, workdir: copy.dir, limits, steps: recipe.steps, hosts: recipe.hosts ?? [], forbidden: [DATA_DIR, join(homedir(), '.claude'), mr.project.repoPath, mr.project.worktreeDir], docker: DOCKER_BIN, egress, work: VERIFY_WORK_VOLUME && VERIFY_WORK_DIR ? { volume: VERIFY_WORK_VOLUME, subpath: relative(VERIFY_WORK_DIR, copy.dir) } : null }));
       const mcp = JSON.stringify({ mcpServers: { verify: { command: process.execPath, args: [SERVER, config] } } });
       const chapter = tour.find((c: any) => (c.findings ?? []).includes(finding.id));
       const value = await agentStage({ run, stage, prompt: verifyPrompt({ context, finding, chapter, recipe }), system: VERIFY_SYSTEM, tools: STAGE_VERIFY_TOOLS, cwd: mr.project.worktreeDir, settings, extraArgs: ['--mcp-config', mcp, '--strict-mcp-config'], parse: parseVerification });

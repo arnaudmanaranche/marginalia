@@ -16,8 +16,9 @@ export const keepInCopy = (src: string) => {
   return !SKIPPED.has(name) && !(SECRET_ENV.test(name) && !DOC_ENV.test(name)) && !lstatSync(src).isSymbolicLink();
 };
 
-export async function copyWorktree(worktree: string) {
-  const dir = await mkdtemp(join(tmpdir(), 'marginalia-verify-'));
+// `under`: hosted, the folder the bot shares with the runners as a volume; else the system's temp dir.
+export async function copyWorktree(worktree: string, under?: string) {
+  const dir = await mkdtemp(join(under || tmpdir(), 'marginalia-verify-'));
   const copy = join(dir, 'project');
   await cp(worktree, copy, { recursive: true, filter: keepInCopy });
   return { dir: copy, remove: () => rm(dir, { recursive: true, force: true }) };

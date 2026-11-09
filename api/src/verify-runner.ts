@@ -13,13 +13,13 @@ export interface Runner {
 
 // No config import: the runner is also started by the verify tool server (bin/verify-mcp.ts), a
 // process of its own, so everything it needs is handed to it.
-export interface RunnerOptions { image: string; workdir: string; limits: VerifyLimits; steps: { run: string }[]; hosts?: string[]; forbidden?: string[]; docker?: string; egress?: { network: string; proxy: string } | null }
+export interface RunnerOptions { image: string; workdir: string; limits: VerifyLimits; steps: { run: string }[]; hosts?: string[]; forbidden?: string[]; docker?: string; egress?: { network: string; proxy: string } | null; work?: { volume: string; subpath: string } | null }
 
-export async function startRunner({ image, workdir, limits, steps, hosts = [], forbidden = [], docker = 'docker', egress = null }: RunnerOptions): Promise<Runner> {
+export async function startRunner({ image, workdir, limits, steps, hosts = [], forbidden = [], docker = 'docker', egress = null, work = null }: RunnerOptions): Promise<Runner> {
   if (!image) throw new Error('no runner image: set VERIFY_RUNNER_IMAGE');
   const name = `marginalia-verify-${randomUUID().slice(0, 8)}`;
   const user = `${process.getuid?.() ?? 1000}:${process.getgid?.() ?? 1000}`;
-  await execFileAsync(docker, runArgs({ name, image, workdir, limits, user, egress, hosts, forbidden }), { timeout: 60_000 });
+  await execFileAsync(docker, runArgs({ name, image, workdir, limits, user, egress, hosts, forbidden, work }), { timeout: 60_000 });
   const deadline = Date.now() + limits.timeoutMinutes * 60_000;
   let removal: Promise<void> | null = null;
   // Stopping twice (the time is up while a command ends) waits for the same removal.

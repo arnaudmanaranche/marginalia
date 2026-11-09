@@ -28,12 +28,16 @@ export interface RunnerInput {
   egress?: { network: string; proxy: string } | null;
   hosts?: string[];
   forbidden?: string[];
+  // Hosted: the bot's container cannot name a path on the Docker host, so the copy lives in a named
+  // volume it shares with the runner, and the runner mounts that copy's subfolder of it.
+  work?: { volume: string; subpath: string } | null;
 }
 
 // `docker run` for a container that waits for commands (`docker exec`) and is removed when stopped.
 export function runArgs(input: RunnerInput) {
-  const { name, image, limits, user, egress = null, hosts = [], forbidden = [] } = input;
+  const { name, image, limits, user, egress = null, hosts = [], forbidden = [], work = null } = input;
   const dir = assertSafeMount(input.workdir, forbidden);
+  const mount = work ? ['--mount', `type=volume,src=${work.volume},dst=${WORK},volume-subpath=${work.subpath}`] : ['-v', `${dir}:${WORK}:rw`];
   const net = egress && hosts.length ? ['--network', egress.network, ...proxyEnv(egress.proxy)] : ['--network', 'none'];
   return [
     'run', '-d', '--rm', '--name', name,
@@ -43,7 +47,7 @@ export function runArgs(input: RunnerInput) {
     '--cpus', String(limits.cpus), '--memory', `${limits.memoryMb}m`, '--memory-swap', `${limits.memoryMb}m`, '--pids-limit', String(limits.pids),
     ...net,
     '-e', 'HOME=/home/runner', '-e', 'CI=true',
-    '-v', `${dir}:${WORK}:rw`, '-w', WORK,
+    ...mount, '-w', WORK,
     image, 'sleep', 'infinity',
   ];
 }
