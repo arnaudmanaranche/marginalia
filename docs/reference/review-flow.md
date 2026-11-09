@@ -84,6 +84,11 @@ decides), `inconclusive` (the run failed or timed out) or `skipped` with the rea
 image, no recipe, the daily budget reached, over the limit). A verification never fails the review.
 `marginalia doctor` checks Docker, the image and the recipe for each project that opted in.
 
+`npm run eval -- verify-reproduces` and `-- verify-skips-pattern` check it with the real `claude`: a seeded
+runtime bug must come back `reproduced`, and a change that only breaks a naming rule must run nothing. Their
+`expect.json` has a `verification` field and a `context.json` (the recipe, approved for the run). They need
+Docker and `VERIFY_RUNNER_IMAGE` set to an image with `node`; without it the case fails saying so.
+
 ## MRs authored by someone else (`GITLAB_USERNAME` doesn't match)
 
 - The staged review above runs in the bot worktree.

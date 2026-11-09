@@ -16,6 +16,8 @@ process.env.MARGINALIA_DB = ':memory:';
 const { PACKAGE_ROOT } = await import('../src/package-root.ts');
 const { stagedRun } = await import('../src/pipeline/staged.ts');
 const { followRun } = await import('../src/run-tracker.ts');
+const { saveDraft, approveDraft } = await import('../src/context-store.ts');
+const { DATA_DIR, VERIFY_RUNNER_IMAGE } = await import('../src/config.ts');
 const CASES = join(PACKAGE_ROOT, 'evals', 'cases');
 
 async function seed(name: string) {
@@ -37,7 +39,15 @@ async function evaluate(name: string) {
   const expect = JSON.parse(await readFile(join(CASES, name, 'expect.json'), 'utf8'));
   const dir = await seed(name);
   // A branch without an MR: nothing is read from GitLab.
-  const project = { key: `eval-${name}`, worktreeDir: dir, repoPath: dir, reviewsDir: join(dir, '.reviews') };
+  // A case with `verification` in its expect.json opts the project in and approves its context.json
+  // (the recipe), so the verify stage may run: it needs Docker and VERIFY_RUNNER_IMAGE (an image with node).
+  const verifies = Boolean(expect.verification);
+  if (verifies && !VERIFY_RUNNER_IMAGE) return ['set VERIFY_RUNNER_IMAGE (an image with the toolchain of the case) to run this case'];
+  const project = { key: `eval-${name}`, worktreeDir: dir, repoPath: dir, reviewsDir: join(dir, '.reviews'), verify: verifies, verifyLimits: null };
+  if (verifies) {
+    await saveDraft(DATA_DIR, { key: project.key, commit: 'eval', context: JSON.parse(await readFile(join(CASES, name, 'context.json'), 'utf8')) });
+    await approveDraft(DATA_DIR, project.key, 'eval');
+  }
   const mr = { iid: null, title: `Eval: ${name}`, description: null, source_branch: 'feature', target_branch: 'main', project, author: null, web_url: null };
   const outputPath = join(project.reviewsDir, `${name}.md`);
   const tracked = await followRun(mr, { kind: 'review', command: 'marginalia', outputPath });
@@ -53,6 +63,9 @@ async function evaluate(name: string) {
     const [from, to] = expect.planted.lines;
     if (!serious.some((f: any) => f.path === expect.planted.path && f.line >= from - 2 && f.line <= to + 2)) problems.push(`the planted problem was not found at ${expect.planted.path}:${from}-${to}`);
   } else if (serious.some((f: any) => f.severity === 'critical')) problems.push('a clean change got a critical finding');
+  const tried = (report.shape.findings ?? []).filter((f: any) => ['reproduced', 'not_reproduced', 'inconclusive'].includes(f.verification?.status));
+  if (expect.verification === 'reproduced' && !tried.some((f: any) => f.verification.status === 'reproduced')) problems.push(`no finding was reproduced (${(report.shape.findings ?? []).map((f: any) => `${f.id}: ${f.proof}/${f.verification?.status ?? 'no verification'}`).join(', ') || 'no finding'})`);
+  if (expect.verification === 'none' && tried.length) problems.push(`something was run for a pattern-only change: ${tried.map((f: any) => f.id).join(', ')}`);
   return problems;
 }
 

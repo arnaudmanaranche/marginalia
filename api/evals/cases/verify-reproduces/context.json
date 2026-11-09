@@ -1,0 +1,8 @@
+{
+  "summary": "A tiny cart library.",
+  "glossary": [{ "name": "Cart", "summary": "A list of prices.", "sources": [{ "kind": "file", "ref": "src/cart.mjs" }] }],
+  "stack": [{ "name": "Node.js ES modules", "summary": "Plain modules tested with the built-in test runner.", "sources": [{ "kind": "file", "ref": "src/cart.mjs" }] }],
+  "features": [{ "name": "Cart prices", "summary": "Count and cheapest price.", "sources": [{ "kind": "file", "ref": "src/cart.mjs" }] }],
+  "criticalPaths": [{ "rank": 1, "name": "Checkout price", "summary": "The cheapest price is shown at checkout.", "sources": [{ "kind": "file", "ref": "src/cart.mjs" }] }],
+  "verification": { "steps": [{ "purpose": "test", "run": "node --test", "summary": "Runs every test file under the repository.", "sources": [{ "kind": "file", "ref": "src/cart.mjs" }] }], "notes": "No dependency to install." }
+}

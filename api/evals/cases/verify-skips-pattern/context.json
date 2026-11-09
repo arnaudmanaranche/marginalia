@@ -1,0 +1,8 @@
+{
+  "summary": "A tiny user-lookup library.",
+  "glossary": [{ "name": "User", "summary": "A person in the database.", "sources": [{ "kind": "file", "ref": "src/users.mjs" }] }],
+  "stack": [{ "name": "Node.js ES modules", "summary": "Plain modules tested with the built-in test runner.", "sources": [{ "kind": "file", "ref": "CLAUDE.md" }] }],
+  "features": [{ "name": "User lookup", "summary": "Look a user up and read their name.", "sources": [{ "kind": "file", "ref": "src/users.mjs" }] }],
+  "criticalPaths": [{ "rank": 1, "name": "Profile page", "summary": "The profile shows the user name.", "sources": [{ "kind": "file", "ref": "src/users.mjs" }] }],
+  "verification": { "steps": [{ "purpose": "test", "run": "node --test", "summary": "Runs every test file under the repository.", "sources": [{ "kind": "file", "ref": "CLAUDE.md" }] }], "notes": "No dependency to install." }
+}
