@@ -5,7 +5,9 @@
 # then in .env:
 #   VERIFY_EGRESS_NETWORK=marginalia-verify-egress
 #   VERIFY_EGRESS_PROXY=http://egress-proxy:3128
-# Without these two, a runner has no network at all. See docs/reference/verification.md.
+# Without these two, a runner has no network at all.
+# The bot in a container reaches Docker through the guard: compose.verify-hosted.yaml.
+# See docs/reference/verification.md.
 services:
   egress-proxy:
     image: marginalia:local

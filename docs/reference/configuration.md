@@ -54,7 +54,10 @@ image (it needs the project's toolchain), `DOCKER_BIN` the client (`docker` by d
 a copy of the MR's worktree and nothing of the bot, has no login and no token, and no network.
 The hosts a recipe names are reachable only through an egress proxy you run: `VERIFY_EGRESS_NETWORK`
 is a Docker network where only that proxy sits and `VERIFY_EGRESS_PROXY` its URL (both or neither);
-the proxy enforces the allowlist, Marginalia cannot.
+the proxy enforces the allowlist, Marginalia cannot (`api/bin/egress-proxy.ts` is one, see
+[Running verification](verification.md)). When the bot runs in a container and reaches Docker through
+the docker guard, `VERIFY_WORK_VOLUME` is the named volume its runners mount and `VERIFY_WORK_DIR` where the
+bot has that volume (each copy of a worktree is made there); `compose.verify-hosted.yaml` sets both.
 
 ## Mentions
 

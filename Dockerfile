@@ -59,9 +59,12 @@ COPY api ./api
 COPY --from=build /src/packages/contract/dist ./packages/contract/dist
 COPY --from=build /src/api/dist ./api/dist
 COPY --from=studio /src/ui/dist ./api/ui-dist
+# The Docker CLI only (no daemon): the verification starts its runners with it, through the docker guard
+# (compose.verify.yaml) when hosted. Without a DOCKER_HOST it has nothing to talk to.
+COPY --from=docker:27-cli /usr/local/bin/docker /usr/local/bin/docker
 RUN chmod +x api/docker/entrypoint.sh api/docker/git-https.mjs \
- && mkdir -p /data /home/node/.claude /repos \
- && chown node:node /data /home/node/.claude /repos
+ && mkdir -p /data /home/node/.claude /repos /verify-work \
+ && chown node:node /data /home/node/.claude /repos /verify-work
 
 # The OS sandbox of the bot is macOS-only: here the container is the boundary (see doctor).
 # The studio has no login and listens on all interfaces INSIDE the container: publish its port

@@ -39,3 +39,27 @@ The proxy answers 403 to a host not in `VERIFY_EGRESS_ALLOW` (a name, or `*.name
 address), to any port but 80 and 443, and to a name that resolves to a private, loopback or link-local address
 (the cloud metadata service included). It is the operator's list that counts: a recipe's `hosts` is what a
 person approved, so keep them inside the proxy's list.
+
+## 3. Hosted: the bot in a container
+
+A bot in a container must not hold the Docker socket (it could start anything as root on the host). It reaches
+Docker through the **docker guard** (`api/bin/docker-guard.ts`, the bot's own image), the only holder of the
+socket. The guard forwards a runner's create, start, wait, inspect, exec and removal, and only for runners it saw
+created. It refuses a create that is not exactly a runner: the runner image, a non-root user, memory (no swap),
+CPU and process limits, every capability dropped, a read-only root, no network or the egress one, and one mount,
+a folder of the work volume at `/work`. Everything else of the daemon (images, volumes, networks, other
+containers, the swarm) answers 403 and is logged by the guard (`docker compose logs docker-guard`).
+
+```bash
+docker build -t marginalia-runner deploy/runner                       # on the Docker host
+export VERIFY_RUNNER_IMAGE=marginalia-runner VERIFY_EGRESS_ALLOW=registry.npmjs.org
+docker compose -f compose.yaml -f compose.verify.yaml -f compose.verify-hosted.yaml up -d
+```
+
+The bot and the runners share one named volume (`marginalia-verify-work`): the copy of a worktree is made in it
+and the runner mounts only that copy's folder. The bot's `/data` and Claude login are other volumes the runner
+cannot name. The guard is on a network of its own, with the bot only; it has no login of its own, so that
+network is its boundary.
+
+**What it does not do:** it limits what can be asked of the daemon, not what a container escape can do once a
+runner is running. Verification stays opt-in per project.

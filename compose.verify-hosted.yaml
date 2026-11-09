@@ -1,0 +1,48 @@
+# The verification of a bot that runs in a container (ADR 0009), on top of compose.verify.yaml. The bot
+# never holds the Docker socket: its DOCKER_HOST is the docker guard, which forwards only a runner's
+# create, start, wait, exec, inspect and removal, and refuses a create that is not exactly a runner (the
+# runner image, no root, every limit, no capability, one mount: a folder of the work volume). Build the
+# runner image on the Docker host first, then:
+#   docker build -t marginalia-runner deploy/runner
+#   VERIFY_RUNNER_IMAGE=marginalia-runner VERIFY_EGRESS_ALLOW=registry.npmjs.org \
+#     docker compose -f compose.yaml -f compose.verify.yaml -f compose.verify-hosted.yaml up -d
+# See docs/reference/verification.md.
+services:
+  marginalia:
+    environment:
+      DOCKER_HOST: tcp://docker-guard:2375
+      VERIFY_RUNNER_IMAGE: '${VERIFY_RUNNER_IMAGE:?build the runner image and name it}'
+      VERIFY_WORK_VOLUME: marginalia-verify-work
+      VERIFY_WORK_DIR: /verify-work
+      VERIFY_EGRESS_NETWORK: marginalia-verify-egress
+      VERIFY_EGRESS_PROXY: http://egress-proxy:3128
+    volumes:
+      - verify-work:/verify-work
+    networks: [default, guard]
+    depends_on: [docker-guard, egress-proxy]
+  docker-guard:
+    image: marginalia:local
+    build: .
+    restart: unless-stopped
+    entrypoint: []
+    healthcheck: { disable: true }
+    command: ['node', 'api/dist/bin/docker-guard.js']
+    # The socket belongs to root; the guard keeps no capability and a read-only root.
+    user: root
+    environment:
+      GUARD_IMAGE: '${VERIFY_RUNNER_IMAGE:?build the runner image and name it}'
+      GUARD_VOLUME: marginalia-verify-work
+      GUARD_NETWORKS: marginalia-verify-egress
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks: [guard]
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ['no-new-privileges:true']
+networks:
+  # Only the bot and the guard are on it.
+  guard:
+    internal: true
+volumes:
+  verify-work:
+    name: marginalia-verify-work
