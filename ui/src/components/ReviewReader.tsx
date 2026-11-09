@@ -27,6 +27,7 @@ import { ReviewRisk } from './ReviewRisk';
 import { ReplyBoard } from './ReplyBoard';
 import { ReportDelta } from './ReportDelta';
 import { ReviewTour } from './ReviewTour';
+import { CleanReview } from './CleanReview';
 import { RunPanel } from './RunPanel';
 import { TourSkeleton } from './ReviewSkeleton';
 import { Button } from './ui/Button';
@@ -92,6 +93,8 @@ export function ReviewReader({ item, review: currentReview, reviewError, onRetry
   const answering = Boolean(author && onLatest && item?.iid);
   // A review with a tour is read through its tour; the written report only stands in for one without.
   const hasTour = !author && stops.length > 0;
+  // Structured, with chapters, and nothing in any of them: the header says it all (CleanReview).
+  const clean = !author && !answering && !hasTour && Boolean(shape?.overview) && (shape?.tour?.length ?? 0) > 0 && loose.length === 0 && (shape?.findings.length ?? 0) === 0;
 
   return (
     <LinkContext.Provider value={linkCtx}>
@@ -133,7 +136,8 @@ export function ReviewReader({ item, review: currentReview, reviewError, onRetry
       )}
       </div>
 
-      {markdown !== null && (
+      {markdown !== null && clean && <CleanReview chapters={shape?.tour ?? []} />}
+      {markdown !== null && !clean && (
         <article className="mx-auto w-full min-w-0 max-w-[80ch] space-y-3">
             {!hasTour && !answering && <ReportSections intro={intro} sections={ordered} firstSupporting={firstSupporting} isOpen={isOpen} setOverrides={setOverrides} />}
             {!author && item?.tracked && item.iid && !viewingOld && loose.length > 0 && (
