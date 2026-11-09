@@ -18,6 +18,7 @@ import { forget } from './src/rerun.ts';
 import { todayBudget } from './src/budget-today.ts';
 import { heldReason } from './src/budget.ts';
 import { loadState, saveState } from './src/state.ts';
+import { closeInterruptedRuns } from './src/run-recover.ts';
 import { startWebhookIfConfigured } from './src/webhook-intake.ts';
 import { intakePass } from './src/mention-pass.ts';
 import { failureTitleOf, mentionDeps } from './src/mention-deps.ts';
@@ -174,6 +175,7 @@ async function main() {
   process.on('SIGTERM', shutdown);
   ensureDataDir();
   for (const project of PROJECTS) await mkdir(project.reviewsDir, { recursive: true });
+  await closeInterruptedRuns().catch((err) => logger.warn({ err }, 'Could not close interrupted runs'));
   startStudio();
   startWebhookIfConfigured();
   watchSettings();
