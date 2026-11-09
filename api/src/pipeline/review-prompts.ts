@@ -64,13 +64,19 @@ export function parseMap(answer: any, changed: any) {
   };
 }
 
+// The axes the map found medium or high, so a reviewer looks hardest where the change is weakest.
+const weakAxes = (risk: any) => {
+  const weak = (risk.axes ?? []).filter((a: any) => a.level !== 'low');
+  return weak.length ? `\nWeakest points of the change: ${weak.map((a: any) => `${a.axis} (${a.level}${a.note ? `: ${a.note}` : ''})`).join('; ')}. Weigh your files against them.` : '';
+};
+
 /** @param {{ context: string, map: any, chapter: any, index: number, checklist: string | null }} input */
 export function chapterPrompt({ context, map, chapter, index, checklist }: any) {
   const others = map.chapters.map((c: any, i: any) => `${i + 1}. ${c.title}${i === index ? ' (yours)' : ''}`).join('\n');
   return [
     `Your stage: review chapter ${index + 1} of ${map.chapters.length}, "${chapter.title}". Other agents review the other chapters at the same time: stay on your files, read anything else only to understand them.`,
     '', context, '',
-    `## The change, as mapped\nBefore: ${map.overview.before}\nAfter: ${map.overview.after}\nRisk: ${map.risk.level}, ${map.risk.rationale}\n\nChapters:\n${others}`,
+    `## The change, as mapped\nBefore: ${map.overview.before}\nAfter: ${map.overview.after}\nRisk: ${map.risk.level}, ${map.risk.rationale}${weakAxes(map.risk)}\n\nChapters:\n${others}`,
     '',
     `## Your chapter\n${chapter.summary}\nFiles: ${chapter.files.join(', ')}\nWhat to verify: ${chapter.check}`,
     '',

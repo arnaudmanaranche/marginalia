@@ -74,6 +74,16 @@ test('a chapter answer keeps the findings that have a title and a known severity
   assert.match(p, /keeps a review checklist in \.claude\/agents\/code-reviewer\.md/);
 });
 
+test('a chapter reviewer is told the axes the map found weak, and nothing when all are low', () => {
+  const map = parseMap(MAP, ['src/pricing.ts']).value;
+  const axes = [{ axis: 'verification', level: 'high', note: 'No test covers it.' }, { axis: 'rollback', level: 'low', note: null }];
+  const weak = chapterPrompt({ context: 'CTX', map: { ...map, risk: { ...map.risk, axes } }, chapter: map.chapters[0], index: 0, checklist: null });
+  assert.match(weak, /Weakest points of the change: verification \(high: No test covers it\.\)\. Weigh/);
+  assert.doesNotMatch(weak, /rollback/);
+  const calm = chapterPrompt({ context: 'CTX', map: { ...map, risk: { ...map.risk, axes: [axes[1]] } }, chapter: map.chapters[0], index: 0, checklist: null });
+  assert.doesNotMatch(calm, /Weakest points/);
+});
+
 test('the chapters make one review: deduplicated, unique ids, the verdict from the severities', () => {
   const map = { ...parseMap(MAP, ['src/pricing.ts']).value, chapters: [{ title: 'One', summary: 'S1', files: ['a'] }, { title: 'Two', summary: 'S2', files: ['b'] }, { title: 'Three', summary: 'S3', files: ['c'] }] };
   const f = (over) => ({ id: null, severity: 'suggestion', title: 'Same', body: 'B', path: 'a', line: 1, comment: null, ...over });
