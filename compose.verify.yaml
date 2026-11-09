@@ -1,0 +1,26 @@
+# The network side of the verification (ADR 0009): an allowlisting egress proxy and the internal network a
+# runner joins to reach it. A runner on this network has no route out except through the proxy, which
+# lets through only the hosts of VERIFY_EGRESS_ALLOW, on ports 80 and 443, never a private address.
+#   docker compose -f compose.yaml -f compose.verify.yaml up -d egress-proxy
+# then in .env:
+#   VERIFY_EGRESS_NETWORK=marginalia-verify-egress
+#   VERIFY_EGRESS_PROXY=http://egress-proxy:3128
+# Without these two, a runner has no network at all. See docs/reference/verification.md.
+services:
+  egress-proxy:
+    image: marginalia:local
+    build: .
+    restart: unless-stopped
+    entrypoint: []
+    healthcheck: { disable: true }
+    command: ['node', 'api/dist/bin/egress-proxy.js']
+    environment:
+      EGRESS_ALLOW: '${VERIFY_EGRESS_ALLOW:?list the hosts a runner may reach, e.g. registry.npmjs.org}'
+    networks: [verify-egress, default]
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ['no-new-privileges:true']
+networks:
+  verify-egress:
+    name: marginalia-verify-egress
+    internal: true
