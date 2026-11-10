@@ -38,3 +38,4 @@ packages/contract/dist/
 api/dist/
 *.tsbuildinfo
 .build/
+/reviews/
