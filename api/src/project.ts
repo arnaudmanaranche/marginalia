@@ -40,7 +40,10 @@ export function buildProjects(config: any, { dataDir, legacyWorktreeDir }: { dat
     encodedId: /^\d+$/.test(p.gitlabProjectId) ? p.gitlabProjectId : encodeURIComponent(p.gitlabProjectId),
     repoPath: p.repoLocalPath,
     worktreeDir: i === 0 ? legacyWorktreeDir : join(dataDir, 'worktrees', keys[i]),
-    reviewsDir: join(p.repoLocalPath, '.claude', 'reviews'),
+    // Marginalia's own data, not the repo: a checkout is cleaned and switched, and the reviews (with
+    // the head each was made for) must outlive that.
+    reviewsDir: join(dataDir, 'reviews', keys[i]),
+    legacyReviewsDir: join(p.repoLocalPath, '.claude', 'reviews'),
     triage: p.triage ?? true,
     allowedTargetBranches: p.allowedTargetBranches,
     excludeAuthors: p.excludeAuthors,

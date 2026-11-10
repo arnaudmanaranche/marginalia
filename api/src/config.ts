@@ -141,4 +141,3 @@ if (!process.env.MR_REVIEW_BOT_SKIP_CONFIG_CHECK) {
   }
 }
 
-export const REVIEWS_DIR = join(REPO_LOCAL_PATH ?? ROOT, '.claude', 'reviews');

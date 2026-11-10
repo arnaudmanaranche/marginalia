@@ -24,7 +24,8 @@ test('the first project keeps the legacy worktree, the others get their own', ()
   const [one, two] = build([{ gitlabProjectId: 'g/back', repoLocalPath: '/r/back' }, { gitlabProjectId: 'g/front', repoLocalPath: '/r/front' }]);
   assert.equal(one.worktreeDir, '/legacy/wt');
   assert.equal(two.worktreeDir, '/data/worktrees/front');
-  assert.equal(two.reviewsDir, '/r/front/.claude/reviews');
+  assert.equal(two.reviewsDir, '/data/reviews/front');
+  assert.equal(two.legacyReviewsDir, '/r/front/.claude/reviews');
 });
 
 test('a path id is URL-encoded for the API, a numeric one is not', () => {

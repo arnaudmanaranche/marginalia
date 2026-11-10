@@ -93,8 +93,10 @@ Docker and `VERIFY_RUNNER_IMAGE` set to an image with `node`; without it the cas
 
 - The staged review above runs in the bot worktree.
 - **The bot never posts anything to GitLab.** (The only way to post is the studio's opt-in button, see [Review studio](studio.md).) Each review lands at
-  `<REPO_LOCAL_PATH>/.claude/reviews/<branch-slug>.md`, for you to read and
-  decide what to do with.
+  `<data dir>/reviews/<project>/<branch-slug>.md`, for you to read and
+  decide what to do with. They are kept in Marginalia's data, not in the reviewed repository, so a clean or a branch
+  switch there never loses a review or the head it was made for. Reviews an older install left in
+  `<REPO_LOCAL_PATH>/.claude/reviews` are copied over at start-up, never overwritten or deleted.
 - State (last SHA reviewed per MR) is kept in the database. Clearing it forces a re-review of
   all open MRs on the next poll.
 
@@ -105,7 +107,7 @@ Docker and `VERIFY_RUNNER_IMAGE` set to an image with `node`; without it the cas
   since the last triage, or the MR conflicts with its target — a fresh push with no new comment
   does **not** retrigger it. `"triage": false` on the project turns this off.
 - The report is written to
-  `<REPO_LOCAL_PATH>/.claude/reviews/mr-comments-<branch-slug>.md`.
+  `<data dir>/reviews/<project>/mr-comments-<branch-slug>.md`.
 - **Fixes are committed locally in the bot worktree, never pushed.** Since
   the worktree gets `git clean -fdx` + `git reset --hard` before the next
   checkout, that commit is preserved separately under a local-only branch

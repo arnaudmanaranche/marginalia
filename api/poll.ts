@@ -18,6 +18,7 @@ import { forget } from './src/rerun.ts';
 import { todayBudget } from './src/budget-today.ts';
 import { heldReason } from './src/budget.ts';
 import { loadState, saveState } from './src/state.ts';
+import { moveReviewsHome } from './src/reviews-home.ts';
 import { closeInterruptedRuns } from './src/run-recover.ts';
 import { startWebhookIfConfigured } from './src/webhook-intake.ts';
 import { intakePass } from './src/mention-pass.ts';
@@ -174,7 +175,10 @@ async function main() {
   process.on('SIGINT', shutdown);
   process.on('SIGTERM', shutdown);
   ensureDataDir();
-  for (const project of PROJECTS) await mkdir(project.reviewsDir, { recursive: true });
+  for (const project of PROJECTS) {
+    await mkdir(project.reviewsDir, { recursive: true });
+    await moveReviewsHome(project).catch((err) => logger.warn({ err }, 'Could not copy the reviews kept in the repository'));
+  }
   await closeInterruptedRuns().catch((err) => logger.warn({ err }, 'Could not close interrupted runs'));
   startStudio();
   startWebhookIfConfigured();
