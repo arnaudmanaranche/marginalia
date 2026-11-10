@@ -50,7 +50,8 @@ export async function ensureBotWorktree(project: any) {
   if (!linkOk) {
     const repoClaude = join(REPO_LOCAL_PATH, '.claude');
     if (await fileExists(repoClaude)) {
-      await symlink(repoClaude, claudeLink, 'dir');
+      // A real folder already there (not ours to delete) must not stop the bot: it only loses the repo's settings.
+      await symlink(repoClaude, claudeLink, 'dir').catch((err) => logger.warn({ project: project.key, err }, `${claudeLink} exists and is not a link to ${repoClaude}: the bot runs without the repo's .claude/.`));
     } else {
       logger.info({ project: project.key }, `No .claude/ in ${REPO_LOCAL_PATH}: no code-reviewer checklist nor repo settings for the bot.`);
     }
