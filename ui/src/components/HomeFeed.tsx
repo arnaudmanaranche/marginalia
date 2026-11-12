@@ -1,10 +1,10 @@
 import { Inbox, Sparkles } from 'lucide-react';
 import type { ReviewItem } from '../lib/api';
-import { APPROVALS_ROUTE, useApprovals } from '../lib/approvalsApi';
-import { contextRoute, useContexts, waitsForApproval } from '../lib/contextApi';
-import { failuresNeedingYou, reviewsNeedingYou, runningNow } from '../lib/feed';
+import { APPROVALS_ROUTE } from '../lib/approvalsApi';
+import { contextRoute } from '../lib/contextApi';
+import { runningNow } from '../lib/feed';
 import { WHAT, targetOf } from '../lib/jobs';
-import { useJobs } from '../lib/useJobs';
+import { useNeedsYou } from '../lib/useNeedsYou';
 import { useQueue } from '../lib/useQueue';
 import { StatusMark } from './ds/StatusMark';
 import { FeedRow } from './FeedRow';
@@ -22,14 +22,9 @@ export function HomeFeed({ loaded, items, isUnread, isReviewing, isHeld, isNew, 
   loaded: boolean; items: ReviewItem[]; isUnread: (i: ReviewItem) => boolean; isReviewing: (i: ReviewItem) => boolean; isHeld: (i: ReviewItem) => boolean; isNew: (i: ReviewItem) => boolean; isChanged: (i: ReviewItem) => boolean;
   showProject: boolean; onOpen: (route: string | null) => void; filter?: React.ReactNode;
 }) {
-  const { jobs } = useJobs();
   const queue = useQueue();
-  const proposals = useApprovals().data?.proposals.length ?? 0;
-  const drafts = useContexts().filter(waitsForApproval);
-  const reviews = reviewsNeedingYou(items);
-  const failures = jobs ? failuresNeedingYou(jobs) : [];
+  const { jobs, proposals, drafts, reviews, failures, count } = useNeedsYou(items);
   const running = jobs ? runningNow(jobs) : [];
-  const count = reviews.length + failures.length + drafts.length + (proposals > 0 ? 1 : 0);
   if (!loaded) {
     return (
       <div aria-busy="true" aria-label="Loading Home" className="mx-auto max-w-7xl px-6 py-8">

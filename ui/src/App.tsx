@@ -9,7 +9,7 @@ import { useArrivals } from './lib/arrivals';
 import { useSoundCues } from './lib/useSoundCues';
 import { ALL_PROJECTS, activeFilter, filterByProject, filterOptions, hasSeveralProjects } from './lib/projects';
 import { useMergedPosted } from './lib/pendingPosts';
-import { groupReviews, waitingOnYou } from './lib/dashboard';
+import { useNeedsYou } from './lib/useNeedsYou';
 import { usePersistentState, useOpenTabs } from './lib/layout';
 import { StatusBar } from './components/StatusBar';
 import { TabStrip, type BotState } from './components/TabStrip';
@@ -35,8 +35,6 @@ const EMPTY_POSTED = {};
 const SETTINGS_ROUTE = 'settings';
 // `#/jobs` was the jobs page; Home is the feed now (ADR 0007), so it lands there.
 const JOBS_ROUTE = 'jobs';
-// Reviews older than this are hidden from Home.
-const STALE_DAYS = 30;
 // The animation features load after the first paint; until then `m` components just render.
 const loadMotionFeatures = () => import('./lib/motionFeatures').then((mod) => mod.default);
 
@@ -91,15 +89,6 @@ function useCloseTabShortcut(slug: string | null, palette: boolean, close: (slug
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   });
-}
-
-// What Home lists: the recent reviews, grouped by whose turn it is on GitLab.
-function useHomeGroups(items: ReviewItem[]) {
-  return useMemo(() => {
-    // Old MRs are noise on Home; they stay reachable from the tabs and the palette (⌘K).
-    const fresh = items.filter((i) => Date.now() - new Date(i.reviewedAt).getTime() < STALE_DAYS * 86_400_000);
-    return groupReviews(fresh);
-  }, [items]);
 }
 
 export function App() {
@@ -157,7 +146,7 @@ export function App() {
   const filter = activeFilter(projectFilter, projects);
   const shown = useMemo(() => filterByProject(items, filter, projects), [items, filter, projects]);
   // The Home tab counts what waits on you in every project, whatever the filter hides.
-  const waitingAll = waitingOnYou(useHomeGroups(items));
+  const waitingAll = useNeedsYou(items).count;
 
   const [theme] = useTheme();
   const go = (s: string | null) => {
