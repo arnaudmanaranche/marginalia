@@ -11,3 +11,12 @@ export async function loadState(project: any) {
 export async function saveState(project: any, state: any) {
   writeProjectState(getDb(), project.key, state);
 }
+
+// A review that ran outside a poll (a mention) records the head it covered, as a poll would, so
+// the next poll does not review the same commit again. The layer below is left as it is: a
+// stacked MR whose lower layer moved is still taken again by the poll.
+export async function recordReviewedHead(project: any, iid: any, sha: string) {
+  const state = await loadState(project);
+  (state as any)[iid] = sha;
+  await saveState(project, state);
+}
