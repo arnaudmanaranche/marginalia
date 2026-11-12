@@ -24,6 +24,10 @@ function BotState({ status, connection }: { status: BotStatus | null; connection
   }
   if (status.phase === 'polling') return <LivePill tone="run" label="Polling" live />;
   if (status.phase === 'error') return <LivePill tone="fail" label="Last poll failed" />;
+  // A poll past the budget reviews nothing: say that first, not when the next poll comes.
+  if (status.budget?.over) {
+    return <LivePill tone="warn" label="Budget reached" detail={<span className="hidden sm:inline">automatic reviews wait until midnight</span>} title='A mention or "Review again" still runs.' />;
+  }
   return (
     <span title={status.lastPoll ? `Last poll ${timeAgo(status.lastPoll.at)}` : undefined}>
       <LivePill tone="ok" label="Idle" detail={status.nextPollAt ? <span className="hidden sm:inline">next poll {inTime(status.nextPollAt)}</span> : undefined} />
