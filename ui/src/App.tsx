@@ -144,6 +144,7 @@ export function App() {
   }, [data]);
   // The bot is reviewing it right now: its row is disabled until the new report is written.
   const isReviewing = (i: ReviewItem) => botBySlug.get(i.slug) === 'reviewing' || liveRunOf(data?.status, i) !== null;
+  const isHeld = (i: ReviewItem) => botBySlug.get(i.slug) === 'held';
   const isPosted = (i: ReviewItem) => Object.keys(posted).some((k) => k.startsWith(`${i.slug}:`));
   const current = items.find((i) => i.slug === slug);
   const stack = current?.stackId ? data?.stacks.find((s) => s.id === current.stackId) : undefined;
@@ -211,7 +212,7 @@ export function App() {
         </>
       ) : (
         <HomeFeed
-          loaded={Boolean(data)} items={shown} isUnread={isUnread} isReviewing={isReviewing} isNew={isNew} isChanged={isChanged} showProject={several} onOpen={go}
+          loaded={Boolean(data)} items={shown} isUnread={isUnread} isReviewing={isReviewing} isHeld={isHeld} isNew={isNew} isChanged={isChanged} showProject={several} onOpen={go}
           filter={several ? <ProjectFilter options={filterOptions(projects)} value={filter} onChange={setProjectFilter} /> : undefined}
         />
       )}

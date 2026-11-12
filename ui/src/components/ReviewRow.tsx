@@ -24,7 +24,7 @@ function StandingBadge({ item }: { item: ReviewItem }) {
 // doing. A row that `arrived` while the page was open slides in and glows for a moment; one that
 // `changed` (a new report, queued, failed) glows the same way where it stands.
 // `reason`: why it is in the feed's Needs-you list ("Returned to you"), said beside the title.
-export function ReviewRow({ item, unread, reviewing = false, arrived = false, changed = false, showProject = false, reason }: { item: ReviewItem; unread: boolean; reviewing?: boolean; arrived?: boolean; changed?: boolean; showProject?: boolean; reason?: string }) {
+export function ReviewRow({ item, unread, reviewing = false, held = false, arrived = false, changed = false, showProject = false, reason }: { item: ReviewItem; unread: boolean; reviewing?: boolean; held?: boolean; arrived?: boolean; changed?: boolean; showProject?: boolean; reason?: string }) {
   const title = (
     <>
       {item.iid && <span className="mr-2 font-mono text-[11px] tabular-nums text-fg-muted">!{item.iid}</span>}
@@ -50,7 +50,10 @@ export function ReviewRow({ item, unread, reviewing = false, arrived = false, ch
       {reason && <span className="shrink-0 text-xs text-fg-muted">{reason}</span>}
       {arrived && <Badge tone="info">New</Badge>}
       {reviewing && <LivePill tone="run" label="Reviewing" live title="Open it to follow the run" />}
-      {!reviewing && item.awaiting === 'queued' && <LivePill tone="idle" label="Queued" title="The bot reviews it in this poll: open it to follow the run" />}
+      {/* Past the budget a queued MR waits for midnight: "Queued" would promise a run that is not coming. */}
+      {!reviewing && item.awaiting === 'queued' && (held
+        ? <LivePill tone="warn" label="Waits for tomorrow" title="Today's budget is spent. Review again to run it now." />
+        : <LivePill tone="idle" label="Queued" title="The bot reviews it in this poll: open it to follow the run" />)}
       {!reviewing && item.awaiting === 'failed' && (item.failure?.transient
         ? <LivePill tone="warn" label="Retrying soon" title={`${item.failure.title}. It is tried again on its own in a few minutes.`} />
         : <LivePill tone="fail" label="Review failed" title={`${item.failure?.title ?? 'The first review failed'}: open it to see why. It is tried again on the next poll.`} />)}
