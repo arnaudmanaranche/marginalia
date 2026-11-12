@@ -40,5 +40,10 @@ export function useReviewVersions(slug: string | undefined, reviewedAt: string |
     setVersionId,
     oldReview: versionId ? version.data ?? null : null,
     previous: slug && last && previous.data ? { id: last.id, at: last.at, review: previous.data } : null,
+    // Whether there is a previous report is known: until then the reader waits, so the line saying what
+    // changed since never pushes the tour down once it is on screen.
+    historyKnown: !slug || !list.isPending,
+    // There is a previous report and it is on its way: its line can keep its place.
+    previousLoading: Boolean(slug && last && !previous.data && previous.isFetching),
   };
 }

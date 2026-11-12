@@ -34,10 +34,10 @@ import { Button } from './ui/Button';
 
 export function ReviewReader({ item, review: currentReview, reviewError, onRetry, projectUrl, allowPosting, showFullDiff, live, finding = null, posted, reload }: { showFullDiff: boolean; finding?: string | null; item: ReviewItem | undefined; review: ReviewContent | null; reviewError: string | null; onRetry: () => void; projectUrl: string | null; allowPosting: boolean; live: BotStatus['current']; posted: Record<string, PostedInfo>; reload: () => void }) {
   const [submitting, setSubmitting] = useState(false);
-  const { versionId, setVersionId, oldReview, previous } = useReviewVersions(item?.slug, item?.reviewedAt);
+  const { versionId, setVersionId, oldReview, previous, previousLoading, historyKnown } = useReviewVersions(item?.slug, item?.reviewedAt);
   const viewingOld = versionId !== null;
   const content = viewingOld ? oldReview : currentReview;
-  const markdown = content?.markdown ?? null;
+  const markdown = historyKnown ? content?.markdown ?? null : null;
   const shape = content?.shape ?? null;
   const { rerunning, rerun } = useRerun(item, live);
   // What the bot is doing on this MR, while it does it: a passing activity log, gone once the run
@@ -128,6 +128,7 @@ export function ReviewReader({ item, review: currentReview, reviewError, onRetry
       {markdown !== null && !viewingOld && previous && (
         <ReportDelta previous={previous.review.shape?.findings ?? []} at={previous.at} current={shape?.findings ?? []} onRead={() => setVersionId(previous.id)} />
       )}
+      {markdown !== null && !viewingOld && !previous && previousLoading && <div aria-hidden className="mb-4 h-[42px] shrink-0 animate-pulse rounded-xl border border-line motion-reduce:animate-none" />}
       {markdown !== null && hasTour && (
           <ReviewTour showFullDiff={showFullDiff} target={finding} stops={stops} findings={shape!.findings} diff={item?.tracked && item.iid ? { slug: item.slug, version: versionId, key: item.reviewedAt } : null} post={item?.tracked && item.iid && !viewingOld ? { slug: item.slug, iid: item.iid, allowPosting: mayPost, locked, posted, reload } : null} onReport={setVersionId} />
       )}
