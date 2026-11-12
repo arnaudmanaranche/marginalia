@@ -3,7 +3,8 @@ import { AnimatePresence, m } from 'motion/react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from '../lib/toast';
 import { RotateCcw } from 'lucide-react';
-import { saveSettings, type Settings } from '../lib/api';
+import { pollNow, saveSettings, type Settings } from '../lib/api';
+import { inTime } from '../lib/utils';
 import { keys } from '../lib/queryKeys';
 import { arrive } from '../lib/motion';
 import { AppearanceSettings } from './AppearanceSettings';
@@ -49,7 +50,7 @@ function patchOf(draft: Draft) {
 // and the ALLOW_POSTING / ALLOW_PUSH gates stay in .env on purpose.
 type Project = { key: string; kind: 'back' | 'front' | null; gitlabProjectId: string; url: string | null };
 
-export function SettingsPage({ settings, defaults, projects = [] }: { settings: Settings | null; defaults: Settings | null; projects?: Project[] }) {
+export function SettingsPage({ settings, defaults, projects = [], nextPollAt = null }: { settings: Settings | null; defaults: Settings | null; projects?: Project[]; nextPollAt?: string | null }) {
   const [draft, setDraft] = useState<Draft | null>(settings && toDraft(settings));
   const client = useQueryClient();
   const saveMutation = useMutation({
@@ -71,7 +72,11 @@ export function SettingsPage({ settings, defaults, projects = [] }: { settings: 
   const save = async (patch: Parameters<typeof saveSettings>[0], message: string) => {
     try {
       await saveMutation.mutateAsync(patch);
-      toast.success(message, { description: 'Applied by the bot on its next poll.' });
+      // Say when it takes effect, and offer not to wait.
+      toast.success(message, {
+        description: nextPollAt ? `Applied on the bot's next poll, ${inTime(nextPollAt)}.` : 'Applied on the bot\'s next poll.',
+        action: { label: 'Poll now', onClick: () => void pollNow().then(() => toast('The bot is polling'), (err: Error) => toast.error('Could not reach the bot', { description: err.message })) },
+      });
     } catch (err) {
       toast.error('Could not save the settings', { description: (err as Error).message });
     }

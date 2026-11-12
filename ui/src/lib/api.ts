@@ -294,6 +294,12 @@ export const pushDoctorFix = (slug: string, runId: string) => postRun(slug, runI
 
 export const startDoctor = (slug: string, runId: string) => postRun(slug, runId, 'doctor');
 
+// Nudges the bot to poll now, as the menu bar's "Poll now" does.
+export async function pollNow(): Promise<void> {
+  const res = await fetch('/api/poll', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? `HTTP ${res.status}`);
+}
+
 export interface LiveRun { project?: string; iid: number; title: string; startedAt: string; progress?: string[]; runId?: string; slug?: string; stages?: LiveStage[]; stepCount?: number }
 
 export interface BotStatus {
