@@ -1,4 +1,5 @@
-import { useQuery } from '@tanstack/react-query';
+import { useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { DiffFile, Pushes } from './api';
 import { fetchJson } from './fetchRetry';
 import { keys } from './queryKeys';
@@ -28,15 +29,28 @@ export function diffStateOf(slug: string | null, q: { data?: DiffAnswer; error: 
 // again by itself when the server is slow or restarting. What was loaded for another stop never shows
 // under this one: it counts as loading at once.
 export function useMrDiff(slug: string | null, stopId: string, refreshKey: string | undefined, scope: DiffScope = { version: null, from: null }): { state: DiffState; retry: () => void } {
-  const query = useQuery({
-    queryKey: keys.diff(slug ?? '', stopId, scope.from, scope.version, refreshKey),
-    enabled: slug !== null,
-    queryFn: ({ signal }) => {
-      const params = new URLSearchParams({ stop: stopId, ...(scope.version ? { version: scope.version } : scope.from ? { from: scope.from } : {}) });
-      return fetchJson<DiffAnswer>(`/api/reviews/${encodeURIComponent(slug!)}/diff?${params}`, { signal });
-    },
-  });
+  const query = useQuery({ ...diffQuery(slug ?? '', stopId, refreshKey, scope), enabled: slug !== null });
   return { state: diffStateOf(slug, query), retry: () => void query.refetch() };
+}
+
+function diffQuery(slug: string, stopId: string, refreshKey: string | undefined, scope: DiffScope) {
+  return {
+    queryKey: keys.diff(slug, stopId, scope.from, scope.version, refreshKey),
+    queryFn: ({ signal }: { signal: AbortSignal }) => {
+      const params = new URLSearchParams({ stop: stopId, ...(scope.version ? { version: scope.version } : scope.from ? { from: scope.from } : {}) });
+      return fetchJson<DiffAnswer>(`/api/reviews/${encodeURIComponent(slug)}/diff?${params}`, { signal });
+    },
+  };
+}
+
+// Loads the diffs of the stops next to the one shown, so moving to them shows code at once.
+export function usePrefetchMrDiffs(slug: string | null, stopIds: string[], refreshKey: string | undefined, scope: DiffScope) {
+  const client = useQueryClient();
+  const ids = stopIds.join('\n');
+  useEffect(() => {
+    if (!slug) return;
+    for (const id of stopIds) void client.prefetchQuery(diffQuery(slug, id, refreshKey, scope));
+  }, [client, slug, ids, refreshKey, scope.from, scope.version]); // eslint-disable-line react-hooks/exhaustive-deps
 }
 
 // The MR's pushes, for the timeline over the diff. Null while loading or when GitLab cannot tell.

@@ -4,7 +4,7 @@ import { Badge } from './ui/Badge';
 import { FindingsPanel } from './FindingsPanel';
 import { NoteMarkdown } from './NoteMarkdown';
 import { cn } from '../lib/utils';
-import { useMrDiff, usePushes, type DiffScope } from '../lib/useMrDiff';
+import { useMrDiff, usePrefetchMrDiffs, usePushes, type DiffScope } from '../lib/useMrDiff';
 import { useThreads } from '../lib/useThreads';
 import type { Focus } from '../lib/tourFocus';
 import { DiffPane } from './DiffPane';
@@ -70,6 +70,8 @@ export function ReviewTour({ stops, findings, post, diff: source, showFullDiff, 
   // What the MR's conversation says sits on today's code: it is shown with the current diff only.
   const threads = useThreads(source && !source.version ? source.slug : null, source?.key);
   const { state: diff, retry: retryDiff } = useMrDiff(source?.slug ?? null, stopId, source?.key, scope);
+  // The stops either side load while this one is read: Next and Previous show code, not a skeleton.
+  usePrefetchMrDiffs(diff.status === 'ready' ? source?.slug ?? null : null, [stops[index - 1]?.id, stops[index + 1]?.id].filter((id): id is string => Boolean(id)), source?.key, scope);
   // ← and → move between stops, anywhere but in a field.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
