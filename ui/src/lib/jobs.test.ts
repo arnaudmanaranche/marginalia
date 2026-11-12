@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Job } from './api';
-import { durationOf, routeOf, stateOf, targetOf } from './jobs';
+import { collapseSkipped, durationOf, routeOf, stateOf, targetOf, withTitles } from './jobs';
 
 const job = (over: Partial<Job> = {}): Job => ({
   id: 'x', slug: 'webapp/own-feat-a', project: 'webapp', iid: null, kind: 'review', command: '/code-review',
@@ -24,5 +24,16 @@ describe('a job in the list', () => {
   it('leads to the review it was about, or to the context it learned', () => {
     expect(routeOf(job())).toBe('webapp/own-feat-a');
     expect(routeOf(job({ what: 'understand' }))).toBe('context:webapp');
+  });
+  it("takes its MR's title when it came without one", () => {
+    const titles = new Map([['webapp/own-feat-a', 'Add coupons']]);
+    expect(withTitles([job()], titles)[0].title).toBe('Add coupons');
+    expect(withTitles([job({ title: 'Own' })], titles)[0].title).toBe('Own');
+    expect(withTitles([job({ slug: 'webapp/other' })], titles)[0].title).toBeNull();
+  });
+  it('folds skipped runs of the same job back to back into one line, and nothing else', () => {
+    const skip = job({ outcome: 'skipped' });
+    const rows = collapseSkipped([skip, skip, skip, job(), skip, job({ outcome: 'skipped', what: 'comments' })]);
+    expect(rows.map((r) => [r.job.outcome, r.job.what, r.repeats])).toEqual([['skipped', 'own', 3], ['reviewed', 'own', 1], ['skipped', 'own', 1], ['skipped', 'comments', 1]]);
   });
 });

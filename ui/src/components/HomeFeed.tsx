@@ -1,9 +1,10 @@
+import { useMemo } from 'react';
 import { Inbox, Sparkles } from 'lucide-react';
 import type { ReviewItem } from '../lib/api';
 import { APPROVALS_ROUTE } from '../lib/approvalsApi';
 import { contextRoute } from '../lib/contextApi';
 import { runningNow } from '../lib/feed';
-import { WHAT, targetOf } from '../lib/jobs';
+import { WHAT, targetOf, withTitles } from '../lib/jobs';
 import { useNeedsYou } from '../lib/useNeedsYou';
 import { useQueue } from '../lib/useQueue';
 import { StatusMark } from './ds/StatusMark';
@@ -23,7 +24,8 @@ export function HomeFeed({ loaded, items, isUnread, isReviewing, isHeld, isNew, 
   showProject: boolean; onOpen: (route: string | null) => void; filter?: React.ReactNode;
 }) {
   const queue = useQueue();
-  const { jobs, proposals, drafts, reviews, failures, count } = useNeedsYou(items);
+  const { jobs: raw, proposals, drafts, reviews, failures, count } = useNeedsYou(items);
+  const jobs = useMemo(() => (raw ? withTitles(raw, new Map(items.map((i) => [i.slug, i.title]))) : raw), [raw, items]);
   const running = jobs ? runningNow(jobs) : [];
   if (!loaded) {
     return (

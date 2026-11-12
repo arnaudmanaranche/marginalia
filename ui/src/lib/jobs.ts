@@ -38,3 +38,21 @@ export function durationOf(job: Job, now = Date.now()): string {
 
 // Where a job leads: the review it was about, or the project's context it learned.
 export const routeOf = (job: Job) => (job.what === 'understand' ? contextRoute(job.project) : job.slug);
+
+// Jobs that came without a title (a review run) take their MR's, so one MR reads the same in Activity
+// as everywhere else.
+export function withTitles(jobs: Job[], titleBySlug: ReadonlyMap<string, string>): Job[] {
+  return jobs.map((j) => (j.title || !titleBySlug.has(j.slug) ? j : { ...j, title: titleBySlug.get(j.slug)! }));
+}
+
+// Skipped runs of the same job back to back are one line with a count: they repeat each poll and
+// would hide the runs that did something.
+export function collapseSkipped(jobs: Job[]): { job: Job; repeats: number }[] {
+  const out: { job: Job; repeats: number }[] = [];
+  for (const job of jobs) {
+    const last = out.at(-1);
+    if (last && job.outcome === 'skipped' && last.job.outcome === 'skipped' && last.job.slug === job.slug && last.job.what === job.what) last.repeats++;
+    else out.push({ job, repeats: 1 });
+  }
+  return out;
+}
