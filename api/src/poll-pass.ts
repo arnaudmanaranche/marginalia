@@ -3,6 +3,7 @@ import { needsTriage, planMergeRequests, pruneState, triageSignal } from './poll
 import { buildEntries } from './poll-pass-entries.ts';
 import { trustExistingReview, workOnMr } from './poll-pass-mr.ts';
 import { branchStateKey } from './own-branches-plan.ts';
+import { heldBack } from './poll-pass-hold.ts';
 
 // One pass over one project's open MRs: decide what each needs (reviewed, triaged, nothing), show
 // where every MR stands, do the work one MR at a time, and keep what was done in the state. It
@@ -16,7 +17,8 @@ import { branchStateKey } from './own-branches-plan.ts';
 //   ownPath(mr), listOwnBranches(project, openMrs, state), runReview(mr, path, stack, { own }), runMrComments(mr), loadState(project), saveState(project, state),
 //   allowedTargets(project), settlesConflicts(project), username, notify(title, message, path),
 //   trackFailure({ mr, kind, command, error }), startDoctor({ project, fileSlug, runId, auto }),
-//   budget() (optional: today's budget, budget.ts; once it is over, automatic work waits).
+//   budget() (optional: today's budget, budget.ts; once it is over, automatic work waits),
+//   reviewFacts(mr) and staleAfterDays() (optional: what holds an automatic review, poll-pass-hold.ts).
 // sink: begin(mr), setMr(mr, patch), end(), entriesOf(project), setEntries(project, entries).
 // `asked`: the MR a person asked to review again (a rerun task), or null for a poll.
 export async function passOver(project: any, deps: any, sink: any, asked: any = null) {
@@ -51,9 +53,10 @@ export async function passOver(project: any, deps: any, sink: any, asked: any = 
   const outcome = { retrySoon: false };
   const pass: any = { deps, sink, state, outcome, asked, held: 0 };
   for (const mr of toReview) {
-    if (!(await trustExistingReview(mr, plan, pass))) await workOnMr('review', mr, { plan }, pass);
+    if (await trustExistingReview(mr, plan, pass)) continue;
+    if (!(await heldBack('review', mr, pass))) await workOnMr('review', mr, { plan }, pass);
   }
-  for (const mr of toOwn) await workOnMr('own', mr, { plan }, pass);
+  for (const mr of toOwn) if (!(await heldBack('own', mr, pass))) await workOnMr('own', mr, { plan }, pass);
   for (const { target } of branches.filter((b: any) => !b.current)) await workOnMr('branch', target, {}, pass);
   for (const { mr, signal } of toTriage) await workOnMr('triage', mr, { signal }, pass);
 

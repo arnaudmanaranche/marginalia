@@ -163,3 +163,45 @@ test('over the budget, a failure does not start the doctor by itself', async () 
   assert.deepEqual(calls.failed, ['review']);
   assert.deepEqual(calls.doctor, []);
 });
+
+// Holds (GLOSSARY: Hold): the poll reads the last push and the approvals of an MR it would review.
+const DAY = 24 * 60 * 60 * 1000;
+const facts = (pushedDaysAgo, approvedBy = []) => async () => ({ lastPushAt: Date.now() - pushedDaysAgo * DAY, approvedBy });
+
+test('an MR with no push in the stale window waits, and is not recorded', async () => {
+  const { deps, sink, calls, stored } = setup({ open: [mr(1)], reviewFacts: facts(20), staleAfterDays: () => 14 });
+  await passOver(project, deps, sink);
+  assert.deepEqual(calls.reviewed, []);
+  assert.equal(stored[1], undefined);
+  assert.deepEqual(calls.mrStatus, [[1, 'skipped']]);
+});
+
+test('an MR a person approved since its last push waits; one approved before it runs', async () => {
+  const before = new Date(Date.now() - 3 * DAY).toISOString();
+  const after = new Date(Date.now() - DAY).toISOString();
+  const { deps, sink, calls } = setup({
+    open: [mr(1), mr(2)],
+    staleAfterDays: () => 14,
+    reviewFacts: async (m) => ({ lastPushAt: Date.now() - 2 * DAY, approvedBy: [{ username: 'bob', at: m.iid === 1 ? after : before }] }),
+  });
+  await passOver(project, deps, sink);
+  assert.deepEqual(calls.reviewed, [2]);
+});
+
+test("the author's own approval does not hold the review", async () => {
+  const { deps, sink, calls } = setup({ open: [mr(1)], staleAfterDays: () => 14, reviewFacts: facts(1, [{ username: 'alice', at: null }]) });
+  await passOver(project, deps, sink);
+  assert.deepEqual(calls.reviewed, [1]);
+});
+
+test('the MR a person asked to review again runs past a hold', async () => {
+  const { deps, sink, calls } = setup({ open: [mr(1)], staleAfterDays: () => 14, reviewFacts: facts(30, [{ username: 'bob', at: null }]) });
+  await passOver(project, deps, sink, { project: 'p', iid: 1, kind: 'review', sourceBranch: 'b1' });
+  assert.deepEqual(calls.reviewed, [1]);
+});
+
+test('facts that cannot be read hold nothing back', async () => {
+  const { deps, sink, calls } = setup({ open: [mr(1)], staleAfterDays: () => 14, reviewFacts: async () => { throw new Error('GitLab down'); } });
+  await passOver(project, deps, sink);
+  assert.deepEqual(calls.reviewed, [1]);
+});

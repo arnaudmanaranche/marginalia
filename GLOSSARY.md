@@ -14,6 +14,8 @@ The words below are the only ones the code, the docs and the studio use for thes
 
 **Budget**: what a day of automatic work may cost (`DAILY_BUDGET_USD`, or the studio's Settings). Every Claude run of the day counts, from local midnight. Once the spend reaches it, automatic work (a poll's reviews and triages, the doctor a failure starts) waits until midnight and its MRs say so (a mark on their tab, the menu bar, one notification); what a person asks for still runs.
 
+**Hold**: why a poll does not start the automatic review of an MR, said on its entry: no push for `staleAfterDays` (which also limits how far back the bot catches up after it was stopped), or someone other than the author approved it on GitLab since its last push. It is not recorded, so a new push takes the MR again; Review again or a mention runs it now. Not to be confused with an **Approval**, a person's decision on a write the factory proposes.
+
 **Task**: one thing asked of the bot, waiting its turn in the queue: a poll, a mention to answer, a project to learn. Running a task starts zero or more jobs. The same request while its task still waits joins it.
 
 **Project context**: what the factory has learned about one project: glossary, stack, features and critical paths, each item citing its source. Data stored outside the reviewed repo, approved by a person before reviews use it. Never code in Marginalia.

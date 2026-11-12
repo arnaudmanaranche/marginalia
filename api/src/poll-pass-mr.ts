@@ -87,7 +87,7 @@ const readBudget = (deps: any) => {
 };
 
 // The MR a person asked to review again (a rerun task's target), which the budget never holds back.
-const askedFor = (asked: any, entry: string, mr: any) => Boolean(asked) && asked.kind === entry
+export const askedFor = (asked: any, entry: string, mr: any) => Boolean(asked) && asked.kind === entry
   && (asked.iid !== null ? String(asked.iid) === String(mr.iid) : asked.sourceBranch === mr.source_branch);
 
 // `ctx` is what the kind needs of the pass: { plan } for a review, { signal } for a triage.
