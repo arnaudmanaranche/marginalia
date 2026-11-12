@@ -28,6 +28,7 @@ import { ProjectView } from './components/ProjectPage';
 import { contextKeyOf } from './lib/contextApi';
 import { StackBoard } from './components/StackBoard';
 import { ReviewMissing, ReviewSkeleton } from './components/ReviewSkeleton';
+import { parseHash } from './lib/hashRoute';
 
 const EMPTY_POSTED = {};
 // `#/settings` is the settings page, not a review.
@@ -39,22 +40,14 @@ const STALE_DAYS = 30;
 // The animation features load after the first paint; until then `m` components just render.
 const loadMotionFeatures = () => import('./lib/motionFeatures').then((mod) => mod.default);
 
-function useHashSlug() {
-  // A malformed escape (`#/%E0%A4`) makes decodeURIComponent throw: treat it as no review.
-  const read = () => {
-    try {
-      return decodeURIComponent(location.hash.replace(/^#\/?/, '')) || null;
-    } catch {
-      return null;
-    }
-  };
-  const [slug, setSlug] = useState(read);
+function useHashRoute() {
+  const [route, setRoute] = useState(() => parseHash(location.hash));
   useEffect(() => {
-    const on = () => setSlug(read());
+    const on = () => setRoute(parseHash(location.hash));
     window.addEventListener('hashchange', on);
     return () => window.removeEventListener('hashchange', on);
   }, []);
-  return slug;
+  return route;
 }
 
 // Which reviews were read, at which version. Opening a review marks it as read; saved here,
@@ -114,7 +107,7 @@ export function App() {
   const { data, error, reload } = useReviews();
   const [projectFilter, setProjectFilter] = usePersistentState('mr-review-viewer:project-filter', ALL_PROJECTS);
   const posted = useMergedPosted(data?.posted ?? EMPTY_POSTED);
-  const slug = useHashSlug();
+  const { slug, finding } = useHashRoute();
   const [palette, setPalette] = useState(false);
 
   // One persistent toast while the API is unreachable, dismissed once it's back.
@@ -211,7 +204,7 @@ export function App() {
         {stack && current && <StackBoard stack={stack} items={items} current={current} isPosted={isPosted} onSelect={go} />}
         {!data ? <ReviewSkeleton /> : !current ? <ReviewMissing /> : (
         <Suspense fallback={<ReviewSkeleton />}>
-        <ReviewReader item={current} review={review} reviewError={reviewError} onRetry={retryReview} projectUrl={data?.projects?.find((p) => p.key === current?.project)?.url ?? data?.projectUrl ?? null} allowPosting={data?.allowPosting ?? false} showFullDiff={data?.settings.showFullDiff ?? true} live={current ? liveRunOf(data?.status, current) : null} posted={posted} reload={reload} />
+        <ReviewReader item={current} review={review} reviewError={reviewError} onRetry={retryReview} projectUrl={data?.projects?.find((p) => p.key === current?.project)?.url ?? data?.projectUrl ?? null} allowPosting={data?.allowPosting ?? false} showFullDiff={data?.settings.showFullDiff ?? true} live={current ? liveRunOf(data?.status, current) : null} finding={finding} posted={posted} reload={reload} />
         </Suspense>
         )}
         </>

@@ -30,7 +30,7 @@ export interface DiffSource {
   key: string | undefined;
 }
 
-export function ReviewTour({ stops, findings, post, diff: source, showFullDiff, onReport }: { showFullDiff: boolean; stops: TourStop[]; findings: Finding[]; post: Post | null; diff: DiffSource | null; onReport?: (id: string) => void }) {
+export function ReviewTour({ stops, findings, post, diff: source, showFullDiff, onReport, target = null }: { showFullDiff: boolean; target?: string | null; stops: TourStop[]; findings: Finding[]; post: Post | null; diff: DiffSource | null; onReport?: (id: string) => void }) {
   const [at, setIndex] = useState(0);
   // A new review can have fewer stops than the one that was open: never point past the last.
   const index = Math.min(at, stops.length - 1);
@@ -42,13 +42,25 @@ export function ReviewTour({ stops, findings, post, diff: source, showFullDiff, 
   const previous = useRef(0);
   // Which way the swap goes decides which side the new stop slides in from.
   const direction = index >= previous.current ? 1 : -1;
+  // A link to a finding (`?finding=`) opens its stop and points at it, once its stop is shown.
+  const pending = useRef<string | null>(null);
+  useEffect(() => {
+    const at = target ? stops.findIndex((s) => s.findingIds.includes(target)) : -1;
+    if (at < 0) return;
+    // The stop effect below takes it on mount or on a stop change; on the stop already shown, point now.
+    pending.current = target;
+    if (at === index) select(target!, 'list');
+    else setIndex(at);
+  }, [target, stops]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     previous.current = index;
     pane.current?.scrollTo?.({ top: 0 });
-    // A new stop starts at the top of its own diff, with nothing pointed at.
+    // A new stop starts at the top of its own diff, with nothing pointed at, unless a link named a finding on it.
     diffPane.current?.scrollTo?.({ top: 0 });
-    setFocus(null);
-  }, [index]);
+    const linked = pending.current && stops[index]?.findingIds.includes(pending.current) ? pending.current : null;
+    if (linked) { pending.current = null; select(linked, 'list'); }
+    else setFocus(null);
+  }, [index]); // eslint-disable-line react-hooks/exhaustive-deps
   const stopId = stops[index].id;
   // Where the diff starts: after the push I last reviewed on GitLab until I pick another one.
   const pushes = usePushes(source && !source.version ? source.slug : null, source?.key);
