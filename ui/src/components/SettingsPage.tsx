@@ -28,7 +28,7 @@ const toList = (v: string) => [...new Set(v.split(/[,\s]+/).filter(Boolean))];
 
 const FIELDS: { key: TextKey; label: string; hint: string; list?: boolean; decimal?: boolean; placeholder?: string }[] = [
   { key: 'pollIntervalMinutes', label: 'Poll every (minutes)', hint: 'How often the bot looks for new or updated MRs. 1 to 1440.' },
-  { key: 'staleAfterDays', label: 'Skip MRs idle for (days)', hint: 'No push or comment for this long and the MR is assumed stale. 1 to 365.' },
+  { key: 'staleAfterDays', label: 'Skip MRs idle for (days)', hint: 'A poll does not review an MR with no push for this long (comments and approvals do not count): also how far back it catches up after a stop. 1 to 365.' },
   { key: 'dailyBudgetUsd', label: 'Daily budget (USD)', hint: 'What a day of automatic reviews and triages may cost; past it they wait until midnight. A mention or "Review again" always runs. 0 is no limit.', decimal: true },
   { key: 'allowedTargetBranches', label: 'Target branches', hint: 'Only MRs based on these branches are reviewed. Empty reviews all of them.', list: true, placeholder: 'develop, main' },
   { key: 'excludeAuthors', label: 'Excluded authors', hint: 'GitLab usernames (not emails) whose MRs are never touched. Drafts are always skipped.', list: true, placeholder: 'alice, bob' },
