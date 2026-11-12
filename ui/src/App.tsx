@@ -124,11 +124,12 @@ export function App() {
 
 
   const items = useMemo(() => data?.items ?? [], [data]);
-  // A review that came in while the page is open (a poll found a new MR) arrives visibly.
-  const slugs = useMemo(() => (data ? data.items.map((i) => i.slug) : null), [data]);
-  const arrived = useArrivals(slugs);
+  // A review that came in (a poll found a new MR) or changed (a new report, queued, failed) while the page is open shows it.
+  const entries = useMemo(() => (data ? data.items.map((i) => [i.slug, `${i.reviewedAt}|${i.verdict}|${i.awaiting ?? ''}`] as const) : null), [data]);
+  const fresh = useArrivals(entries);
   useSoundCues(data?.items, data?.status ?? null);
-  const isNew = (i: ReviewItem) => arrived(i.slug);
+  const isNew = (i: ReviewItem) => fresh.arrived(i.slug);
+  const isChanged = (i: ReviewItem) => fresh.changed(i.slug);
   const known = useMemo(() => (data ? new Set(data.items.map((i) => i.slug)) : null), [data]);
   const { tabs: openSlugs, close: closeTab } = useOpenTabs(slug, known);
   const tabItems = openSlugs.map((s) => items.find((i) => i.slug === s)).filter((i): i is ReviewItem => Boolean(i));
@@ -210,7 +211,7 @@ export function App() {
         </>
       ) : (
         <HomeFeed
-          loaded={Boolean(data)} items={shown} isUnread={isUnread} isReviewing={isReviewing} isNew={isNew} showProject={several} onOpen={go}
+          loaded={Boolean(data)} items={shown} isUnread={isUnread} isReviewing={isReviewing} isNew={isNew} isChanged={isChanged} showProject={several} onOpen={go}
           filter={several ? <ProjectFilter options={filterOptions(projects)} value={filter} onChange={setProjectFilter} /> : undefined}
         />
       )}
