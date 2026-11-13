@@ -3,6 +3,8 @@
 // is said in the report, never dropped silently. Pure.
 
 const slug = (s: unknown) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'finding';
+// A finding's identity across chapters: where it is and what it says.
+export const findingKey = (f: any) => `${f.path ?? ''}|${f.line ?? ''}|${f.title.toLowerCase()}`;
 const BLOCKING = new Set(['critical', 'important']);
 
 /**
@@ -10,20 +12,23 @@ const BLOCKING = new Set(['critical', 'important']);
  * The findings file's shape (see findings.ts), and the warnings to show.
  */
 export function mergeReview({ map, chapters }: { map: any, chapters: { result: { findings: any[], verified: string } | null, error?: string | null }[] }) {
-  const seen = new Set<string>();
+  const seen = new Map<string, Record<string, any>>();
   const ids = new Set<string>();
   const findings: Record<string, any>[] = [];
   const tour = map.chapters.map((chapter: any, i: number) => {
     const done = chapters[i];
     const mine: string[] = [];
     for (const f of done?.result?.findings ?? []) {
-      const key = `${f.path ?? ''}|${f.line ?? ''}|${f.title.toLowerCase()}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
+      const key = findingKey(f);
+      const kept = seen.get(key);
+      // The copy that was reproduced (ADR 0010) may be the one dropped: what it found is kept.
+      if (kept) { if (f.verification && !kept.verification) kept.verification = f.verification; continue; }
       let id = f.id ?? slug(f.title);
       for (let n = 2; ids.has(id); n += 1) id = `${f.id ?? slug(f.title)}-${n}`;
       ids.add(id);
-      findings.push({ ...f, id });
+      const entry = { ...f, id };
+      seen.set(key, entry);
+      findings.push(entry);
       mine.push(id);
     }
     const note = done?.result ? (done.result.verified ? `\n\nVerified: ${done.result.verified}` : '') : `\n\nThis chapter could not be reviewed (${done?.error ?? 'no answer'}): read it yourself.`;

@@ -5,7 +5,9 @@ Status: accepted, 2026-11-13. Extends ADR 0009; it lifts nothing of it.
 Decision: a finding about what a user sees or does (`proof: runtime`, critical or important) is reproduced in a
 real browser inside the **same disposable runner**, and the reproduction keeps **evidence**: a screenshot, the
 console and page errors, the requests that failed, and a trace. Each chapter's reviewer asks for it for its own
-findings, so the evidence arrives with the chapter, not in one stage after all of them.
+findings, so the evidence arrives with the chapter, not in one stage after all of them: a chapter's
+reproductions start the moment its review ends, while the others are still being read. The chapters share the
+budget of ADR 0009 (a few per review, two runners at a time, a finding another chapter took is not run twice).
 
 Driver: `agent-browser` (Apache-2.0), one command per step. The agent reaches it through one narrow `browse`
 tool the bot serves next to `run` and `write_file`: open a URL, click, fill, wait, then capture. No script and

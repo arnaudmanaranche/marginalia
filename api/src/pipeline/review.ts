@@ -11,7 +11,7 @@ import { teamRunExtras } from '../team-claude.ts';
 import { withTeamDeny } from '../team-plugin.ts';
 import { readContext } from '../context-store.ts';
 import { projectContextPrompt } from '../context-prompt.ts';
-import { verifyFindings } from './verify.ts';
+import { reviewVerifier } from './verify.ts';
 import { REVIEW_SYSTEM, chapterPrompt, mapPrompt, parseChapter, parseMap } from './review-prompts.ts';
 
 // Chapters reviewed side by side, at most this many at once.
@@ -46,25 +46,34 @@ export async function stagedReview({ mr, run, outputPath, stack = null, settings
   const catalog = await assembleCatalog(DATA_DIR);
   const team = await teamRunExtras(DATA_DIR);
   const lens = { system: [REVIEW_SYSTEM, lensPrompt(catalog.skills)].filter(Boolean).join('\n\n'), tools: [...STAGE_READ_TOOLS, 'Skill'], settings: withTeamDeny(settings, { deny: [...team.deny, ...catalog.deny] }), extraArgs: [...team.args, ...catalog.args] };
-  const chapters = await mapLimit(map.chapters, CONCURRENCY, async (chapter, i) => {
+  // Each chapter's blocking findings about behaviour are reproduced as soon as it is reviewed, while the
+  // other chapters are still being read (ADR 0009, 0010).
+  const verify = reviewVerifier({ run, mr, recipe: approved?.context.verification ?? null, context: text, settings });
+  const reviewed = await mapLimit(map.chapters, CONCURRENCY, async (chapter, i) => {
     await run.begin(ids[i]);
     try {
       const result = await agentStage({ run, stage: ids[i], prompt: chapterPrompt({ context: text, map, chapter, index: i, checklist }), ...lens, cwd, parse: parseChapter });
       await run.found(ids[i], result.findings ?? []);
       await run.end(ids[i]);
-      return { result };
+      const verifying = verify({ after: ids[i], chapter: map.chapters[i], findings: result.findings ?? [] }).catch(() => ({ findings: result.findings ?? [], warnings: [] as string[] }));
+      return { result, verifying };
     } catch (err) {
       await run.end(ids[i], 'failed');
       run.step(`This chapter could not be reviewed: ${String(err.message).slice(0, 200)}`, { stage: ids[i] });
-      return { result: null, error: String(err.message).slice(0, 200) };
+      return { result: null, error: String(err.message).slice(0, 200), verifying: null };
     }
   });
+  const verifiedWarnings = new Set<string>();
+  const chapters = await Promise.all(reviewed.map(async (c: any) => {
+    if (!c.verifying) return c;
+    const v = await c.verifying;
+    v.warnings.forEach((w: string) => verifiedWarnings.add(w));
+    return { ...c, result: { ...c.result, findings: v.findings } };
+  }));
   if (chapters.every((c) => !c.result)) throw new Error(`No chapter could be reviewed: ${chapters[0].error}`);
 
   const merged = mergeReview({ map, chapters });
-  // The blocking findings about behaviour are tried against the project, when it opted in (ADR 0009).
-  const verified = await verifyFindings({ run, mr, findings: merged.data.findings, tour: merged.data.tour, recipe: approved?.context.verification ?? null, context: text, after: ids.at(-1), settings });
   await run.stage('report');
-  const data = { ...merged.data, findings: verified.findings };
-  return { content: renderReview({ title: mr.title, iid: mr.iid, branch: mr.source_branch }, data), findingsRaw: JSON.stringify(data), warnings: [...merged.warnings, ...verified.warnings] };
+  const data = merged.data;
+  return { content: renderReview({ title: mr.title, iid: mr.iid, branch: mr.source_branch }, data), findingsRaw: JSON.stringify(data), warnings: [...merged.warnings, ...verifiedWarnings] };
 }

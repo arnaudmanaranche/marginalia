@@ -81,8 +81,8 @@ test('a blocking finding about behaviour is reproduced by a stage that has only 
   await approve(recipe);
   await writeFile(process.env.FAKE_CLAUDE_LOG, '');
   const { trace, shape, out } = await review();
-  assert.deepEqual(trace.stages.map((s) => `${s.id}:${s.state}`), ['preflight:skipped', 'checkout:skipped', 'context:done', 'map:done', 'chapter-1:done', 'chapter-2:done', 'verify-1:done', 'report:done']);
-  assert.match(trace.stages[6].label, /Reproduce: The total can go below zero/);
+  assert.deepEqual(trace.stages.map((s) => `${s.id}:${s.state}`), ['preflight:skipped', 'checkout:skipped', 'context:done', 'map:done', 'chapter-1:done', 'verify-1:done', 'chapter-2:done', 'report:done']);
+  assert.match(trace.stages[5].label, /Reproduce: The total can go below zero/);
   assert.equal(verdictOf(shape).status, 'reproduced');
   assert.match(verdictOf(shape).evidence, /-50/);
   assert.equal(shape.verdict, 'REQUEST_CHANGES');
