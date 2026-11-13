@@ -1,5 +1,5 @@
 import { useContext } from 'react';
-import { ExternalLink, RefreshCw, Send } from 'lucide-react';
+import { ExternalLink, Send } from 'lucide-react';
 import type { Risk, ReviewItem } from '../lib/api';
 import { cn, timeAgo } from '../lib/utils';
 import { RiskBadge } from './RiskBadge';
@@ -7,6 +7,7 @@ import { VerdictBadge } from './VerdictBadge';
 import { Button } from './ui/Button';
 import { Chip } from './ds/Chip';
 import { Spinner } from './ds/Spinner';
+import { RerunButton } from './RerunButton';
 import { LinkContext, Linked } from '../lib/links';
 import { ticketUrl } from '../lib/tickets';
 import { criticalPathRoute } from '../lib/hashRoute';
@@ -72,12 +73,7 @@ export function ReaderHeader({ item, risk, criticalPaths = [], showSubmit, draft
             {sending ? <Spinner className="size-3.5" /> : <Send className="size-3.5" />}{item?.kind === 'comments' ? 'Send replies' : 'Submit review'}{draftCount > 0 ? ` (${draftCount})` : ''}
           </Button>
         )}
-        {/* Busy only while a run is going; locked for another reason (an earlier version on screen), it says why. */}
-        {item?.tracked && item.kind !== 'retro' && (
-          <Button disabled={locked} onClick={onRerun} aria-label={item.kind === 'comments' ? 'Re-run triage' : 'Re-run review'} title={reviewing ? 'A run is in progress' : locked ? 'Go back to the latest version to run it again' : item.kind === 'comments' ? 'Triage the reviewer comments again on the current head of the MR' : item.kind === 'own' ? 'Review your work again on its current head' : 'Run the review again on the current head of the MR'} className="px-2.5">
-            {reviewing ? <Spinner className="size-4" /> : <RefreshCw className="size-4" />}
-          </Button>
-        )}
+        {item?.tracked && item.kind !== 'retro' && <RerunButton item={item} locked={locked} reviewing={reviewing} onRerun={onRerun} />}
         {item?.webUrl && (
           <a href={item.webUrl} target="_blank" rel="noreferrer" aria-label="Open in GitLab" title="Open in GitLab" className="touch-target inline-flex items-center justify-center rounded-lg border border-line bg-surface px-2.5 py-1.5 text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800">
             <ExternalLink className="size-4" />
