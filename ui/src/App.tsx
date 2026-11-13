@@ -20,6 +20,7 @@ const loadReader = () => import('./components/ReviewReader');
 const ReviewReader = lazy(() => loadReader().then((m) => ({ default: m.ReviewReader })));
 import { CommandPalette } from './components/CommandPalette';
 import { TipLayer } from './components/ds/TipLayer';
+import { Crashed } from './components/Crashed';
 import { SettingsPage } from './components/SettingsPage';
 import { ApprovalsView } from './components/ApprovalsPage';
 import { APPROVALS_ROUTE, useApprovals } from './lib/approvalsApi';
@@ -183,6 +184,8 @@ export function App() {
       <LinkContext.Provider value={links}>
       <div className="flex">
         <main className="min-w-0 flex-1">
+      {/* A screen that fails to render says so in its place; the bar and the tabs stay. */}
+      <Crashed resetKey={slug}>
       {slug === SETTINGS_ROUTE ? (
         <SettingsPage settings={data?.settings ?? null} defaults={data?.settingsDefaults ?? null} projects={projects ?? []} nextPollAt={data?.status?.nextPollAt ?? null} />
       ) : slug === APPROVALS_ROUTE ? (
@@ -204,6 +207,7 @@ export function App() {
           filter={several ? <ProjectFilter options={filterOptions(projects)} value={filter} onChange={setProjectFilter} /> : undefined}
         />
       )}
+      </Crashed>
         </main>
       </div>
       </LinkContext.Provider>
