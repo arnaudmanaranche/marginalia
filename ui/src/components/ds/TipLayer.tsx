@@ -16,10 +16,12 @@ export function TipLayer() {
     let timer = 0;
     let leaving = 0;
     let current: HTMLElement | null = null;
+    let visible = false;
     const hide = () => {
       clearTimeout(timer);
       clearTimeout(leaving);
       current = null;
+      visible = false;
       setTip(null);
     };
     const hideSoon = () => {
@@ -29,10 +31,13 @@ export function TipLayer() {
     };
     const show = (el: HTMLElement, delay: number) => {
       clearTimeout(timer);
+      // A leave still pending belongs to the control left: it must not hide this one.
+      clearTimeout(leaving);
       current = el;
       timer = window.setTimeout(() => {
         const text = el.dataset.tip;
         if (!text || !el.isConnected) return;
+        visible = true;
         const r = el.getBoundingClientRect();
         // Below the control, unless it sits too low on screen.
         const below = r.bottom + 40 < window.innerHeight;
@@ -44,11 +49,14 @@ export function TipLayer() {
       // On the tip itself, or back on its control: it stays.
       if (e.target instanceof Element && e.target.closest('[data-tip-layer]')) return clearTimeout(leaving);
       const el = target(e);
-      if (el === current) return clearTimeout(leaving);
-      if (el) {
+      if (el && el === current) {
         clearTimeout(leaving);
-        show(el, DELAY_MS);
-      } else if (current) hideSoon();
+        // Back on it before its tip came: the wait starts again.
+        if (!visible) show(el, DELAY_MS);
+        return;
+      }
+      if (el) show(el, DELAY_MS);
+      else if (current) hideSoon();
     };
     const onFocus = (e: FocusEvent) => {
       const el = target(e);
