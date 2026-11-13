@@ -27,7 +27,10 @@ Five sections, the same for every project:
   command from the repository root. `hosts`: the only hosts it must reach (a package registry,
   a staging API), nothing else. `notes`: environment variables to set to fake values, a seeded
   database, ports. A person approves these commands, so never invent one, never put a secret in
-  one, and leave the whole section out when the repo does not say.
+  one, and leave the whole section out when the repo does not say. For a project with a user
+  interface, `browser`: the localhost `url` the `run` step serves it at (from the same docs or
+  configuration, port included) and, when the repo names one, a `ready` path that answers once it
+  is up; leave `browser` out when the repo does not say where it is served.
 
 ## How
 

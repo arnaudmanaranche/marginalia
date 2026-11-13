@@ -86,6 +86,14 @@ processes and time, and no network unless an egress proxy is configured (ADR 000
 only a step of the **recipe** a person approved with the project context, plus arguments, never
 chained; `write_file` only creates new files.
 
+**Browser evidence** (ADR 0010). When the recipe has a `browser` (the URL the `run` step serves the project
+at), the verifying agent also has a `browse` tool: one browser step per call (`open` on localhost or a recipe
+host, `snapshot`, `click`, `fill`, `press`, `wait`, `evidence`), driven by `agent-browser` in the same runner.
+`evidence` keeps a screenshot, the console, page errors and failed requests in the data directory
+(`evidence/<run>-<stage>/`); the finding's `verification.artifacts` points at them and the studio shows the
+picture and links the logs, served by `GET /api/evidence/{id}/{name}`. It needs the browser runner image
+(`deploy/runner/Dockerfile.browser`). Evidence is shown, never posted to GitLab by itself.
+
 Each finding then carries `verification`: `reproduced`, `not_reproduced` (kept, flagged: a person
 decides), `inconclusive` (the run failed or timed out) or `skipped` with the reason (no runner
 image, no recipe, the daily budget reached, over the limit). A verification never fails the review.
