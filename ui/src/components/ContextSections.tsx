@@ -1,6 +1,6 @@
 import { useContext, useEffect, useRef, useState } from 'react';
 import { cn } from '../lib/utils';
-import { LinkContext } from '../lib/links';
+import { LinkContext, repoUrl } from '../lib/links';
 import { ticketPage } from '../lib/tickets';
 import type { ContextCriticalPath, ContextItem, ContextSource, ContextTerm, ProjectContext } from '../lib/contextApi';
 
@@ -8,9 +8,9 @@ import type { ContextCriticalPath, ContextItem, ContextSource, ContextTerm, Proj
 // built and what it does. Every item says where it was learned, so a person can check it.
 
 function Sources({ sources }: { sources: ContextSource[] }) {
-  const { tickets } = useContext(LinkContext);
-  // A ticket opens on the tracker when one is set; a URL is a link already.
-  const href = (s: ContextSource) => (/^https?:\/\//.test(s.ref) ? s.ref : s.kind === 'ticket' ? ticketPage(tickets ?? null, s.ref) : null);
+  const ctx = useContext(LinkContext);
+  // A ticket opens on the tracker when one is set, a file in the repository at the commit learned; a URL is a link already.
+  const href = (s: ContextSource) => (/^https?:\/\//.test(s.ref) ? s.ref : s.kind === 'ticket' ? ticketPage(ctx.tickets ?? null, s.ref) : s.kind === 'file' ? repoUrl(ctx, s.ref) : null);
   return (
     <p className="mt-1 text-xs text-fg-muted [overflow-wrap:anywhere]">
       From{' '}
@@ -18,7 +18,7 @@ function Sources({ sources }: { sources: ContextSource[] }) {
         <span key={`${s.kind}:${s.ref}`}>
           {i > 0 && ' · '}
           {href(s)
-            ? <a href={href(s)!} target="_blank" rel="noreferrer" className="underline decoration-line-strong underline-offset-2 hover:text-fg">{s.kind === 'ticket' ? <code className="font-mono">{s.ref}</code> : s.kind}</a>
+            ? <a href={href(s)!} target="_blank" rel="noreferrer" className="underline decoration-line-strong underline-offset-2 hover:text-fg">{s.kind === 'ticket' || s.kind === 'file' ? <code className="font-mono">{s.ref}</code> : s.kind}</a>
             : <span><span className="sr-only">{s.kind}: </span><code className="font-mono">{s.ref}</code></span>}
         </span>
       ))}
@@ -26,10 +26,17 @@ function Sources({ sources }: { sources: ContextSource[] }) {
   );
 }
 
-// Paths and test files are code; known weak spots are words (`plain`).
-const Where = ({ label, items, plain = false }: { label: string; items?: string[]; plain?: boolean }) => (items?.length
-  ? <p className="mt-1 text-xs text-fg-muted [overflow-wrap:anywhere]">{label}: {plain ? items.join('; ') : items.map((w, i) => <span key={w}>{i > 0 && ', '}<code className="font-mono">{w}</code></span>)}</p>
-  : null);
+// Paths and test files are code, opening in the repository at the commit learned; known weak spots are words (`plain`).
+function Where({ label, items, plain = false }: { label: string; items?: string[]; plain?: boolean }) {
+  const ctx = useContext(LinkContext);
+  if (!items?.length) return null;
+  const code = (w: string) => {
+    const url = repoUrl(ctx, w);
+    const text = <code className="font-mono">{w}</code>;
+    return url ? <a href={url} target="_blank" rel="noreferrer" className="underline decoration-line-strong underline-offset-2 hover:text-fg">{text}</a> : text;
+  };
+  return <p className="mt-1 text-xs text-fg-muted [overflow-wrap:anywhere]">{label}: {plain ? items.join('; ') : items.map((w, i) => <span key={w}>{i > 0 && ', '}{code(w)}</span>)}</p>;
+}
 
 function Section({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
   return (

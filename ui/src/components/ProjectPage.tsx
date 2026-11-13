@@ -1,4 +1,7 @@
+import { useContext } from 'react';
 import { BookOpen, Check, RefreshCw } from 'lucide-react';
+import { LinkContext, commitUrl } from '../lib/links';
+import { useReviews } from '../lib/useReviews';
 import type { ContextState, StoredContext } from '../lib/contextApi';
 import { useContextActions, useProjectContext } from '../lib/contextApi';
 import { toast } from '../lib/toast';
@@ -9,15 +12,17 @@ import { Button } from './ui/Button';
 import { Spinner } from './ds/Spinner';
 
 const day = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : '');
-const learned = (s: StoredContext) => `Learned at ${s.commit.slice(0, 8)} on ${day(s.learnedAt)}`;
 const approvedLine = (s: StoredContext) => `approved by ${s.approvedBy ?? 'someone'} on ${day(s.approvedAt)}`;
 
 // One project's context: what the factory learned, which version reviews use, and the two
 // decisions a person makes about it (approve the draft, learn again). Reviews never use a draft.
-export function ProjectPage({ state, error, onRetry, busy, onApprove, onLearn, focusPath = null }: {
-  state: ContextState | null; error: string | null; onRetry: () => void; focusPath?: string | null;
+// `repo`: the project's address on GitLab, when known: paths and the commit learned link to it.
+export function ProjectPage({ state, error, onRetry, busy, onApprove, onLearn, focusPath = null, repo = null }: {
+  state: ContextState | null; error: string | null; onRetry: () => void; focusPath?: string | null; repo?: string | null;
   busy: 'approve' | 'learn' | null; onApprove: () => void; onLearn: () => void;
 }) {
+  // Ticket links come from the app; the repository ones from this project, at the commit learned.
+  const links = useContext(LinkContext);
   if (error && !state) {
     return (
       <div className="mx-auto max-w-5xl px-6 py-8">
@@ -43,7 +48,7 @@ export function ProjectPage({ state, error, onRetry, busy, onApprove, onLearn, f
             {state.draft ? <Badge tone="warning">Draft to approve</Badge> : state.approved ? <Badge tone="success">Approved</Badge> : <Badge>Not learned yet</Badge>}
           </div>
           <p className="mt-1 text-sm text-fg-muted">
-            {shown ? `${learned(shown)}${shown.state === 'approved' ? `, ${approvedLine(shown)}` : ''}.` : 'What the factory knows about this project: its words, its stack, its features and what breaks the most.'}
+            {shown ? <>Learned at {repo ? <a href={commitUrl(repo, shown.commit)} target="_blank" rel="noreferrer" className="font-mono underline decoration-line-strong underline-offset-2 hover:text-fg">{shown.commit.slice(0, 8)}</a> : <span className="font-mono">{shown.commit.slice(0, 8)}</span>} on {day(shown.learnedAt)}{shown.state === 'approved' ? `, ${approvedLine(shown)}` : ''}.</> : 'What the factory knows about this project: its words, its stack, its features and what breaks the most.'}
           </p>
           {state.draft && state.approved && (
             <p className="mt-1 text-sm text-fg-muted">Reviews use the version {approvedLine(state.approved)} until you approve this draft.</p>
@@ -62,7 +67,11 @@ export function ProjectPage({ state, error, onRetry, busy, onApprove, onLearn, f
           </Button>
         </div>
       </div>
-      {shown ? <ContextSections context={shown.context} focusPath={focusPath} /> : (
+      {shown ? (
+        <LinkContext.Provider value={{ ...links, projectUrl: repo, branch: shown.commit }}>
+          <ContextSections context={shown.context} focusPath={focusPath} />
+        </LinkContext.Provider>
+      ) : (
         <div className="mt-16 flex flex-col items-center gap-2 text-center text-fg-muted">
           <BookOpen className="size-8" aria-hidden />
           Nothing learned yet. Learning reads the repository, the tracker, the docs and the chat, and costs about what a review does.
@@ -76,11 +85,12 @@ export function ProjectPage({ state, error, onRetry, busy, onApprove, onLearn, f
 // `focusPath`: the critical path a link pointed at (a review's "Touches" chip).
 export function ProjectView({ projectKey, focusPath = null }: { projectKey: string; focusPath?: string | null }) {
   const { state, error, retry } = useProjectContext(projectKey);
+  const repo = useReviews().data?.projects?.find((p) => p.key === projectKey)?.url ?? null;
   const { approve, learn } = useContextActions(projectKey);
   const fail = (what: string) => (err: Error) => toast.error(`${what}: ${err.message}`);
   return (
     <ProjectPage
-      state={state} error={error} onRetry={retry} focusPath={focusPath}
+      state={state} error={error} onRetry={retry} focusPath={focusPath} repo={repo}
       busy={approve.isPending ? 'approve' : learn.isPending ? 'learn' : null}
       onApprove={() => approve.mutate(undefined, { onSuccess: () => toast.success('Approved: reviews use this context now'), onError: fail('Could not approve') })}
       onLearn={() => learn.mutate(undefined, { onSuccess: () => toast.success('Learning the project: it shows in the jobs'), onError: fail('Could not start learning') })}

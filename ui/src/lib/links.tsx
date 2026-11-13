@@ -117,3 +117,14 @@ export function linkifyCode(text: string, ctx: LinkContextValue): string | null 
 export function Linked({ text }: { text: string }) {
   return <>{linkify(text, useContext(LinkContext))}</>;
 }
+
+// A path of the repository at `ctx.branch` (a commit or a branch; the default branch when none): a file
+// opens as a file, a folder as a folder. Null for a pattern (`*`) or a project without an address.
+export function repoUrl(ctx: LinkContextValue, path: string): string | null {
+  const clean = path.replace(/\/+$/, '');
+  if (!ctx.projectUrl || !clean || /[*?]/.test(clean)) return null;
+  const kind = /\.\w+$/.test(clean.split('/').pop()!) ? 'blob' : 'tree';
+  return `${ctx.projectUrl}/-/${kind}/${encodeURIComponent(ctx.branch ?? 'HEAD')}/${clean.split('/').map(encodeURIComponent).join('/')}`;
+}
+
+export const commitUrl = (projectUrl: string, sha: string) => `${projectUrl}/-/commit/${sha}`;
