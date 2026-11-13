@@ -31,6 +31,7 @@ import { ReviewMissing, ReviewSkeleton } from './components/ReviewSkeleton';
 import { SETTINGS_ROUTE, parseHash } from './lib/hashRoute';
 import { LinkContext } from './lib/links';
 import { ticketLinks } from './lib/tickets';
+import { palettePages } from './lib/palettePages';
 
 const EMPTY_POSTED = {};
 // `#/settings` is the settings page, not a review.
@@ -146,6 +147,7 @@ export function App() {
   const projects = data?.projects;
   const several = hasSeveralProjects(projects);
   const approvalCount = useApprovals().data?.proposals.length ?? 0;
+  const pages = useMemo(() => palettePages(projects ?? []), [projects]);
   const filter = activeFilter(projectFilter, projects);
   const shown = useMemo(() => filterByProject(items, filter, projects), [items, filter, projects]);
   // The Home tab counts what waits on you in every project, whatever the filter hides.
@@ -171,7 +173,7 @@ export function App() {
     <LazyMotion features={loadMotionFeatures} strict>
       <Toaster position="bottom-right" theme={theme} richColors />
       <header className="sticky top-0 z-40 bg-canvas">
-        <StatusBar status={data?.status ?? null} connection={data ? 'ok' : error ? 'unreachable' : 'connecting'} settingsActive={slug === SETTINGS_ROUTE} approvalsActive={slug === APPROVALS_ROUTE} approvals={approvalCount} onApprovals={() => go(APPROVALS_ROUTE)} onOpenPalette={() => setPalette(true)} onHome={() => go(null)} onSettings={() => go(SETTINGS_ROUTE)} />
+        <StatusBar status={data?.status ?? null} connection={data ? 'ok' : error ? 'unreachable' : 'connecting'} settingsActive={slug === SETTINGS_ROUTE || Boolean(contextKeyOf(slug))} approvalsActive={slug === APPROVALS_ROUTE} approvals={approvalCount} onApprovals={() => go(APPROVALS_ROUTE)} onOpenPalette={() => setPalette(true)} onHome={() => go(null)} onSettings={() => go(SETTINGS_ROUTE)} />
         <TabStrip
           tabs={tabItems}
           activeSlug={slug}
@@ -183,7 +185,7 @@ export function App() {
           onClose={close}
         />
       </header>
-      <CommandPalette open={palette} setOpen={setPalette} items={items} onSelect={go} />
+      <CommandPalette open={palette} setOpen={setPalette} items={items} pages={pages} onSelect={go} />
 
       <LinkContext.Provider value={links}>
       <div className="flex">
