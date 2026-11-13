@@ -10,6 +10,7 @@ import { DATA_DIR, DOCKER_BIN, VERIFY_EGRESS_NETWORK, VERIFY_EGRESS_PROXY, VERIF
 import { todayBudget } from '../budget-today.ts';
 import { verifyLimits } from '../verify-limits.ts';
 import { agentStage, mapLimit } from './agent-stage.ts';
+import { evidenceFolder, evidenceId, readEvidence } from '../verify-evidence.ts';
 import { copyWorktree } from './verify-copy.ts';
 import { VERIFY_SYSTEM, parseVerification, verifyPrompt } from './verify-prompts.ts';
 import { selectForVerify, skipReason } from './verify-select.ts';
@@ -50,12 +51,15 @@ export async function verifyFindings({ run, mr, findings, tour, recipe, context,
       if (!copy) throw new Error('the project could not be copied for the runner');
       const config = join(copy.dir, '..', 'runner.json');
       const egress = VERIFY_EGRESS_NETWORK && VERIFY_EGRESS_PROXY ? { network: VERIFY_EGRESS_NETWORK, proxy: VERIFY_EGRESS_PROXY } : null;
-      await writeFile(config, JSON.stringify({ image: VERIFY_RUNNER_IMAGE, workdir: copy.dir, limits, steps: recipe.steps, hosts: recipe.hosts ?? [], forbidden: [DATA_DIR, join(homedir(), '.claude'), mr.project.repoPath, mr.project.worktreeDir], docker: DOCKER_BIN, egress, work: VERIFY_WORK_VOLUME && VERIFY_WORK_DIR ? { volume: VERIFY_WORK_VOLUME, subpath: relative(VERIFY_WORK_DIR, copy.dir) } : null }));
+      await writeFile(config, JSON.stringify({ image: VERIFY_RUNNER_IMAGE, workdir: copy.dir, limits, steps: recipe.steps, hosts: recipe.hosts ?? [], browser: recipe.browser ?? null, evidenceDir: recipe.browser ? evidenceFolder(DATA_DIR, evidenceId(run.id, stage)) : null, forbidden: [DATA_DIR, join(homedir(), '.claude'), mr.project.repoPath, mr.project.worktreeDir], docker: DOCKER_BIN, egress, work: VERIFY_WORK_VOLUME && VERIFY_WORK_DIR ? { volume: VERIFY_WORK_VOLUME, subpath: relative(VERIFY_WORK_DIR, copy.dir) } : null }));
       const mcp = JSON.stringify({ mcpServers: { verify: { command: process.execPath, args: [SERVER, config] } } });
       const chapter = tour.find((c: any) => (c.findings ?? []).includes(finding.id));
       const value = await agentStage({ run, stage, prompt: verifyPrompt({ context, finding, chapter, recipe }), system: VERIFY_SYSTEM, tools: STAGE_VERIFY_TOOLS, cwd: mr.project.worktreeDir, settings, extraArgs: ['--mcp-config', mcp, '--strict-mcp-config'], parse: parseVerification });
       await run.end(stage);
-      return value;
+      // What the browser kept (ADR 0010) is attached to the finding whatever the agent answered.
+      const artifacts = recipe.browser ? await readEvidence(evidenceFolder(DATA_DIR, evidenceId(run.id, stage)), evidenceId(run.id, stage)) : [];
+      const { artifacts: _claimed, ...answer } = value as any;
+      return artifacts.length ? { ...answer, artifacts } : answer;
     } catch (err) {
       await run.end(stage, 'failed');
       run.step(`This verification could not run: ${String(err.message).slice(0, 200)}`, { stage });

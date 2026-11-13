@@ -38,3 +38,15 @@ test('the browse argv goes to docker without a shell, and the home is the runner
   assert.ok(args.includes('/home/runner:rw,size=512m,uid=1001,gid=1002'));
   assert.ok(args.includes('--cap-drop') && args.includes('--read-only') && args.includes('none'));
 });
+
+test('evidence: only the names the browse tool writes are served, refs are plain API paths', async () => {
+  const { evidenceType, evidenceRef, evidenceId } = await import('../dist/src/verify-evidence.js');
+  const { normalizeVerification } = await import('../dist/src/finding-proof.js');
+  assert.equal(evidenceType('screenshot.png'), 'image/png');
+  assert.equal(evidenceType('console.txt'), 'text/plain; charset=utf-8');
+  for (const bad of ['../x.png', 'a.html', 'a.svg', 'evidence.json', 'x/y.png']) assert.equal(evidenceType(bad), null);
+  const id = evidenceId('run 1', 'verify-1');
+  const ok = { kind: 'screenshot', name: 'screenshot.png', ref: evidenceRef(id, 'screenshot.png') };
+  const v = normalizeVerification({ status: 'reproduced', evidence: 'x', artifacts: [ok, { kind: 'log', name: 'a.txt', ref: 'https://evil.com/a.txt' }, { kind: 'script', name: 'a.js', ref: ok.ref }] });
+  assert.deepEqual(v.artifacts, [ok]);
+});

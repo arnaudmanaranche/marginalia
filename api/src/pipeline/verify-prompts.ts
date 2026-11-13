@@ -15,6 +15,7 @@ export function recipeText(recipe: any) {
     steps,
     recipe.hosts?.length ? `The network reaches only: ${recipe.hosts.join(', ')}.` : 'There is no network: anything that needs to download will fail.',
     recipe.notes ? `Notes: ${recipe.notes}` : '',
+    recipe.browser ? `The project can be looked at in a browser with the \`browse\` tool: it starts the project with the recipe's run step and the page is at ${recipe.browser.url}${recipe.browser.ready ? ` (ready when ${recipe.browser.ready} answers)` : ''}. Use it for a claim about what a user sees or does: open the page, snapshot it, click and fill like the user, and when the page shows the claim true or false call \`evidence\` once (it keeps a screenshot, the console, page errors and failed requests for the person) and quote the decisive line in your evidence.` : '',
   ].filter(Boolean).join('\n');
 }
 

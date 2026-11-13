@@ -18,5 +18,16 @@ export function normalizeVerification(raw: any) {
   if (!REPRODUCTIONS.includes(status)) return undefined;
   const evidence = str(raw.evidence ?? raw.output ?? raw.reason, 4000);
   const command = str(raw.command, 600);
-  return { status, evidence: evidence ? clip(plain(evidence), 1500) : null, command: command ? clip(command, 300) : null };
+  const artifacts = normalizeArtifacts(raw.artifacts);
+  return { status, evidence: evidence ? clip(plain(evidence), 1500) : null, command: command ? clip(command, 300) : null, ...(artifacts && { artifacts }) };
+}
+
+// The evidence a browser reproduction kept (ADR 0010): a kind, a plain file name and the API path it is
+// served at. Anything else is dropped, so a stored review cannot point the studio anywhere else.
+const KINDS = ['screenshot', 'log', 'trace'];
+export function normalizeArtifacts(raw: unknown) {
+  if (!Array.isArray(raw)) return undefined;
+  const list = raw.filter((a: any) => KINDS.includes(a?.kind) && /^[\w.-]{1,80}$/.test(a?.name) && /^\/api\/evidence\/[\w-]{1,120}\/[\w.-]{1,80}$/.test(a?.ref))
+    .slice(0, 8).map((a: any) => ({ kind: a.kind, name: a.name, ref: a.ref }));
+  return list.length ? list : undefined;
 }
