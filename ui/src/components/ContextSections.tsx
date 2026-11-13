@@ -10,7 +10,7 @@ import type { ContextCriticalPath, ContextItem, ContextSource, ContextTerm, Proj
 function Sources({ sources }: { sources: ContextSource[] }) {
   const ctx = useContext(LinkContext);
   // A ticket opens on the tracker when one is set, a file in the repository at the commit learned; a URL is a link already.
-  const href = (s: ContextSource) => (/^https?:\/\//.test(s.ref) ? s.ref : s.kind === 'ticket' ? ticketPage(ctx.tickets ?? null, s.ref) : s.kind === 'file' ? repoUrl(ctx, s.ref) : null);
+  const href = (s: ContextSource) => (/^https?:\/\//.test(s.ref) ? s.ref : s.kind === 'ticket' ? ticketPage(ctx.tickets ?? null, s.ref) : s.kind === 'file' ? repoUrl(ctx, s.ref, true) : null);
   return (
     <p className="mt-1 text-xs text-fg-muted [overflow-wrap:anywhere]">
       From{' '}

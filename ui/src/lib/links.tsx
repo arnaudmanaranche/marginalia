@@ -119,11 +119,13 @@ export function Linked({ text }: { text: string }) {
 }
 
 // A path of the repository at `ctx.branch` (a commit or a branch; the default branch when none): a file
-// opens as a file, a folder as a folder. Null for a pattern (`*`) or a project without an address.
-export function repoUrl(ctx: LinkContextValue, path: string): string | null {
+// opens as a file, a folder as a folder. `file` says which when the caller knows (a source of kind
+// `file`, a `Dockerfile`); otherwise a name with an extension is a file. Null for a pattern (`*`) or
+// a project without an address.
+export function repoUrl(ctx: LinkContextValue, path: string, file?: boolean): string | null {
   const clean = path.replace(/\/+$/, '');
   if (!ctx.projectUrl || !clean || /[*?]/.test(clean)) return null;
-  const kind = /\.\w+$/.test(clean.split('/').pop()!) ? 'blob' : 'tree';
+  const kind = file ?? /\.\w+$/.test(clean.split('/').pop()!) ? 'blob' : 'tree';
   return `${ctx.projectUrl}/-/${kind}/${encodeURIComponent(ctx.branch ?? 'HEAD')}/${clean.split('/').map(encodeURIComponent).join('/')}`;
 }
 
