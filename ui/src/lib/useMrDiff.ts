@@ -49,7 +49,8 @@ export function usePrefetchMrDiffs(slug: string | null, stopIds: string[], refre
   const ids = stopIds.join('\n');
   useEffect(() => {
     if (!slug) return;
-    for (const id of stopIds) void client.prefetchQuery(diffQuery(slug, id, refreshKey, scope));
+    // A diff already cached (the stop just left) is not fetched again: it changes with `refreshKey` only.
+    for (const id of stopIds) void client.prefetchQuery({ ...diffQuery(slug, id, refreshKey, scope), staleTime: Infinity });
   }, [client, slug, ids, refreshKey, scope.from, scope.version]); // eslint-disable-line react-hooks/exhaustive-deps
 }
 
