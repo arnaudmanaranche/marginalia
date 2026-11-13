@@ -117,7 +117,7 @@ export function ReviewReader({ item, review: currentReview, reviewError, onRetry
         item={item}
         risk={shape?.risk ?? null}
         criticalPaths={shape?.criticalPaths ?? []}
-        showSubmit={(mayPost || author) && Boolean(item?.tracked) && !awaiting && (draftCount > 0 || item?.kind === 'review')}
+        showSubmit={(mayPost || author) && Boolean(item?.tracked) && !awaiting && !held && (draftCount > 0 || item?.kind === 'review')}
         draftCount={draftCount}
         sending={sending}
         reviewing={rerunning || Boolean(live)}
