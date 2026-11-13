@@ -7,6 +7,9 @@ import { useModalFocus } from '../lib/useModalFocus';
 import { VerdictBadge } from './VerdictBadge';
 import type { PalettePage } from '../lib/palettePages';
 
+// What kind of work a review is, when it is not a review of someone's MR: one MR can have both (GLOSSARY).
+const KIND: Partial<Record<ReviewItem['kind'], string>> = { own: 'Own review', comments: 'Triage' };
+
 const ITEM = 'touch-target flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-sm aria-selected:bg-sunken';
 const GROUP = '[&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:pb-1 [&_[cmdk-group-heading]]:pt-2 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:text-fg-muted';
 
@@ -51,7 +54,7 @@ export function CommandPalette({ open, setOpen, items, pages, onSelect }: { open
           {items.map((it) => (
             <Command.Item
               key={it.slug}
-              value={`${it.iid ?? ''} ${it.title} ${it.branch ?? ''} ${it.author ?? ''} ${it.slug}`}
+              value={`${it.iid ?? ''} ${it.title} ${it.branch ?? ''} ${it.author ?? ''} ${KIND[it.kind] ?? ''} ${it.slug}`}
               onSelect={() => {
                 onSelect(it.slug);
                 setOpen(false);
@@ -60,6 +63,7 @@ export function CommandPalette({ open, setOpen, items, pages, onSelect }: { open
             >
               <FileText className="size-4 shrink-0 text-fg-subtle" />
               <span className="min-w-0 flex-1 truncate">{it.iid ? <span className="mr-2 font-mono text-xs text-fg-muted">!{it.iid}</span> : null}{it.title}</span>
+              {KIND[it.kind] && <span className="shrink-0 rounded-md bg-sunken px-1.5 text-xs text-fg-muted">{KIND[it.kind]}</span>}
               {it.kind !== 'comments' && <VerdictBadge verdict={it.verdict} />}
             </Command.Item>
           ))}
