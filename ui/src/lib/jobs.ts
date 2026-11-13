@@ -57,14 +57,18 @@ const repeats = (last: Job, job: Job) =>
 
 // Repeats back to back are one line with a count (and how many MRs they ran on): they would hide the
 // runs that did something. The latest of each is the one shown.
-export function collapseRepeats(jobs: Job[]): { job: Job; repeats: number; targets: number }[] {
-  const out: { job: Job; repeats: number; slugs: Set<string> }[] = [];
+// `targets`: how many different things they ran on; `allMrs`: whether each was an MR (a branch without
+// one, or a project being learned, is not).
+export function collapseRepeats(jobs: Job[]): { job: Job; repeats: number; targets: number; allMrs: boolean }[] {
+  const out: { job: Job; repeats: number; slugs: Set<string>; allMrs: boolean }[] = [];
   for (const job of jobs) {
     const last = out.at(-1);
+    const mr = job.iid !== null && job.what !== 'understand';
     if (last && repeats(last.job, job)) {
       last.repeats++;
       last.slugs.add(job.slug);
-    } else out.push({ job, repeats: 1, slugs: new Set([job.slug]) });
+      last.allMrs &&= mr;
+    } else out.push({ job, repeats: 1, slugs: new Set([job.slug]), allMrs: mr });
   }
-  return out.map(({ job, repeats: n, slugs }) => ({ job, repeats: n, targets: slugs.size }));
+  return out.map(({ job, repeats: n, slugs, allMrs }) => ({ job, repeats: n, targets: slugs.size, allMrs }));
 }

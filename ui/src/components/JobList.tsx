@@ -26,9 +26,9 @@ export function JobList({ jobs, showProject, onOpen }: { jobs: Job[]; showProjec
           <h2 className="mb-1.5 text-xs font-medium text-fg-muted">{day}</h2>
           <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface">
             {/* Repeats fold over every job, then the filter picks lines: a filter never joins runs that were apart. */}
-            {rows.map(({ job, repeats, targets }) => {
+            {rows.map(({ job, repeats, targets, allMrs }) => {
               const id = `${job.slug}:${job.id}`;
-              return <JobRow key={id} job={job} repeats={repeats} targets={targets} showProject={showProject} fresh={isFresh(job)} open={open === id} onToggle={() => setOpen((o) => (o === id ? null : id))} onOpen={onOpen} />;
+              return <JobRow key={id} job={job} repeats={repeats} targets={targets} targetWord={allMrs ? 'MRs' : 'places'} showProject={showProject} fresh={isFresh(job)} open={open === id} onToggle={() => setOpen((o) => (o === id ? null : id))} onOpen={onOpen} />;
             })}
           </ul>
         </section>
