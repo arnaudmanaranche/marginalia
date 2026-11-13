@@ -39,9 +39,11 @@ export function runArgs(input: RunnerInput) {
   const dir = assertSafeMount(input.workdir, forbidden);
   const mount = work ? ['--mount', `type=volume,src=${work.volume},dst=${WORK},volume-subpath=${work.subpath}`] : ['-v', `${dir}:${WORK}:rw`];
   const net = egress && hosts.length ? ['--network', egress.network, ...proxyEnv(egress.proxy)] : ['--network', 'none'];
+  // The tools that keep a socket in the home (a browser driver) want it owned by whoever runs them.
+  const [uid, gid] = user.split(':');
   return [
     'run', '-d', '--rm', '--name', name,
-    '--read-only', '--tmpfs', '/tmp:rw,size=1g', '--tmpfs', '/home/runner:rw,size=512m',
+    '--read-only', '--tmpfs', '/tmp:rw,size=1g', '--tmpfs', `/home/runner:rw,size=512m,uid=${uid},gid=${gid}`,
     '--cap-drop', 'ALL', '--security-opt', 'no-new-privileges:true',
     '--user', user,
     '--cpus', String(limits.cpus), '--memory', `${limits.memoryMb}m`, '--memory-swap', `${limits.memoryMb}m`, '--pids-limit', String(limits.pids),
@@ -57,6 +59,10 @@ function proxyEnv(proxy: string) {
 }
 
 export const execArgs = (name: string, command: string) => ['exec', '-w', WORK, name, 'sh', '-c', command];
+// One program with its own arguments, no shell: what the browse tool runs (ADR 0010).
+export const execArgv = (name: string, argv: string[]) => ['exec', '-w', WORK, name, ...argv];
+// The same, detached: the project's own `run` step, left running while the browser looks at it.
+export const startArgs = (name: string, command: string) => ['exec', '-d', '-w', WORK, name, 'sh', '-c', command];
 export const removeArgs = (name: string) => ['rm', '-f', name];
 
 // A command may be a step of the approved recipe, with arguments after it (a file or a test name to
