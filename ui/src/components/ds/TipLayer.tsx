@@ -3,7 +3,10 @@ import { useEffect, useState } from 'react';
 // The design system's tooltip for icon-only controls: any element with `data-tip` shows it after a short
 // pause on hover or keyboard focus, in the studio's style, instead of the browser's slow native title.
 // One layer for the whole page (event delegation); the control keeps its aria-label for screen readers.
+// The tip stays while the pointer moves onto it (WCAG 1.4.13), and Escape dismisses it.
 const DELAY_MS = 300;
+// Time to cross the gap from the control to the tip.
+const LEAVE_MS = 120;
 
 interface Shown { text: string; x: number; y: number; below: boolean }
 
@@ -11,11 +14,18 @@ export function TipLayer() {
   const [tip, setTip] = useState<Shown | null>(null);
   useEffect(() => {
     let timer = 0;
+    let leaving = 0;
     let current: HTMLElement | null = null;
     const hide = () => {
       clearTimeout(timer);
+      clearTimeout(leaving);
       current = null;
       setTip(null);
+    };
+    const hideSoon = () => {
+      clearTimeout(timer);
+      clearTimeout(leaving);
+      leaving = window.setTimeout(hide, LEAVE_MS);
     };
     const show = (el: HTMLElement, delay: number) => {
       clearTimeout(timer);
@@ -31,10 +41,14 @@ export function TipLayer() {
     };
     const target = (e: Event) => (e.target instanceof Element ? e.target.closest<HTMLElement>('[data-tip]') : null);
     const onOver = (e: PointerEvent) => {
+      // On the tip itself, or back on its control: it stays.
+      if (e.target instanceof Element && e.target.closest('[data-tip-layer]')) return clearTimeout(leaving);
       const el = target(e);
-      if (el === current) return;
-      if (el) show(el, DELAY_MS);
-      else hide();
+      if (el === current) return clearTimeout(leaving);
+      if (el) {
+        clearTimeout(leaving);
+        show(el, DELAY_MS);
+      } else if (current) hideSoon();
     };
     const onFocus = (e: FocusEvent) => {
       const el = target(e);
@@ -59,7 +73,7 @@ export function TipLayer() {
   }, []);
   if (!tip) return null;
   return (
-    <div role="tooltip" className={`pointer-events-none fixed z-[60] max-w-72 -translate-x-1/2 rounded-md border border-line bg-surface px-2 py-1 text-xs shadow-lg shadow-black/20 motion-safe:animate-[fade-in_120ms_ease-out] ${tip.below ? '' : '-translate-y-full'}`} style={{ left: tip.x, top: tip.y }}>
+    <div role="tooltip" data-tip-layer className={`fixed z-[60] max-w-72 -translate-x-1/2 rounded-md border border-line bg-surface px-2 py-1 text-xs shadow-lg shadow-black/20 motion-safe:animate-[fade-in_120ms_ease-out] ${tip.below ? '' : '-translate-y-full'}`} style={{ left: tip.x, top: tip.y }}>
       {tip.text}
     </div>
   );
