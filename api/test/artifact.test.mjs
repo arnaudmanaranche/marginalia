@@ -105,3 +105,12 @@ test('a review without a stored time is dated by its file, and a missing one by 
   assert.equal(await art.writtenAt(), at.getTime());
   assert.equal(await artifactAt(await reviews(), 'none').writtenAt(), null);
 });
+
+test('a half-written stored shape does not stop a review from being dated', async () => {
+  const art = artifactAt(await reviews(), 'broken');
+  await writeFile(art.markdownPath, 'a review');
+  await writeFile(art.markdownPath.replace(/\.md$/, '.findings.json'), '{"generatedAt": "2026-');
+  const at = new Date('2026-10-01T10:00:00Z');
+  await utimes(art.markdownPath, at, at);
+  assert.equal(await art.writtenAt(), at.getTime());
+});

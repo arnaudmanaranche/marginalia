@@ -15,7 +15,8 @@ export const versionTime = (id: string) => id.replace(/^(\d{4}-\d{2}-\d{2}T\d{2}
 export async function writtenAt(markdownPath: string, shapePath: string) {
   const file = await stat(markdownPath).catch(() => null);
   if (!file) return null;
-  const stored = await readFile(shapePath, 'utf8').then((t) => Date.parse(JSON.parse(t).generatedAt), () => NaN);
+  // A missing, unreadable or half-written shape tells nothing: the file's time is used.
+  const stored = await readFile(shapePath, 'utf8').then((t) => { try { return Date.parse(JSON.parse(t).generatedAt); } catch { return NaN; } }, () => NaN);
   return Number.isFinite(stored) ? stored : file.mtimeMs;
 }
 
