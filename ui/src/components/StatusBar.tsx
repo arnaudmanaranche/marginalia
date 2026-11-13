@@ -58,7 +58,7 @@ export function StatusBar({ status, connection, shownSince = null, streaming = t
           onClick={onApprovals}
           aria-label={approvals > 0 ? `Approvals, ${approvals} waiting` : 'Approvals'}
           aria-current={approvalsActive ? 'page' : undefined}
-          title="Approvals: proposed comments waiting for your decision"
+          data-tip="Approvals: proposed comments waiting for your decision"
           className={`touch-target relative rounded-lg border p-2 hover:border-zinc-300 dark:hover:border-zinc-700 ${approvalsActive ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-line bg-surface text-fg-muted'}`}
         >
           <Inbox className="size-4" />
@@ -68,7 +68,7 @@ export function StatusBar({ status, connection, shownSince = null, streaming = t
           onClick={onSettings}
           aria-label="Settings"
           aria-current={settingsActive ? 'page' : undefined}
-          title="Settings"
+          data-tip="Settings"
           className={`touch-target rounded-lg border p-2 hover:border-zinc-300 dark:hover:border-zinc-700 ${settingsActive ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-line bg-surface text-fg-muted'}`}
         >
           <Settings className="size-4" />

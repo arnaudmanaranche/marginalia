@@ -36,7 +36,7 @@ export function RerunButton({ item, locked, reviewing, onRerun }: { item: Review
       onClick={() => (armed ? (setArmed(false), onRerun()) : setArmed(true))}
       onBlur={() => setArmed(false)}
       aria-label={armed ? `${verb}${cost ? `, ${cost}` : ''}: click again to start` : item.kind === 'comments' ? 'Re-run triage' : 'Re-run review'}
-      title={reviewing ? 'A run is in progress' : locked ? 'Go back to the latest version to run it again' : armed ? 'Click again to start the run' : `${what}: a paid run`}
+      data-tip={reviewing ? 'A run is in progress' : locked ? 'Go back to the latest version to run it again' : armed ? 'Click again to start the run' : `${what}: a paid run`}
       className="px-2.5"
     >
       {reviewing ? <Spinner className="size-4" /> : <RefreshCw className="size-4" />}

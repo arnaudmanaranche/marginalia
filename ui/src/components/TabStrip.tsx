@@ -90,7 +90,7 @@ export function TabStrip({ tabs, activeSlug, botBySlug, isUnread, isPosted, home
                 <button
                   onClick={() => onClose(item.slug)}
                   aria-label={`Close ${item.title}`}
-                  title="Close tab (Ctrl+W or ⌥W)"
+                  data-tip="Close tab (Ctrl+W or ⌥W)"
                   className={cn('touch-target hidden size-6 items-center justify-center rounded hover:bg-zinc-300/70 group-hover:flex dark:hover:bg-zinc-700', active && !isPosted(item) && !unread && 'flex')}
                 >
                   <X className="size-3.5" />

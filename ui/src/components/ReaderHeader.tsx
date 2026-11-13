@@ -75,7 +75,7 @@ export function ReaderHeader({ item, risk, criticalPaths = [], showSubmit, draft
         )}
         {item?.tracked && item.kind !== 'retro' && <RerunButton item={item} locked={locked} reviewing={reviewing} onRerun={onRerun} />}
         {item?.webUrl && (
-          <a href={item.webUrl} target="_blank" rel="noreferrer" aria-label="Open in GitLab" title="Open in GitLab" className="touch-target inline-flex items-center justify-center rounded-lg border border-line bg-surface px-2.5 py-1.5 text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800">
+          <a href={item.webUrl} target="_blank" rel="noreferrer" aria-label="Open in GitLab" data-tip="Open in GitLab" className="touch-target inline-flex items-center justify-center rounded-lg border border-line bg-surface px-2.5 py-1.5 text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800">
             <ExternalLink className="size-4" />
           </a>
         )}

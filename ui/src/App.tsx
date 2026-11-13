@@ -19,6 +19,7 @@ import { ProjectFilter } from './components/ProjectFilter';
 const loadReader = () => import('./components/ReviewReader');
 const ReviewReader = lazy(() => loadReader().then((m) => ({ default: m.ReviewReader })));
 import { CommandPalette } from './components/CommandPalette';
+import { TipLayer } from './components/ds/TipLayer';
 import { SettingsPage } from './components/SettingsPage';
 import { ApprovalsView } from './components/ApprovalsPage';
 import { APPROVALS_ROUTE, useApprovals } from './lib/approvalsApi';
@@ -176,6 +177,7 @@ export function App() {
           onClose={close}
         />
       </header>
+      <TipLayer />
       <CommandPalette open={palette} setOpen={setPalette} items={items} pages={pages} onSelect={go} />
 
       <LinkContext.Provider value={links}>

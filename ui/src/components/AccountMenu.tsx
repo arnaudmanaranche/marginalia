@@ -12,7 +12,7 @@ export function AccountMenu() {
       <button
         onClick={() => void signOut()}
         aria-label={`Sign out ${me.username}`}
-        title="Sign out"
+        data-tip="Sign out"
         className="touch-target rounded-lg border border-line bg-surface p-2 text-fg-muted hover:border-zinc-300 dark:hover:border-zinc-700"
       >
         <LogOut className="size-4" />
