@@ -12,7 +12,9 @@ export function useNeedsYou(items: ReviewItem[]) {
   const proposals = useApprovals().data?.proposals.length ?? 0;
   const drafts = useContexts().filter(waitsForApproval);
   const reviews = reviewsNeedingYou(items);
-  const failures = jobs ? failuresNeedingYou(jobs) : [];
+  // A review whose first run failed is already listed (and says it failed): one line, counted once.
+  const listed = new Set(reviews.map((r) => r.item.slug));
+  const failures = jobs ? failuresNeedingYou(jobs).filter((j) => !listed.has(j.slug)) : [];
   const count = reviews.length + failures.length + drafts.length + (proposals > 0 ? 1 : 0);
   return { jobs, proposals, drafts, reviews, failures, count };
 }
