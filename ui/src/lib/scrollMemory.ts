@@ -90,6 +90,7 @@ export function restore(top: number, wait = GROW_MS) {
     window.removeEventListener('wheel', stop);
     window.removeEventListener('touchstart', stop);
     window.removeEventListener('keydown', stop);
+    window.removeEventListener('pointerdown', stop);
   };
   const tick = () => {
     window.scrollTo({ top, behavior: 'instant' });
@@ -99,6 +100,8 @@ export function restore(top: number, wait = GROW_MS) {
   window.addEventListener('wheel', stop, { passive: true });
   window.addEventListener('touchstart', stop, { passive: true });
   window.addEventListener('keydown', stop);
+  // Grabbing the scrollbar is a person scrolling too.
+  window.addEventListener('pointerdown', stop, { passive: true });
   cancelRestore = stop;
   frame = requestAnimationFrame(tick);
 }
