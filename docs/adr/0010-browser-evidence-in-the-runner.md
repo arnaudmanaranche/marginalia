@@ -1,6 +1,6 @@
 # 0010. Browser evidence, driven by agent-browser in the same runner
 
-Status: proposed, 2026-11-13. Extends ADR 0009; it lifts nothing of it.
+Status: accepted, 2026-11-13. Extends ADR 0009; it lifts nothing of it.
 
 Decision: a finding about what a user sees or does (`proof: runtime`, critical or important) is reproduced in a
 real browser inside the **same disposable runner**, and the reproduction keeps **evidence**: a screenshot, the
