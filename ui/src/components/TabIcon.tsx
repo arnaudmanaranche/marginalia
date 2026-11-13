@@ -13,7 +13,7 @@ export function TabIcon({ item, bot }: { item: ReviewItem; bot: BotState }) {
   if (bot === 'reviewing') return <StatusMark state="running" label="Review in progress" />;
   if (bot === 'failed') return <StatusMark state="failed" label="Review failed" />;
   if (bot === 'pending') return <StatusMark state="pending" label="Waiting for review" />;
-  if (bot === 'held') return <StatusMark state="skipped" label="Waits for tomorrow: today's budget is spent. Review again to run it now." />;
+  if (bot === 'held') return <StatusMark state="skipped" label={`Waits for tomorrow: today's budget is spent. ${item.kind === 'comments' ? 'Triage again (↻) triages it now.' : 'Run again (↻) runs it now.'}`} />;
   const { Icon, cls } = VERDICT_ICON[item.verdict ?? 'OTHER'];
   return <Icon className={cn('size-4 shrink-0', cls)} aria-hidden />;
 }

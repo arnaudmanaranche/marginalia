@@ -86,7 +86,7 @@ export function StopChat({ slug, stopId }: { slug: string; stopId: string }) {
               type="button"
               aria-label={speech.listening ? 'Stop dictation' : 'Dictate your question'}
               aria-pressed={speech.listening}
-              title={speech.listening ? 'Stop dictation' : 'Dictate (the browser sends the audio to its speech service)'}
+              data-tip={speech.listening ? 'Stop dictation' : 'Dictate (the browser sends the audio to its speech service)'}
               disabled={pending !== null}
               onClick={() => {
                 if (speech.listening) speech.stop();
@@ -103,6 +103,7 @@ export function StopChat({ slug, stopId }: { slug: string; stopId: string }) {
           <button
             type="submit"
             aria-label="Send"
+            data-tip="Ask (Enter)"
             disabled={!text.trim() || pending !== null}
             className="grid size-7 shrink-0 place-items-center rounded-lg bg-primary text-white transition-opacity hover:bg-primary-hover disabled:bg-zinc-200 disabled:text-zinc-400 dark:disabled:bg-zinc-800 dark:disabled:text-zinc-500"
           >

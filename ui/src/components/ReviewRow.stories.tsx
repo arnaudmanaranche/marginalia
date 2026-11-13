@@ -13,6 +13,8 @@ type Story = StoryObj<typeof meta>;
 
 export const Read: Story = {};
 export const Unread: Story = { args: { unread: true } };
+export const Queued: Story = { args: { item: { ...review, awaiting: 'queued' } } };
+export const HeldByBudget: Story = { args: { item: { ...review, awaiting: 'queued' }, held: true } };
 export const List: Story = {
   render: () => (
     <>

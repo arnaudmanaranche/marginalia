@@ -43,7 +43,9 @@ export interface ReviewItem {
   contract: { source: ShapeSource; warnings: string[] };
   jira: { key: string; priority: string | null; rank: number | null } | null;
   // Picked up by the bot, no report yet: the first review is to come (or running), or it failed.
-  awaiting?: 'queued' | 'failed';
+  awaiting?: 'queued' | 'failed' | 'held';
+  // Why the last poll did not review it (GLOSSARY: Hold), while it does not.
+  hold?: string | null;
   // Why the last run failed, while the MR is marked failed.
   failure?: Failure | null;
 }
@@ -293,6 +295,12 @@ export const startDoctorFix = (slug: string, runId: string) => postRun(slug, run
 export const pushDoctorFix = (slug: string, runId: string) => postRun(slug, runId, 'doctor/fix/push');
 
 export const startDoctor = (slug: string, runId: string) => postRun(slug, runId, 'doctor');
+
+// Nudges the bot to poll now, as the menu bar's "Poll now" does.
+export async function pollNow(): Promise<void> {
+  const res = await fetch('/api/poll', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? `HTTP ${res.status}`);
+}
 
 export interface LiveRun { project?: string; iid: number; title: string; startedAt: string; progress?: string[]; runId?: string; slug?: string; stages?: LiveStage[]; stepCount?: number }
 

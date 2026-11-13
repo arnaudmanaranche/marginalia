@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useContext, useEffect, useMemo, useState } from 'react';
 import { toast } from '../lib/toast';
 import { useMutation } from '@tanstack/react-query';
 import { submitReview, type BotStatus, type PostedInfo, type ReviewAction, type ReviewContent, type ReviewItem } from '../lib/api';
@@ -32,17 +32,19 @@ import { RunPanel } from './RunPanel';
 import { TourSkeleton } from './ReviewSkeleton';
 import { Button } from './ui/Button';
 
-export function ReviewReader({ item, review: currentReview, reviewError, onRetry, projectUrl, allowPosting, showFullDiff, live, posted, reload }: { showFullDiff: boolean; item: ReviewItem | undefined; review: ReviewContent | null; reviewError: string | null; onRetry: () => void; projectUrl: string | null; allowPosting: boolean; live: BotStatus['current']; posted: Record<string, PostedInfo>; reload: () => void }) {
+export function ReviewReader({ item, review: currentReview, reviewError, onRetry, projectUrl, allowPosting, showFullDiff, live, finding = null, version = null, posted, reload }: { showFullDiff: boolean; finding?: string | null; version?: string | null; item: ReviewItem | undefined; review: ReviewContent | null; reviewError: string | null; onRetry: () => void; projectUrl: string | null; allowPosting: boolean; live: BotStatus['current']; posted: Record<string, PostedInfo>; reload: () => void }) {
   const [submitting, setSubmitting] = useState(false);
-  const { versionId, setVersionId, oldReview, previous } = useReviewVersions(item?.slug, item?.reviewedAt);
+  const { versionId, setVersionId, oldReview, previous, previousLoading, historyKnown } = useReviewVersions(item?.slug, item?.reviewedAt, version);
   const viewingOld = versionId !== null;
   const content = viewingOld ? oldReview : currentReview;
-  const markdown = content?.markdown ?? null;
+  const markdown = historyKnown ? content?.markdown ?? null : null;
   const shape = content?.shape ?? null;
   const { rerunning, rerun } = useRerun(item, live);
   // What the bot is doing on this MR, while it does it: a passing activity log, gone once the run
   // ends. Only a run that failed stays, for what to do about it.
-  const awaiting = item?.awaiting ?? null;
+  // A held MR (GLOSSARY: Hold) has no run coming: it says why instead of a run panel.
+  const held = item?.awaiting === 'held';
+  const awaiting = item?.awaiting === 'held' ? null : item?.awaiting ?? null;
   const runs = useRuns(item?.tracked ? item.slug : null);
   const flagged = runToFlag(runs, item?.reviewedAt);
   const runPanel = item && (awaiting || live || flagged)
@@ -62,7 +64,8 @@ export function ReviewReader({ item, review: currentReview, reviewError, onRetry
   const allThreads = useThreads(author && onLatest && item ? item.slug : null, item?.reviewedAt, 'all');
   const openThreads = useMemo(() => reviewerThreads(allThreads), [allThreads]);
   const postCtx = useMemo(() => ({ allowPosting: mayPost, slug: item?.slug ?? null, iid: item?.tracked ? item.iid : null, posted, reload, locked, findings: shape?.findings ?? [] }), [mayPost, item?.slug, item?.tracked, item?.iid, posted, reload, locked, shape]);
-  const linkCtx = useMemo(() => ({ projectUrl, branch: item?.branch ?? null, mrWebUrl: item?.webUrl ?? null }), [projectUrl, item?.branch, item?.webUrl]);
+  const { tickets } = useContext(LinkContext);
+  const linkCtx = useMemo(() => ({ projectUrl, branch: item?.branch ?? null, mrWebUrl: item?.webUrl ?? null, tickets }), [projectUrl, item?.branch, item?.webUrl, tickets]);
   const meta = useMemo(() => extractMeta(markdown ?? ''), [markdown]);
   // The tour skips the chapters with nothing to act on (stops.ts): a clean chapter is not a stop.
   const stops = useMemo(() => stopsToRead(shape?.tour ?? [], shape?.findings ?? []), [shape]);
@@ -76,6 +79,13 @@ export function ReviewReader({ item, review: currentReview, reviewError, onRetry
     return findings.filter((f) => !f.comment || !text.includes(squash(f.comment)));
   }, [markdown, shape, stops]);
   // What others already raised folds those findings up; read only when there are some to post.
+  // A link to a finding no chapter holds (`?finding=`) opens the findings card on it, in view and lit up.
+  const looseFocus = useMemo(() => (finding && loose.some((f) => f.id === finding) ? { id: finding, source: 'diff' as const, nonce: 1 } : null), [finding, loose]);
+  useEffect(() => {
+    if (!looseFocus) return;
+    const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    requestAnimationFrame(() => document.getElementById('findings')?.scrollIntoView({ block: 'start', behavior: still ? 'auto' : 'smooth' }));
+  }, [looseFocus]);
   const threads = useThreads(!author && item?.tracked && item.iid && !viewingOld && loose.length ? item.slug : null, item?.reviewedAt);
   const { intro: rawIntro, sections } = useMemo(() => splitSections(meta.markdown), [meta]);
   // The report's own `# title` repeats the header above it: said once.
@@ -107,7 +117,7 @@ export function ReviewReader({ item, review: currentReview, reviewError, onRetry
         item={item}
         risk={shape?.risk ?? null}
         criticalPaths={shape?.criticalPaths ?? []}
-        showSubmit={(mayPost || author) && Boolean(item?.tracked) && !awaiting && (draftCount > 0 || item?.kind === 'review')}
+        showSubmit={(mayPost || author) && Boolean(item?.tracked) && !awaiting && !held && (draftCount > 0 || item?.kind === 'review')}
         draftCount={draftCount}
         sending={sending}
         reviewing={rerunning || Boolean(live)}
@@ -117,7 +127,8 @@ export function ReviewReader({ item, review: currentReview, reviewError, onRetry
       />
       <ReaderNotices viewingOld={viewingOld} onBackToLatest={() => setVersionId(null)} />
       {runPanel}
-      {markdown === null && !awaiting && (reviewError && !viewingOld ? (
+      {held && <p role="status" className="rounded-lg border border-line p-4 text-sm text-fg-muted">Not reviewed by this poll: {item?.hold}</p>}
+      {markdown === null && !awaiting && !held && (reviewError && !viewingOld ? (
         <div role="alert" className="flex flex-wrap items-center gap-3 rounded-lg border border-line p-4 text-sm text-fg-muted">
           <span>This review could not be loaded ({reviewError}).</span>
           <Button size="sm" onClick={onRetry}>Try again</Button>
@@ -128,8 +139,9 @@ export function ReviewReader({ item, review: currentReview, reviewError, onRetry
       {markdown !== null && !viewingOld && previous && (
         <ReportDelta previous={previous.review.shape?.findings ?? []} at={previous.at} current={shape?.findings ?? []} onRead={() => setVersionId(previous.id)} />
       )}
+      {markdown !== null && !viewingOld && !previous && previousLoading && <div aria-hidden className="mb-4 h-[42px] shrink-0 animate-pulse rounded-xl border border-line motion-reduce:animate-none" />}
       {markdown !== null && hasTour && (
-          <ReviewTour showFullDiff={showFullDiff} stops={stops} findings={shape!.findings} diff={item?.tracked && item.iid ? { slug: item.slug, version: versionId, key: item.reviewedAt } : null} post={item?.tracked && item.iid && !viewingOld ? { slug: item.slug, iid: item.iid, allowPosting: mayPost, locked, posted, reload } : null} onReport={setVersionId} />
+          <ReviewTour showFullDiff={showFullDiff} target={finding} stops={stops} findings={shape!.findings} diff={item?.tracked && item.iid ? { slug: item.slug, version: versionId, key: item.reviewedAt } : null} post={item?.tracked && item.iid && !viewingOld ? { slug: item.slug, iid: item.iid, allowPosting: mayPost, locked, posted, reload } : null} onReport={setVersionId} />
       )}
       {markdown !== null && answering && item?.iid && (
         <ReplyBoard slug={item.slug} iid={item.iid} threads={allThreads} open={openThreads} replies={shape?.replies ?? []} posted={posted} fixes={fixes} locked={locked} reload={reload} refreshKey={item.reviewedAt} showFullDiff={showFullDiff} onReport={setVersionId} />
@@ -141,8 +153,8 @@ export function ReviewReader({ item, review: currentReview, reviewError, onRetry
         <article className="mx-auto w-full min-w-0 max-w-[80ch] space-y-3">
             {!hasTour && !answering && <ReportSections intro={intro} sections={ordered} firstSupporting={firstSupporting} isOpen={isOpen} setOverrides={setOverrides} />}
             {!author && item?.tracked && item.iid && !viewingOld && loose.length > 0 && (
-              <CollapsibleCard id="findings" title={`${hasTour ? 'Other findings' : 'Findings to comment on'} (${loose.length})`} open={overrides.findings ?? true} onOpenChange={(o) => setOverrides((prev) => ({ ...prev, findings: o }))}>
-                <FindingsPanel findings={loose} threads={threads} slug={item.slug} iid={item.iid} allowPosting={mayPost} locked={locked} posted={posted} reload={reload} />
+              <CollapsibleCard id="findings" title={`${hasTour ? 'Other findings' : 'Findings to comment on'} (${loose.length})`} open={looseFocus ? true : overrides.findings ?? true} onOpenChange={(o) => setOverrides((prev) => ({ ...prev, findings: o }))}>
+                <FindingsPanel findings={loose} focus={looseFocus} threads={threads} slug={item.slug} iid={item.iid} allowPosting={mayPost} locked={locked} posted={posted} reload={reload} />
               </CollapsibleCard>
             )}
           </article>

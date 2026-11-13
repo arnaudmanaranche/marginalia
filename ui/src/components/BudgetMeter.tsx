@@ -32,7 +32,7 @@ export function BudgetMeter({ budget, className }: { budget: Budget; className?:
           </div>
         )}
         {budget.over && (
-          <p className="mt-2 text-xs text-fail">Automatic reviews and triages wait until midnight. A mention or "Review again" still runs.</p>
+          <p className="mt-2 text-xs text-fail">Automatic reviews and triages wait until midnight. A mention, or Run again (↻) on a review, still runs.</p>
         )}
         {(budget.byKind.length > 0 || top.length > 0) && (
           <dl className="mt-2 grid gap-x-4 gap-y-1 text-xs sm:grid-cols-2">

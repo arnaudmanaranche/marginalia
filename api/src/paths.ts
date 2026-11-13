@@ -1,4 +1,4 @@
-import { access, stat } from 'node:fs/promises';
+import { access } from 'node:fs/promises';
 import { join } from 'node:path';
 
 export function branchSlug(branch: string) {
@@ -40,13 +40,5 @@ export async function fileExists(path: string) {
     return true;
   } catch {
     return false;
-  }
-}
-
-export async function mtimeOrNull(path: string) {
-  try {
-    return (await stat(path)).mtimeMs;
-  } catch {
-    return null;
   }
 }

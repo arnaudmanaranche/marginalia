@@ -7,8 +7,8 @@ import { commentsEntry, reviewEntry } from './poll-status.ts';
 // `branches` is [{ target, current }]: my branches without an MR (own-branches.ts).
 export async function buildEntries({ project, plan, state, mine, branches = [], previous, deps }: any) {
   const { reviewMrs, myMrs, ownMrs = [] } = plan;
-  // The review/report file's mtime doubles as "last reviewed at", so files
-  // written by hand or before this field existed get a date too.
+  // When each review/report was written doubles as "last reviewed at" (writtenAtOf: the time it
+  // stores, else its file's), so files written by hand or before this field existed get a date too.
   const reviewedAts = await Promise.all(reviewMrs.map((mr: any) => deps.mtime(deps.reviewPath(mr))));
   const triagedAts = await Promise.all(myMrs.map((mr: any) => deps.mtime(deps.commentsPath(mr))));
   const ownedAts = await Promise.all(ownMrs.map((mr: any) => deps.mtime(deps.ownPath(mr))));

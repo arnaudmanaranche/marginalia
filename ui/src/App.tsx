@@ -9,7 +9,7 @@ import { useArrivals } from './lib/arrivals';
 import { useSoundCues } from './lib/useSoundCues';
 import { ALL_PROJECTS, activeFilter, filterByProject, filterOptions, hasSeveralProjects } from './lib/projects';
 import { useMergedPosted } from './lib/pendingPosts';
-import { groupReviews, waitingOnYou } from './lib/dashboard';
+import { useNeedsYou } from './lib/useNeedsYou';
 import { usePersistentState, useOpenTabs } from './lib/layout';
 import { StatusBar } from './components/StatusBar';
 import { TabStrip, type BotState } from './components/TabStrip';
@@ -19,6 +19,8 @@ import { ProjectFilter } from './components/ProjectFilter';
 const loadReader = () => import('./components/ReviewReader');
 const ReviewReader = lazy(() => loadReader().then((m) => ({ default: m.ReviewReader })));
 import { CommandPalette } from './components/CommandPalette';
+import { TipLayer } from './components/ds/TipLayer';
+import { Crashed } from './components/Crashed';
 import { SettingsPage } from './components/SettingsPage';
 import { ApprovalsView } from './components/ApprovalsPage';
 import { APPROVALS_ROUTE, useApprovals } from './lib/approvalsApi';
@@ -28,34 +30,18 @@ import { ProjectView } from './components/ProjectPage';
 import { contextKeyOf } from './lib/contextApi';
 import { StackBoard } from './components/StackBoard';
 import { ReviewMissing, ReviewSkeleton } from './components/ReviewSkeleton';
+import { SETTINGS_ROUTE } from './lib/hashRoute';
+import { useHashRoute } from './lib/useHashRoute';
+import { LinkContext } from './lib/links';
+import { ticketLinks } from './lib/tickets';
+import { palettePages } from './lib/palettePages';
 
 const EMPTY_POSTED = {};
 // `#/settings` is the settings page, not a review.
-const SETTINGS_ROUTE = 'settings';
 // `#/jobs` was the jobs page; Home is the feed now (ADR 0007), so it lands there.
 const JOBS_ROUTE = 'jobs';
-// Reviews older than this are hidden from Home.
-const STALE_DAYS = 30;
 // The animation features load after the first paint; until then `m` components just render.
 const loadMotionFeatures = () => import('./lib/motionFeatures').then((mod) => mod.default);
-
-function useHashSlug() {
-  // A malformed escape (`#/%E0%A4`) makes decodeURIComponent throw: treat it as no review.
-  const read = () => {
-    try {
-      return decodeURIComponent(location.hash.replace(/^#\/?/, '')) || null;
-    } catch {
-      return null;
-    }
-  };
-  const [slug, setSlug] = useState(read);
-  useEffect(() => {
-    const on = () => setSlug(read());
-    window.addEventListener('hashchange', on);
-    return () => window.removeEventListener('hashchange', on);
-  }, []);
-  return slug;
-}
 
 // Which reviews were read, at which version. Opening a review marks it as read; saved here,
 // not inside a state updater.
@@ -100,21 +86,12 @@ function useCloseTabShortcut(slug: string | null, palette: boolean, close: (slug
   });
 }
 
-// What Home lists: the recent reviews, grouped by whose turn it is on GitLab.
-function useHomeGroups(items: ReviewItem[]) {
-  return useMemo(() => {
-    // Old MRs are noise on Home; they stay reachable from the tabs and the palette (⌘K).
-    const fresh = items.filter((i) => Date.now() - new Date(i.reviewedAt).getTime() < STALE_DAYS * 86_400_000);
-    return groupReviews(fresh);
-  }, [items]);
-}
-
 export function App() {
-  useLiveEvents();
-  const { data, error, reload } = useReviews();
+  const streaming = useLiveEvents();
+  const { data, error, updatedAt, reload } = useReviews();
   const [projectFilter, setProjectFilter] = usePersistentState('mr-review-viewer:project-filter', ALL_PROJECTS);
   const posted = useMergedPosted(data?.posted ?? EMPTY_POSTED);
-  const slug = useHashSlug();
+  const { slug, finding, path: focusPath, version } = useHashRoute();
   const [palette, setPalette] = useState(false);
 
   // One persistent toast while the API is unreachable, dismissed once it's back.
@@ -131,11 +108,14 @@ export function App() {
 
 
   const items = useMemo(() => data?.items ?? [], [data]);
-  // A review that came in while the page is open (a poll found a new MR) arrives visibly.
-  const slugs = useMemo(() => (data ? data.items.map((i) => i.slug) : null), [data]);
-  const arrived = useArrivals(slugs);
+  // Ticket keys link to the tracker on every screen; a review adds its own MR's links (ReviewReader).
+  const links = useMemo(() => ({ projectUrl: null, branch: null, mrWebUrl: null, tickets: ticketLinks(data?.jiraBaseUrl ?? null, items) }), [data?.jiraBaseUrl, items]);
+  // A review that came in (a poll found a new MR) or changed (a new report, queued, failed) while the page is open shows it.
+  const entries = useMemo(() => (data ? data.items.map((i) => [i.slug, `${i.reviewedAt}|${i.verdict}|${i.awaiting ?? ''}`] as const) : null), [data]);
+  const fresh = useArrivals(entries);
   useSoundCues(data?.items, data?.status ?? null);
-  const isNew = (i: ReviewItem) => arrived(i.slug);
+  const isNew = (i: ReviewItem) => fresh.arrived(i.slug);
+  const isChanged = (i: ReviewItem) => fresh.changed(i.slug);
   const known = useMemo(() => (data ? new Set(data.items.map((i) => i.slug)) : null), [data]);
   const { tabs: openSlugs, close: closeTab } = useOpenTabs(slug, known);
   const tabItems = openSlugs.map((s) => items.find((i) => i.slug === s)).filter((i): i is ReviewItem => Boolean(i));
@@ -150,6 +130,7 @@ export function App() {
   }, [data]);
   // The bot is reviewing it right now: its row is disabled until the new report is written.
   const isReviewing = (i: ReviewItem) => botBySlug.get(i.slug) === 'reviewing' || liveRunOf(data?.status, i) !== null;
+  const isHeld = (i: ReviewItem) => botBySlug.get(i.slug) === 'held';
   const isPosted = (i: ReviewItem) => Object.keys(posted).some((k) => k.startsWith(`${i.slug}:`));
   const current = items.find((i) => i.slug === slug);
   const stack = current?.stackId ? data?.stacks.find((s) => s.id === current.stackId) : undefined;
@@ -159,15 +140,19 @@ export function App() {
   const projects = data?.projects;
   const several = hasSeveralProjects(projects);
   const approvalCount = useApprovals().data?.proposals.length ?? 0;
+  const pages = useMemo(() => palettePages(projects ?? []), [projects]);
+  const titles = useMemo(() => new Map(items.map((i) => [i.slug, i.title])), [items]);
   const filter = activeFilter(projectFilter, projects);
   const shown = useMemo(() => filterByProject(items, filter, projects), [items, filter, projects]);
   // The Home tab counts what waits on you in every project, whatever the filter hides.
-  const waitingAll = waitingOnYou(useHomeGroups(items));
+  const needsYou = useNeedsYou(items);
+  // The Home tab says a number once it is the whole one.
+  const waitingAll = needsYou.known ? needsYou.count : 0;
 
   const [theme] = useTheme();
   const go = (s: string | null) => {
+    // The new screen starts at the top (useHashRoute): scrolling here would move the one being left.
     location.hash = s ? `#/${s}` : '';
-    window.scrollTo({ top: 0 });
   };
   const close = (s: string) => {
     const next = closeTab(s);
@@ -184,7 +169,7 @@ export function App() {
     <LazyMotion features={loadMotionFeatures} strict>
       <Toaster position="bottom-right" theme={theme} richColors />
       <header className="sticky top-0 z-40 bg-canvas">
-        <StatusBar status={data?.status ?? null} connection={data ? 'ok' : error ? 'unreachable' : 'connecting'} settingsActive={slug === SETTINGS_ROUTE} approvalsActive={slug === APPROVALS_ROUTE} approvals={approvalCount} onApprovals={() => go(APPROVALS_ROUTE)} onOpenPalette={() => setPalette(true)} onHome={() => go(null)} onSettings={() => go(SETTINGS_ROUTE)} />
+        <StatusBar status={data?.status ?? null} connection={error ? 'unreachable' : data ? 'ok' : 'connecting'} shownSince={data ? updatedAt : null} streaming={streaming} settingsActive={slug === SETTINGS_ROUTE || Boolean(contextKeyOf(slug))} approvalsActive={slug === APPROVALS_ROUTE} approvals={approvalCount} onApprovals={() => go(APPROVALS_ROUTE)} onOpenPalette={() => setPalette(true)} onHome={() => go(null)} onSettings={() => go(SETTINGS_ROUTE)} />
         <TabStrip
           tabs={tabItems}
           activeSlug={slug}
@@ -196,33 +181,39 @@ export function App() {
           onClose={close}
         />
       </header>
-      <CommandPalette open={palette} setOpen={setPalette} items={items} onSelect={go} />
+      <TipLayer />
+      <CommandPalette open={palette} setOpen={setPalette} items={items} pages={pages} onSelect={go} />
 
+      <LinkContext.Provider value={links}>
       <div className="flex">
         <main className="min-w-0 flex-1">
+      {/* A screen that fails to render says so in its place; the bar and the tabs stay. */}
+      <Crashed resetKey={slug}>
       {slug === SETTINGS_ROUTE ? (
-        <SettingsPage settings={data?.settings ?? null} defaults={data?.settingsDefaults ?? null} projects={projects ?? []} />
+        <SettingsPage settings={data?.settings ?? null} defaults={data?.settingsDefaults ?? null} projects={projects ?? []} nextPollAt={data?.status?.nextPollAt ?? null} />
       ) : slug === APPROVALS_ROUTE ? (
         <ApprovalsView onOpen={go} />
       ) : contextKeyOf(slug) ? (
-        <ProjectView key={slug} projectKey={contextKeyOf(slug)!} />
+        <ProjectView key={slug} projectKey={contextKeyOf(slug)!} focusPath={focusPath} />
       ) : slug ? (
         <>
         {stack && current && <StackBoard stack={stack} items={items} current={current} isPosted={isPosted} onSelect={go} />}
         {!data ? <ReviewSkeleton /> : !current ? <ReviewMissing /> : (
         <Suspense fallback={<ReviewSkeleton />}>
-        <ReviewReader item={current} review={review} reviewError={reviewError} onRetry={retryReview} projectUrl={data?.projects?.find((p) => p.key === current?.project)?.url ?? data?.projectUrl ?? null} allowPosting={data?.allowPosting ?? false} showFullDiff={data?.settings.showFullDiff ?? true} live={current ? liveRunOf(data?.status, current) : null} posted={posted} reload={reload} />
+        <ReviewReader item={current} review={review} reviewError={reviewError} onRetry={retryReview} projectUrl={data?.projects?.find((p) => p.key === current?.project)?.url ?? data?.projectUrl ?? null} allowPosting={data?.allowPosting ?? false} showFullDiff={data?.settings.showFullDiff ?? true} live={current ? liveRunOf(data?.status, current) : null} finding={finding} version={version} posted={posted} reload={reload} />
         </Suspense>
         )}
         </>
       ) : (
         <HomeFeed
-          loaded={Boolean(data)} items={shown} isUnread={isUnread} isReviewing={isReviewing} isNew={isNew} showProject={several} onOpen={go}
+          loaded={Boolean(data)} items={shown} titles={titles} isUnread={isUnread} isReviewing={isReviewing} isHeld={isHeld} isNew={isNew} isChanged={isChanged} showProject={several} onOpen={go}
           filter={several ? <ProjectFilter options={filterOptions(projects)} value={filter} onChange={setProjectFilter} /> : undefined}
         />
       )}
+      </Crashed>
         </main>
       </div>
+      </LinkContext.Provider>
     </LazyMotion>
     </MotionConfig>
   );

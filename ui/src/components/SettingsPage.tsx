@@ -3,7 +3,8 @@ import { AnimatePresence, m } from 'motion/react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from '../lib/toast';
 import { RotateCcw } from 'lucide-react';
-import { saveSettings, type Settings } from '../lib/api';
+import { pollNow, saveSettings, type Settings } from '../lib/api';
+import { inTime } from '../lib/utils';
 import { keys } from '../lib/queryKeys';
 import { arrive } from '../lib/motion';
 import { AppearanceSettings } from './AppearanceSettings';
@@ -28,8 +29,8 @@ const toList = (v: string) => [...new Set(v.split(/[,\s]+/).filter(Boolean))];
 
 const FIELDS: { key: TextKey; label: string; hint: string; list?: boolean; decimal?: boolean; placeholder?: string }[] = [
   { key: 'pollIntervalMinutes', label: 'Poll every (minutes)', hint: 'How often the bot looks for new or updated MRs. 1 to 1440.' },
-  { key: 'staleAfterDays', label: 'Skip MRs idle for (days)', hint: 'No push or comment for this long and the MR is assumed stale. 1 to 365.' },
-  { key: 'dailyBudgetUsd', label: 'Daily budget (USD)', hint: 'What a day of automatic reviews and triages may cost; past it they wait until midnight. A mention or "Review again" always runs. 0 is no limit.', decimal: true },
+  { key: 'staleAfterDays', label: 'Skip MRs idle for (days)', hint: 'A poll does not review an MR with no push for this long (comments and approvals do not count): also how far back it catches up after a stop. 1 to 365.' },
+  { key: 'dailyBudgetUsd', label: 'Daily budget (USD)', hint: 'What a day of automatic reviews and triages may cost; past it they wait until midnight. A mention, or Run again (↻) on a review, always runs. 0 is no limit.', decimal: true },
   { key: 'allowedTargetBranches', label: 'Target branches', hint: 'Only MRs based on these branches are reviewed. Empty reviews all of them.', list: true, placeholder: 'develop, main' },
   { key: 'excludeAuthors', label: 'Excluded authors', hint: 'GitLab usernames (not emails) whose MRs are never touched. Drafts are always skipped.', list: true, placeholder: 'alice, bob' },
 ];
@@ -49,7 +50,7 @@ function patchOf(draft: Draft) {
 // and the ALLOW_POSTING / ALLOW_PUSH gates stay in .env on purpose.
 type Project = { key: string; kind: 'back' | 'front' | null; gitlabProjectId: string; url: string | null };
 
-export function SettingsPage({ settings, defaults, projects = [] }: { settings: Settings | null; defaults: Settings | null; projects?: Project[] }) {
+export function SettingsPage({ settings, defaults, projects = [], nextPollAt = null }: { settings: Settings | null; defaults: Settings | null; projects?: Project[]; nextPollAt?: string | null }) {
   const [draft, setDraft] = useState<Draft | null>(settings && toDraft(settings));
   const client = useQueryClient();
   const saveMutation = useMutation({
@@ -71,7 +72,14 @@ export function SettingsPage({ settings, defaults, projects = [] }: { settings: 
   const save = async (patch: Parameters<typeof saveSettings>[0], message: string) => {
     try {
       await saveMutation.mutateAsync(patch);
-      toast.success(message, { description: 'Applied by the bot on its next poll.' });
+      // Say when it takes effect, and offer not to wait.
+      // A new poll interval moves the next poll: the old time would be wrong, so it is said without one.
+      const moved = 'pollIntervalMinutes' in patch && patch.pollIntervalMinutes !== settings.pollIntervalMinutes;
+      const when = nextPollAt && !moved ? `, ${inTime(nextPollAt)}` : '';
+      toast.success(message, {
+        description: `Applied on the bot's next poll${when}.`,
+        action: { label: 'Poll now', onClick: () => void pollNow().then(() => toast('Poll queued', { description: 'The bot polls as soon as it is free; the top bar shows it.' }), (err: Error) => toast.error('Could not reach the bot', { description: err.message })) },
+      });
     } catch (err) {
       toast.error('Could not save the settings', { description: (err as Error).message });
     }

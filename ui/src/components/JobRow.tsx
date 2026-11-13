@@ -17,7 +17,7 @@ const TEXT: Record<JobTone, string> = { running: 'text-run', done: 'text-fg-mute
 // One job as a line of a trace: its state, what it ran on, its stages as one bar (each as long as it
 // took), when, how long and what it cost. It opens in place into its waterfall; a failed one says
 // why on the line itself.
-export function JobRow({ job, showProject, open, fresh = false, onToggle, onOpen }: { job: Job; showProject: boolean; open: boolean; fresh?: boolean; onToggle: () => void; onOpen: (route: string) => void }) {
+export function JobRow({ job, showProject, open, fresh = false, repeats = 1, targets = 1, targetWord = 'MRs', onToggle, onOpen }: { job: Job; showProject: boolean; open: boolean; fresh?: boolean; repeats?: number; targets?: number; targetWord?: string; onToggle: () => void; onOpen: (route: string) => void }) {
   const state = stateOf(job);
   const { spans, total } = spansOf(job.stages, job.startedAt, Date.now());
   return (
@@ -27,6 +27,7 @@ export function JobRow({ job, showProject, open, fresh = false, onToggle, onOpen
         <span className="min-w-0">
           <span className="flex items-center gap-2 text-sm font-medium">
             <span className="truncate" title={targetOf(job)}>{targetOf(job)}</span>
+            {repeats > 1 && <span className="shrink-0 rounded-full bg-sunken px-1.5 text-xs tabular-nums text-fg-muted" title={job.outcome === 'failed' ? `Failed ${repeats} times in a row for this reason${targets > 1 ? `, on ${targets} ${targetWord}` : ''}; the latest is shown` : `Skipped ${repeats} times in a row; the latest is shown`}>×{repeats}{targets > 1 ? ` · ${targets} ${targetWord}` : ''}</span>}
             {fresh && <span className="shrink-0 rounded-full bg-run/10 px-1.5 py-px text-[10px] font-medium uppercase tracking-wide text-run">New</span>}
           </span>
           <span className="block truncate text-xs text-fg-muted">

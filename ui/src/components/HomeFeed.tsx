@@ -1,10 +1,11 @@
+import { useMemo } from 'react';
 import { Inbox, Sparkles } from 'lucide-react';
 import type { ReviewItem } from '../lib/api';
-import { APPROVALS_ROUTE, useApprovals } from '../lib/approvalsApi';
-import { contextRoute, useContexts, waitsForApproval } from '../lib/contextApi';
-import { failuresNeedingYou, reviewsNeedingYou, runningNow } from '../lib/feed';
-import { WHAT, targetOf } from '../lib/jobs';
-import { useJobs } from '../lib/useJobs';
+import { APPROVALS_ROUTE } from '../lib/approvalsApi';
+import { contextRoute } from '../lib/contextApi';
+import { runningNow } from '../lib/feed';
+import { WHAT, routeOf, targetOf, withTitles } from '../lib/jobs';
+import { useNeedsYou } from '../lib/useNeedsYou';
 import { useQueue } from '../lib/useQueue';
 import { StatusMark } from './ds/StatusMark';
 import { FeedRow } from './FeedRow';
@@ -18,18 +19,17 @@ const list = 'divide-y divide-line overflow-hidden rounded-xl border border-line
 // Home (ADR 0007): what needs you, what runs now, what happened. Everything waiting on a person comes
 // first in one list; the jobs follow, live, then every job by day.
 // `loaded`: the reviews have arrived. Before that nothing is claimed: no count, a quiet skeleton.
-export function HomeFeed({ loaded, items, isUnread, isReviewing, isNew, showProject, onOpen, filter }: {
-  loaded: boolean; items: ReviewItem[]; isUnread: (i: ReviewItem) => boolean; isReviewing: (i: ReviewItem) => boolean; isNew: (i: ReviewItem) => boolean;
+// `titles`: every review's title by its id, across projects (the jobs listed are not filtered).
+export function HomeFeed({ loaded, items, titles, isUnread, isReviewing, isHeld, isNew, isChanged, showProject, onOpen, filter }: {
+  loaded: boolean; items: ReviewItem[]; titles: ReadonlyMap<string, string>; isUnread: (i: ReviewItem) => boolean; isReviewing: (i: ReviewItem) => boolean; isHeld: (i: ReviewItem) => boolean; isNew: (i: ReviewItem) => boolean; isChanged: (i: ReviewItem) => boolean;
   showProject: boolean; onOpen: (route: string | null) => void; filter?: React.ReactNode;
 }) {
-  const { jobs } = useJobs();
   const queue = useQueue();
-  const proposals = useApprovals().data?.proposals.length ?? 0;
-  const drafts = useContexts().filter(waitsForApproval);
-  const reviews = reviewsNeedingYou(items);
-  const failures = jobs ? failuresNeedingYou(jobs) : [];
+  const { jobs: raw, proposals, drafts, reviews, failures: rawFailures, count, known } = useNeedsYou(items);
+  // Jobs of every project take their MR's title, whatever the project filter shows (`titles`).
+  const jobs = useMemo(() => (raw ? withTitles(raw, titles) : raw), [raw, titles]);
+  const failures = useMemo(() => withTitles(rawFailures, titles), [rawFailures, titles]);
   const running = jobs ? runningNow(jobs) : [];
-  const count = reviews.length + failures.length + drafts.length + (proposals > 0 ? 1 : 0);
   if (!loaded) {
     return (
       <div aria-busy="true" aria-label="Loading Home" className="mx-auto max-w-7xl px-6 py-8">
@@ -40,7 +40,8 @@ export function HomeFeed({ loaded, items, isUnread, isReviewing, isNew, showProj
   }
   return (
     <div className="mx-auto max-w-7xl px-6 py-8">
-      <h1 className="text-3xl font-semibold tracking-tight">{count === 0 ? 'Nothing needs you' : `${count} thing${count > 1 ? 's' : ''} need${count > 1 ? '' : 's'} you`}</h1>
+      {/* Said once every source answered: "Nothing needs you" while some still load would be a false all-clear. */}
+      <h1 className="text-3xl font-semibold tracking-tight">{!known ? <span aria-label="Counting what needs you" className="inline-block h-9 w-64 animate-pulse rounded-lg bg-sunken align-middle motion-reduce:animate-none" /> : count === 0 ? 'Nothing needs you' : `${count} thing${count > 1 ? 's' : ''} need${count > 1 ? '' : 's'} you`}</h1>
       <p className="mt-1 text-fg-muted">{running.length > 0 ? `${running.length} job${running.length > 1 ? 's' : ''} running.` : 'No job running.'}</p>
       {filter}
 
@@ -49,10 +50,10 @@ export function HomeFeed({ loaded, items, isUnread, isReviewing, isNew, showProj
           <h2 id="needs-you" className="mb-2 text-sm font-medium">Needs you</h2>
           <ul className={list}>
             {proposals > 0 && <FeedRow mark={<Inbox className="size-4 text-run" aria-hidden />} title={`${proposals} proposed comment${proposals > 1 ? 's' : ''} to decide`} detail="Add each to your review, edited or not, or dismiss it" onOpen={() => onOpen(APPROVALS_ROUTE)} />}
-            {failures.map((j) => <FeedRow key={j.slug} mark={<StatusMark state="failed" />} title={targetOf(j)} detail={`${j.failure?.title ?? 'Failed'} · ${WHAT[j.what]}`} onOpen={() => onOpen(j.slug)} />)}
+            {failures.map((j) => <FeedRow key={j.slug} mark={<StatusMark state="failed" />} title={targetOf(j)} detail={`${j.failure?.title ?? 'Failed'} · ${WHAT[j.what]}`} onOpen={() => onOpen(routeOf(j))} />)}
             {drafts.map((c) => <FeedRow key={c.project} mark={<Sparkles className="size-4 text-run" aria-hidden />} title={`A new context for ${c.project}`} detail="Read it and approve it: reviews use the approved one" onOpen={() => onOpen(contextRoute(c.project))} />)}
             {/* Say it once: a reason is named on the first row of its run, not repeated on each. */}
-            {reviews.map(({ item, reason }, i) => <ReviewRow key={item.slug} item={item} reason={i === 0 || reviews[i - 1].reason !== reason ? reason : undefined} unread={isUnread(item)} reviewing={isReviewing(item)} arrived={isNew(item)} showProject={showProject} />)}
+            {reviews.map(({ item, reason }, i) => <ReviewRow key={item.slug} item={item} reason={i === 0 || reviews[i - 1].reason !== reason ? reason : undefined} unread={isUnread(item)} reviewing={isReviewing(item)} held={isHeld(item)} arrived={isNew(item)} changed={isChanged(item)} showProject={showProject} />)}
           </ul>
         </section>
       )}

@@ -26,7 +26,7 @@ describe('the queue', () => {
     expect(progressOf(task({ status: 'running', startedAt: at(0) }), 200_000, T0 + 900_000)).toBe(0.95);
     expect(progressOf(task({ status: 'running', startedAt: at(0) }), null, T0)).toBeNull();
   });
-  it('counts what waits, the medians, the totals and what the jobs cost', () => {
+  it('counts what waits, the medians, what ended among the tasks shown and what the jobs cost', () => {
     const view: QueueView = {
       now: at(100), workers: [], totals: { done: 7, failed: 1 }, budget: null,
       tasks: [
@@ -35,7 +35,7 @@ describe('the queue', () => {
         task({ id: 'd', status: 'done', startedAt: at(20), endedAt: at(60), jobs: [{ slug: 'a/c', id: 'k', outcome: 'reviewed', title: null, startedAt: at(21), endedAt: at(50), costUsd: 0.25 }] }),
       ],
     };
-    expect(measuresOf(view, T0 + 100_000)).toEqual({ waiting: 1, running: 1, medianWait: 15_000, medianRun: 40_000, done: 7, failed: 1, costUsd: 0.75 });
+    expect(measuresOf(view, T0 + 100_000)).toEqual({ waiting: 1, running: 1, medianWait: 15_000, medianRun: 40_000, done: 1, failed: 0, costUsd: 0.75 });
   });
   it('draws the backlog over time, from enqueue to start', () => {
     const tasks = [task({ id: 'a', enqueuedAt: at(0), startedAt: at(50) }), task({ id: 'b', enqueuedAt: at(20) })];

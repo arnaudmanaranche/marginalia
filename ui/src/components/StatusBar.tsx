@@ -5,8 +5,11 @@ import { inTime, timeAgo } from '../lib/utils';
 import { AccountMenu } from './AccountMenu';
 import { Logo } from './Logo';
 
-function BotState({ status, connection }: { status: BotStatus | null; connection: 'connecting' | 'unreachable' | 'ok' }) {
-  if (connection === 'unreachable') return <LivePill tone="warn" label="Cannot reach the studio" detail="retrying" live />;
+// `shownSince`: when the data on screen was read; once the API is lost, it says how old that is.
+function BotState({ status, connection, shownSince }: { status: BotStatus | null; connection: 'connecting' | 'unreachable' | 'ok'; shownSince: number | null }) {
+  if (connection === 'unreachable') {
+    return <LivePill tone="warn" label="Cannot reach the studio" detail={shownSince ? <><span className="hidden sm:inline">showing what it said {timeAgo(new Date(shownSince).toISOString())}, </span>retrying</> : 'retrying'} title="What is on screen may be out of date until the studio answers again." live />;
+  }
   if (connection === 'connecting') return <LivePill tone="idle" label="Connecting" live />;
   if (!status || status.phase === 'stopped') return <LivePill tone="idle" label="Bot stopped" />;
   if (status.phase === 'reviewing' && status.current) {
@@ -24,6 +27,10 @@ function BotState({ status, connection }: { status: BotStatus | null; connection
   }
   if (status.phase === 'polling') return <LivePill tone="run" label="Polling" live />;
   if (status.phase === 'error') return <LivePill tone="fail" label="Last poll failed" />;
+  // A poll past the budget reviews nothing: say that first, not when the next poll comes.
+  if (status.budget?.over) {
+    return <LivePill tone="warn" label="Budget reached" detail={<span className="hidden sm:inline">automatic reviews wait until midnight</span>} title="A mention, or Run again (↻) on a review, still runs." />;
+  }
   return (
     <span title={status.lastPoll ? `Last poll ${timeAgo(status.lastPoll.at)}` : undefined}>
       <LivePill tone="ok" label="Idle" detail={status.nextPollAt ? <span className="hidden sm:inline">next poll {inTime(status.nextPollAt)}</span> : undefined} />
@@ -31,12 +38,14 @@ function BotState({ status, connection }: { status: BotStatus | null; connection
   );
 }
 
-export function StatusBar({ status, connection, settingsActive, approvalsActive, approvals, onOpenPalette, onHome, onSettings, onApprovals }: { status: BotStatus | null; connection: 'connecting' | 'unreachable' | 'ok'; settingsActive: boolean; approvalsActive: boolean; approvals: number; onOpenPalette: () => void; onHome: () => void; onSettings: () => void; onApprovals: () => void }) {
+export function StatusBar({ status, connection, shownSince = null, streaming = true, settingsActive, approvalsActive, approvals, onOpenPalette, onHome, onSettings, onApprovals }: { status: BotStatus | null; connection: 'connecting' | 'unreachable' | 'ok'; shownSince?: number | null; streaming?: boolean; settingsActive: boolean; approvalsActive: boolean; approvals: number; onOpenPalette: () => void; onHome: () => void; onSettings: () => void; onApprovals: () => void }) {
   return (
     <div className="border-b border-line">
       <div className="flex h-14 items-center gap-4 px-4">
         <button onClick={onHome} className="touch-target flex items-center gap-2 font-semibold tracking-tight"><Logo />Marginalia</button>
-        <div className="ml-2 min-w-0 text-sm"><BotState status={status} connection={connection} /></div>
+        <div className="ml-2 min-w-0 text-sm"><BotState status={status} connection={connection} shownSince={shownSince} />
+          {/* The API answers but the live stream is down: changes show within 30s instead of at once. */}
+          {connection === 'ok' && !streaming && <span title="The live connection dropped and is reconnecting. Until then the page checks every 30 seconds." className="ml-2 hidden text-xs text-fg-muted sm:inline">· live updates paused, checking every 30s</span>}</div>
 
         <button
           onClick={onOpenPalette}
@@ -49,7 +58,7 @@ export function StatusBar({ status, connection, settingsActive, approvalsActive,
           onClick={onApprovals}
           aria-label={approvals > 0 ? `Approvals, ${approvals} waiting` : 'Approvals'}
           aria-current={approvalsActive ? 'page' : undefined}
-          title="Approvals: proposed comments waiting for your decision"
+          data-tip="Approvals: proposed comments waiting for your decision"
           className={`touch-target relative rounded-lg border p-2 hover:border-zinc-300 dark:hover:border-zinc-700 ${approvalsActive ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-line bg-surface text-fg-muted'}`}
         >
           <Inbox className="size-4" />
@@ -59,7 +68,7 @@ export function StatusBar({ status, connection, settingsActive, approvalsActive,
           onClick={onSettings}
           aria-label="Settings"
           aria-current={settingsActive ? 'page' : undefined}
-          title="Settings"
+          data-tip="Settings"
           className={`touch-target rounded-lg border p-2 hover:border-zinc-300 dark:hover:border-zinc-700 ${settingsActive ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-line bg-surface text-fg-muted'}`}
         >
           <Settings className="size-4" />

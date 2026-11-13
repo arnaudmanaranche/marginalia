@@ -157,7 +157,7 @@ function FindingCard({ finding, raised, compact = false, focus = null, onFocus, 
   );
   if (!compact) {
     return (
-      <div ref={rootRef} tabIndex={-1} className="rounded-lg border border-line bg-canvas p-3 text-sm focus:outline-none">
+      <div ref={rootRef} tabIndex={-1} className={cn('rounded-lg border border-line bg-canvas p-3 text-sm transition-shadow focus:outline-none motion-reduce:transition-none', flash && 'ring-2 ring-blue-500')}>
         <FindingHeader finding={finding} info={info} />
         {finding.body !== finding.title && <NoteMarkdown className="mt-2 text-fg-muted">{finding.body}</NoteMarkdown>}
         <FindingProof verification={finding.verification} />

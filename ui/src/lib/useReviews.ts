@@ -28,6 +28,8 @@ export function useReviews() {
   return {
     data: query.data ?? null,
     error: query.error ? String(query.error.message) : null,
+    // When what is on screen was last read from the API (ms), 0 before the first answer.
+    updatedAt: query.dataUpdatedAt,
     reload,
   };
 }

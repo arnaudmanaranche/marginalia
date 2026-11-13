@@ -175,6 +175,20 @@ html {
   }
 }
 
+/* A theme change cross-fades the whole page once (theme.ts); meanwhile no element runs its own colour
+   transition, which would change the parts one after another. */
+html.theme-switching *, html.theme-switching *::before, html.theme-switching *::after {
+  transition: none !important;
+}
+::view-transition-old(root), ::view-transition-new(root) {
+  animation-duration: 200ms;
+}
+/* A review's title moving from its Home row into the review (screenTransition.ts). */
+::view-transition-group(review-title) {
+  animation-duration: 250ms;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 /* highlight.js, minimal palette that works in both themes */
 .hljs-comment, .hljs-quote { color: #71717a; }
 .hljs-keyword, .hljs-selector-tag, .hljs-literal { color: #c026d3; }

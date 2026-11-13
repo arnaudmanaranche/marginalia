@@ -15,7 +15,7 @@ export const APPROVALS_ROUTE = 'approvals';
 
 export function useApprovals() {
   const query = useQuery({ queryKey: APPROVALS_KEY, queryFn: ({ signal }) => fetchJson<{ proposals: Proposal[]; canPost: boolean }>('/api/approvals', { signal }) });
-  return { data: query.data ?? null, error: query.error ? String(query.error.message ?? query.error) : null, retry: () => void query.refetch() };
+  return { data: query.data ?? null, known: !query.isPending || query.isError, error: query.error ? String(query.error.message ?? query.error) : null, retry: () => void query.refetch() };
 }
 
 async function post(body: object) {

@@ -13,7 +13,7 @@ import { newerState, readStatus, stateOverrides } from './context.ts';
 import { kindOf } from './review-kind.ts';
 import { reconcilePosted } from './reviews-reconcile.ts';
 import { buildStacks } from './reviews-stacks.ts';
-import { AWAITING, awaitingItem } from './reviews-awaiting.ts';
+import { AWAITING, awaitingItem, holdOf } from './reviews-awaiting.ts';
 
 async function listProjectReviews(project: any, status: any) {
   type Mr = Record<string, any>;
@@ -49,10 +49,13 @@ async function listProjectReviews(project: any, status: any) {
       // Reviewed before, but the commit (or the layer below) moved since.
       stale: mr?.status === 'pending' && Boolean(mr?.reviewedAt),
       mtime: st.mtime.toISOString(),
-      reviewedAt: mr?.reviewedAt ?? st.mtime.toISOString(),
+      // When the report on screen was written: the time it stores outlives a copy of the reviews dir; the
+      // poll's own date only stands in for a report that stores none.
+      reviewedAt: shape.generatedAt ?? mr?.reviewedAt ?? st.mtime.toISOString(),
       tracked: Boolean(mr),
       // A re-run that failed: the report on screen is the one before it.
       failure: mr?.status === 'failed' ? mr.failure ?? null : null,
+      hold: holdOf(mr),
       jira: mr?.jira ?? null,
       myState: newerState(mr?.myState ?? null, mr ? stateOverrides.get(`${project.key}:${mr.iid}`) ?? null : null),
     };

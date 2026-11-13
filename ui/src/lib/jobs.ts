@@ -38,3 +38,37 @@ export function durationOf(job: Job, now = Date.now()): string {
 
 // Where a job leads: the review it was about, or the project's context it learned.
 export const routeOf = (job: Job) => (job.what === 'understand' ? contextRoute(job.project) : job.slug);
+
+// Jobs that came without a title (a review run) take their MR's, so one MR reads the same in Activity
+// as everywhere else.
+export function withTitles(jobs: Job[], titleBySlug: ReadonlyMap<string, string>): Job[] {
+  return jobs.map((j) => (j.title || !titleBySlug.has(j.slug) ? j : { ...j, title: titleBySlug.get(j.slug)! }));
+}
+
+// Why a failed job failed, to tell the same cause from another. An unknown failure shares a generic
+// title: its own error tells it apart, and without one it is its own cause.
+const causeOf = (job: Job) => (job.failure && job.failure.kind !== 'unknown' ? job.failure.title : job.error ?? `run ${job.id}`);
+
+// Whether `job` repeats `last` for a reader: a skipped run of the same job, or a failure with the same
+// cause on any MR (a logged-out agent or GitLab down fails every job the same way).
+const repeats = (last: Job, job: Job) =>
+  (job.outcome === 'skipped' && last.outcome === 'skipped' && last.slug === job.slug && last.what === job.what) ||
+  (job.outcome === 'failed' && last.outcome === 'failed' && causeOf(job) === causeOf(last));
+
+// Repeats back to back are one line with a count (and how many MRs they ran on): they would hide the
+// runs that did something. The latest of each is the one shown.
+// `targets`: how many different things they ran on; `allMrs`: whether each was an MR (a branch without
+// one, or a project being learned, is not).
+export function collapseRepeats(jobs: Job[]): { job: Job; repeats: number; targets: number; allMrs: boolean }[] {
+  const out: { job: Job; repeats: number; slugs: Set<string>; allMrs: boolean }[] = [];
+  for (const job of jobs) {
+    const last = out.at(-1);
+    const mr = job.iid !== null && job.what !== 'understand';
+    if (last && repeats(last.job, job)) {
+      last.repeats++;
+      last.slugs.add(job.slug);
+      last.allMrs &&= mr;
+    } else out.push({ job, repeats: 1, slugs: new Set([job.slug]), allMrs: mr });
+  }
+  return out.map(({ job, repeats: n, slugs, allMrs }) => ({ job, repeats: n, targets: slugs.size, allMrs }));
+}

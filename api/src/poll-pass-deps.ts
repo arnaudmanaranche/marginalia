@@ -1,13 +1,14 @@
 import { gitlab } from './gitlab-api.ts';
 import { GITLAB_USERNAME } from './config.ts';
 import { startDoctor } from './doctor.ts';
-import { listOpenMergeRequests, reviewFileCoversLastPush } from './gitlab.ts';
+import { listOpenMergeRequests, reviewFacts, reviewFileCoversLastPush } from './gitlab.ts';
 import { jiraPriorityOf } from './jira.ts';
 import { runMrComments, runReview } from './claude-runner.ts';
 import { fetchReviewStates } from './mr-state.ts';
 import { notify } from './notify.ts';
-import { mrCommentsOutputPath, mtimeOrNull, ownReviewOutputPath, reviewOutputPath } from './paths.ts';
-import { allowedTargets } from './settings.ts';
+import { mrCommentsOutputPath, ownReviewOutputPath, reviewOutputPath } from './paths.ts';
+import { writtenAtOf } from './artifact.ts';
+import { allowedTargets, staleAfterDays } from './settings.ts';
 import { loadState, saveState } from './state.ts';
 import { trackFailure } from './telemetry.ts';
 import { listOwnBranches } from './own-branches.ts';
@@ -20,7 +21,7 @@ export const passDeps = {
   reviewFileCoversLastPush,
   fetchReviewStates,
   jiraPriorityOf,
-  mtime: mtimeOrNull,
+  mtime: writtenAtOf,
   reviewPath: reviewOutputPath,
   commentsPath: mrCommentsOutputPath,
   ownPath: ownReviewOutputPath,
@@ -37,4 +38,6 @@ export const passDeps = {
   trackFailure,
   startDoctor,
   budget: () => todayBudget(),
+  reviewFacts,
+  staleAfterDays,
 };

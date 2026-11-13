@@ -12,7 +12,7 @@ import { QueueTaskRow } from './QueueTaskRow';
 
 const ENDED_SHOWN = 8;
 
-function Measure({ label, value, warn = false }: { label: string; value: string; warn?: boolean }) {
+function Measure({ label, value, note, warn = false }: { label: string; value: string; note?: string; warn?: boolean }) {
   return (
     <div className="min-w-0 rounded-lg border border-line px-3 py-2">
       <p className="text-xs text-fg-muted">{label}</p>
@@ -20,6 +20,7 @@ function Measure({ label, value, warn = false }: { label: string; value: string;
         {value}
         {warn && <span className="size-1.5 rounded-full bg-warn" role="img" aria-label="needs a look" />}
       </p>
+      {note && <p className="truncate text-xs text-fg-subtle">{note}</p>}
     </div>
   );
 }
@@ -58,7 +59,8 @@ export function QueuePanel({ queue, onOpen }: { queue: QueueView; onOpen: (route
         <Measure label="Waiting" value={String(m.waiting)} warn={m.waiting > BACKPRESSURE} />
         <Measure label="Median wait" value={m.medianWait === null ? '–' : duration(m.medianWait)} />
         <Measure label="Median run" value={m.medianRun === null ? '–' : duration(m.medianRun)} />
-        <Measure label="Done · failed" value={`${m.done} · ${m.failed}`} warn={m.failed > 0} />
+        {/* Tasks, not jobs: Activity counts jobs (one run on one MR), so each says what it counts. */}
+        <Measure label="Tasks done · failed" value={`${m.done} · ${m.failed}`} note={`of the last ${m.done + m.failed} ended`} warn={m.failed > 0} />
       </div>
       {queue.budget && <BudgetMeter budget={queue.budget} className="px-4 pt-3" />}
       <QueueDepth tasks={queue.tasks} now={now} className="px-4 pt-3" />

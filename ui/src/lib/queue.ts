@@ -64,8 +64,9 @@ export function measuresOf(view: QueueView, now: number): Measures {
     running: view.tasks.filter((t) => t.status === 'running').length,
     medianWait: median(started.map((t) => waitedMs(t, now))),
     medianRun: median(ended.map((t) => ranMs(t, now) ?? 0)),
-    done: view.totals.done,
-    failed: view.totals.failed,
+    // Over the tasks shown, the same ones as the Ended lane: the store keeps more than the page gets.
+    done: ended.filter((t) => t.status === 'done').length,
+    failed: ended.filter((t) => t.status === 'failed').length,
     costUsd: view.tasks.reduce((sum, t) => sum + t.jobs.reduce((s, j) => s + (j.costUsd ?? 0), 0), 0),
   };
 }
