@@ -98,7 +98,7 @@ export function App() {
   const { data, error, reload } = useReviews();
   const [projectFilter, setProjectFilter] = usePersistentState('mr-review-viewer:project-filter', ALL_PROJECTS);
   const posted = useMergedPosted(data?.posted ?? EMPTY_POSTED);
-  const { slug, finding, path: focusPath } = useHashRoute();
+  const { slug, finding, path: focusPath, version } = useHashRoute();
   const [palette, setPalette] = useState(false);
 
   // One persistent toast while the API is unreachable, dismissed once it's back.
@@ -201,7 +201,7 @@ export function App() {
         {stack && current && <StackBoard stack={stack} items={items} current={current} isPosted={isPosted} onSelect={go} />}
         {!data ? <ReviewSkeleton /> : !current ? <ReviewMissing /> : (
         <Suspense fallback={<ReviewSkeleton />}>
-        <ReviewReader item={current} review={review} reviewError={reviewError} onRetry={retryReview} projectUrl={data?.projects?.find((p) => p.key === current?.project)?.url ?? data?.projectUrl ?? null} allowPosting={data?.allowPosting ?? false} showFullDiff={data?.settings.showFullDiff ?? true} live={current ? liveRunOf(data?.status, current) : null} finding={finding} posted={posted} reload={reload} />
+        <ReviewReader item={current} review={review} reviewError={reviewError} onRetry={retryReview} projectUrl={data?.projects?.find((p) => p.key === current?.project)?.url ?? data?.projectUrl ?? null} allowPosting={data?.allowPosting ?? false} showFullDiff={data?.settings.showFullDiff ?? true} live={current ? liveRunOf(data?.status, current) : null} finding={finding} version={version} posted={posted} reload={reload} />
         </Suspense>
         )}
         </>

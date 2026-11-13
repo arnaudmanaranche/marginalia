@@ -32,9 +32,9 @@ import { RunPanel } from './RunPanel';
 import { TourSkeleton } from './ReviewSkeleton';
 import { Button } from './ui/Button';
 
-export function ReviewReader({ item, review: currentReview, reviewError, onRetry, projectUrl, allowPosting, showFullDiff, live, finding = null, posted, reload }: { showFullDiff: boolean; finding?: string | null; item: ReviewItem | undefined; review: ReviewContent | null; reviewError: string | null; onRetry: () => void; projectUrl: string | null; allowPosting: boolean; live: BotStatus['current']; posted: Record<string, PostedInfo>; reload: () => void }) {
+export function ReviewReader({ item, review: currentReview, reviewError, onRetry, projectUrl, allowPosting, showFullDiff, live, finding = null, version = null, posted, reload }: { showFullDiff: boolean; finding?: string | null; version?: string | null; item: ReviewItem | undefined; review: ReviewContent | null; reviewError: string | null; onRetry: () => void; projectUrl: string | null; allowPosting: boolean; live: BotStatus['current']; posted: Record<string, PostedInfo>; reload: () => void }) {
   const [submitting, setSubmitting] = useState(false);
-  const { versionId, setVersionId, oldReview, previous, previousLoading, historyKnown } = useReviewVersions(item?.slug, item?.reviewedAt);
+  const { versionId, setVersionId, oldReview, previous, previousLoading, historyKnown } = useReviewVersions(item?.slug, item?.reviewedAt, version);
   const viewingOld = versionId !== null;
   const content = viewingOld ? oldReview : currentReview;
   const markdown = historyKnown ? content?.markdown ?? null : null;
