@@ -46,8 +46,8 @@ test('evidence: only the names the browse tool writes are served, refs are plain
   assert.equal(evidenceType('console.txt'), 'text/plain; charset=utf-8');
   for (const bad of ['../x.png', 'a.html', 'a.svg', 'evidence.json', 'x/y.png']) assert.equal(evidenceType(bad), null);
   const id = evidenceId('run 1', 'verify-1');
-  const ok = { kind: 'screenshot', name: 'screenshot.png', ref: evidenceRef(id, 'screenshot.png') };
-  const v = normalizeVerification({ status: 'reproduced', evidence: 'x', artifacts: [ok, { kind: 'log', name: 'a.txt', ref: 'https://evil.com/a.txt' }, { kind: 'script', name: 'a.js', ref: ok.ref }] });
+  const ok = { kind: 'screenshot', name: 'screenshot.png', ref: evidenceRef('demo', id, 'screenshot.png') };
+  const v = normalizeVerification({ status: 'reproduced', evidence: 'x', artifacts: [ok, { kind: 'log', name: 'a.txt', ref: 'https://evil.com/a.txt' }, { kind: 'script', name: 'a.js', ref: ok.ref }, { kind: 'log', ref: ok.ref }, { kind: 'log', name: 'a.html', ref: ok.ref.replace('screenshot.png', 'a.html') }] });
   assert.deepEqual(v.artifacts, [ok]);
 });
 

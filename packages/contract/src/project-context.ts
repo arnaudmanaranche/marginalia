@@ -40,7 +40,7 @@ export const ContextRecipeStep = z.object({
 
 // How to see the project in a browser once its `run` step started it (ADR 0010).
 export const ContextRecipeBrowser = z.object({
-  url: text.max(200).describe('Where the started project answers, on the runner: a localhost URL.'),
+  url: text.max(200).regex(/^https?:\/\/(localhost|127\.0\.0\.1)(:\d{1,5})?(\/[^\s@]*)?$/i, 'a http(s) URL on localhost or 127.0.0.1').describe('Where the started project answers, on the runner: a localhost URL.'),
   ready: text.max(200).optional().describe('A path of that URL that answers once it is ready.'),
 }).meta({ id: 'ContextRecipeBrowser' });
 

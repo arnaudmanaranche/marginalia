@@ -24,10 +24,12 @@ export function normalizeVerification(raw: any) {
 
 // The evidence a browser reproduction kept (ADR 0010): a kind, a plain file name and the API path it is
 // served at. Anything else is dropped, so a stored review cannot point the studio anywhere else.
-const KINDS = ['screenshot', 'log', 'trace'];
+const KINDS = ['screenshot', 'log'];
+const ARTIFACT_NAME = /^[\w-]{1,40}\.(png|txt)$/;
+const ARTIFACT_REF = /^\/api\/evidence\/[A-Za-z0-9][\w-]{0,59}\/[\w-]{1,120}\/[\w-]{1,40}\.(png|txt)$/;
 export function normalizeArtifacts(raw: unknown) {
   if (!Array.isArray(raw)) return undefined;
-  const list = raw.filter((a: any) => KINDS.includes(a?.kind) && /^[\w.-]{1,80}$/.test(a?.name) && /^\/api\/evidence\/[\w-]{1,120}\/[\w.-]{1,80}$/.test(a?.ref))
+  const list = raw.filter((a: any) => KINDS.includes(a?.kind) && typeof a.name === 'string' && typeof a.ref === 'string' && ARTIFACT_NAME.test(a.name) && ARTIFACT_REF.test(a.ref) && a.ref.endsWith(`/${a.name}`))
     .slice(0, 8).map((a: any) => ({ kind: a.kind, name: a.name, ref: a.ref }));
   return list.length ? list : undefined;
 }

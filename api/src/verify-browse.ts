@@ -7,12 +7,15 @@ export type BrowseAction = (typeof BROWSE_ACTIONS)[number];
 
 export const EVIDENCE_DIR = '/tmp/evidence';
 // What a run keeps, by name: the extension is what the studio serves it as.
+// `file`: the command writes it in the runner, to be read from there; else its output is the file.
 export const EVIDENCE_FILES = [
-  { name: 'screenshot.png', kind: 'screenshot' as const, argv: ['screenshot', `${EVIDENCE_DIR}/screenshot.png`] },
-  { name: 'console.txt', kind: 'log' as const, argv: ['console'] },
-  { name: 'errors.txt', kind: 'log' as const, argv: ['errors'] },
-  { name: 'requests.txt', kind: 'log' as const, argv: ['network', 'requests'] },
+  { name: 'screenshot.png', kind: 'screenshot' as const, argv: ['screenshot', `${EVIDENCE_DIR}/screenshot.png`], file: `${EVIDENCE_DIR}/screenshot.png` },
+  { name: 'console.txt', kind: 'log' as const, argv: ['console'], file: null },
+  { name: 'errors.txt', kind: 'log' as const, argv: ['errors'], file: null },
+  { name: 'requests.txt', kind: 'log' as const, argv: ['network', 'requests'], file: null },
 ];
+// The page was not reachable yet: the project is still starting.
+export const NOT_LISTENING = /ERR_CONNECTION_REFUSED|ECONNREFUSED|ERR_EMPTY_RESPONSE|ERR_CONNECTION_RESET/i;
 export const MAX_EVIDENCE_BYTES = 2_000_000;
 const MAX_TEXT = 300;
 

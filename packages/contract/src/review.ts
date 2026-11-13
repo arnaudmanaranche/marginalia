@@ -15,7 +15,7 @@ export const Finding = z.object({
     evidence: z.string().nullable().optional(),
     command: z.string().nullable().optional(),
     artifacts: z.array(z.object({
-      kind: z.enum(['screenshot', 'log', 'trace']),
+      kind: z.enum(['screenshot', 'log']),
       name: z.string().describe('File name, shown to the person.'),
       ref: z.string().describe('Where the studio fetches it, relative to the API.'),
     })).optional().describe('Evidence kept by a browser reproduction (ADR 0010).'),

@@ -3,7 +3,9 @@
 // the container and the files are behind the handlers (bin/verify-mcp.ts).
 
 export const SERVER_NAME = 'verify';
-export const TOOL_NAMES = [`mcp__${SERVER_NAME}__run`, `mcp__${SERVER_NAME}__write_file`, `mcp__${SERVER_NAME}__browse`];
+export const TOOL_NAMES = [`mcp__${SERVER_NAME}__run`, `mcp__${SERVER_NAME}__write_file`];
+// Only for a project whose recipe says where it is served (ADR 0010).
+export const BROWSE_TOOL_NAMES = [`mcp__${SERVER_NAME}__browse`];
 
 const TOOLS = [
   {
@@ -62,7 +64,7 @@ export async function handleMessage(msg: any, h: Handlers) {
     case 'initialize':
       return reply(msg.id, { protocolVersion: msg.params?.protocolVersion ?? '2025-06-18', capabilities: { tools: {} }, serverInfo: { name: SERVER_NAME, version: '1.0.0' } });
     case 'ping': return reply(msg.id, {});
-    case 'tools/list': return reply(msg.id, { tools: TOOLS });
+    case 'tools/list': return reply(msg.id, { tools: TOOLS.filter((t) => t.name !== 'browse' || h.browse) });
     case 'tools/call': return reply(msg.id, await callTool(msg.params?.name, msg.params?.arguments, h));
     default: return failure(msg.id, -32601, `no method ${msg.method}`);
   }

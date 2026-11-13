@@ -102,3 +102,21 @@ test('no image is a clear error, and no container starts', async () => {
   await assert.rejects(startRunner({ image: '', workdir: '/tmp/c', limits: DEFAULT_LIMITS, steps, docker }), /VERIFY_RUNNER_IMAGE/);
   assert.equal((await calls()).length, 0);
 });
+
+test('the browse side of a runner: argv without a shell, a step that hangs reported as such, a file read back', async () => {
+  const { calls, docker } = await fake();
+  const r = await startRunner({ image: 'img', workdir: '/tmp/copy-c', limits: DEFAULT_LIMITS, steps, docker });
+  assert.deepEqual(await r.argv(['agent-browser', 'ok']), { code: 0, output: 'ok\n' });
+  assert.equal((await r.argv(['fail'])).code, 2);
+  assert.equal((await r.argv(['big'])).output.length, 50_000, 'the raw output: the caller decides what to cut');
+  assert.ok(Buffer.isBuffer(await r.read('/tmp/evidence/x.png', 1000)));
+  assert.equal(await r.read('/missing/file', 1000), null, 'a file that is not there is null');
+  await r.start('serve');
+  const all = await calls();
+  assert.ok(all.some((c) => c[0] === 'exec' && c.includes('-d') && c.at(-1) === 'serve'), 'the recipe step is started detached');
+  assert.ok(all.filter((c) => c[0] === 'exec' && c.includes('agent-browser')).every((c) => !c.includes('sh') && !c.includes('-c')), 'no shell for a browser step');
+  await r.stop();
+  const short = await startRunner({ image: 'img', workdir: '/tmp/copy-d', limits: { ...DEFAULT_LIMITS, timeoutMinutes: 0.005 }, steps, docker });
+  await new Promise((resolve) => setTimeout(resolve, 500));
+  assert.equal((await short.argv(['ok'])).timedOut, true, 'after the time is up nothing runs');
+});

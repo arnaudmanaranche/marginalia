@@ -1,5 +1,5 @@
 import { CLAUDE_EXTRA_ALLOWED_TOOLS } from './config.ts';
-import { TOOL_NAMES as VERIFY_RUNNER_TOOLS } from './verify-mcp-protocol.ts';
+import { BROWSE_TOOL_NAMES, TOOL_NAMES as VERIFY_RUNNER_TOOLS } from './verify-mcp-protocol.ts';
 import { CONNECTOR_READ_TOOLS, withoutConnectorWrites } from './connector-tools.ts';
 
 // The tools each headless run may use, passed to `claude --allowedTools`.
@@ -35,3 +35,5 @@ export const UNDERSTAND_TOOLS = ['Read', 'Grep', 'Glob', 'Write', ...READ_GIT, .
 // disposable runner. It has no Bash, no Edit, no Write, no connector and no network of its own: the
 // only code that runs is in the runner, and nothing but a new file can be put there.
 export const STAGE_VERIFY_TOOLS = ['Read', 'Grep', 'Glob', ...VERIFY_RUNNER_TOOLS];
+// The same, plus the browser, when the approved recipe says where the project is served (ADR 0010).
+export const STAGE_VERIFY_BROWSER_TOOLS = [...STAGE_VERIFY_TOOLS, ...BROWSE_TOOL_NAMES];

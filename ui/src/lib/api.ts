@@ -134,7 +134,7 @@ export interface Verification {
 }
 
 export interface Artifact {
-  kind: 'screenshot' | 'log' | 'trace';
+  kind: 'screenshot' | 'log';
   name: string;
   ref: string;
 }

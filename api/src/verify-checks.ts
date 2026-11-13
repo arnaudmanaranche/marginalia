@@ -16,7 +16,7 @@ export function verifyChecks({ image, docker, imageProbe, browserProbe = null, r
   checks.push(recipe
     ? ok('Recipe', `${recipe.steps.length} step${recipe.steps.length > 1 ? 's' : ''} approved with the project context`)
     : warn('Recipe', 'the approved project context has no recipe: learn the project again, then approve it'));
-  if (recipe?.browser) checks.push(browserProbe?.error ? warn('Browser', `the runner image has no agent-browser (${firstLine(browserProbe.error)}): build deploy/runner/Dockerfile.browser; findings are reproduced without a browser`) : ok('Browser', `the recipe serves ${recipe.browser.url}; the runner image has agent-browser`));
+  if (recipe?.browser) checks.push(!browserProbe ? warn('Browser', 'not checked: no runner image is set (VERIFY_RUNNER_IMAGE)') : browserProbe.error ? warn('Browser', `the runner image has no agent-browser (${firstLine(browserProbe.error)}): build deploy/runner/Dockerfile.browser; findings are reproduced without a browser`) : ok('Browser', `the recipe serves ${recipe.browser.url}; the runner image has agent-browser`));
   const hosts = recipe?.hosts?.length ?? 0;
   if (hosts && !egress) checks.push(warn('Network', `the recipe names ${hosts} host${hosts > 1 ? 's' : ''} but no egress proxy is configured (VERIFY_EGRESS_NETWORK, VERIFY_EGRESS_PROXY): the runner stays offline`));
   return checks;

@@ -7,7 +7,7 @@ import { writeFile } from 'node:fs/promises';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { homedir } from 'node:os';
-import { STAGE_VERIFY_TOOLS } from '../allowed-tools.ts';
+import { STAGE_VERIFY_BROWSER_TOOLS, STAGE_VERIFY_TOOLS } from '../allowed-tools.ts';
 import { DATA_DIR, DOCKER_BIN, VERIFY_EGRESS_NETWORK, VERIFY_EGRESS_PROXY, VERIFY_MAX_PER_REVIEW, VERIFY_RUNNER_IMAGE, VERIFY_WORK_DIR, VERIFY_WORK_VOLUME } from '../config.ts';
 import { todayBudget } from '../budget-today.ts';
 import { verifyLimits } from '../verify-limits.ts';
@@ -50,12 +50,12 @@ export function reviewVerifier({ run, mr, recipe, context, settings }: { run: an
       const id = evidenceId(run.id, stage);
       const config = join(copy.dir, '..', 'runner.json');
       const egress = VERIFY_EGRESS_NETWORK && VERIFY_EGRESS_PROXY ? { network: VERIFY_EGRESS_NETWORK, proxy: VERIFY_EGRESS_PROXY } : null;
-      await writeFile(config, JSON.stringify({ image: VERIFY_RUNNER_IMAGE, workdir: copy.dir, limits, steps: recipe.steps, hosts: recipe.hosts ?? [], browser: recipe.browser ?? null, evidenceDir: recipe.browser ? evidenceFolder(DATA_DIR, id) : null, forbidden: [DATA_DIR, join(homedir(), '.claude'), mr.project.repoPath, mr.project.worktreeDir], docker: DOCKER_BIN, egress, work: VERIFY_WORK_VOLUME && VERIFY_WORK_DIR ? { volume: VERIFY_WORK_VOLUME, subpath: relative(VERIFY_WORK_DIR, copy.dir) } : null }));
+      await writeFile(config, JSON.stringify({ image: VERIFY_RUNNER_IMAGE, workdir: copy.dir, limits, steps: recipe.steps, hosts: recipe.hosts ?? [], browser: recipe.browser ?? null, evidenceDir: recipe.browser ? evidenceFolder(DATA_DIR, mr.project.key, id) : null, forbidden: [DATA_DIR, join(homedir(), '.claude'), mr.project.repoPath, mr.project.worktreeDir], docker: DOCKER_BIN, egress, work: VERIFY_WORK_VOLUME && VERIFY_WORK_DIR ? { volume: VERIFY_WORK_VOLUME, subpath: relative(VERIFY_WORK_DIR, copy.dir) } : null }));
       const mcp = JSON.stringify({ mcpServers: { verify: { command: process.execPath, args: [SERVER, config] } } });
-      const value = await agentStage({ run, stage, prompt: verifyPrompt({ context, finding, chapter, recipe }), system: VERIFY_SYSTEM, tools: STAGE_VERIFY_TOOLS, cwd: mr.project.worktreeDir, settings, extraArgs: ['--mcp-config', mcp, '--strict-mcp-config'], parse: parseVerification });
+      const value = await agentStage({ run, stage, prompt: verifyPrompt({ context, finding, chapter, recipe }), system: VERIFY_SYSTEM, tools: recipe.browser ? STAGE_VERIFY_BROWSER_TOOLS : STAGE_VERIFY_TOOLS, cwd: mr.project.worktreeDir, settings, extraArgs: ['--mcp-config', mcp, '--strict-mcp-config'], parse: parseVerification });
       await run.end(stage);
       // What the browser kept is attached to the finding whatever the agent answered.
-      const artifacts = recipe.browser ? await readEvidence(evidenceFolder(DATA_DIR, id), id) : [];
+      const artifacts = recipe.browser ? await readEvidence(evidenceFolder(DATA_DIR, mr.project.key, id), mr.project.key, id).catch((err) => { run.step(`The evidence could not be read: ${String(err.message).slice(0, 160)}`, { stage }); return []; }) : [];
       const { artifacts: _claimed, ...answer } = value as any;
       return artifacts.length ? { ...answer, artifacts } : answer;
     } catch (err) {
@@ -70,14 +70,15 @@ export function reviewVerifier({ run, mr, recipe, context, settings }: { run: an
   /** The chapter's findings with what reproducing them found, once it is done. `after`: the chapter's stage. */
   return async function chapter({ after, chapter, findings }: { after: string; chapter: any; findings: any[] }) {
     const out = findings.map((f) => ({ ...f }));
-    const wanted = out.filter((f) => f.proof === 'runtime' && ['critical', 'important'].includes(f.severity));
+    // A finding another chapter already took is theirs: the merge keeps what they found.
+    const wanted = out.filter((f) => f.proof === 'runtime' && ['critical', 'important'].includes(f.severity) && !taken.has(findingKey(f)));
     const blocked = wanted.length ? gate(mr, recipe) : { silent: true as const };
     if (blocked && 'silent' in blocked) return { findings: out, warnings: [] as string[] };
     if (blocked) {
       wanted.forEach((f) => { f.verification = skipped(blocked.reason); });
       return { findings: out, warnings: [`verification did not run: ${blocked.reason}`] };
     }
-    const { picked, over } = selectForVerify(out, left, (f) => taken.has(findingKey(f)));
+    const { picked, over } = selectForVerify(out, left, (f) => taken.has(findingKey(f)), findingKey);
     over.forEach((i) => { out[i].verification = skipped(OVER_LIMIT); });
     left -= picked.length;
     picked.forEach((i) => taken.add(findingKey(out[i])));

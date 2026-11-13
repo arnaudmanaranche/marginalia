@@ -5,7 +5,7 @@
 import { jsonAnswer } from './json-answer.ts';
 import { normalizeVerification } from '../finding-proof.ts';
 
-export const VERIFY_SYSTEM = "You are checking one claim a reviewer made about a merge request, as one stage of Marginalia's review, by running the project. You only have two ways to run anything: the `run` tool (one step of the approved recipe, with arguments) and `write_file` (a new file in a disposable copy of the project). You cannot change an existing file and you must not try. Write everything in English. A reproduction proves or fails to prove the claim; it never edits the project's code to make it true.";
+export const VERIFY_SYSTEM = "You are checking one claim a reviewer made about a merge request, as one stage of Marginalia's review, by running the project. You only have these ways to run anything: the `run` tool (one step of the approved recipe, with arguments), `write_file` (a new file in a disposable copy of the project) and, when the recipe says where the project is served, `browse` (one browser step at a time on that copy). You cannot change an existing file and you must not try. Write everything in English. A reproduction proves or fails to prove the claim; it never edits the project's code to make it true.";
 
 /** @param {{ steps: { purpose: string, run: string, summary: string }[], hosts?: string[], notes?: string }} recipe */
 export function recipeText(recipe: any) {

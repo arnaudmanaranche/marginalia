@@ -9,7 +9,7 @@ import type { VerifyLimits } from './verify-limits.ts';
 export interface Runner {
   exec: (command: string) => Promise<{ code: number; output: string; timedOut: boolean; refused?: string }>;
   // The browse tool's side (ADR 0010): a program without a shell, a recipe step left running, a file read back.
-  argv: (argv: string[]) => Promise<{ code: number; output: string }>;
+  argv: (argv: string[]) => Promise<{ code: number; output: string; timedOut?: boolean }>;
   start: (command: string) => Promise<void>;
   read: (path: string, maxBytes: number) => Promise<Buffer | null>;
   stop: () => Promise<void>;
@@ -40,12 +40,14 @@ export async function startRunner({ image, workdir, limits, steps, hosts = [], f
     stop,
     async argv(argv) {
       const left = deadline - Date.now();
-      if (removal || left <= 0) return { code: 124, output: 'out of time' };
+      if (removal || left <= 0) return { code: 124, output: 'out of time', timedOut: true };
       try {
         const { stdout, stderr } = await execFileAsync(docker, execArgv(name, argv), { timeout: Math.min(left, 60_000), maxBuffer: 4_000_000 });
-        return { code: 0, output: truncateOutput(`${stdout}${stderr}`) };
+        return { code: 0, output: `${stdout}${stderr}` };
       } catch (err: any) {
-        return { code: typeof err.code === 'number' ? err.code : 1, output: truncateOutput(`${err.stdout ?? ''}${err.stderr ?? ''}`) };
+        // The whole verification keeps its own budget of time: a step that hangs is reported as such, not as a failure.
+        if (err.killed || err.signal === 'SIGTERM') return { code: 124, output: 'this browser step took too long and was stopped', timedOut: true };
+        return { code: typeof err.code === 'number' ? err.code : 1, output: `${err.stdout ?? ''}${err.stderr ?? ''}` };
       }
     },
     async start(command) { await execFileAsync(docker, startArgs(name, command), { timeout: 30_000 }); },

@@ -14,6 +14,14 @@ import { projectContextPrompt } from '../context-prompt.ts';
 import { reviewVerifier } from './verify.ts';
 import { REVIEW_SYSTEM, chapterPrompt, mapPrompt, parseChapter, parseMap } from './review-prompts.ts';
 
+// A reproduction that broke is said, never silent: the blocking findings about behaviour it was to try come
+// back inconclusive, and the report warns.
+const unverified = (findings: any[], err: any) => {
+  const why = String(err?.message ?? err).slice(0, 200);
+  const mark = (f: any) => (f.proof === 'runtime' && ['critical', 'important'].includes(f.severity) && !f.verification ? { ...f, verification: { status: 'inconclusive', evidence: `Could not run: ${why}`, command: null } } : f);
+  return { findings: findings.map(mark), warnings: [`verification failed: ${why}`] };
+};
+
 // Chapters reviewed side by side, at most this many at once.
 const CONCURRENCY = 3;
 const CHECKLIST = '.claude/agents/code-reviewer.md';
@@ -55,7 +63,7 @@ export async function stagedReview({ mr, run, outputPath, stack = null, settings
       const result = await agentStage({ run, stage: ids[i], prompt: chapterPrompt({ context: text, map, chapter, index: i, checklist }), ...lens, cwd, parse: parseChapter });
       await run.found(ids[i], result.findings ?? []);
       await run.end(ids[i]);
-      const verifying = verify({ after: ids[i], chapter: map.chapters[i], findings: result.findings ?? [] }).catch(() => ({ findings: result.findings ?? [], warnings: [] as string[] }));
+      const verifying = verify({ after: ids[i], chapter: map.chapters[i], findings: result.findings ?? [] }).catch((err) => unverified(result.findings ?? [], err));
       return { result, verifying };
     } catch (err) {
       await run.end(ids[i], 'failed');

@@ -5,6 +5,9 @@
 const slug = (s: unknown) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'finding';
 // A finding's identity across chapters: where it is and what it says.
 export const findingKey = (f: any) => `${f.path ?? ''}|${f.line ?? ''}|${f.title.toLowerCase()}`;
+// What a reproduction is worth when two copies of a finding disagree: the one that showed something wins.
+const RANK = ['skipped', 'inconclusive', 'not_reproduced', 'reproduced'];
+const rank = (v: any) => (v ? RANK.indexOf(v.status) + 1 : 0);
 const BLOCKING = new Set(['critical', 'important']);
 
 /**
@@ -22,7 +25,7 @@ export function mergeReview({ map, chapters }: { map: any, chapters: { result: {
       const key = findingKey(f);
       const kept = seen.get(key);
       // The copy that was reproduced (ADR 0010) may be the one dropped: what it found is kept.
-      if (kept) { if (f.verification && !kept.verification) kept.verification = f.verification; continue; }
+      if (kept) { if (rank(f.verification) > rank(kept.verification)) kept.verification = f.verification; continue; }
       let id = f.id ?? slug(f.title);
       for (let n = 2; ids.has(id); n += 1) id = `${f.id ?? slug(f.title)}-${n}`;
       ids.add(id);

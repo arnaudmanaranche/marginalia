@@ -16,8 +16,8 @@ test('a file is created at a relative path inside the project, never in .git or 
 });
 
 test('the verify tier has the read tools and the two runner tools, and nothing that runs or writes by itself', () => {
-  assert.deepEqual(STAGE_VERIFY_TOOLS, ['Read', 'Grep', 'Glob', 'mcp__verify__run', 'mcp__verify__write_file', 'mcp__verify__browse']);
-  assert.deepEqual(TOOL_NAMES, ['mcp__verify__run', 'mcp__verify__write_file', 'mcp__verify__browse']);
+  assert.deepEqual(STAGE_VERIFY_TOOLS, ['Read', 'Grep', 'Glob', 'mcp__verify__run', 'mcp__verify__write_file']);
+  assert.deepEqual(TOOL_NAMES, ['mcp__verify__run', 'mcp__verify__write_file']);
   assert.ok(!STAGE_VERIFY_TOOLS.some((t) => /^(Bash|Edit|Write|WebFetch|WebSearch|Task)/.test(t) || /atlassian|notion|slack|gitlab/i.test(t)));
 });
 
@@ -32,7 +32,9 @@ test('the protocol answers initialize, lists the three tools, calls them and ign
   assert.deepEqual(init.result.capabilities, { tools: {} });
   assert.equal(await handleMessage({ jsonrpc: '2.0', method: 'notifications/initialized' }, handlers), null);
   const list = await handleMessage({ jsonrpc: '2.0', id: 2, method: 'tools/list' }, handlers);
-  assert.deepEqual(list.result.tools.map((t) => t.name), ['run', 'write_file', 'browse']);
+  assert.deepEqual(list.result.tools.map((t) => t.name), ['run', 'write_file'], 'no browser recipe, no browse tool');
+  const withBrowser = await handleMessage({ jsonrpc: '2.0', id: 2, method: 'tools/list' }, { ...handlers, browse: async () => ({ code: 0, output: '' }) });
+  assert.deepEqual(withBrowser.result.tools.map((t) => t.name), ['run', 'write_file', 'browse']);
   const call = (name, args) => handleMessage({ jsonrpc: '2.0', id: 3, method: 'tools/call', params: { name, arguments: args } }, handlers);
   assert.equal((await call('run', { command: 'ok' })).result.content[0].text, 'exit code 0\nout');
   assert.match((await call('run', { command: 'bad' })).result.content[0].text, /Refused: not a step/);
