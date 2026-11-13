@@ -20,6 +20,7 @@ export function ReaderHeader({ item, risk, criticalPaths = [], showSubmit, draft
   // The bot is reviewing the MR: the findings behind the drafts are about to be replaced.
   reviewing: boolean;
   onSubmit: () => void;
+  // Re-run is refused: a run is going (`reviewing`) or an earlier version is on screen.
   locked: boolean;
   onRerun: () => void;
 }) {
@@ -57,9 +58,10 @@ export function ReaderHeader({ item, risk, criticalPaths = [], showSubmit, draft
             {sending ? <Spinner className="size-3.5" /> : <Send className="size-3.5" />}{item?.kind === 'comments' ? 'Send replies' : 'Submit review'}{draftCount > 0 ? ` (${draftCount})` : ''}
           </Button>
         )}
+        {/* Busy only while a run is going; locked for another reason (an earlier version on screen), it says why. */}
         {item?.tracked && item.kind !== 'retro' && (
-          <Button disabled={locked} onClick={onRerun} aria-label={item.kind === 'comments' ? 'Re-run triage' : 'Re-run review'} title={item.kind === 'comments' ? 'Triage the reviewer comments again on the current head of the MR' : item.kind === 'own' ? 'Review your work again on its current head' : 'Run the review again on the current head of the MR'} className="px-2.5">
-            {locked ? <Spinner className="size-4" /> : <RefreshCw className="size-4" />}
+          <Button disabled={locked} onClick={onRerun} aria-label={item.kind === 'comments' ? 'Re-run triage' : 'Re-run review'} title={reviewing ? 'A run is in progress' : locked ? 'Go back to the latest version to run it again' : item.kind === 'comments' ? 'Triage the reviewer comments again on the current head of the MR' : item.kind === 'own' ? 'Review your work again on its current head' : 'Run the review again on the current head of the MR'} className="px-2.5">
+            {reviewing ? <Spinner className="size-4" /> : <RefreshCw className="size-4" />}
           </Button>
         )}
         {item?.webUrl && (
