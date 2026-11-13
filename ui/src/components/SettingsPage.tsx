@@ -73,9 +73,12 @@ export function SettingsPage({ settings, defaults, projects = [], nextPollAt = n
     try {
       await saveMutation.mutateAsync(patch);
       // Say when it takes effect, and offer not to wait.
+      // A new poll interval moves the next poll: the old time would be wrong, so it is said without one.
+      const moved = 'pollIntervalMinutes' in patch && patch.pollIntervalMinutes !== settings.pollIntervalMinutes;
+      const when = nextPollAt && !moved ? `, ${inTime(nextPollAt)}` : '';
       toast.success(message, {
-        description: nextPollAt ? `Applied on the bot's next poll, ${inTime(nextPollAt)}.` : 'Applied on the bot\'s next poll.',
-        action: { label: 'Poll now', onClick: () => void pollNow().then(() => toast('The bot is polling'), (err: Error) => toast.error('Could not reach the bot', { description: err.message })) },
+        description: `Applied on the bot's next poll${when}.`,
+        action: { label: 'Poll now', onClick: () => void pollNow().then(() => toast('Poll queued', { description: 'The bot polls as soon as it is free; the top bar shows it.' }), (err: Error) => toast.error('Could not reach the bot', { description: err.message })) },
       });
     } catch (err) {
       toast.error('Could not save the settings', { description: (err as Error).message });
