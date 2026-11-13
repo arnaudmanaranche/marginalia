@@ -8,7 +8,7 @@ import { Logo } from './Logo';
 // `shownSince`: when the data on screen was read; once the API is lost, it says how old that is.
 function BotState({ status, connection, shownSince }: { status: BotStatus | null; connection: 'connecting' | 'unreachable' | 'ok'; shownSince: number | null }) {
   if (connection === 'unreachable') {
-    return <LivePill tone="warn" label="Cannot reach the studio" detail={shownSince ? `showing what it said ${timeAgo(new Date(shownSince).toISOString())}, retrying` : 'retrying'} title="What is on screen may be out of date until the studio answers again." live />;
+    return <LivePill tone="warn" label="Cannot reach the studio" detail={shownSince ? <><span className="hidden sm:inline">showing what it said {timeAgo(new Date(shownSince).toISOString())}, </span>retrying</> : 'retrying'} title="What is on screen may be out of date until the studio answers again." live />;
   }
   if (connection === 'connecting') return <LivePill tone="idle" label="Connecting" live />;
   if (!status || status.phase === 'stopped') return <LivePill tone="idle" label="Bot stopped" />;
