@@ -146,8 +146,8 @@ export function App() {
 
   const [theme] = useTheme();
   const go = (s: string | null) => {
+    // The new screen starts at the top (useHashRoute): scrolling here would move the one being left.
     location.hash = s ? `#/${s}` : '';
-    window.scrollTo({ top: 0 });
   };
   const close = (s: string) => {
     const next = closeTab(s);
