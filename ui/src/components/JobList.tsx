@@ -3,7 +3,7 @@ import type { Job } from '../lib/api';
 import { FILTERS, byDay, matches, type JobFilter } from '../lib/trace';
 import { Segmented } from './ds/Segmented';
 import { useFreshJobs } from '../lib/jobArrivals';
-import { collapseSkipped } from '../lib/jobs';
+import { collapseRepeats } from '../lib/jobs';
 import { JobRow } from './JobRow';
 
 // The jobs as a trace list: one filter row above, the jobs under the day they started, one opened
@@ -25,7 +25,7 @@ export function JobList({ jobs, showProject, onOpen }: { jobs: Job[]; showProjec
         <section key={day} aria-label={day} className="mt-4">
           <h2 className="mb-1.5 text-xs font-medium text-fg-muted">{day}</h2>
           <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface">
-            {collapseSkipped(those).map(({ job, repeats }) => {
+            {collapseRepeats(those).map(({ job, repeats }) => {
               const id = `${job.slug}:${job.id}`;
               return <JobRow key={id} job={job} repeats={repeats} showProject={showProject} fresh={isFresh(job)} open={open === id} onToggle={() => setOpen((o) => (o === id ? null : id))} onOpen={onOpen} />;
             })}

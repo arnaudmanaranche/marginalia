@@ -47,7 +47,7 @@ export function withTitles(jobs: Job[], titleBySlug: ReadonlyMap<string, string>
 
 // Skipped runs of the same job back to back are one line with a count: they repeat each poll and
 // would hide the runs that did something.
-export function collapseSkipped(jobs: Job[]): { job: Job; repeats: number }[] {
+export function collapseRepeats(jobs: Job[]): { job: Job; repeats: number }[] {
   const out: { job: Job; repeats: number }[] = [];
   for (const job of jobs) {
     const last = out.at(-1);

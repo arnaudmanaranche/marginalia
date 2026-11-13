@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Job } from './api';
-import { collapseSkipped, durationOf, routeOf, stateOf, targetOf, withTitles } from './jobs';
+import { collapseRepeats, durationOf, routeOf, stateOf, targetOf, withTitles } from './jobs';
 
 const job = (over: Partial<Job> = {}): Job => ({
   id: 'x', slug: 'webapp/own-feat-a', project: 'webapp', iid: null, kind: 'review', command: '/code-review',
@@ -33,7 +33,7 @@ describe('a job in the list', () => {
   });
   it('folds skipped runs of the same job back to back into one line, and nothing else', () => {
     const skip = job({ outcome: 'skipped' });
-    const rows = collapseSkipped([skip, skip, skip, job(), skip, job({ outcome: 'skipped', what: 'comments' })]);
+    const rows = collapseRepeats([skip, skip, skip, job(), skip, job({ outcome: 'skipped', what: 'comments' })]);
     expect(rows.map((r) => [r.job.outcome, r.job.what, r.repeats])).toEqual([['skipped', 'own', 3], ['reviewed', 'own', 1], ['skipped', 'own', 1], ['skipped', 'comments', 1]]);
   });
 });
