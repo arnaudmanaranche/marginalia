@@ -53,7 +53,22 @@ export function setChoice(next: ThemeChoice) {
   try {
     localStorage.setItem(THEME_KEY, next);
   } catch { /* the choice still applies for this page */ }
-  window.dispatchEvent(new Event(EVENT));
+  switchSmoothly(() => window.dispatchEvent(new Event(EVENT)));
+}
+
+// The page cross-fades from one theme to the other (index.css) instead of flipping, where the browser
+// can and motion is welcome; colour transitions wait, so no part lags behind. Otherwise it just switches.
+function switchSmoothly(apply: () => void) {
+  const root = document.documentElement;
+  const still = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  root.classList.add('theme-switching');
+  const done = () => requestAnimationFrame(() => requestAnimationFrame(() => root.classList.remove('theme-switching')));
+  if (still || typeof document.startViewTransition !== 'function') {
+    apply();
+    done();
+    return;
+  }
+  document.startViewTransition(apply).finished.finally(done);
 }
 
 // The choice, kept and applied; while it is "system" a change of the OS theme is followed.
