@@ -28,7 +28,8 @@ import { ProjectView } from './components/ProjectPage';
 import { contextKeyOf } from './lib/contextApi';
 import { StackBoard } from './components/StackBoard';
 import { ReviewMissing, ReviewSkeleton } from './components/ReviewSkeleton';
-import { SETTINGS_ROUTE, parseHash } from './lib/hashRoute';
+import { SETTINGS_ROUTE } from './lib/hashRoute';
+import { useHashRoute } from './lib/useHashRoute';
 import { LinkContext } from './lib/links';
 import { ticketLinks } from './lib/tickets';
 import { palettePages } from './lib/palettePages';
@@ -39,16 +40,6 @@ const EMPTY_POSTED = {};
 const JOBS_ROUTE = 'jobs';
 // The animation features load after the first paint; until then `m` components just render.
 const loadMotionFeatures = () => import('./lib/motionFeatures').then((mod) => mod.default);
-
-function useHashRoute() {
-  const [route, setRoute] = useState(() => parseHash(location.hash));
-  useEffect(() => {
-    const on = () => setRoute(parseHash(location.hash));
-    window.addEventListener('hashchange', on);
-    return () => window.removeEventListener('hashchange', on);
-  }, []);
-  return route;
-}
 
 // Which reviews were read, at which version. Opening a review marks it as read; saved here,
 // not inside a state updater.
