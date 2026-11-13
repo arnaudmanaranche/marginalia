@@ -68,7 +68,7 @@ export function ReaderHeader({ item, risk, criticalPaths = [], showSubmit, draft
       </div>
       <div className="flex shrink-0 items-center gap-2">
         {showSubmit && (
-          <Button variant="primary" disabled={sending || reviewing} title={sending ? 'Waiting for GitLab to confirm the comments being added' : reviewing ? 'Wait for the review in progress to finish' : undefined} onClick={onSubmit}>
+          <Button variant="primary" disabled={sending || locked} title={sending ? 'Waiting for GitLab to confirm the comments being added' : reviewing ? 'Wait for the review in progress to finish' : locked ? 'Go back to the latest version to submit' : undefined} onClick={onSubmit}>
             {sending ? <Spinner className="size-3.5" /> : <Send className="size-3.5" />}{item?.kind === 'comments' ? 'Send replies' : 'Submit review'}{draftCount > 0 ? ` (${draftCount})` : ''}
           </Button>
         )}
