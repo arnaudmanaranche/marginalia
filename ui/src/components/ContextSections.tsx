@@ -60,7 +60,7 @@ function Path({ path, focused }: { path: ContextCriticalPath; focused: boolean }
     return () => clearTimeout(t);
   }, [focused]);
   return (
-    <li ref={ref} aria-current={focused ? 'location' : undefined} className={cn('flex gap-3 p-4 transition-colors', glow ? 'bg-run/20 duration-150' : 'duration-1000')}>
+    <li ref={ref} aria-current={focused ? 'location' : undefined} className={cn('flex gap-3 p-4 transition-colors motion-reduce:transition-none', glow ? 'bg-run/20 duration-150' : 'duration-1000')}>
       <span className="w-6 shrink-0 text-right font-semibold tabular-nums text-fg-muted" aria-label={`Rank ${path.rank}`}>{path.rank}</span>
       <div className="min-w-0">
         <p className="text-sm"><span className="font-medium">{path.name}</span>: {path.summary}</p>
