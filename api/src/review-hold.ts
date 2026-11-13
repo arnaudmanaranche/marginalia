@@ -6,7 +6,7 @@
 //   far back the bot catches up after it was stopped.
 // - Someone other than the author approved the MR since its last push: a person already
 //   reviewed that code. An own review is the author's, so only a review of someone else's MR waits.
-// What a person asks for (Review again, a mention) never waits: the caller does not ask.
+// What a person asks for (Run again in the studio, a mention asking for a review) never waits: the caller does not ask.
 
 export interface ReviewFacts {
   lastPushAt: number | null;
@@ -19,11 +19,11 @@ const day = (ms: number) => new Date(ms).toISOString().slice(0, 10);
 export function reviewHold({ kind, author, facts, staleDays, now }: { kind: 'review' | 'own'; author: string; facts: ReviewFacts; staleDays: number; now: number }): string | null {
   const { lastPushAt, approvedBy } = facts;
   if (lastPushAt !== null && lastPushAt < now - staleDays * DAY_MS) {
-    return `No push in the last ${staleDays} days (last on ${day(lastPushAt)}). Review again to run it.`;
+    return `No push in the last ${staleDays} days (last on ${day(lastPushAt)}). Run again (↻) on its review, or a mention asking for a review, runs it.`;
   }
   if (kind !== 'review') return null;
   // An approval without a time is counted: GitLab resets approvals on a push where the project asks it.
   const since = approvedBy.filter((a) => a.username && a.username !== author && (lastPushAt === null || a.at === null || Date.parse(a.at) >= lastPushAt));
   if (!since.length) return null;
-  return `Approved on GitLab by ${since.map((a) => a.username).join(', ')} since its last push: a person already reviewed it. Review again to run it.`;
+  return `Approved on GitLab by ${since.map((a) => a.username).join(', ')} since its last push: a person already reviewed it. Run again (↻) on its review, or a mention asking for a review, runs it.`;
 }
