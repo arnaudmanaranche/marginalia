@@ -22,6 +22,8 @@ export function changesSince(known: ReadonlyMap<string, string> | null, entries:
 export function useArrivals(entries: readonly Entry[] | null, holdMs = 6000): { arrived: (key: string) => boolean; changed: (key: string) => boolean } {
   const known = useRef<Map<string, string> | null>(null);
   const timers = useRef<number[]>([]);
+  // Each mark's own turn: a timer clears a key only if no later change marked it again meanwhile.
+  const turns = useRef(new Map<string, number>());
   const [fresh, setFresh] = useState<ReadonlyMap<string, 'arrived' | 'changed'>>(new Map());
   useEffect(() => {
     if (!entries) return;
@@ -30,7 +32,9 @@ export function useArrivals(entries: readonly Entry[] | null, holdMs = 6000): { 
     const marked = [...arrived, ...changed];
     if (!marked.length) return;
     setFresh((prev) => new Map([...prev, ...arrived.map((k) => [k, 'arrived'] as const), ...changed.map((k) => [k, 'changed'] as const)]));
-    timers.current.push(window.setTimeout(() => setFresh((prev) => new Map([...prev].filter(([k]) => !marked.includes(k)))), holdMs));
+    const mine = new Map(marked.map((k) => [k, (turns.current.get(k) ?? 0) + 1]));
+    for (const [k, turn] of mine) turns.current.set(k, turn);
+    timers.current.push(window.setTimeout(() => setFresh((prev) => new Map([...prev].filter(([k]) => !mine.has(k) || turns.current.get(k) !== mine.get(k)))), holdMs));
   }, [entries, holdMs]);
   useEffect(() => () => timers.current.forEach((t) => clearTimeout(t)), []);
   return { arrived: (key) => fresh.get(key) === 'arrived', changed: (key) => fresh.get(key) === 'changed' };
