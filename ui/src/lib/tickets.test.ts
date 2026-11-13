@@ -25,7 +25,7 @@ describe('linkify with tickets', () => {
   });
 
   it('leaves alone what only looks like a key, and keys inside a branch name', () => {
-    expect(hrefs(linkify('UTF-8 and SHA-1, on feat-FEE-194', ctx(tickets)))).toEqual([]);
+    expect(hrefs(linkify('UTF-8 and SHA-1, on feat-FEE-194 and FEE-194/fix', ctx(tickets)))).toEqual([]);
   });
 
   it('links nothing without a Jira address', () => {

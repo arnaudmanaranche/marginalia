@@ -16,7 +16,7 @@ export const LinkContext = createContext<LinkContextValue>({ projectUrl: null, b
 // "e.g." don't match; a dotfile like `.gitlab-ci.yml` does.
 const EXT = 'tsx?|jsx?|mjs|cjs|json|ya?ml|md|css|scss|sh|toml|lock|html|graphql|sql';
 const PATH = `(?:[\\w@.~-]+/)+[\\w@.~-]+\\.(?:${EXT})|\\.?[\\w@-]+(?:\\.[\\w@-]+)*\\.(?:tsx?|mjs|cjs|json|ya?ml|md|lock|toml|sh)\\b`;
-const TOKEN = new RegExp(`(?<![\\w/])(?:(!\\d+)|((?:${PATH})(?::(\\d+)(?:-(\\d+))?)?)|(?<!-)([A-Z][A-Z\\d]+-\\d+)(?![\\w-]))`, 'g');
+const TOKEN = new RegExp(`(?<![\\w/])(?:(!\\d+)|((?:${PATH})(?::(\\d+)(?:-(\\d+))?)?)|(?<!-)([A-Z][A-Z\\d]+-\\d+)(?![\\w/-]))`, 'g');
 const FULL_PATH = new RegExp(`^(?:${PATH})(?::(\\d+)(?:-(\\d+))?)?$`);
 
 // GitLab's anchor for a file in the MR "Changes" tab is the SHA-1 of its path.
