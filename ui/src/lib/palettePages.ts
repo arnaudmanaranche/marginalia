@@ -12,7 +12,7 @@ export function palettePages(projects: { key: string }[]): PalettePage[] {
     { label: 'Approvals', hint: 'Proposed comments waiting for your decision', route: APPROVALS_ROUTE, keywords: ['approvals', 'proposals', 'comments'] },
     { label: 'Settings', hint: 'Budget, polling, projects', route: SETTINGS_ROUTE, keywords: ['settings', 'budget', 'poll', 'projects', 'preferences'] },
     ...projects.map((p) => ({
-      label: `${p.key} context`,
+      label: `${p.key} project context`,
       hint: 'What the factory learned: critical paths, glossary, stack',
       route: contextRoute(p.key),
       keywords: ['project', 'context', 'critical paths', 'glossary', 'stack', p.key],

@@ -8,8 +8,8 @@ describe('palettePages', () => {
       ['Home', null],
       ['Approvals', 'approvals'],
       ['Settings', 'settings'],
-      ['webapp context', 'context:webapp'],
-      ['api context', 'context:api'],
+      ['webapp project context', 'context:webapp'],
+      ['api project context', 'context:api'],
     ]);
   });
 
