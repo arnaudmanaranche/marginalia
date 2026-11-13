@@ -60,7 +60,7 @@ export function QueuePanel({ queue, onOpen }: { queue: QueueView; onOpen: (route
         <Measure label="Median wait" value={m.medianWait === null ? '–' : duration(m.medianWait)} />
         <Measure label="Median run" value={m.medianRun === null ? '–' : duration(m.medianRun)} />
         {/* Tasks, not jobs: Activity counts jobs (one run on one MR), so each says what it counts. */}
-        <Measure label="Tasks done · failed" value={`${m.done} · ${m.failed}`} note={`last ${m.done + m.failed} tasks kept`} warn={m.failed > 0} />
+        <Measure label="Tasks done · failed" value={`${m.done} · ${m.failed}`} note={`of the last ${m.done + m.failed} ended`} warn={m.failed > 0} />
       </div>
       {queue.budget && <BudgetMeter budget={queue.budget} className="px-4 pt-3" />}
       <QueueDepth tasks={queue.tasks} now={now} className="px-4 pt-3" />
