@@ -13,7 +13,7 @@ import { newerState, readStatus, stateOverrides } from './context.ts';
 import { kindOf } from './review-kind.ts';
 import { reconcilePosted } from './reviews-reconcile.ts';
 import { buildStacks } from './reviews-stacks.ts';
-import { AWAITING, awaitingItem } from './reviews-awaiting.ts';
+import { AWAITING, awaitingItem, holdOf } from './reviews-awaiting.ts';
 
 async function listProjectReviews(project: any, status: any) {
   type Mr = Record<string, any>;
@@ -55,6 +55,7 @@ async function listProjectReviews(project: any, status: any) {
       tracked: Boolean(mr),
       // A re-run that failed: the report on screen is the one before it.
       failure: mr?.status === 'failed' ? mr.failure ?? null : null,
+      hold: holdOf(mr),
       jira: mr?.jira ?? null,
       myState: newerState(mr?.myState ?? null, mr ? stateOverrides.get(`${project.key}:${mr.iid}`) ?? null : null),
     };

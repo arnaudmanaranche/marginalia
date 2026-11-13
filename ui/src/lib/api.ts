@@ -43,7 +43,9 @@ export interface ReviewItem {
   contract: { source: ShapeSource; warnings: string[] };
   jira: { key: string; priority: string | null; rank: number | null } | null;
   // Picked up by the bot, no report yet: the first review is to come (or running), or it failed.
-  awaiting?: 'queued' | 'failed';
+  awaiting?: 'queued' | 'failed' | 'held';
+  // Why the last poll did not review it (GLOSSARY: Hold), while it does not.
+  hold?: string | null;
   // Why the last run failed, while the MR is marked failed.
   failure?: Failure | null;
 }

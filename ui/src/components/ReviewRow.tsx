@@ -54,6 +54,7 @@ export function ReviewRow({ item, unread, reviewing = false, held = false, arriv
       {!reviewing && item.awaiting === 'queued' && (held
         ? <LivePill tone="warn" label="Waits for tomorrow" title="Today's budget is spent. Open it and use Run again (↻) to run it now." />
         : <LivePill tone="idle" label="Queued" title="The bot reviews it in this poll: open it to follow the run" />)}
+      {!reviewing && item.hold && <LivePill tone="idle" label="Not reviewed" title={item.hold} />}
       {!reviewing && item.awaiting === 'failed' && (item.failure?.transient
         ? <LivePill tone="warn" label="Retrying soon" title={`${item.failure.title}. It is tried again on its own in a few minutes.`} />
         : <LivePill tone="fail" label="Review failed" title={`${item.failure?.title ?? 'The first review failed'}: open it to see why. It is tried again on the next poll.`} />)}

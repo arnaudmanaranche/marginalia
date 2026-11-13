@@ -42,7 +42,9 @@ export function ReviewReader({ item, review: currentReview, reviewError, onRetry
   const { rerunning, rerun } = useRerun(item, live);
   // What the bot is doing on this MR, while it does it: a passing activity log, gone once the run
   // ends. Only a run that failed stays, for what to do about it.
-  const awaiting = item?.awaiting ?? null;
+  // A held MR (GLOSSARY: Hold) has no run coming: it says why instead of a run panel.
+  const held = item?.awaiting === 'held';
+  const awaiting = item?.awaiting === 'held' ? null : item?.awaiting ?? null;
   const runs = useRuns(item?.tracked ? item.slug : null);
   const flagged = runToFlag(runs, item?.reviewedAt);
   const runPanel = item && (awaiting || live || flagged)
@@ -118,7 +120,8 @@ export function ReviewReader({ item, review: currentReview, reviewError, onRetry
       />
       <ReaderNotices viewingOld={viewingOld} onBackToLatest={() => setVersionId(null)} />
       {runPanel}
-      {markdown === null && !awaiting && (reviewError && !viewingOld ? (
+      {held && <p role="status" className="rounded-lg border border-line p-4 text-sm text-fg-muted">Not reviewed by this poll: {item?.hold}</p>}
+      {markdown === null && !awaiting && !held && (reviewError && !viewingOld ? (
         <div role="alert" className="flex flex-wrap items-center gap-3 rounded-lg border border-line p-4 text-sm text-fg-muted">
           <span>This review could not be loaded ({reviewError}).</span>
           <Button size="sm" onClick={onRetry}>Try again</Button>

@@ -34,7 +34,8 @@ export const ReviewItem = z.object({
   jira: JiraRef,
   myState: MyState.optional(),
   failure: nullable(Failure).optional().describe('Why the last run failed, while the MR is marked failed.'),
-  awaiting: z.enum(['queued', 'failed']).optional().describe('The bot picked the MR up and has no report for it yet: its first review is to come (or running), or it failed.'),
+  awaiting: z.enum(['queued', 'failed', 'held']).optional().describe('The bot picked the MR up and has no report for it yet: its first review is to come (or running), it failed, or this poll does not run it (`hold` says why).'),
+  hold: nullable(z.string()).optional().describe('Why the last poll did not review this MR (GLOSSARY: Hold), while it does not: the reason said on its entry.'),
 }).meta({ id: 'ReviewItem' });
 
 const StackLayer = z.object({
