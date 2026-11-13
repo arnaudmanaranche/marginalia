@@ -1,0 +1,13 @@
+<!doctype html>
+<meta charset="utf-8"><title>Cart</title>
+<button id="add">Add item</button>
+<p id="summary">0 items in your cart</p>
+<script>
+  const items = [];
+  const summary = document.getElementById('summary');
+  const count = () => items.length;
+  document.getElementById('add').addEventListener('click', () => {
+    items.push('item');
+    summary.textContent = `${count()} items in your cart`;
+  });
+</script>

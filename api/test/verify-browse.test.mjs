@@ -50,3 +50,12 @@ test('evidence: only the names the browse tool writes are served, refs are plain
   const v = normalizeVerification({ status: 'reproduced', evidence: 'x', artifacts: [ok, { kind: 'log', name: 'a.txt', ref: 'https://evil.com/a.txt' }, { kind: 'script', name: 'a.js', ref: ok.ref }] });
   assert.deepEqual(v.artifacts, [ok]);
 });
+
+test('doctor: a recipe with a browser needs agent-browser in the runner image', async () => {
+  const { verifyChecks } = await import('../dist/src/verify-checks.js');
+  const recipe = { steps: [{}], browser: { url: 'http://localhost:3000' } };
+  const base = { image: 'img', docker: { stdout: '27\n' }, imageProbe: {}, recipe, egress: null };
+  assert.equal(verifyChecks({ ...base, browserProbe: {} }).find((c) => c.label === 'Browser').level, 'ok');
+  assert.equal(verifyChecks({ ...base, browserProbe: { error: 'exit 1' } }).find((c) => c.label === 'Browser').level, 'warn');
+  assert.ok(!verifyChecks({ ...base, recipe: { steps: [{}] } }).some((c) => c.label === 'Browser'));
+});
