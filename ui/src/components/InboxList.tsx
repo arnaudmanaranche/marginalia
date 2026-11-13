@@ -19,8 +19,11 @@ export function InboxList({ proposals, selected, onSelect }: { proposals: Propos
         return (
           <section key={first.slug} aria-label={first.mrTitle}>
             <h2 className="flex items-baseline gap-2 px-2 pb-1 text-xs">
-              <span className="min-w-0 truncate font-medium" title={first.mrTitle}>{first.mrTitle}</span>
-              <span className="shrink-0 tabular-nums text-fg-muted">!{first.iid} · {group.length}</span>
+              {/* The MR opens its review here; its number opens it on GitLab. */}
+              <a href={`#/${first.slug}`} title={`Open the review of ${first.mrTitle}`} className="min-w-0 truncate font-medium hover:underline">{first.mrTitle}</a>
+              <span className="shrink-0 tabular-nums text-fg-muted">
+                {first.webUrl ? <a href={first.webUrl} target="_blank" rel="noreferrer" title="Open the MR on GitLab" className="hover:text-fg hover:underline">!{first.iid}</a> : `!${first.iid}`} · {group.length}
+              </span>
             </h2>
             <ul className="space-y-px">
               {group.map((p) => {
