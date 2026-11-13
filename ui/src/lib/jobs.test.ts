@@ -31,9 +31,15 @@ describe('a job in the list', () => {
     expect(withTitles([job({ title: 'Own' })], titles)[0].title).toBe('Own');
     expect(withTitles([job({ slug: 'webapp/other' })], titles)[0].title).toBeNull();
   });
-  it('folds skipped runs of the same job back to back into one line, and nothing else', () => {
+  it('folds skipped runs of the same job back to back into one line, and keeps runs that did something apart', () => {
     const skip = job({ outcome: 'skipped' });
     const rows = collapseRepeats([skip, skip, skip, job(), skip, job({ outcome: 'skipped', what: 'comments' })]);
     expect(rows.map((r) => [r.job.outcome, r.job.what, r.repeats])).toEqual([['skipped', 'own', 3], ['reviewed', 'own', 1], ['skipped', 'own', 1], ['skipped', 'comments', 1]]);
+  });
+  it('folds failures with the same cause back to back into one line, across MRs, and counts the MRs', () => {
+    const down = (slug: string) => job({ slug, outcome: 'failed', failure: { kind: 'auth', transient: false, title: 'Claude is not logged in', advice: '' } });
+    const gitlab = job({ outcome: 'failed', failure: { kind: 'gitlab', transient: true, title: 'GitLab could not be reached', advice: '' } });
+    const rows = collapseRepeats([down('w/a'), down('w/b'), down('w/a'), gitlab, down('w/c')]);
+    expect(rows.map((r) => [r.job.failure?.title, r.repeats, r.targets])).toEqual([['Claude is not logged in', 3, 2], ['GitLab could not be reached', 1, 1], ['Claude is not logged in', 1, 1]]);
   });
 });

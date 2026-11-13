@@ -45,14 +45,25 @@ export function withTitles(jobs: Job[], titleBySlug: ReadonlyMap<string, string>
   return jobs.map((j) => (j.title || !titleBySlug.has(j.slug) ? j : { ...j, title: titleBySlug.get(j.slug)! }));
 }
 
-// Skipped runs of the same job back to back are one line with a count: they repeat each poll and
-// would hide the runs that did something.
-export function collapseRepeats(jobs: Job[]): { job: Job; repeats: number }[] {
-  const out: { job: Job; repeats: number }[] = [];
+// Why a failed job failed, to tell the same cause from another.
+const causeOf = (job: Job) => job.failure?.title ?? job.error ?? '';
+
+// Whether `job` repeats `last` for a reader: a skipped run of the same job, or a failure with the same
+// cause on any MR (a logged-out agent or GitLab down fails every job the same way).
+const repeats = (last: Job, job: Job) =>
+  (job.outcome === 'skipped' && last.outcome === 'skipped' && last.slug === job.slug && last.what === job.what) ||
+  (job.outcome === 'failed' && last.outcome === 'failed' && causeOf(job) === causeOf(last));
+
+// Repeats back to back are one line with a count (and how many MRs they ran on): they would hide the
+// runs that did something. The latest of each is the one shown.
+export function collapseRepeats(jobs: Job[]): { job: Job; repeats: number; targets: number }[] {
+  const out: { job: Job; repeats: number; slugs: Set<string> }[] = [];
   for (const job of jobs) {
     const last = out.at(-1);
-    if (last && job.outcome === 'skipped' && last.job.outcome === 'skipped' && last.job.slug === job.slug && last.job.what === job.what) last.repeats++;
-    else out.push({ job, repeats: 1 });
+    if (last && repeats(last.job, job)) {
+      last.repeats++;
+      last.slugs.add(job.slug);
+    } else out.push({ job, repeats: 1, slugs: new Set([job.slug]) });
   }
-  return out;
+  return out.map(({ job, repeats: n, slugs }) => ({ job, repeats: n, targets: slugs.size }));
 }

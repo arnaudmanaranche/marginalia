@@ -25,9 +25,9 @@ export function JobList({ jobs, showProject, onOpen }: { jobs: Job[]; showProjec
         <section key={day} aria-label={day} className="mt-4">
           <h2 className="mb-1.5 text-xs font-medium text-fg-muted">{day}</h2>
           <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface">
-            {collapseRepeats(those).map(({ job, repeats }) => {
+            {collapseRepeats(those).map(({ job, repeats, targets }) => {
               const id = `${job.slug}:${job.id}`;
-              return <JobRow key={id} job={job} repeats={repeats} showProject={showProject} fresh={isFresh(job)} open={open === id} onToggle={() => setOpen((o) => (o === id ? null : id))} onOpen={onOpen} />;
+              return <JobRow key={id} job={job} repeats={repeats} targets={targets} showProject={showProject} fresh={isFresh(job)} open={open === id} onToggle={() => setOpen((o) => (o === id ? null : id))} onOpen={onOpen} />;
             })}
           </ul>
         </section>
