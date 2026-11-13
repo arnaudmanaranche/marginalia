@@ -1,4 +1,5 @@
-import { useContext } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
+import { cn } from '../lib/utils';
 import { LinkContext } from '../lib/links';
 import { ticketPage } from '../lib/tickets';
 import type { ContextCriticalPath, ContextItem, ContextSource, ContextTerm, ProjectContext } from '../lib/contextApi';
@@ -34,14 +35,25 @@ function Section({ id, title, children }: { id: string; title: string; children:
   return (
     <section aria-labelledby={id} className="mt-8">
       <h2 id={id} className="text-base font-medium">{title}</h2>
-      <div className="mt-3 divide-y divide-line rounded-xl border border-line bg-surface">{children}</div>
+      <div className="mt-3 divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface">{children}</div>
     </section>
   );
 }
 
-function Path({ path }: { path: ContextCriticalPath }) {
+// The path a link pointed at comes into view and glows for a moment, as a changed row does on Home.
+function Path({ path, focused }: { path: ContextCriticalPath; focused: boolean }) {
+  const ref = useRef<HTMLLIElement>(null);
+  const [glow, setGlow] = useState(false);
+  useEffect(() => {
+    if (!focused) return;
+    const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    ref.current?.scrollIntoView({ block: 'center', behavior: still ? 'auto' : 'smooth' });
+    setGlow(true);
+    const t = setTimeout(() => setGlow(false), 1500);
+    return () => clearTimeout(t);
+  }, [focused]);
   return (
-    <li className="flex gap-3 p-4">
+    <li ref={ref} aria-current={focused ? 'location' : undefined} className={cn('flex gap-3 p-4 transition-colors', glow ? 'bg-run/20 duration-150' : 'duration-1000')}>
       <span className="w-6 shrink-0 text-right font-semibold tabular-nums text-fg-muted" aria-label={`Rank ${path.rank}`}>{path.rank}</span>
       <div className="min-w-0">
         <p className="text-sm"><span className="font-medium">{path.name}</span>: {path.summary}</p>
@@ -101,12 +113,12 @@ function Recipe({ recipe }: { recipe: NonNullable<ProjectContext['verification']
   );
 }
 
-export function ContextSections({ context }: { context: ProjectContext }) {
+export function ContextSections({ context, focusPath = null }: { context: ProjectContext; focusPath?: string | null }) {
   return (
     <>
       <p className="mt-6 max-w-[80ch] text-base leading-7">{context.summary}</p>
       <Section id="ctx-paths" title={`Critical paths (${context.criticalPaths.length})`}>
-        <ol>{[...context.criticalPaths].sort((a, b) => a.rank - b.rank).map((p) => <Path key={p.name} path={p} />)}</ol>
+        <ol>{[...context.criticalPaths].sort((a, b) => a.rank - b.rank).map((p) => <Path key={p.name} path={p} focused={p.name === focusPath} />)}</ol>
       </Section>
       <Section id="ctx-glossary" title={`Glossary (${context.glossary.length})`}>
         <ul>{context.glossary.map((t) => <Term key={t.name} term={t} />)}</ul>

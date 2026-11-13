@@ -9,6 +9,7 @@ import { Chip } from './ds/Chip';
 import { Spinner } from './ds/Spinner';
 import { LinkContext, Linked } from '../lib/links';
 import { ticketUrl } from '../lib/tickets';
+import { criticalPathRoute } from '../lib/hashRoute';
 
 // Title, verdict and the actions on a review. On my own MR there is no verdict to give: the
 // action is sending my replies to the reviewers.
@@ -57,7 +58,10 @@ export function ReaderHeader({ item, risk, criticalPaths = [], showSubmit, draft
         {criticalPaths.length > 0 && (
           <p className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs text-fg-muted">
             <span>Touches</span>
-            {criticalPaths.map((p) => <Chip key={p}>{p}</Chip>)}
+            {/* Each opens the project context on that path: what it is, where it lives, what breaks. */}
+            {criticalPaths.map((p) => item ? (
+              <a key={p} href={`#/${criticalPathRoute(item.project, p)}`} title="See this critical path in the project context" className="rounded-md hover:[&>span]:ring-fg-subtle"><Chip>{p}</Chip></a>
+            ) : <Chip key={p}>{p}</Chip>)}
           </p>
         )}
         {item?.kind === 'own' && <p className="mt-1 text-sm text-fg-muted">Your own work, reviewed for you. Nothing here is posted.</p>}

@@ -98,7 +98,7 @@ export function App() {
   const { data, error, reload } = useReviews();
   const [projectFilter, setProjectFilter] = usePersistentState('mr-review-viewer:project-filter', ALL_PROJECTS);
   const posted = useMergedPosted(data?.posted ?? EMPTY_POSTED);
-  const { slug, finding } = useHashRoute();
+  const { slug, finding, path: focusPath } = useHashRoute();
   const [palette, setPalette] = useState(false);
 
   // One persistent toast while the API is unreachable, dismissed once it's back.
@@ -194,7 +194,7 @@ export function App() {
       ) : slug === APPROVALS_ROUTE ? (
         <ApprovalsView onOpen={go} />
       ) : contextKeyOf(slug) ? (
-        <ProjectView key={slug} projectKey={contextKeyOf(slug)!} />
+        <ProjectView key={slug} projectKey={contextKeyOf(slug)!} focusPath={focusPath} />
       ) : slug ? (
         <>
         {stack && current && <StackBoard stack={stack} items={items} current={current} isPosted={isPosted} onSelect={go} />}

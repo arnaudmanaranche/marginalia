@@ -13,8 +13,8 @@ const approvedLine = (s: StoredContext) => `approved by ${s.approvedBy ?? 'someo
 
 // One project's context: what the factory learned, which version reviews use, and the two
 // decisions a person makes about it (approve the draft, learn again). Reviews never use a draft.
-export function ProjectPage({ state, error, onRetry, busy, onApprove, onLearn }: {
-  state: ContextState | null; error: string | null; onRetry: () => void;
+export function ProjectPage({ state, error, onRetry, busy, onApprove, onLearn, focusPath = null }: {
+  state: ContextState | null; error: string | null; onRetry: () => void; focusPath?: string | null;
   busy: 'approve' | 'learn' | null; onApprove: () => void; onLearn: () => void;
 }) {
   if (error && !state) {
@@ -57,7 +57,7 @@ export function ProjectPage({ state, error, onRetry, busy, onApprove, onLearn }:
           </Button>
         </div>
       </div>
-      {shown ? <ContextSections context={shown.context} /> : (
+      {shown ? <ContextSections context={shown.context} focusPath={focusPath} /> : (
         <div className="mt-16 flex flex-col items-center gap-2 text-center text-fg-muted">
           <BookOpen className="size-8" aria-hidden />
           Nothing learned yet. Learning reads the repository, the tracker, the docs and the chat, and costs about what a review does.
@@ -68,13 +68,14 @@ export function ProjectPage({ state, error, onRetry, busy, onApprove, onLearn }:
 }
 
 // The page with its data and its two actions.
-export function ProjectView({ projectKey }: { projectKey: string }) {
+// `focusPath`: the critical path a link pointed at (a review's "Touches" chip).
+export function ProjectView({ projectKey, focusPath = null }: { projectKey: string; focusPath?: string | null }) {
   const { state, error, retry } = useProjectContext(projectKey);
   const { approve, learn } = useContextActions(projectKey);
   const fail = (what: string) => (err: Error) => toast.error(`${what}: ${err.message}`);
   return (
     <ProjectPage
-      state={state} error={error} onRetry={retry}
+      state={state} error={error} onRetry={retry} focusPath={focusPath}
       busy={approve.isPending ? 'approve' : learn.isPending ? 'learn' : null}
       onApprove={() => approve.mutate(undefined, { onSuccess: () => toast.success('Approved: reviews use this context now'), onError: fail('Could not approve') })}
       onLearn={() => learn.mutate(undefined, { onSuccess: () => toast.success('Learning the project: it shows in the jobs'), onError: fail('Could not start learning') })}

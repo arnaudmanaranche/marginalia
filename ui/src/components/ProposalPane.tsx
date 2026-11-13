@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ArrowUpRight, Check, Pencil, Send, X } from 'lucide-react';
 import type { Proposal } from '../lib/approvalsApi';
-import { findingRoute } from '../lib/hashRoute';
+import { criticalPathRoute, findingRoute } from '../lib/hashRoute';
 import { addToReview } from '../lib/pendingPosts';
 import { ConfirmPost } from './ConfirmPost';
 import { CopyButton } from './CopyButton';
@@ -56,7 +56,11 @@ export function ProposalPane({ proposal: p, canPost, busy, onDismiss, onMove, on
                 {p.path}{p.line ? `:${p.line}` : ''}
               </button>
             )}
-            {p.criticalPaths.length > 0 && <span>Touches {p.criticalPaths.join(', ')}</span>}
+            {p.criticalPaths.length > 0 && (
+              <span>Touches {p.criticalPaths.map((name, i) => (
+                <span key={name}>{i > 0 && ', '}<button type="button" onClick={() => onOpen(criticalPathRoute(p.project, name))} title="See this critical path in the project context" className="underline decoration-line-strong underline-offset-2 hover:text-zinc-900 hover:decoration-current dark:hover:text-zinc-100">{name}</button></span>
+              ))}</span>
+            )}
           </p>
         )}
       </header>
