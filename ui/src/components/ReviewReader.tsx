@@ -1,4 +1,4 @@
-import { useContext, useMemo, useState } from 'react';
+import { useContext, useEffect, useMemo, useState } from 'react';
 import { toast } from '../lib/toast';
 import { useMutation } from '@tanstack/react-query';
 import { submitReview, type BotStatus, type PostedInfo, type ReviewAction, type ReviewContent, type ReviewItem } from '../lib/api';
@@ -79,6 +79,13 @@ export function ReviewReader({ item, review: currentReview, reviewError, onRetry
     return findings.filter((f) => !f.comment || !text.includes(squash(f.comment)));
   }, [markdown, shape, stops]);
   // What others already raised folds those findings up; read only when there are some to post.
+  // A link to a finding no chapter holds (`?finding=`) opens the findings card on it, in view and lit up.
+  const looseFocus = useMemo(() => (finding && loose.some((f) => f.id === finding) ? { id: finding, source: 'diff' as const, nonce: 1 } : null), [finding, loose]);
+  useEffect(() => {
+    if (!looseFocus) return;
+    const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    requestAnimationFrame(() => document.getElementById('findings')?.scrollIntoView({ block: 'start', behavior: still ? 'auto' : 'smooth' }));
+  }, [looseFocus]);
   const threads = useThreads(!author && item?.tracked && item.iid && !viewingOld && loose.length ? item.slug : null, item?.reviewedAt);
   const { intro: rawIntro, sections } = useMemo(() => splitSections(meta.markdown), [meta]);
   // The report's own `# title` repeats the header above it: said once.
@@ -146,8 +153,8 @@ export function ReviewReader({ item, review: currentReview, reviewError, onRetry
         <article className="mx-auto w-full min-w-0 max-w-[80ch] space-y-3">
             {!hasTour && !answering && <ReportSections intro={intro} sections={ordered} firstSupporting={firstSupporting} isOpen={isOpen} setOverrides={setOverrides} />}
             {!author && item?.tracked && item.iid && !viewingOld && loose.length > 0 && (
-              <CollapsibleCard id="findings" title={`${hasTour ? 'Other findings' : 'Findings to comment on'} (${loose.length})`} open={overrides.findings ?? true} onOpenChange={(o) => setOverrides((prev) => ({ ...prev, findings: o }))}>
-                <FindingsPanel findings={loose} threads={threads} slug={item.slug} iid={item.iid} allowPosting={mayPost} locked={locked} posted={posted} reload={reload} />
+              <CollapsibleCard id="findings" title={`${hasTour ? 'Other findings' : 'Findings to comment on'} (${loose.length})`} open={looseFocus ? true : overrides.findings ?? true} onOpenChange={(o) => setOverrides((prev) => ({ ...prev, findings: o }))}>
+                <FindingsPanel findings={loose} focus={looseFocus} threads={threads} slug={item.slug} iid={item.iid} allowPosting={mayPost} locked={locked} posted={posted} reload={reload} />
               </CollapsibleCard>
             )}
           </article>
