@@ -17,7 +17,7 @@ export function browser({ runner, steps, hosts, evidenceDir }: { runner: () => P
   const kept: Artifact[] = [];
   // The project is started once, by the recipe's own `run` step, the first time a page is opened, however
   // many calls ask at once.
-  const startProject = (r: Runner) => (starting ??= (async () => { const cmd = runStep(steps); if (cmd) await r.start(cmd); })());
+  const startProject = (r: Runner) => (starting ??= (async () => { const cmd = runStep(steps); if (cmd) await r.start(cmd); })().catch((err) => { starting = null; throw err; }));
   // Retried while the project is still starting (nothing listens yet), never for a page that fails otherwise.
   async function open(r: Runner, argv: string[]) {
     await startProject(r);

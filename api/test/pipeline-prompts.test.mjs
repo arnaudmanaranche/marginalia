@@ -175,3 +175,14 @@ test('the fix commits are read with their thread, and the landed ones found by i
   ]);
   assert.deepEqual(landedByThread([{ sha: 'new', thread: 't' }, { sha: 'old', thread: 't' }]), [{ thread: 't', sha: 'new' }]);
 });
+
+test('a finding repeated inside one chapter takes one slot, the most severe copy', () => {
+  const key = (f) => f.title;
+  const fs = [
+    { severity: 'important', proof: 'runtime', title: 'same' },
+    { severity: 'critical', proof: 'runtime', title: 'same' },
+    { severity: 'important', proof: 'runtime', title: 'other' },
+  ];
+  assert.deepEqual(selectForVerify(fs, 2, () => false, key), { picked: [1, 2], over: [] }, 'the critical copy, then the other finding: the repeat is in neither list and uses no slot');
+  assert.deepEqual(selectForVerify(fs, 1, () => false, key), { picked: [1], over: [2] });
+});

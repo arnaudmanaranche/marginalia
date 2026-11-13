@@ -20,7 +20,7 @@ const TOOLS = [
   },
   {
     name: 'browse',
-    description: 'Look at the running project in a browser, one step per call. action: open (target = a URL on localhost), snapshot (the page as a list of elements with @refs), click (target = a @ref or selector), fill (target, value), press (target = a key), wait (target = milliseconds or a selector), evidence (keeps a screenshot, the console, page errors and failed requests: call it once, when the page shows the claim true or false). The project is started for you with the recipe\'s run step.',
+    description: 'Look at the running project in a browser, one step per call. action: open (target = a URL on localhost), snapshot (the page as a list of elements with @refs), click (target = a @ref or selector), fill (target, value), press (target = a key), wait (target = milliseconds or a selector), evidence (keeps a screenshot, the console, page errors and the requests the page made: call it once, when the page shows the claim true or false). The project is started for you with the recipe\'s run step.',
     inputSchema: { type: 'object', properties: { action: { type: 'string', enum: ['open', 'snapshot', 'click', 'fill', 'press', 'wait', 'evidence'] }, target: { type: 'string' }, value: { type: 'string' } }, required: ['action'] },
   },
 ];
