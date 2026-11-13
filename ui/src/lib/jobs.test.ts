@@ -42,4 +42,8 @@ describe('a job in the list', () => {
     const rows = collapseRepeats([down('w/a'), down('w/b'), down('w/a'), gitlab, down('w/c')]);
     expect(rows.map((r) => [r.job.failure?.title, r.repeats, r.targets])).toEqual([['Claude is not logged in', 3, 2], ['GitLab could not be reached', 1, 1], ['Claude is not logged in', 1, 1]]);
   });
+  it('keeps unknown failures apart unless their errors are the same', () => {
+    const unknown = (error: string | null, id = 'x') => job({ id, outcome: 'failed', error, failure: { kind: 'unknown', transient: false, title: 'Something went wrong', advice: '' } });
+    expect(collapseRepeats([unknown('ENOSPC'), unknown('EACCES'), unknown('EACCES'), unknown(null, 'a'), unknown(null, 'b')]).map((r) => r.repeats)).toEqual([1, 2, 1, 1]);
+  });
 });

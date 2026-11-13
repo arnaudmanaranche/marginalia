@@ -45,8 +45,9 @@ export function withTitles(jobs: Job[], titleBySlug: ReadonlyMap<string, string>
   return jobs.map((j) => (j.title || !titleBySlug.has(j.slug) ? j : { ...j, title: titleBySlug.get(j.slug)! }));
 }
 
-// Why a failed job failed, to tell the same cause from another.
-const causeOf = (job: Job) => job.failure?.title ?? job.error ?? '';
+// Why a failed job failed, to tell the same cause from another. An unknown failure shares a generic
+// title: its own error tells it apart, and without one it is its own cause.
+const causeOf = (job: Job) => (job.failure && job.failure.kind !== 'unknown' ? job.failure.title : job.error ?? `run ${job.id}`);
 
 // Whether `job` repeats `last` for a reader: a skipped run of the same job, or a failure with the same
 // cause on any MR (a logged-out agent or GitLab down fails every job the same way).
