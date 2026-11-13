@@ -46,7 +46,7 @@ export function ReviewRow({ item, unread, reviewing = false, held = false, arriv
       )}
     >
       <span className={unread ? 'size-2 shrink-0 rounded-full bg-run' : 'size-2 shrink-0'} aria-hidden />
-      <a href={`#/${item.slug}`} className="min-w-0 flex-1 basis-64 truncate font-medium hover:underline">{title}</a>
+      <a href={`#/${item.slug}`} data-vt-title={item.slug} className="min-w-0 flex-1 basis-64 truncate font-medium hover:underline">{title}</a>
       {reason && <span className="shrink-0 text-xs text-fg-muted">{reason}</span>}
       {arrived && <Badge tone="info">New</Badge>}
       {reviewing && <LivePill tone="run" label="Reviewing" live title="Open it to follow the run" />}

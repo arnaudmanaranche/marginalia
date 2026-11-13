@@ -40,7 +40,7 @@ export function ReaderHeader({ item, risk, criticalPaths = [], showSubmit, draft
       <div className="min-w-0 flex-1">
         {/* Never squeezed away: the title wraps (two lines at most) and the badges go under it. */}
         <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5">
-          <h1 title={item?.title} className="line-clamp-2 min-w-0 break-words text-2xl font-semibold tracking-tight [text-wrap:balance] lg:line-clamp-1">{item?.title ? <Linked text={item.title} /> : 'Review'}</h1>
+          <h1 title={item?.title} data-vt-title={item?.slug} className="line-clamp-2 min-w-0 break-words text-2xl font-semibold tracking-tight [text-wrap:balance] lg:line-clamp-1">{item?.title ? <Linked text={item.title} /> : 'Review'}</h1>
           <span className="flex shrink-0 items-center gap-2">
             {item?.kind !== 'comments' && <VerdictBadge verdict={item?.verdict ?? null} />}
             <RiskBadge level={risk?.level ?? null} why={risk?.rationale} />
