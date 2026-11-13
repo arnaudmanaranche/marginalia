@@ -40,11 +40,17 @@ export function changeScreen(update: () => void, from: string | null, to: string
   }
   const before = key ? titleOf(key) : null;
   if (before) before.style.viewTransitionName = NAME;
+  // The change runs once, whichever comes first: the transition's callback or the fallback below.
   let applied = false;
-  const transition = document.startViewTransition(async () => {
+  const apply = () => {
+    if (applied) return false;
     applied = true;
-    if (before) before.style.viewTransitionName = '';
     update();
+    return true;
+  };
+  const transition = document.startViewTransition(async () => {
+    if (before) before.style.viewTransitionName = '';
+    if (!apply()) return;
     const after = before && key ? await waitFor(() => titleOf(key), WAIT_MS) : null;
     if (after) after.style.viewTransitionName = NAME;
   });
@@ -53,7 +59,7 @@ export function changeScreen(update: () => void, from: string | null, to: string
   setTimeout(() => {
     if (applied) return;
     transition.skipTransition();
-    update();
+    apply();
   }, 500);
   transition.finished.finally(() => {
     const shown = key ? titleOf(key) : null;
