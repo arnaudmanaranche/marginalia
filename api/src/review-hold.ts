@@ -22,7 +22,8 @@ export function reviewHold({ kind, author, facts, staleDays, now }: { kind: 'rev
     return `No push in the last ${staleDays} days (last on ${day(lastPushAt)}). Run again (↻) on its review, or a mention asking for a review, runs it.`;
   }
   if (kind !== 'review') return null;
-  // An approval without a time is counted: GitLab resets approvals on a push where the project asks it.
+  // An approval without a time is counted as since the last push: it assumes the project resets
+  // approvals on push (docs/reference/review-flow.md says so, and what happens otherwise).
   const since = approvedBy.filter((a) => a.username && a.username !== author && (lastPushAt === null || a.at === null || Date.parse(a.at) >= lastPushAt));
   if (!since.length) return null;
   return `Approved on GitLab by ${since.map((a) => a.username).join(', ')} since its last push: a person already reviewed it. Run again (↻) on its review, or a mention asking for a review, runs it.`;

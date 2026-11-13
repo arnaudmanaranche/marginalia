@@ -6,6 +6,13 @@
 - Ignores MRs with no activity (`updated_at`) for more than `STALE_AFTER_DAYS`
   days (14 by default): beyond that, they've likely diverged from `develop`
   or been abandoned.
+- Holds the automatic review of an MR (GLOSSARY: Hold) when its last push is older than
+  `STALE_AFTER_DAYS`, or when someone other than its author approved it since that push.
+  An approval GitLab gives without a time (`approved_at` missing) counts as given since the last
+  push. That holds only on projects where GitLab resets approvals on push (Settings → Merge requests →
+  Approval settings → "Remove all approvals when commits are added to the source
+  branch"). On a project without it, an old approval keeps holding the MR after new pushes;
+  Run again (↻) or a mention asking for a review still runs it.
 - On first run, creates a git worktree of `REPO_LOCAL_PATH` at
   `BOT_WORKTREE_DIR` (detached, then a `.claude` symlink back to your real
   checkout so the command/agent/settings/connectors are available in it).
