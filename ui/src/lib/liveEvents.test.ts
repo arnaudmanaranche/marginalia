@@ -56,3 +56,14 @@ describe('listenToChanges, when the stream drops', () => {
     await vi.waitFor(() => expect(stale(keys.reviews)).toBe(true));
   });
 });
+
+describe('listenToChanges, when the stream fails before it ever opened', () => {
+  it('catches up on its first open', async () => {
+    const { client, stale } = seeded();
+    const source = { onmessage: null as ((e: never) => void) | null, onerror: null as (() => void) | null, onopen: null as (() => void) | null, close: vi.fn() };
+    listenToChanges(client, () => source as never);
+    source.onerror!();
+    source.onopen!();
+    await vi.waitFor(() => expect(stale(keys.reviews)).toBe(true));
+  });
+});

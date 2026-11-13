@@ -12,13 +12,17 @@ type Source = Pick<EventSource, 'onmessage' | 'onopen' | 'onerror' | 'close'>;
 // the stream is up: the browser reconnects by itself, and a reconnect catches up on what changed meanwhile.
 export function listenToChanges(client: QueryClient, open: () => Source = () => new EventSource('/events'), onLive: (live: boolean) => void = () => {}) {
   const source = open();
-  let opened = false;
+  // Once the stream has dropped (even before it ever opened), its next open catches up.
+  let dropped = false;
   source.onmessage = () => void invalidateLive(client);
   source.onopen = () => {
-    if (opened) void invalidateLive(client);
-    opened = true;
+    if (dropped) void invalidateLive(client);
+    dropped = false;
     onLive(true);
   };
-  source.onerror = () => onLive(false);
+  source.onerror = () => {
+    dropped = true;
+    onLive(false);
+  };
   return () => source.close();
 }
