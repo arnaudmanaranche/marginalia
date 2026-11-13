@@ -141,6 +141,7 @@ export function App() {
   const several = hasSeveralProjects(projects);
   const approvalCount = useApprovals().data?.proposals.length ?? 0;
   const pages = useMemo(() => palettePages(projects ?? []), [projects]);
+  const titles = useMemo(() => new Map(items.map((i) => [i.slug, i.title])), [items]);
   const filter = activeFilter(projectFilter, projects);
   const shown = useMemo(() => filterByProject(items, filter, projects), [items, filter, projects]);
   // The Home tab counts what waits on you in every project, whatever the filter hides.
@@ -203,7 +204,7 @@ export function App() {
         </>
       ) : (
         <HomeFeed
-          loaded={Boolean(data)} items={shown} isUnread={isUnread} isReviewing={isReviewing} isHeld={isHeld} isNew={isNew} isChanged={isChanged} showProject={several} onOpen={go}
+          loaded={Boolean(data)} items={shown} titles={titles} isUnread={isUnread} isReviewing={isReviewing} isHeld={isHeld} isNew={isNew} isChanged={isChanged} showProject={several} onOpen={go}
           filter={several ? <ProjectFilter options={filterOptions(projects)} value={filter} onChange={setProjectFilter} /> : undefined}
         />
       )}

@@ -4,7 +4,7 @@ import type { ReviewItem } from '../lib/api';
 import { APPROVALS_ROUTE } from '../lib/approvalsApi';
 import { contextRoute } from '../lib/contextApi';
 import { runningNow } from '../lib/feed';
-import { WHAT, targetOf, withTitles } from '../lib/jobs';
+import { WHAT, routeOf, targetOf, withTitles } from '../lib/jobs';
 import { useNeedsYou } from '../lib/useNeedsYou';
 import { useQueue } from '../lib/useQueue';
 import { StatusMark } from './ds/StatusMark';
@@ -19,13 +19,16 @@ const list = 'divide-y divide-line overflow-hidden rounded-xl border border-line
 // Home (ADR 0007): what needs you, what runs now, what happened. Everything waiting on a person comes
 // first in one list; the jobs follow, live, then every job by day.
 // `loaded`: the reviews have arrived. Before that nothing is claimed: no count, a quiet skeleton.
-export function HomeFeed({ loaded, items, isUnread, isReviewing, isHeld, isNew, isChanged, showProject, onOpen, filter }: {
-  loaded: boolean; items: ReviewItem[]; isUnread: (i: ReviewItem) => boolean; isReviewing: (i: ReviewItem) => boolean; isHeld: (i: ReviewItem) => boolean; isNew: (i: ReviewItem) => boolean; isChanged: (i: ReviewItem) => boolean;
+// `titles`: every review's title by its id, across projects (the jobs listed are not filtered).
+export function HomeFeed({ loaded, items, titles, isUnread, isReviewing, isHeld, isNew, isChanged, showProject, onOpen, filter }: {
+  loaded: boolean; items: ReviewItem[]; titles: ReadonlyMap<string, string>; isUnread: (i: ReviewItem) => boolean; isReviewing: (i: ReviewItem) => boolean; isHeld: (i: ReviewItem) => boolean; isNew: (i: ReviewItem) => boolean; isChanged: (i: ReviewItem) => boolean;
   showProject: boolean; onOpen: (route: string | null) => void; filter?: React.ReactNode;
 }) {
   const queue = useQueue();
-  const { jobs: raw, proposals, drafts, reviews, failures, count } = useNeedsYou(items);
-  const jobs = useMemo(() => (raw ? withTitles(raw, new Map(items.map((i) => [i.slug, i.title]))) : raw), [raw, items]);
+  const { jobs: raw, proposals, drafts, reviews, failures: rawFailures, count } = useNeedsYou(items);
+  // Jobs of every project take their MR's title, whatever the project filter shows (`titles`).
+  const jobs = useMemo(() => (raw ? withTitles(raw, titles) : raw), [raw, titles]);
+  const failures = useMemo(() => withTitles(rawFailures, titles), [rawFailures, titles]);
   const running = jobs ? runningNow(jobs) : [];
   if (!loaded) {
     return (
@@ -46,7 +49,7 @@ export function HomeFeed({ loaded, items, isUnread, isReviewing, isHeld, isNew, 
           <h2 id="needs-you" className="mb-2 text-sm font-medium">Needs you</h2>
           <ul className={list}>
             {proposals > 0 && <FeedRow mark={<Inbox className="size-4 text-run" aria-hidden />} title={`${proposals} proposed comment${proposals > 1 ? 's' : ''} to decide`} detail="Add each to your review, edited or not, or dismiss it" onOpen={() => onOpen(APPROVALS_ROUTE)} />}
-            {failures.map((j) => <FeedRow key={j.slug} mark={<StatusMark state="failed" />} title={targetOf(j)} detail={`${j.failure?.title ?? 'Failed'} · ${WHAT[j.what]}`} onOpen={() => onOpen(j.slug)} />)}
+            {failures.map((j) => <FeedRow key={j.slug} mark={<StatusMark state="failed" />} title={targetOf(j)} detail={`${j.failure?.title ?? 'Failed'} · ${WHAT[j.what]}`} onOpen={() => onOpen(routeOf(j))} />)}
             {drafts.map((c) => <FeedRow key={c.project} mark={<Sparkles className="size-4 text-run" aria-hidden />} title={`A new context for ${c.project}`} detail="Read it and approve it: reviews use the approved one" onOpen={() => onOpen(contextRoute(c.project))} />)}
             {/* Say it once: a reason is named on the first row of its run, not repeated on each. */}
             {reviews.map(({ item, reason }, i) => <ReviewRow key={item.slug} item={item} reason={i === 0 || reviews[i - 1].reason !== reason ? reason : undefined} unread={isUnread(item)} reviewing={isReviewing(item)} held={isHeld(item)} arrived={isNew(item)} changed={isChanged(item)} showProject={showProject} />)}
