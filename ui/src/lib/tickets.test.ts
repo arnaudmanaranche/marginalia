@@ -7,13 +7,17 @@ const hrefs = (nodes: ReturnType<typeof linkify>) => nodes.filter(isValidElement
 const ctx = (tickets: LinkContextValue['tickets']): LinkContextValue => ({ projectUrl: null, branch: null, mrWebUrl: null, tickets });
 
 describe('ticketLinks', () => {
-  it('learns the ticket projects from the MRs it knows', () => {
-    const t = ticketLinks('https://acme.atlassian.net/', [{ title: 'fix(auth): login gate (FEE-194, FEE-203)', jira: null }, { title: 'chore', jira: { key: 'COL-1078' } }]);
-    expect(t).toEqual({ base: 'https://acme.atlassian.net', prefixes: ['FEE', 'COL'] });
+  it("learns the ticket projects from the MRs' tickets and branch names, not from their titles", () => {
+    const t = ticketLinks('https://acme.atlassian.net/', [
+      { branch: 'agent/bugfix-fee-194-login-gate', jira: null },
+      { branch: 'chore/search-modal', jira: { key: 'COL-1078' } },
+      { branch: 'feat/PAM-748', jira: null },
+    ]);
+    expect(t).toEqual({ base: 'https://acme.atlassian.net', prefixes: ['FEE', 'COL', 'PAM'] });
   });
 
   it('is null without a Jira address', () => {
-    expect(ticketLinks(null, [{ title: 'FEE-1', jira: null }])).toBeNull();
+    expect(ticketLinks(null, [{ branch: 'feat/FEE-1', jira: null }])).toBeNull();
   });
 });
 

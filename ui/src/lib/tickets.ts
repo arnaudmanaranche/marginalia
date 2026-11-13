@@ -5,13 +5,15 @@ export interface TicketLinks {
   prefixes: string[];
 }
 
-const KEY = /\b([A-Z][A-Z0-9]+)-\d+\b/g;
+// A key in a ticket the API read, or in a branch named after one (`feat/FEE-190`, `agent/bugfix-fee-194-x`):
+// a title is free text, where `UTF-8` would pass for one.
+const KEY = /(?:^|[/_-])([A-Za-z][A-Za-z0-9]+)-\d+(?=$|[/_-])/g;
 
-// The tracker address and the ticket projects named by the MRs' titles and tickets; null without an address.
-export function ticketLinks(baseUrl: string | null, items: { title: string; jira: { key: string } | null }[]): TicketLinks | null {
+// The tracker address and the ticket projects named by the MRs' tickets and branches; null without an address.
+export function ticketLinks(baseUrl: string | null, items: { branch: string | null; jira: { key: string } | null }[]): TicketLinks | null {
   if (!baseUrl) return null;
   const prefixes = new Set<string>();
-  for (const item of items) for (const text of [item.title, item.jira?.key ?? '']) for (const m of text.matchAll(KEY)) prefixes.add(m[1]);
+  for (const item of items) for (const text of [item.jira?.key ?? '', item.branch ?? '']) for (const m of text.matchAll(KEY)) prefixes.add(m[1].toUpperCase());
   return { base: baseUrl.replace(/\/+$/, ''), prefixes: [...prefixes] };
 }
 
