@@ -10,7 +10,7 @@ const median = (xs: number[]) => {
 };
 
 export function runEstimate(jobs: Job[], slug: string, what: string): number | null {
-  const paid = jobs.filter((j) => (j.cost?.usd ?? 0) > 0);
+  const paid = jobs.filter((j) => j.outcome !== 'running' && (j.cost?.usd ?? 0) > 0);
   const own = paid.filter((j) => j.slug === slug);
   const pool = own.length ? own : paid.filter((j) => j.what === what);
   return median(pool.slice(0, RECENT).map((j) => j.cost!.usd));

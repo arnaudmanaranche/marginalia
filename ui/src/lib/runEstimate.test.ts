@@ -13,6 +13,10 @@ describe('runEstimate', () => {
   });
   it('falls back to runs of the same kind, and ignores runs that cost nothing', () => {
     expect(runEstimate([job('w/b', 1.5), job('w/c', 0.5, { what: 'comments' }), job('w/a', null)], 'w/a', 'review')).toBe(1.5);
+    expect(runEstimate([job('w/a', 0), job('w/a', 2)], 'w/a', 'review')).toBe(2);
+  });
+  it('leaves out a run still going: its cost so far is not what a run costs', () => {
+    expect(runEstimate([job('w/a', 0.1, { outcome: 'running', endedAt: null }), job('w/a', 2)], 'w/a', 'review')).toBe(2);
   });
   it('is null when nothing tells', () => {
     expect(runEstimate([], 'w/a', 'review')).toBeNull();
