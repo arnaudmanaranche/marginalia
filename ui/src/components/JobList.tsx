@@ -17,6 +17,8 @@ export function JobList({ jobs, showProject, onOpen }: { jobs: Job[]; showProjec
   return (
     <div className="mt-6">
       <Segmented label="Show jobs" options={options} value={filter} onChange={setFilter} />
+      {/* The counts are jobs (one run on one MR) over this window, retried failures included: not the queue's tasks, not what still needs you. */}
+      <p className="mt-2 text-xs text-fg-muted">Counts over the last {jobs.length} jobs, failures since retried included.</p>
       {shown.length === 0 ? (
         <p className="mt-6 text-sm text-fg-muted">No {FILTERS.find((f) => f.id === filter)?.label.toLowerCase()} job among the last {jobs.length}.</p>
       ) : byDay(shown).map(({ day, jobs: those }) => (
