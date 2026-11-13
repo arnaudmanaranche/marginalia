@@ -5,8 +5,11 @@ import { inTime, timeAgo } from '../lib/utils';
 import { AccountMenu } from './AccountMenu';
 import { Logo } from './Logo';
 
-function BotState({ status, connection }: { status: BotStatus | null; connection: 'connecting' | 'unreachable' | 'ok' }) {
-  if (connection === 'unreachable') return <LivePill tone="warn" label="Cannot reach the studio" detail="retrying" live />;
+// `shownSince`: when the data on screen was read; once the API is lost, it says how old that is.
+function BotState({ status, connection, shownSince }: { status: BotStatus | null; connection: 'connecting' | 'unreachable' | 'ok'; shownSince: number | null }) {
+  if (connection === 'unreachable') {
+    return <LivePill tone="warn" label="Cannot reach the studio" detail={shownSince ? `showing what it said ${timeAgo(new Date(shownSince).toISOString())}, retrying` : 'retrying'} title="What is on screen may be out of date until the studio answers again." live />;
+  }
   if (connection === 'connecting') return <LivePill tone="idle" label="Connecting" live />;
   if (!status || status.phase === 'stopped') return <LivePill tone="idle" label="Bot stopped" />;
   if (status.phase === 'reviewing' && status.current) {
@@ -35,12 +38,12 @@ function BotState({ status, connection }: { status: BotStatus | null; connection
   );
 }
 
-export function StatusBar({ status, connection, settingsActive, approvalsActive, approvals, onOpenPalette, onHome, onSettings, onApprovals }: { status: BotStatus | null; connection: 'connecting' | 'unreachable' | 'ok'; settingsActive: boolean; approvalsActive: boolean; approvals: number; onOpenPalette: () => void; onHome: () => void; onSettings: () => void; onApprovals: () => void }) {
+export function StatusBar({ status, connection, shownSince = null, settingsActive, approvalsActive, approvals, onOpenPalette, onHome, onSettings, onApprovals }: { status: BotStatus | null; connection: 'connecting' | 'unreachable' | 'ok'; shownSince?: number | null; settingsActive: boolean; approvalsActive: boolean; approvals: number; onOpenPalette: () => void; onHome: () => void; onSettings: () => void; onApprovals: () => void }) {
   return (
     <div className="border-b border-line">
       <div className="flex h-14 items-center gap-4 px-4">
         <button onClick={onHome} className="touch-target flex items-center gap-2 font-semibold tracking-tight"><Logo />Marginalia</button>
-        <div className="ml-2 min-w-0 text-sm"><BotState status={status} connection={connection} /></div>
+        <div className="ml-2 min-w-0 text-sm"><BotState status={status} connection={connection} shownSince={shownSince} /></div>
 
         <button
           onClick={onOpenPalette}
