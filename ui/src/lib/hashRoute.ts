@@ -22,6 +22,9 @@ export function parseHash(hash: string): HashRoute {
 // The route that opens a review on one of its findings.
 export const findingRoute = (slug: string, findingId: string) => `${slug}?finding=${encodeURIComponent(findingId)}`;
 
+// The settings page.
+export const SETTINGS_ROUTE = 'settings';
+
 // A project's context page (`context:webapp`), and the same page opened on one of its critical paths, by name.
 export const CONTEXT_ROUTE = 'context:';
 export const criticalPathRoute = (projectKey: string, name: string) => `${CONTEXT_ROUTE}${projectKey}?path=${encodeURIComponent(name)}`;

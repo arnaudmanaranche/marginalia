@@ -28,13 +28,12 @@ import { ProjectView } from './components/ProjectPage';
 import { contextKeyOf } from './lib/contextApi';
 import { StackBoard } from './components/StackBoard';
 import { ReviewMissing, ReviewSkeleton } from './components/ReviewSkeleton';
-import { parseHash } from './lib/hashRoute';
+import { SETTINGS_ROUTE, parseHash } from './lib/hashRoute';
 import { LinkContext } from './lib/links';
 import { ticketLinks } from './lib/tickets';
 
 const EMPTY_POSTED = {};
 // `#/settings` is the settings page, not a review.
-const SETTINGS_ROUTE = 'settings';
 // `#/jobs` was the jobs page; Home is the feed now (ADR 0007), so it lands there.
 const JOBS_ROUTE = 'jobs';
 // The animation features load after the first paint; until then `m` components just render.
