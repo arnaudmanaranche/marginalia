@@ -25,7 +25,7 @@ export function HomeFeed({ loaded, items, titles, isUnread, isReviewing, isHeld,
   showProject: boolean; onOpen: (route: string | null) => void; filter?: React.ReactNode;
 }) {
   const queue = useQueue();
-  const { jobs: raw, proposals, drafts, reviews, failures: rawFailures, count } = useNeedsYou(items);
+  const { jobs: raw, proposals, drafts, reviews, failures: rawFailures, count, known } = useNeedsYou(items);
   // Jobs of every project take their MR's title, whatever the project filter shows (`titles`).
   const jobs = useMemo(() => (raw ? withTitles(raw, titles) : raw), [raw, titles]);
   const failures = useMemo(() => withTitles(rawFailures, titles), [rawFailures, titles]);
@@ -40,7 +40,8 @@ export function HomeFeed({ loaded, items, titles, isUnread, isReviewing, isHeld,
   }
   return (
     <div className="mx-auto max-w-7xl px-6 py-8">
-      <h1 className="text-3xl font-semibold tracking-tight">{count === 0 ? 'Nothing needs you' : `${count} thing${count > 1 ? 's' : ''} need${count > 1 ? '' : 's'} you`}</h1>
+      {/* Said once every source answered: "Nothing needs you" while some still load would be a false all-clear. */}
+      <h1 className="text-3xl font-semibold tracking-tight">{!known ? <span aria-label="Counting what needs you" className="inline-block h-9 w-64 animate-pulse rounded-lg bg-sunken align-middle motion-reduce:animate-none" /> : count === 0 ? 'Nothing needs you' : `${count} thing${count > 1 ? 's' : ''} need${count > 1 ? '' : 's'} you`}</h1>
       <p className="mt-1 text-fg-muted">{running.length > 0 ? `${running.length} job${running.length > 1 ? 's' : ''} running.` : 'No job running.'}</p>
       {filter}
 

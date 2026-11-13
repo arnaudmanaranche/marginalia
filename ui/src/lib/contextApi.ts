@@ -30,9 +30,10 @@ export const waitsForApproval = (s: ContextSummary) => s.draftLearnedAt !== null
 // Under 'runs' (live keys): an Understand job ending, or an approval, refreshes them.
 const keys = { one: (key: string) => ['runs', '*', 'context', key] as const, all: ['runs', '*', 'contexts'] as const };
 
-export function useContexts(): ContextSummary[] {
+// The projects' contexts; `known` once the list came, or could not (an error says nothing waits there).
+export function useContexts(): { contexts: ContextSummary[]; known: boolean } {
   const query = useQuery({ queryKey: keys.all, queryFn: ({ signal }) => fetchJson<{ contexts: ContextSummary[] }>('/api/contexts', { signal }).then((r) => r.contexts) });
-  return query.data ?? [];
+  return { contexts: query.data ?? [], known: !query.isPending || query.isError };
 }
 
 export function useProjectContext(key: string) {

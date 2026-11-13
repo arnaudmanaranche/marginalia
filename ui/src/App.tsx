@@ -145,7 +145,9 @@ export function App() {
   const filter = activeFilter(projectFilter, projects);
   const shown = useMemo(() => filterByProject(items, filter, projects), [items, filter, projects]);
   // The Home tab counts what waits on you in every project, whatever the filter hides.
-  const waitingAll = useNeedsYou(items).count;
+  const needsYou = useNeedsYou(items);
+  // The Home tab says a number once it is the whole one.
+  const waitingAll = needsYou.known ? needsYou.count : 0;
 
   const [theme] = useTheme();
   const go = (s: string | null) => {
