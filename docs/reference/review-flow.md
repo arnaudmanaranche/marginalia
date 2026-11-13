@@ -93,7 +93,7 @@ chained; `write_file` only creates new files.
 at), the verifying agent also has a `browse` tool: one browser step per call (`open` on localhost or a recipe
 host, `snapshot`, `click`, `fill`, `press`, `wait`, `evidence`), driven by `agent-browser` in the same runner.
 `evidence` keeps a screenshot, the console, page errors and the requests the page made in the data directory
-(`evidence/<run>-<stage>/`); the finding's `verification.artifacts` points at them and the studio shows the
+(`evidence/<project>/<run>-<stage>/`); the finding's `verification.artifacts` points at them and the studio shows the
 picture and links the logs, served by `GET /api/evidence/{project}/{id}/{name}` (only for a project the caller can see). It needs the browser runner image
 (`deploy/runner/Dockerfile.browser`). Evidence is shown, never posted to GitLab by itself.
 
