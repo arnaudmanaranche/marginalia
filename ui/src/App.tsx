@@ -29,6 +29,8 @@ import { contextKeyOf } from './lib/contextApi';
 import { StackBoard } from './components/StackBoard';
 import { ReviewMissing, ReviewSkeleton } from './components/ReviewSkeleton';
 import { parseHash } from './lib/hashRoute';
+import { LinkContext } from './lib/links';
+import { ticketLinks } from './lib/tickets';
 
 const EMPTY_POSTED = {};
 // `#/settings` is the settings page, not a review.
@@ -113,6 +115,8 @@ export function App() {
 
 
   const items = useMemo(() => data?.items ?? [], [data]);
+  // Ticket keys link to the tracker on every screen; a review adds its own MR's links (ReviewReader).
+  const links = useMemo(() => ({ projectUrl: null, branch: null, mrWebUrl: null, tickets: ticketLinks(data?.jiraBaseUrl ?? null, items) }), [data?.jiraBaseUrl, items]);
   // A review that came in (a poll found a new MR) or changed (a new report, queued, failed) while the page is open shows it.
   const entries = useMemo(() => (data ? data.items.map((i) => [i.slug, `${i.reviewedAt}|${i.verdict}|${i.awaiting ?? ''}`] as const) : null), [data]);
   const fresh = useArrivals(entries);
@@ -182,6 +186,7 @@ export function App() {
       </header>
       <CommandPalette open={palette} setOpen={setPalette} items={items} onSelect={go} />
 
+      <LinkContext.Provider value={links}>
       <div className="flex">
         <main className="min-w-0 flex-1">
       {slug === SETTINGS_ROUTE ? (
@@ -207,6 +212,7 @@ export function App() {
       )}
         </main>
       </div>
+      </LinkContext.Provider>
     </LazyMotion>
     </MotionConfig>
   );

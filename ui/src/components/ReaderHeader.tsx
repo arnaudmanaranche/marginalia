@@ -1,3 +1,4 @@
+import { useContext } from 'react';
 import { ExternalLink, RefreshCw, Send } from 'lucide-react';
 import type { Risk, ReviewItem } from '../lib/api';
 import { cn, timeAgo } from '../lib/utils';
@@ -6,9 +7,18 @@ import { VerdictBadge } from './VerdictBadge';
 import { Button } from './ui/Button';
 import { Chip } from './ds/Chip';
 import { Spinner } from './ds/Spinner';
+import { LinkContext, Linked } from '../lib/links';
+import { ticketUrl } from '../lib/tickets';
 
 // Title, verdict and the actions on a review. On my own MR there is no verdict to give: the
 // action is sending my replies to the reviewers.
+// The MR's ticket, opening its page on the tracker when one is set.
+function TicketChip({ ticket }: { ticket: { key: string; priority: string | null } }) {
+  const url = ticketUrl(useContext(LinkContext).tickets ?? null, ticket.key);
+  const chip = <Chip mono title={`${ticket.priority ? `Ticket, priority ${ticket.priority}` : 'Ticket'}${url ? ', open it' : ''}`} className={url ? 'hover:ring-fg-subtle' : undefined}>{ticket.key}</Chip>;
+  return url ? <a href={url} target="_blank" rel="noreferrer">{chip}</a> : chip;
+}
+
 export function ReaderHeader({ item, risk, criticalPaths = [], showSubmit, draftCount, sending, reviewing, onSubmit, locked, onRerun }: {
   item: ReviewItem | undefined;
   risk: Risk | null;
@@ -29,7 +39,7 @@ export function ReaderHeader({ item, risk, criticalPaths = [], showSubmit, draft
       <div className="min-w-0 flex-1">
         {/* Never squeezed away: the title wraps (two lines at most) and the badges go under it. */}
         <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5">
-          <h1 title={item?.title} className="line-clamp-2 min-w-0 break-words text-2xl font-semibold tracking-tight [text-wrap:balance] lg:line-clamp-1">{item?.title ?? 'Review'}</h1>
+          <h1 title={item?.title} className="line-clamp-2 min-w-0 break-words text-2xl font-semibold tracking-tight [text-wrap:balance] lg:line-clamp-1">{item?.title ? <Linked text={item.title} /> : 'Review'}</h1>
           <span className="flex shrink-0 items-center gap-2">
             {item?.kind !== 'comments' && <VerdictBadge verdict={item?.verdict ?? null} />}
             <RiskBadge level={risk?.level ?? null} why={risk?.rationale} />
@@ -40,7 +50,7 @@ export function ReaderHeader({ item, risk, criticalPaths = [], showSubmit, draft
             {item.iid != null && <span className="font-mono tabular-nums">!{item.iid}</span>}
             {item.author && <span>@{item.author}</span>}
             {item.branch && <Chip mono title="Source branch">{item.branch}</Chip>}
-            {item.jira && <Chip mono title={item.jira.priority ? `Ticket, priority ${item.jira.priority}` : 'Ticket'}>{item.jira.key}</Chip>}
+            {item.jira && <TicketChip ticket={item.jira} />}
             <span title={new Date(item.reviewedAt).toLocaleString()}>reviewed {timeAgo(item.reviewedAt)}</span>
           </p>
         )}

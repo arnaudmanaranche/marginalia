@@ -1,19 +1,22 @@
-import { createContext, type ReactNode } from 'react';
+import { createContext, useContext, type ReactNode } from 'react';
+import { ticketUrl, type TicketLinks } from './tickets';
 
 export interface LinkContextValue {
   projectUrl: string | null;
   branch: string | null;
   // The review's own MR (https://host/group/project/-/merge_requests/N), when tracked.
   mrWebUrl: string | null;
+  // Where ticket keys lead, on every screen (tickets.ts); null when no tracker is set.
+  tickets?: TicketLinks | null;
 }
-export const LinkContext = createContext<LinkContextValue>({ projectUrl: null, branch: null, mrWebUrl: null });
+export const LinkContext = createContext<LinkContextValue>({ projectUrl: null, branch: null, mrWebUrl: null, tickets: null });
 
-// `!3909` (MR) or a file path with an optional `:line` / `:start-end`.
+// `!3909` (MR), a ticket key (`FEE-194`, not inside a branch name) or a file path with an optional `:line` / `:start-end`.
 // A bare name (no slash) must have a well-known extension, so "Next.js" or
 // "e.g." don't match; a dotfile like `.gitlab-ci.yml` does.
 const EXT = 'tsx?|jsx?|mjs|cjs|json|ya?ml|md|css|scss|sh|toml|lock|html|graphql|sql';
 const PATH = `(?:[\\w@.~-]+/)+[\\w@.~-]+\\.(?:${EXT})|\\.?[\\w@-]+(?:\\.[\\w@-]+)*\\.(?:tsx?|mjs|cjs|json|ya?ml|md|lock|toml|sh)\\b`;
-const TOKEN = new RegExp(`(?<![\\w/])(?:(!\\d+)|((?:${PATH})(?::(\\d+)(?:-(\\d+))?)?))`, 'g');
+const TOKEN = new RegExp(`(?<![\\w/])(?:(!\\d+)|((?:${PATH})(?::(\\d+)(?:-(\\d+))?)?)|(?<!-)([A-Z][A-Z\\d]+-\\d+)(?![\\w-]))`, 'g');
 const FULL_PATH = new RegExp(`^(?:${PATH})(?::(\\d+)(?:-(\\d+))?)?$`);
 
 // GitLab's anchor for a file in the MR "Changes" tab is the SHA-1 of its path.
@@ -88,12 +91,12 @@ function A({ href, children }: { href: string; children: ReactNode }) {
   return <a href={href} target="_blank" rel="noreferrer" className={LINK_CLS}>{children}</a>;
 }
 
-// Splits plain text into strings and links (MR refs, file paths).
+// Splits plain text into strings and links (MR refs, ticket keys, file paths).
 export function linkify(text: string, ctx: LinkContextValue): ReactNode[] {
   const out: ReactNode[] = [];
   let last = 0;
   for (const m of text.matchAll(TOKEN)) {
-    const url = m[1] ? mrUrl(ctx, m[1]) : fileUrl(ctx, m[2]);
+    const url = m[1] ? mrUrl(ctx, m[1]) : m[5] ? ticketUrl(ctx.tickets ?? null, m[5]) : fileUrl(ctx, m[2]);
     if (!url) continue;
     if (m.index > last) out.push(text.slice(last, m.index));
     out.push(<A key={m.index} href={url}>{m[0]}</A>);
@@ -108,4 +111,9 @@ export function linkify(text: string, ctx: LinkContextValue): ReactNode[] {
 export function linkifyCode(text: string, ctx: LinkContextValue): string | null {
   if (/^!\d+$/.test(text)) return mrUrl(ctx, text);
   return FULL_PATH.test(text) ? fileUrl(ctx, text) : null;
+}
+
+// Plain text with its references as links, from the screen's link context.
+export function Linked({ text }: { text: string }) {
+  return <>{linkify(text, useContext(LinkContext))}</>;
 }

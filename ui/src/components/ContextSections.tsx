@@ -1,17 +1,23 @@
+import { useContext } from 'react';
+import { LinkContext } from '../lib/links';
+import { ticketPage } from '../lib/tickets';
 import type { ContextCriticalPath, ContextItem, ContextSource, ContextTerm, ProjectContext } from '../lib/contextApi';
 
 // A project's context, read top to bottom: what it is, what breaks the most, its words, how it is
 // built and what it does. Every item says where it was learned, so a person can check it.
 
 function Sources({ sources }: { sources: ContextSource[] }) {
+  const { tickets } = useContext(LinkContext);
+  // A ticket opens on the tracker when one is set; a URL is a link already.
+  const href = (s: ContextSource) => (/^https?:\/\//.test(s.ref) ? s.ref : s.kind === 'ticket' ? ticketPage(tickets ?? null, s.ref) : null);
   return (
     <p className="mt-1 text-xs text-fg-muted [overflow-wrap:anywhere]">
       From{' '}
       {sources.map((s, i) => (
         <span key={`${s.kind}:${s.ref}`}>
           {i > 0 && ' · '}
-          {/^https?:\/\//.test(s.ref)
-            ? <a href={s.ref} target="_blank" rel="noreferrer" className="underline decoration-line-strong underline-offset-2 hover:text-fg">{s.kind}</a>
+          {href(s)
+            ? <a href={href(s)!} target="_blank" rel="noreferrer" className="underline decoration-line-strong underline-offset-2 hover:text-fg">{s.kind === 'ticket' ? <code className="font-mono">{s.ref}</code> : s.kind}</a>
             : <span><span className="sr-only">{s.kind}: </span><code className="font-mono">{s.ref}</code></span>}
         </span>
       ))}

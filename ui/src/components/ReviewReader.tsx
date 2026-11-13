@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useContext, useMemo, useState } from 'react';
 import { toast } from '../lib/toast';
 import { useMutation } from '@tanstack/react-query';
 import { submitReview, type BotStatus, type PostedInfo, type ReviewAction, type ReviewContent, type ReviewItem } from '../lib/api';
@@ -62,7 +62,8 @@ export function ReviewReader({ item, review: currentReview, reviewError, onRetry
   const allThreads = useThreads(author && onLatest && item ? item.slug : null, item?.reviewedAt, 'all');
   const openThreads = useMemo(() => reviewerThreads(allThreads), [allThreads]);
   const postCtx = useMemo(() => ({ allowPosting: mayPost, slug: item?.slug ?? null, iid: item?.tracked ? item.iid : null, posted, reload, locked, findings: shape?.findings ?? [] }), [mayPost, item?.slug, item?.tracked, item?.iid, posted, reload, locked, shape]);
-  const linkCtx = useMemo(() => ({ projectUrl, branch: item?.branch ?? null, mrWebUrl: item?.webUrl ?? null }), [projectUrl, item?.branch, item?.webUrl]);
+  const { tickets } = useContext(LinkContext);
+  const linkCtx = useMemo(() => ({ projectUrl, branch: item?.branch ?? null, mrWebUrl: item?.webUrl ?? null, tickets }), [projectUrl, item?.branch, item?.webUrl, tickets]);
   const meta = useMemo(() => extractMeta(markdown ?? ''), [markdown]);
   // The tour skips the chapters with nothing to act on (stops.ts): a clean chapter is not a stop.
   const stops = useMemo(() => stopsToRead(shape?.tour ?? [], shape?.findings ?? []), [shape]);
