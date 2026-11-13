@@ -52,7 +52,7 @@ export function ProposalPane({ proposal: p, canPost, busy, onDismiss, onMove, on
         {(p.path || p.criticalPaths.length > 0) && (
           <p className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-xs text-fg-muted">
             {p.path && (
-              <button type="button" onClick={() => onOpen(findingRoute(p.slug, p.findingId))} title="Open the review on this finding" className="text-left font-mono underline decoration-line-strong underline-offset-2 [overflow-wrap:anywhere] hover:text-zinc-900 hover:decoration-current dark:hover:text-zinc-100">
+              <button type="button" onClick={() => onOpen(findingRoute(p.slug, p.findingId))} title="Open the review on this finding" className="inline-flex min-h-6 items-center text-left font-mono underline decoration-line-strong underline-offset-2 [overflow-wrap:anywhere] hover:text-zinc-900 hover:decoration-current dark:hover:text-zinc-100">
                 {p.path}{p.line ? `:${p.line}` : ''}
               </button>
             )}
