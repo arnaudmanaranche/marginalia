@@ -4,7 +4,7 @@ import { contextText, parseMergeTree, parseNumstat } from '../dist/src/pipeline/
 import { jsonAnswer, matchesPattern } from '../dist/src/pipeline/json-answer.js';
 import { chapterPrompt, mapPrompt, parseChapter, parseMap } from '../dist/src/pipeline/review-prompts.js';
 import { mergeReview } from '../dist/src/pipeline/review-merge.js';
-import { selectForVerify, skipReason } from '../dist/src/pipeline/verify-select.js';
+import { selectForVerify, OVER_LIMIT } from '../dist/src/pipeline/verify-select.js';
 import { renderReview } from '../dist/src/pipeline/report-render.js';
 import { conflictPrompt, judgePrompt, parseConflict, parseFix, parseJudge } from '../dist/src/pipeline/triage-prompts.js';
 import { landedByThread, parseFixLog } from '../dist/src/fixes-log.js';
@@ -124,12 +124,10 @@ test('a chapter finding says whether it is provable by running, and only blockin
     { id: 'e', severity: 'important', proof: 'runtime' },
     { id: 'f', severity: 'critical', proof: 'runtime', verification: { status: 'reproduced' } },
   ];
-  assert.deepEqual(selectForVerify(fs, 2), ['b', 'a'], 'most severe first, capped, one already verified is left alone');
-  assert.deepEqual(selectForVerify(fs, 0), []);
-  assert.match(skipReason(fs[2], []), /pattern/);
-  assert.match(skipReason(fs[3], []), /block the merge/);
-  assert.match(skipReason(fs[4], ['b', 'a']), /limit/);
-  assert.equal(skipReason(fs[0], ['b', 'a']), null);
+  assert.deepEqual(selectForVerify(fs, 2), { picked: [1, 0], over: [4] }, 'positions, most severe first, capped, a pattern, a minor one and one already verified are left alone');
+  assert.deepEqual(selectForVerify(fs, 0), { picked: [], over: [1, 0, 4] });
+  assert.deepEqual(selectForVerify(fs, 5, (f) => f.id === 'b'), { picked: [0, 4], over: [] }, 'one another chapter took is not run twice');
+  assert.match(OVER_LIMIT, /limit/);
 });
 
 test('the report says what a reproduction found under its finding', () => {
@@ -176,4 +174,15 @@ test('the fix commits are read with their thread, and the landed ones found by i
     { sha: 'a1', subject: 'fix: a', thread: 'thread-a', merge: false },
   ]);
   assert.deepEqual(landedByThread([{ sha: 'new', thread: 't' }, { sha: 'old', thread: 't' }]), [{ thread: 't', sha: 'new' }]);
+});
+
+test('a finding repeated inside one chapter takes one slot, the most severe copy', () => {
+  const key = (f) => f.title;
+  const fs = [
+    { severity: 'important', proof: 'runtime', title: 'same' },
+    { severity: 'critical', proof: 'runtime', title: 'same' },
+    { severity: 'important', proof: 'runtime', title: 'other' },
+  ];
+  assert.deepEqual(selectForVerify(fs, 2, () => false, key), { picked: [1, 2], over: [] }, 'the critical copy, then the other finding: the repeat is in neither list and uses no slot');
+  assert.deepEqual(selectForVerify(fs, 1, () => false, key), { picked: [1], over: [2] });
 });

@@ -64,6 +64,8 @@ The words below are the only ones the code, the docs and the studio use for thes
 
 **Recipe**: the `verification` part of the project context: the commands to set up, run and test the project, the hosts it may reach, and notes. A person approves it with the rest of the context.
 
+**Evidence**: what a reproduction keeps for a person to look at, on the finding: for a behaviour seen in a browser, a screenshot, the console and page errors, the failed requests and a trace (ADR 0010). Taken in the runner, copied out by the bot, shown in the studio, never posted by itself.
+
 **Tour**: the chapters of a review, each explaining one idea in plain words, core change first, database, tests and generated files last.
 
 **Skill**: a unit of review expertise a chapter's reviewer can load, a lens: the global built-in skills and the team's skills, a team skill winning over a built-in of the same name.

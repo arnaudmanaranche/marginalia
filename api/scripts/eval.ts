@@ -65,6 +65,8 @@ async function evaluate(name: string) {
   } else if (serious.some((f: any) => f.severity === 'critical')) problems.push('a clean change got a critical finding');
   const tried = (report.shape.findings ?? []).filter((f: any) => ['reproduced', 'not_reproduced', 'inconclusive'].includes(f.verification?.status));
   if (expect.verification === 'reproduced' && !tried.some((f: any) => f.verification.status === 'reproduced')) problems.push(`no finding was reproduced (${(report.shape.findings ?? []).map((f: any) => `${f.id}: ${f.proof}/${f.verification?.status ?? 'no verification'}`).join(', ') || 'no finding'})`);
+  // `evidence: screenshot` (ADR 0010): the reproduced finding must carry the screenshot the browser took.
+  if (expect.evidence === 'screenshot' && !tried.some((f: any) => f.verification.status === 'reproduced' && f.verification.artifacts?.some((a: any) => a.kind === 'screenshot'))) problems.push('no reproduced finding carries a screenshot (is VERIFY_RUNNER_IMAGE the browser image?)');
   if (expect.verification === 'none' && tried.length) problems.push(`something was run for a pattern-only change: ${tried.map((f: any) => f.id).join(', ')}`);
   return problems;
 }

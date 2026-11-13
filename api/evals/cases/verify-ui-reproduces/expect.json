@@ -1,0 +1,1 @@
+{ "planted": { "path": "src/index.html", "lines": [7, 7] }, "verification": "reproduced", "evidence": "screenshot", "about": "The count shown is one less than the items added: after one click the page says 0 items. Only a browser shows it: the change ships no test, and the page has no unit to call." }

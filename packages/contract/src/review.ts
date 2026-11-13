@@ -14,6 +14,11 @@ export const Finding = z.object({
     status: z.enum(['reproduced', 'not_reproduced', 'inconclusive', 'skipped']),
     evidence: z.string().nullable().optional(),
     command: z.string().nullable().optional(),
+    artifacts: z.array(z.object({
+      kind: z.enum(['screenshot', 'log']),
+      name: z.string().describe('File name, shown to the person.'),
+      ref: z.string().describe('Where the studio fetches it, relative to the API.'),
+    })).optional().describe('Evidence kept by a browser reproduction (ADR 0010).'),
   }).optional().describe('What reproducing the finding against the project found (ADR 0009). Absent when no verification was asked.'),
 }).meta({ id: 'Finding' });
 

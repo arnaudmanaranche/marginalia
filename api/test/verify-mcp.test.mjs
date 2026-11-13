@@ -26,13 +26,15 @@ const handlers = {
   writeFile: async (p) => (p === 'dup' ? { ok: false, error: 'it already exists' } : { ok: true }),
 };
 
-test('the protocol answers initialize, lists the two tools, calls them and ignores notifications', async () => {
+test('the protocol answers initialize, lists the three tools, calls them and ignores notifications', async () => {
   const init = await handleMessage({ jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2025-06-18' } }, handlers);
   assert.equal(init.result.serverInfo.name, 'verify');
   assert.deepEqual(init.result.capabilities, { tools: {} });
   assert.equal(await handleMessage({ jsonrpc: '2.0', method: 'notifications/initialized' }, handlers), null);
   const list = await handleMessage({ jsonrpc: '2.0', id: 2, method: 'tools/list' }, handlers);
-  assert.deepEqual(list.result.tools.map((t) => t.name), ['run', 'write_file']);
+  assert.deepEqual(list.result.tools.map((t) => t.name), ['run', 'write_file'], 'no browser recipe, no browse tool');
+  const withBrowser = await handleMessage({ jsonrpc: '2.0', id: 2, method: 'tools/list' }, { ...handlers, browse: async () => ({ code: 0, output: '' }) });
+  assert.deepEqual(withBrowser.result.tools.map((t) => t.name), ['run', 'write_file', 'browse']);
   const call = (name, args) => handleMessage({ jsonrpc: '2.0', id: 3, method: 'tools/call', params: { name, arguments: args } }, handlers);
   assert.equal((await call('run', { command: 'ok' })).result.content[0].text, 'exit code 0\nout');
   assert.match((await call('run', { command: 'bad' })).result.content[0].text, /Refused: not a step/);

@@ -129,6 +129,14 @@ export interface Verification {
   status: ReproductionStatus;
   evidence?: string | null;
   command?: string | null;
+  // What a browser reproduction kept (ADR 0010): `ref` is an API path.
+  artifacts?: Artifact[];
+}
+
+export interface Artifact {
+  kind: 'screenshot' | 'log';
+  name: string;
+  ref: string;
 }
 
 interface ReviewShape {

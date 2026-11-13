@@ -1,0 +1,12 @@
+{
+  "summary": "A tiny cart page served by a Node script.",
+  "glossary": [{ "name": "Cart", "summary": "The items a visitor added, counted in the page summary.", "sources": [{ "kind": "file", "ref": "src/index.html" }] }],
+  "stack": [{ "name": "Node.js", "summary": "A plain http server serving one static page.", "sources": [{ "kind": "file", "ref": "server.mjs" }] }],
+  "features": [{ "name": "Cart summary", "summary": "Shows how many items were added.", "sources": [{ "kind": "file", "ref": "src/index.html" }] }],
+  "criticalPaths": [{ "rank": 1, "name": "Add to cart", "summary": "Clicking Add item must raise the shown count by one.", "sources": [{ "kind": "file", "ref": "src/index.html" }] }],
+  "verification": {
+    "steps": [{ "purpose": "run", "run": "node server.mjs", "summary": "Serves the page on port 8123.", "sources": [{ "kind": "file", "ref": "server.mjs" }] }],
+    "browser": { "url": "http://localhost:8123/", "ready": "/health" },
+    "notes": "No dependency to install. The page is the whole product."
+  }
+}

@@ -9,13 +9,18 @@ import { dirname, join, sep } from 'node:path';
 import { createInterface } from 'node:readline';
 import { MAX_FILE_BYTES, newFilePath } from '../src/verify-files.ts';
 import { handleMessage } from '../src/verify-mcp-protocol.ts';
+import { browser } from '../src/verify-browse-run.ts';
 import { startRunner, type Runner } from '../src/verify-runner.ts';
 
 const config = JSON.parse(readFileSync(process.argv[2], 'utf8'));
 let runner: Promise<Runner> | null = null;
 const getRunner = () => (runner ??= startRunner(config));
 
+// The browse tool exists only for a project whose recipe says where it is served (ADR 0010).
+const browse = config.browser ? browser({ runner: getRunner, steps: config.steps, hosts: config.hosts ?? [], evidenceDir: config.evidenceDir ?? null }) : undefined;
+
 const handlers = {
+  browse,
   run: async (command: string) => (await getRunner()).exec(command),
   writeFile: async (rel: string, content: string) => {
     const p = newFilePath(rel);

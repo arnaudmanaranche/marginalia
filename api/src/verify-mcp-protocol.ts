@@ -4,6 +4,8 @@
 
 export const SERVER_NAME = 'verify';
 export const TOOL_NAMES = [`mcp__${SERVER_NAME}__run`, `mcp__${SERVER_NAME}__write_file`];
+// Only for a project whose recipe says where it is served (ADR 0010).
+export const BROWSE_TOOL_NAMES = [`mcp__${SERVER_NAME}__browse`];
 
 const TOOLS = [
   {
@@ -16,9 +18,15 @@ const TOOLS = [
     description: 'Create a NEW file in the runner\'s copy of the project (a throwaway test or script that reproduces the finding). An existing file cannot be changed. The path is relative to the project root.',
     inputSchema: { type: 'object', properties: { path: { type: 'string' }, content: { type: 'string' } }, required: ['path', 'content'] },
   },
+  {
+    name: 'browse',
+    description: 'Look at the running project in a browser, one step per call. action: open (target = a URL on localhost), snapshot (the page as a list of elements with @refs), click (target = a @ref or selector), fill (target, value), press (target = a key), wait (target = milliseconds or a selector), evidence (keeps a screenshot, the console, page errors and the requests the page made: call it once, when the page shows the claim true or false). The project is started for you with the recipe\'s run step.',
+    inputSchema: { type: 'object', properties: { action: { type: 'string', enum: ['open', 'snapshot', 'click', 'fill', 'press', 'wait', 'evidence'] }, target: { type: 'string' }, value: { type: 'string' } }, required: ['action'] },
+  },
 ];
 
 export interface Handlers {
+  browse?: (input: { action?: string; target?: string; value?: string }) => Promise<{ code: number; output: string; refused?: string }>;
   run: (command: string) => Promise<{ code: number; output: string; timedOut: boolean; refused?: string }>;
   writeFile: (path: string, content: string) => Promise<{ ok: boolean; error?: string }>;
 }
@@ -31,6 +39,12 @@ async function callTool(name: string, args: any, h: Handlers) {
     if (r.refused) return text(`Refused: ${r.refused}.`, true);
     if (r.timedOut) return text(`Out of time: the verification is over. Output so far:\n${r.output}`, true);
     return text(`exit code ${r.code}\n${r.output}`, r.code !== 0 && !r.output);
+  }
+  if (name === 'browse') {
+    if (!h.browse) return text('Refused: the browser is not set up for this project.', true);
+    const r = await h.browse(args ?? {});
+    if (r.refused) return text(`Refused: ${r.refused}.`, true);
+    return text(`exit code ${r.code}\n${r.output}`, r.code !== 0);
   }
   if (name === 'write_file') {
     const r = await h.writeFile(String(args?.path ?? ''), String(args?.content ?? ''));
@@ -50,7 +64,7 @@ export async function handleMessage(msg: any, h: Handlers) {
     case 'initialize':
       return reply(msg.id, { protocolVersion: msg.params?.protocolVersion ?? '2025-06-18', capabilities: { tools: {} }, serverInfo: { name: SERVER_NAME, version: '1.0.0' } });
     case 'ping': return reply(msg.id, {});
-    case 'tools/list': return reply(msg.id, { tools: TOOLS });
+    case 'tools/list': return reply(msg.id, { tools: TOOLS.filter((t) => t.name !== 'browse' || h.browse) });
     case 'tools/call': return reply(msg.id, await callTool(msg.params?.name, msg.params?.arguments, h));
     default: return failure(msg.id, -32601, `no method ${msg.method}`);
   }

@@ -83,7 +83,7 @@ export async function runDoctor(argv: string[] = process.argv.slice(2)) {
     const { verifyChecks } = await import('../src/verify-checks.ts');
     const approved = await readContext(cfg.DATA_DIR, project.key, 'approved');
     const egress = cfg.VERIFY_EGRESS_NETWORK && cfg.VERIFY_EGRESS_PROXY ? { network: cfg.VERIFY_EGRESS_NETWORK, proxy: cfg.VERIFY_EGRESS_PROXY } : null;
-    for (const c of verifyChecks({ image: cfg.VERIFY_RUNNER_IMAGE, docker: await probe(['version', '--format', '{{.Server.Version}}']), imageProbe: cfg.VERIFY_RUNNER_IMAGE ? await probe(['image', 'inspect', cfg.VERIFY_RUNNER_IMAGE]) : { error: null }, recipe: approved?.context.verification ?? null, egress })) (c.level === 'ok' ? ok : warnMsg)(`${c.label}: ${c.detail}`);
+    for (const c of verifyChecks({ image: cfg.VERIFY_RUNNER_IMAGE, docker: await probe(['version', '--format', '{{.Server.Version}}']), imageProbe: cfg.VERIFY_RUNNER_IMAGE ? await probe(['image', 'inspect', cfg.VERIFY_RUNNER_IMAGE]) : { error: null }, browserProbe: approved?.context.verification?.browser && cfg.VERIFY_RUNNER_IMAGE ? await probe(['run', '--rm', '--pull', 'never', '--network', 'none', '--entrypoint', 'sh', cfg.VERIFY_RUNNER_IMAGE, '-c', 'command -v agent-browser']) : null, recipe: approved?.context.verification ?? null, egress })) (c.level === 'ok' ? ok : warnMsg)(`${c.label}: ${c.detail}`);
   }
 
   for (const project of PROJECTS) {

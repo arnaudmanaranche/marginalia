@@ -74,17 +74,28 @@ Every review and triage is driven by the bot itself, in stages you follow live i
 
 ## Verification
 
-Off by default; a project opts in with `"verify": true` (see Configuration). After the chapters,
-the blocking findings the reviewers labelled `proof: runtime` (a claim about behaviour, not about a
-pattern) are each tried against the project, a few at most (`VERIFY_MAX_PER_REVIEW`, 4), most
-severe first. One agent per finding, in a stage of its own (`Reproduce: <title>`, two at a time),
-reads the code, creates a throwaway test or script with `write_file` and runs it through `run`.
+Off by default; a project opts in with `"verify": true` (see Configuration). Verification is part of each
+**chapter's job** (ADR 0010): as soon as a chapter's reviewer has answered, the blocking findings it labelled
+`proof: runtime` (a claim about behaviour, not about a pattern) are tried against the project, while the other
+chapters are still being read, so the evidence arrives with the chapter. The chapters share one budget: a few
+findings per review at most (`VERIFY_MAX_PER_REVIEW`, 4, first come first served, most severe first within a
+chapter), two runners at a time, and a finding another chapter already took is not run twice (the merge keeps
+the reproduction on the one it keeps). One agent per finding, in a stage of its own (`Reproduce: <title>`, listed
+right after its chapter), reads the code, creates a throwaway test or script with `write_file` and runs it through `run`.
 Both tools are served by the bot (`api/bin/verify-mcp.ts`) and act on a **disposable runner**, not
 on the agent's machine: a container per verification with a copy of the worktree (no `.git`, no
 `.env`, no symlink), no login, no token, a read-only root, no capability, limits on CPU, memory,
 processes and time, and no network unless an egress proxy is configured (ADR 0009). `run` accepts
 only a step of the **recipe** a person approved with the project context, plus arguments, never
 chained; `write_file` only creates new files.
+
+**Browser evidence** (ADR 0010). When the recipe has a `browser` (the URL the `run` step serves the project
+at), the verifying agent also has a `browse` tool: one browser step per call (`open` on localhost or a recipe
+host, `snapshot`, `click`, `fill`, `press`, `wait`, `evidence`), driven by `agent-browser` in the same runner.
+`evidence` keeps a screenshot, the console, page errors and the requests the page made in the data directory
+(`evidence/<project>/<run>-<stage>/`); the finding's `verification.artifacts` points at them and the studio shows the
+picture and links the logs, served by `GET /api/evidence/{project}/{id}/{name}` (only for a project the caller can see). It needs the browser runner image
+(`deploy/runner/Dockerfile.browser`). Evidence is shown, never posted to GitLab by itself.
 
 Each finding then carries `verification`: `reproduced`, `not_reproduced` (kept, flagged: a person
 decides), `inconclusive` (the run failed or timed out) or `skipped` with the reason (no runner

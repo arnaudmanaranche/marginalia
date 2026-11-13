@@ -1,5 +1,6 @@
 import type { ReproductionStatus, Verification } from '../lib/api';
 import { Badge } from './ui/Badge';
+import { ProofArtifacts } from './ProofArtifacts';
 
 const STATUS = {
   reproduced: { label: 'Reproduced', tone: 'danger', hint: 'Running the project showed it.' },
@@ -18,6 +19,7 @@ export function FindingProof({ verification }: { verification?: Verification }) 
     <div className="mt-2 rounded-md border border-line bg-sunken px-3 py-2 text-xs">
       <p className="flex flex-wrap items-center gap-2"><Badge tone={tone}>{label}</Badge><span className="text-fg-muted">{hint}</span></p>
       {verification.evidence && <p className="mt-1.5 leading-relaxed [overflow-wrap:anywhere]">{verification.evidence}</p>}
+      <ProofArtifacts artifacts={verification.artifacts} />
       {verification.command && <p className="mt-1.5 text-fg-muted">Command: <code className="font-mono [overflow-wrap:anywhere]">{verification.command}</code></p>}
     </div>
   );

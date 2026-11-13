@@ -12,6 +12,7 @@ import { kindOf } from './review-kind.ts';
 import { badSlug, slug } from './read-kit.ts';
 import { mrReadRoutes } from './routes-read-mr.ts';
 import { imageRoute } from './routes-read-image.ts';
+import { evidenceRoute } from './routes-evidence.ts';
 
 export function readRoutes(app: any) {
   app.openapi(route({
@@ -62,4 +63,5 @@ export function readRoutes(app: any) {
 
   mrReadRoutes(app);
   imageRoute(app);
+  evidenceRoute(app);
 }

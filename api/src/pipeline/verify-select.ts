@@ -1,21 +1,18 @@
-// Which findings of a review are worth reproducing (ADR 0009): a claim about behaviour that blocks
-// the merge, most severe first, a few at most so a review's cost stays bounded. Everything else is
-// never run. Pure.
+// Which findings of a chapter are worth reproducing (ADR 0009, 0010): a claim about behaviour that blocks
+// the merge, most severe first, within what is left of the review's few verifications, never one another
+// chapter already took, and one copy of a finding repeated in the chapter. Everything else is never run. Pure.
 
 const ORDER = ['critical', 'important'];
 
-// The ids to verify, in the order to try them.
-export function selectForVerify(findings: any[], max: number) {
-  return findings
-    .filter((f) => f.proof === 'runtime' && ORDER.includes(f.severity) && !f.verification)
-    .sort((a, b) => ORDER.indexOf(a.severity) - ORDER.indexOf(b.severity))
-    .slice(0, Math.max(0, max))
-    .map((f) => f.id);
+// Positions in `findings`: the ones to verify, in the order to try them, and the ones that would have been
+// but for the budget (`over`). A finding that is not a candidate at all is in neither list.
+export function selectForVerify(findings: any[], left: number, taken: (f: any) => boolean = () => false, key?: (f: any) => string) {
+  const wanted = findings.map((f, i) => ({ f, i })).filter(({ f }) => f.proof === 'runtime' && ORDER.includes(f.severity) && !f.verification && !taken(f));
+  wanted.sort((a, b) => ORDER.indexOf(a.f.severity) - ORDER.indexOf(b.f.severity));
+  const seen = new Set<string>();
+  const unique = key ? wanted.filter(({ f }) => { const k = key(f); if (seen.has(k)) return false; seen.add(k); return true; }) : wanted;
+  const room = Math.max(0, left);
+  return { picked: unique.slice(0, room).map(({ i }) => i), over: unique.slice(room).map(({ i }) => i) };
 }
 
-// Why a finding is not verified, for the report: the reason is what a person reads.
-export function skipReason(finding: any, selected: string[]) {
-  if (finding.proof !== 'runtime') return 'a pattern or a rule, running the project proves nothing about it';
-  if (!ORDER.includes(finding.severity)) return 'it does not block the merge';
-  return selected.includes(finding.id) ? null : 'over the limit of verifications for one review';
-}
+export const OVER_LIMIT = 'over the limit of verifications for one review';

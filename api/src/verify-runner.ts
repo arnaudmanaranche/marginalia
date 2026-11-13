@@ -3,11 +3,15 @@
 // through exec(). Side effects only; what the container may have is decided in verify-runner-args.ts.
 import { randomUUID } from 'node:crypto';
 import { execFileAsync } from './exec.ts';
-import { commandAllowed, execArgs, removeArgs, runArgs, truncateOutput } from './verify-runner-args.ts';
+import { commandAllowed, execArgs, execArgv, removeArgs, startArgs, runArgs, truncateOutput } from './verify-runner-args.ts';
 import type { VerifyLimits } from './verify-limits.ts';
 
 export interface Runner {
   exec: (command: string) => Promise<{ code: number; output: string; timedOut: boolean; refused?: string }>;
+  // The browse tool's side (ADR 0010): a program without a shell, a recipe step left running, a file read back.
+  argv: (argv: string[]) => Promise<{ code: number; output: string; timedOut?: boolean }>;
+  start: (command: string) => Promise<void>;
+  read: (path: string, maxBytes: number) => Promise<Buffer | null>;
   stop: () => Promise<void>;
 }
 
@@ -34,6 +38,25 @@ export async function startRunner({ image, workdir, limits, steps, hosts = [], f
   timer.unref?.();
   return {
     stop,
+    async argv(argv) {
+      const left = deadline - Date.now();
+      if (removal || left <= 0) return { code: 124, output: 'out of time', timedOut: true };
+      try {
+        const { stdout, stderr } = await execFileAsync(docker, execArgv(name, argv), { timeout: Math.min(left, 60_000), maxBuffer: 4_000_000 });
+        return { code: 0, output: `${stdout}${stderr}` };
+      } catch (err: any) {
+        // The whole verification keeps its own budget of time: a step that hangs is reported as such, not as a failure.
+        if (err.killed || err.signal === 'SIGTERM') return { code: 124, output: 'this browser step took too long and was stopped', timedOut: true };
+        return { code: typeof err.code === 'number' ? err.code : 1, output: `${err.stdout ?? ''}${err.stderr ?? ''}` };
+      }
+    },
+    async start(command) { await execFileAsync(docker, startArgs(name, command), { timeout: 30_000 }); },
+    async read(path, maxBytes) {
+      try {
+        const { stdout } = await execFileAsync(docker, execArgv(name, ['base64', path]), { timeout: 30_000, maxBuffer: maxBytes * 2 });
+        return Buffer.from(stdout, 'base64');
+      } catch { return null; }
+    },
     async exec(command) {
       if (!commandAllowed(steps, command)) return { code: 126, output: '', timedOut: false, refused: 'not a step of the approved recipe (or it chains commands)' };
       const left = deadline - Date.now();

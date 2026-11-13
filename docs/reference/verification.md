@@ -21,6 +21,15 @@ call, and keep the image free of secrets. The bot starts it with a read-only roo
 `no-new-privileges`, a tmpfs for `/tmp` and `/home/runner`, the project's limits (2 CPUs, 4 GB, 256 processes,
 10 minutes by default) and no network.
 
+## Browser evidence (optional)
+
+A project with a user interface can ask for screenshots and logs (ADR 0010): build the browser variant instead
+of the sample, `docker build -f deploy/runner/Dockerfile.browser -t marginalia-runner-browser deploy/runner`,
+and set `VERIFY_RUNNER_IMAGE=marginalia-runner-browser`. It holds Chromium and the pinned `agent-browser`
+(about 1.4 GB). Chromium runs with its own sandbox off because every capability is dropped; the container is
+the boundary. The recipe's `browser` (URL, optional ready path) is learned by the Understand job and approved
+with the context; without it the agent has no `browse` tool.
+
 ## 2. Network: off, or through the egress proxy
 
 A runner has no network (`--network none`) unless the recipe names hosts **and** both `VERIFY_EGRESS_NETWORK` and
