@@ -85,7 +85,7 @@ function useCloseTabShortcut(slug: string | null, palette: boolean, close: (slug
 }
 
 export function App() {
-  useLiveEvents();
+  const streaming = useLiveEvents();
   const { data, error, updatedAt, reload } = useReviews();
   const [projectFilter, setProjectFilter] = usePersistentState('mr-review-viewer:project-filter', ALL_PROJECTS);
   const posted = useMergedPosted(data?.posted ?? EMPTY_POSTED);
@@ -164,7 +164,7 @@ export function App() {
     <LazyMotion features={loadMotionFeatures} strict>
       <Toaster position="bottom-right" theme={theme} richColors />
       <header className="sticky top-0 z-40 bg-canvas">
-        <StatusBar status={data?.status ?? null} connection={error ? 'unreachable' : data ? 'ok' : 'connecting'} shownSince={data ? updatedAt : null} settingsActive={slug === SETTINGS_ROUTE || Boolean(contextKeyOf(slug))} approvalsActive={slug === APPROVALS_ROUTE} approvals={approvalCount} onApprovals={() => go(APPROVALS_ROUTE)} onOpenPalette={() => setPalette(true)} onHome={() => go(null)} onSettings={() => go(SETTINGS_ROUTE)} />
+        <StatusBar status={data?.status ?? null} connection={error ? 'unreachable' : data ? 'ok' : 'connecting'} shownSince={data ? updatedAt : null} streaming={streaming} settingsActive={slug === SETTINGS_ROUTE || Boolean(contextKeyOf(slug))} approvalsActive={slug === APPROVALS_ROUTE} approvals={approvalCount} onApprovals={() => go(APPROVALS_ROUTE)} onOpenPalette={() => setPalette(true)} onHome={() => go(null)} onSettings={() => go(SETTINGS_ROUTE)} />
         <TabStrip
           tabs={tabItems}
           activeSlug={slug}

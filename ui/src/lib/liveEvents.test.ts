@@ -41,3 +41,18 @@ describe('listenToChanges', () => {
     expect(source.close).toHaveBeenCalledOnce();
   });
 });
+
+describe('listenToChanges, when the stream drops', () => {
+  it('says the stream is lost, and on its return says so and catches up on what it missed', async () => {
+    const { client, stale } = seeded();
+    const source = { onmessage: null as ((e: never) => void) | null, onerror: null as (() => void) | null, onopen: null as (() => void) | null, close: vi.fn() };
+    const states: boolean[] = [];
+    listenToChanges(client, () => source as never, (live) => states.push(live));
+    source.onopen!();
+    source.onerror!();
+    expect(states).toEqual([true, false]);
+    source.onopen!();
+    expect(states).toEqual([true, false, true]);
+    await vi.waitFor(() => expect(stale(keys.reviews)).toBe(true));
+  });
+});

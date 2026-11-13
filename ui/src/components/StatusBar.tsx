@@ -38,12 +38,14 @@ function BotState({ status, connection, shownSince }: { status: BotStatus | null
   );
 }
 
-export function StatusBar({ status, connection, shownSince = null, settingsActive, approvalsActive, approvals, onOpenPalette, onHome, onSettings, onApprovals }: { status: BotStatus | null; connection: 'connecting' | 'unreachable' | 'ok'; shownSince?: number | null; settingsActive: boolean; approvalsActive: boolean; approvals: number; onOpenPalette: () => void; onHome: () => void; onSettings: () => void; onApprovals: () => void }) {
+export function StatusBar({ status, connection, shownSince = null, streaming = true, settingsActive, approvalsActive, approvals, onOpenPalette, onHome, onSettings, onApprovals }: { status: BotStatus | null; connection: 'connecting' | 'unreachable' | 'ok'; shownSince?: number | null; streaming?: boolean; settingsActive: boolean; approvalsActive: boolean; approvals: number; onOpenPalette: () => void; onHome: () => void; onSettings: () => void; onApprovals: () => void }) {
   return (
     <div className="border-b border-line">
       <div className="flex h-14 items-center gap-4 px-4">
         <button onClick={onHome} className="touch-target flex items-center gap-2 font-semibold tracking-tight"><Logo />Marginalia</button>
-        <div className="ml-2 min-w-0 text-sm"><BotState status={status} connection={connection} shownSince={shownSince} /></div>
+        <div className="ml-2 min-w-0 text-sm"><BotState status={status} connection={connection} shownSince={shownSince} />
+          {/* The API answers but the live stream is down: changes show within 30s instead of at once. */}
+          {connection === 'ok' && !streaming && <span title="The live connection dropped and is reconnecting. Until then the page checks every 30 seconds." className="ml-2 hidden text-xs text-fg-muted sm:inline">· live updates paused, checking every 30s</span>}</div>
 
         <button
           onClick={onOpenPalette}
