@@ -1,5 +1,4 @@
 import { gitlab } from './gitlab-api.ts';
-import { stat } from 'node:fs/promises';
 import { artifactAt } from './artifact.ts';
 import { buildShape } from './findings.ts';
 import { versionTime } from './history.ts';
@@ -18,8 +17,8 @@ async function reviewSource(project: any, slug: string, versionId: any) {
     return old && { shape: old.shape ?? buildShape({ markdown: old.markdown }), at: Date.parse(versionTime(versionId)) };
   }
   const artifact = artifactAt(project.reviewsDir, slug);
-  const [shape, written] = await Promise.all([artifact.readShape(), stat(artifact.markdownPath)]);
-  return { shape, at: written.mtime.getTime() };
+  const [shape, at] = await Promise.all([artifact.readShape(), artifact.writtenAt()]);
+  return at === null ? null : { shape, at };
 }
 
 // The files of one tour stop, or all of them.

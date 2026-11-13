@@ -1,7 +1,8 @@
 import { excludedAuthors, staleAfterDays } from './settings.ts';
 import { gitlab } from './gitlab-api.ts';
 import { log } from './log.ts';
-import { mtimeOrNull, reviewOutputPath } from './paths.ts';
+import { reviewOutputPath } from './paths.ts';
+import { writtenAtOf } from './artifact.ts';
 import type { ReviewFacts } from './review-hold.ts';
 
 // What the poll decides about GitLab's answers: which open MRs are worth a review, and whether a
@@ -25,10 +26,10 @@ export async function listOpenMergeRequests(project: any) {
 }
 
 export async function reviewFileCoversLastPush(mr: any) {
-  const mtime = await mtimeOrNull(reviewOutputPath(mr));
-  if (mtime === null) return false;
+  const writtenAt = await writtenAtOf(reviewOutputPath(mr));
+  if (writtenAt === null) return false;
   const pushedAt = await gitlab.lastPushAt(mr);
-  return pushedAt !== null && mtime >= pushedAt;
+  return pushedAt !== null && writtenAt >= pushedAt;
 }
 
 // What decides whether a poll holds an automatic review (review-hold.ts): the last push, and who

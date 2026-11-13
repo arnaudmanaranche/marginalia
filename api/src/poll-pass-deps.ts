@@ -6,7 +6,8 @@ import { jiraPriorityOf } from './jira.ts';
 import { runMrComments, runReview } from './claude-runner.ts';
 import { fetchReviewStates } from './mr-state.ts';
 import { notify } from './notify.ts';
-import { mrCommentsOutputPath, mtimeOrNull, ownReviewOutputPath, reviewOutputPath } from './paths.ts';
+import { mrCommentsOutputPath, ownReviewOutputPath, reviewOutputPath } from './paths.ts';
+import { writtenAtOf } from './artifact.ts';
 import { allowedTargets, staleAfterDays } from './settings.ts';
 import { loadState, saveState } from './state.ts';
 import { trackFailure } from './telemetry.ts';
@@ -20,7 +21,7 @@ export const passDeps = {
   reviewFileCoversLastPush,
   fetchReviewStates,
   jiraPriorityOf,
-  mtime: mtimeOrNull,
+  mtime: writtenAtOf,
   reviewPath: reviewOutputPath,
   commentsPath: mrCommentsOutputPath,
   ownPath: ownReviewOutputPath,

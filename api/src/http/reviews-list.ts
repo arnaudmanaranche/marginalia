@@ -49,7 +49,8 @@ async function listProjectReviews(project: any, status: any) {
       // Reviewed before, but the commit (or the layer below) moved since.
       stale: mr?.status === 'pending' && Boolean(mr?.reviewedAt),
       mtime: st.mtime.toISOString(),
-      reviewedAt: mr?.reviewedAt ?? st.mtime.toISOString(),
+      // The time the review stores outlives a copy of the reviews dir; the file's time does not.
+      reviewedAt: mr?.reviewedAt ?? shape.generatedAt ?? st.mtime.toISOString(),
       tracked: Boolean(mr),
       // A re-run that failed: the report on screen is the one before it.
       failure: mr?.status === 'failed' ? mr.failure ?? null : null,

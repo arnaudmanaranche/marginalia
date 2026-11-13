@@ -1,9 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, readdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdtemp, readdir, readFile, utimes, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { artifactAt, artifactOf } from '../dist/src/artifact.js';
+import { artifactAt, artifactOf, writtenAtOf } from '../dist/src/artifact.js';
 import { buildShape } from '../dist/src/findings.js';
 import { versionTime } from '../dist/src/history.js';
 
@@ -81,4 +81,27 @@ test('the runner and the studio reach the same files', async () => {
 
 test('a version id says when it was written', () => {
   assert.equal(versionTime('2026-03-01T10-20-30-456Z'), '2026-03-01T10:20:30.456Z');
+});
+
+// Copying the reviews dir (a backup, a move into a volume) resets file times: the date the review
+// stores is when it was written, the file's time only when it stores none.
+test('a review is dated by the time it stores, not by its file time', async () => {
+  const art = artifactAt(await reviews(), 'feat-copied');
+  await art.write(report('a review'));
+  const stored = Date.parse((await art.readShape()).generatedAt);
+  const copiedAt = new Date(stored + 86_400_000);
+  await utimes(art.markdownPath, copiedAt, copiedAt);
+  assert.equal(await art.writtenAt(), stored);
+  assert.equal(await writtenAtOf(art.markdownPath), stored);
+  const id = await art.write(report('the next review'));
+  assert.equal(versionTime(id), new Date(stored).toISOString(), 'the kept version is named by when it was written');
+});
+
+test('a review without a stored time is dated by its file, and a missing one by nothing', async () => {
+  const art = artifactAt(await reviews(), 'legacy');
+  await writeFile(art.markdownPath, 'legacy');
+  const at = new Date('2026-10-01T10:00:00Z');
+  await utimes(art.markdownPath, at, at);
+  assert.equal(await art.writtenAt(), at.getTime());
+  assert.equal(await artifactAt(await reviews(), 'none').writtenAt(), null);
 });

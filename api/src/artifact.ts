@@ -1,7 +1,7 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { basename, dirname, join } from 'node:path';
 import { buildShape } from './findings.ts';
-import { historyIn } from './history.ts';
+import { historyIn, writtenAt } from './history.ts';
 
 // The review of one MR as it is kept in the reviews dir: <slug>.md, <slug>.findings.json (the
 // normalized shape, with the head commit the run read) and the earlier versions of both under
@@ -14,6 +14,8 @@ export function artifactAt(reviewsDir: string, slug: string) {
   return {
     markdownPath,
     listHistory: history.list,
+    // When this review was written (ms), or null when there is none.
+    writtenAt: () => writtenAt(markdownPath, shapePath),
     readHistory: history.read,
 
     // Stores a run's report. The review it replaces is kept first, unless it reads the same; returns
@@ -48,3 +50,6 @@ export function artifactAt(reviewsDir: string, slug: string) {
 
 // The artifact whose markdown is at `outputPath` (reviewOutputPath, mrCommentsOutputPath).
 export const artifactOf = (outputPath: string) => artifactAt(dirname(outputPath), basename(outputPath, '.md'));
+
+// When the review at `outputPath` was written (ms), or null: what "reviewed at" means everywhere.
+export const writtenAtOf = (outputPath: string) => artifactOf(outputPath).writtenAt();
