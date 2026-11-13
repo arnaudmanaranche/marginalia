@@ -45,7 +45,8 @@ export function rememberScroll(): () => void {
   const stored = state()[Y];
   if (typeof stored === 'number') restore(stored, LOAD_MS);
   const onScroll = () => {
-    const id = idOf();
+    // The entry on screen, even when Safari refused to write its id into history.state.
+    const id = shownId;
     if (!id) return;
     positions.set(id, window.scrollY);
     clearTimeout(timer);
