@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchJson } from './fetchRetry';
+import { CONTEXT_ROUTE } from './hashRoute';
 
 // A project's learned context (glossary, stack, features, critical paths), as the bot stores it,
 // and the calls to read it, approve the draft and learn the project again.
@@ -20,7 +21,6 @@ export interface ContextState { project: string; draft: StoredContext | null; ap
 export interface ContextSummary { project: string; draftLearnedAt: string | null; approvedAt: string | null }
 
 // `#/context:<key>`: never a review id, which always holds a slash.
-export const CONTEXT_ROUTE = 'context:';
 export const contextRoute = (key: string) => `${CONTEXT_ROUTE}${key}`;
 export const contextKeyOf = (route: string | null) => (route?.startsWith(CONTEXT_ROUTE) ? route.slice(CONTEXT_ROUTE.length) : null);
 

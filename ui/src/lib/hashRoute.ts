@@ -18,3 +18,6 @@ export function parseHash(hash: string): HashRoute {
 
 // The route that opens a review on one of its findings.
 export const findingRoute = (slug: string, findingId: string) => `${slug}?finding=${encodeURIComponent(findingId)}`;
+
+// A project's context page (`context:webapp`).
+export const CONTEXT_ROUTE = 'context:';
