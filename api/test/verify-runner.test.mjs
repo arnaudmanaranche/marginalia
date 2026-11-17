@@ -114,7 +114,7 @@ test('the browse side of a runner: argv without a shell, a step that hangs repor
   await r.start('serve');
   const all = await calls();
   assert.ok(all.some((c) => c[0] === 'exec' && c.includes('-d') && c.at(-1) === 'serve'), 'the recipe step is started detached');
-  assert.ok(all.filter((c) => c[0] === 'exec' && c.includes('agent-browser')).every((c) => !c.includes('sh') && !c.includes('-c')), 'no shell for a browser step');
+  assert.ok(all.filter((c) => c[0] === 'exec' && c.includes('agent-browser')).every((c) => c.at(-3) === 'sh' && c.at(-2) === '-c' && c.at(-1).startsWith("'agent-browser'")), 'a browser step is quoted words in the one exec shape the guard allows');
   await r.stop();
   const short = await startRunner({ image: 'img', workdir: '/tmp/copy-d', limits: { ...DEFAULT_LIMITS, timeoutMinutes: 0.005 }, steps, docker });
   await new Promise((resolve) => setTimeout(resolve, 500));

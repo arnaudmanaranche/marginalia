@@ -4,6 +4,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { decide, empty } from '../dist/src/docker-guard-policy.js';
 import { runArgs } from '../dist/src/verify-runner-args.js';
+import { execArgv, startArgs } from '../dist/src/verify-runner-args.js';
 
 const cfg = { image: 'marginalia-runner', volume: 'marginalia-verify-work', networks: ['marginalia-verify-egress'] };
 const known = { container: (r) => r === 'marginalia-verify-ab12' || r === 'abc123', exec: (id) => id === 'ex1' };
@@ -76,6 +77,9 @@ test('only the runners the guard made can be started, waited on, inspected, exec
   assert.equal(d('POST', '/containers/abc123/attach'), false);
   assert.equal(d('GET', '/containers/json'), false, 'no listing');
   assert.equal(d('POST', '/containers/abc123/exec', { Cmd: ['sh', '-c', 'node --test'], AttachStdout: true }), true);
+  // The browse tool's argv and the detached start of the project are execs the guard must let through.
+  assert.equal(d('POST', '/containers/abc123/exec', { Cmd: execArgv('c', ['agent-browser', 'open', 'http://localhost']).slice(-3), AttachStdout: true }), true);
+  assert.equal(d('POST', '/containers/abc123/exec', { Cmd: startArgs('c', 'pnpm dev').slice(-3), AttachStdout: true, Detach: true }), true);
   assert.equal(d('POST', '/containers/abc123/exec', { Cmd: ['sh', '-c', 'id'], Privileged: true }), false);
   assert.equal(d('POST', '/containers/abc123/exec', { Cmd: ['sh', '-c', 'id'], User: 'root' }), false);
   assert.equal(d('POST', '/containers/abc123/exec', { Cmd: ['bash'] }), false);
