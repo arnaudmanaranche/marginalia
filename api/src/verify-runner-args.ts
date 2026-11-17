@@ -59,8 +59,10 @@ function proxyEnv(proxy: string) {
 }
 
 export const execArgs = (name: string, command: string) => ['exec', '-w', WORK, name, 'sh', '-c', command];
-// One program with its own arguments, no shell: what the browse tool runs (ADR 0010).
-export const execArgv = (name: string, argv: string[]) => ['exec', '-w', WORK, name, ...argv];
+// One program with its own arguments: what the browse tool runs (ADR 0010). The docker guard accepts one
+// shape of exec, `sh -c <command>`, so every argument is single-quoted: the shell only splits them back.
+const quote = (arg: string) => `'${arg.replace(/'/g, `'\\''`)}'`;
+export const execArgv = (name: string, argv: string[]) => execArgs(name, argv.map(quote).join(' '));
 // The same, detached: the project's own `run` step, left running while the browser looks at it.
 export const startArgs = (name: string, command: string) => ['exec', '-d', '-w', WORK, name, 'sh', '-c', command];
 export const removeArgs = (name: string) => ['rm', '-f', name];

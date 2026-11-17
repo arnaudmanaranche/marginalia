@@ -5,7 +5,8 @@ import { appendFileSync } from 'node:fs';
 const args = process.argv.slice(2);
 appendFileSync(process.env.FAKE_DOCKER_LOG, `${JSON.stringify(args)}\n`);
 if (args[0] === 'exec') {
-  const command = args.at(-1);
+  // A program with its arguments arrives as one `sh -c` string of quoted words: the last word answers.
+  const command = args.at(-1).startsWith("'") ? args.at(-1).match(/'([^']*)'/g).map((w) => w.slice(1, -1)).at(-1) : args.at(-1);
   if (command.startsWith('/missing')) process.exit(1);
   else if (command.startsWith('sleep')) setTimeout(() => {}, 60_000);
   else if (command.startsWith('fail')) { process.stderr.write('boom\n'); process.exit(2); }
