@@ -21,3 +21,11 @@ export function verifyChecks({ image, docker, imageProbe, browserProbe = null, r
   if (hosts && !egress) checks.push(warn('Network', `the recipe names ${hosts} host${hosts > 1 ? 's' : ''} but no egress proxy is configured (VERIFY_EGRESS_NETWORK, VERIFY_EGRESS_PROXY): the runner stays offline`));
   return checks;
 }
+
+// Is the browser in the runner image? Read from the image's environment (Dockerfile.browser sets the path
+// of its Chromium), not by running it: the docker guard only lets a runner be created, never a probe.
+export async function browserProbe(probe: (args: string[]) => Promise<{ stdout?: string; error?: string | null }>, image: string) {
+  const r = await probe(['image', 'inspect', '--format', '{{range .Config.Env}}{{println .}}{{end}}', image]);
+  if (r.error) return r;
+  return /^AGENT_BROWSER_EXECUTABLE_PATH=/m.test(r.stdout ?? '') ? { error: null } : { error: 'the image sets no AGENT_BROWSER_EXECUTABLE_PATH' };
+}
