@@ -111,6 +111,7 @@ test('the browse side of a runner: argv without a shell, a step that hangs repor
   assert.equal((await r.argv(['big'])).output.length, 50_000, 'the raw output: the caller decides what to cut');
   assert.ok(Buffer.isBuffer(await r.read('/tmp/evidence/x.png', 1000)));
   assert.equal(await r.read('/missing/file', 1000), null, 'a file that is not there is null');
+  assert.equal(await r.read("/missing/it's", 1000), null, 'an apostrophe in a path is one quoted word, not two');
   await r.start('serve');
   const all = await calls();
   assert.ok(all.some((c) => c[0] === 'exec' && c.includes('-d') && c.at(-1) === 'serve'), 'the recipe step is started detached');

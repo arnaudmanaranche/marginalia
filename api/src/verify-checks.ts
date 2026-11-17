@@ -16,14 +16,15 @@ export function verifyChecks({ image, docker, imageProbe, browserProbe = null, r
   checks.push(recipe
     ? ok('Recipe', `${recipe.steps.length} step${recipe.steps.length > 1 ? 's' : ''} approved with the project context`)
     : warn('Recipe', 'the approved project context has no recipe: learn the project again, then approve it'));
-  if (recipe?.browser) checks.push(!browserProbe ? warn('Browser', 'not checked: no runner image is set (VERIFY_RUNNER_IMAGE)') : browserProbe.error ? warn('Browser', `the runner image has no agent-browser (${firstLine(browserProbe.error)}): build deploy/runner/Dockerfile.browser; findings are reproduced without a browser`) : ok('Browser', `the recipe serves ${recipe.browser.url}; the runner image has agent-browser`));
+  if (recipe?.browser) checks.push(!browserProbe ? warn('Browser', 'not checked: no runner image is set (VERIFY_RUNNER_IMAGE)') : browserProbe.error ? warn('Browser', `the runner image does not look like the browser image (${firstLine(browserProbe.error)}): build deploy/runner/Dockerfile.browser; findings are reproduced without a browser`) : ok('Browser', `the recipe serves ${recipe.browser.url}; the runner image is the browser image (its environment says so; the binary itself is not run by this check)`));
   const hosts = recipe?.hosts?.length ?? 0;
   if (hosts && !egress) checks.push(warn('Network', `the recipe names ${hosts} host${hosts > 1 ? 's' : ''} but no egress proxy is configured (VERIFY_EGRESS_NETWORK, VERIFY_EGRESS_PROXY): the runner stays offline`));
   return checks;
 }
 
-// Is the browser in the runner image? Read from the image's environment (Dockerfile.browser sets the path
-// of its Chromium), not by running it: the docker guard only lets a runner be created, never a probe.
+// Is this the browser image? Read from the image's environment (Dockerfile.browser sets the path of its
+// Chromium), not by running it: the docker guard only lets a runner be created, never a probe. A weaker
+// check than running `agent-browser`, so the doctor says what it saw and no more.
 export async function browserProbe(probe: (args: string[]) => Promise<{ stdout?: string; error?: string | null }>, image: string) {
   const r = await probe(['image', 'inspect', '--format', '{{range .Config.Env}}{{println .}}{{end}}', image]);
   if (r.error) return r;
