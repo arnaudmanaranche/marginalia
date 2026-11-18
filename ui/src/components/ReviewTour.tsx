@@ -3,7 +3,7 @@ import type { Finding, PostedInfo, TourStop } from '../lib/api';
 import { Badge } from './ui/Badge';
 import { FindingsPanel } from './FindingsPanel';
 import { ClampedNote } from './ClampedNote';
-import { SplitHandle } from './SplitHandle';
+import { DEFAULT_PANEL, SplitHandle } from './SplitHandle';
 import { summaryWithoutRepeats } from '../lib/repeats';
 import { usePersistentState } from '../lib/layout';
 import { cn } from '../lib/utils';
@@ -41,7 +41,7 @@ export function ReviewTour({ stops, findings, post, diff: source, showFullDiff, 
   const diffPane = useRef<HTMLDivElement>(null);
   const [focus, setFocus] = useState<Focus | null>(null);
   // The panel's width is the reader's to set, and kept; the tour can also take the whole window.
-  const [width, setWidth] = usePersistentState<number>('marginalia:tour-panel', 544);
+  const [width, setWidth] = usePersistentState<number>('marginalia:tour-panel', DEFAULT_PANEL);
   const [wide, setWide] = useState(false);
   const grid = useRef<HTMLDivElement>(null);
   const nonce = useRef(0);
@@ -84,7 +84,7 @@ export function ReviewTour({ stops, findings, post, diff: source, showFullDiff, 
     const onKey = (e: KeyboardEvent) => {
       const el = e.target as HTMLElement | null;
       if (e.key === 'Escape' && wide && !document.querySelector('[role=dialog]')) { setWide(false); return; }
-      if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey || el?.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el?.tagName ?? '') || document.querySelector('[role=dialog]')) return;
+      if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey || el?.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el?.tagName ?? '') || el?.getAttribute('role') === 'separator' || document.querySelector('[role=dialog]')) return;
       if (e.key === 'ArrowRight' && index < stops.length - 1) setIndex(index + 1);
       else if (e.key === 'ArrowLeft' && index > 0) setIndex(index - 1);
     };
@@ -104,7 +104,7 @@ export function ReviewTour({ stops, findings, post, diff: source, showFullDiff, 
       source ? 'lg:min-h-0 lg:flex-1' : 'mx-auto w-full max-w-3xl',
       wide ? 'fixed inset-x-0 bottom-0 top-[var(--chrome-h)] z-30 overflow-y-auto bg-canvas p-4 lg:overflow-visible' : 'mb-6 lg:mb-0',
     )}>
-    <section ref={pane} aria-label="Review tour" className={cn('rounded-xl border border-line bg-surface px-4 lg:overflow-y-auto', source ? 'lg:h-full lg:w-[var(--panel)] lg:shrink-0' : 'lg:self-start', post ? 'pb-0' : 'pb-4')}>
+    <section ref={pane} aria-label="Review tour" className={cn('rounded-xl border border-line bg-surface px-4 lg:overflow-y-auto', source ? 'lg:h-full lg:w-[var(--panel)] lg:max-w-[70%] lg:shrink-0' : 'lg:w-full lg:flex-1 lg:self-start', post ? 'pb-0' : 'pb-4')}>
       <ChapterRail stops={stops} findings={findings} index={index} direction={direction} onGo={setIndex} wide={wide} onWide={source ? () => setWide((w) => !w) : undefined}>
         {stop.supporting && <Badge className="mt-1">Supporting</Badge>}
         {summary && <ClampedNote className="mt-2 text-fg-muted">{summary}</ClampedNote>}

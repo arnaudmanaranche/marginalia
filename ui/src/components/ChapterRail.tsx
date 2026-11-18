@@ -19,16 +19,20 @@ export function ChapterRail({ stops, findings, index, direction, onGo, wide = fa
 }) {
   return (
     <div>
-      {stops.length > 1 && (
+      {(stops.length > 1 || onWide) && (
         <div className="sticky top-0 z-20 -mx-4 flex items-center justify-between gap-3 border-b border-line bg-surface px-4 py-2.5">
-          <p className="flex items-center gap-2 text-xs text-fg-muted" aria-live="polite">
-            <span className="font-medium text-zinc-900 dark:text-zinc-100">Chapter {index + 1} of {stops.length}</span>
-            <span className="hidden items-center gap-1 sm:flex"><Kbd>←</Kbd><Kbd>→</Kbd></span>
-          </p>
+          {stops.length > 1 ? (
+            <p className="flex items-center gap-2 text-xs text-fg-muted" aria-live="polite">
+              <span className="font-medium text-zinc-900 dark:text-zinc-100">Chapter {index + 1} of {stops.length}</span>
+              <span className="hidden items-center gap-1 sm:flex"><Kbd>←</Kbd><Kbd>→</Kbd></span>
+            </p>
+          ) : <span />}
           <div className="flex items-center gap-1">
-            {onWide && <Button size="sm" variant="ghost" aria-pressed={wide} onClick={onWide} aria-label={wide ? 'Back to the page' : 'Use the whole window'} title={wide ? 'Back to the page (Esc)' : 'Use the whole window'}>{wide ? <Minimize2 className="size-3.5" /> : <Maximize2 className="size-3.5" />}</Button>}
-            <Button size="sm" disabled={index === 0} onClick={() => onGo(index - 1)} aria-label="Previous chapter" title="Previous chapter (←)"><ChevronLeft className="size-3.5" /></Button>
-            <Button size="sm" disabled={index === stops.length - 1} onClick={() => onGo(index + 1)} title="Next chapter (→)">Next<ChevronRight className="size-3.5" /></Button>
+            {onWide && <Button size="sm" variant="ghost" aria-pressed={wide} onClick={onWide} aria-label="Use the whole window" title={wide ? 'Back to the page (Esc)' : 'Use the whole window'}>{wide ? <Minimize2 className="size-3.5" /> : <Maximize2 className="size-3.5" />}</Button>}
+            {stops.length > 1 && <>
+              <Button size="sm" disabled={index === 0} onClick={() => onGo(index - 1)} aria-label="Previous chapter" title="Previous chapter (←)"><ChevronLeft className="size-3.5" /></Button>
+              <Button size="sm" disabled={index === stops.length - 1} onClick={() => onGo(index + 1)} title="Next chapter (→)">Next<ChevronRight className="size-3.5" /></Button>
+            </>}
           </div>
         </div>
       )}

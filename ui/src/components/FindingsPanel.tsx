@@ -140,6 +140,8 @@ function FindingCard({ finding, raised, compact = false, focus = null, onFocus, 
   // Once posted it is mine whatever the thread says: it shows as posted, not as folded.
   if (raised && !info && !unfolded) return <div ref={rootRef} tabIndex={-1} className={cn('rounded-lg transition-shadow focus:outline-none', flash && 'ring-2 ring-blue-500')}><RaisedCard finding={finding} raised={raised} canPost={allowPosting} onFocus={onFocus} onUnfold={() => { setUnfolded(true); setExpanded(true); }} /></div>;
   const target = findingTarget(finding);
+  // Once posted the comment is not shown, so the explanation is the only text left: it stays.
+  const body = bodyToShow(info ? { ...finding, comment: null } : finding);
   const canPost = allowPosting && !info && !locked && text.trim().length > 0;
   const confirm = confirming && (
     <ConfirmPost
@@ -183,7 +185,7 @@ function FindingCard({ finding, raised, compact = false, focus = null, onFocus, 
           {finding.path && (
             <button type="button" onClick={() => onFocus?.(finding.id)} title="Show it in the diff" className="break-all text-left font-mono text-xs text-blue-600 hover:underline dark:text-blue-400">{finding.path}{finding.line ? `:${finding.line}` : ''}</button>
           )}
-          {bodyToShow(finding) && <ClampedNote className="mt-2 text-fg-muted">{bodyToShow(finding)!}</ClampedNote>}
+          {body && <ClampedNote className="mt-2 text-fg-muted">{body}</ClampedNote>}
           <FindingProof verification={finding.verification} />
           {comment}
         </div>

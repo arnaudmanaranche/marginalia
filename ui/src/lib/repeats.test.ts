@@ -18,4 +18,11 @@ describe('text that repeats', () => {
     expect(bodyToShow(f({ title: 'Short', body: 'The cache key changes back and forth', comment: 'The cache key changes back and forth, please fix' }))).toBeNull();
     expect(bodyToShow(f({ title: 'Same', body: 'Same' }))).toBeNull();
   });
+  it('keeps a real explanation that merely contains the words of its short title', () => {
+    expect(bodyToShow(f({ title: 'Stale cache key', body: 'The stale cache key is rebuilt on every render because the config object changes identity, which refetches each time.' }))).not.toBeNull();
+  });
+  it('loses no word of a summary whose dots have no space after them', () => {
+    const text = 'The handler.ts file reads it.\nSecond line, e.g. this one.';
+    expect(summaryWithoutRepeats(text, [f({ title: 'Unrelated finding' })])).toBe(text);
+  });
 });

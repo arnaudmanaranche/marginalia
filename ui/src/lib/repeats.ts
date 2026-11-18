@@ -4,26 +4,31 @@ import type { Finding } from './api';
 // to post. What a reader already has on screen is left out of the next one. Pure.
 const words = (text: string) => new Set(text.toLowerCase().replace(/`/g, '').match(/[a-z0-9_]{3,}/g) ?? []);
 
-// The share of the smaller text's words found in the other: 1 is one inside the other.
-export function overlap(a: string, b: string): number {
-  const [x, y] = [words(a), words(b)];
-  const small = x.size <= y.size ? x : y;
-  const large = small === x ? y : x;
-  if (small.size === 0) return 0;
+// The share of `text`'s words that `other` also has: 1 is `text` entirely inside `other`.
+export function overlap(text: string, other: string): number {
+  const mine = words(text);
+  if (mine.size === 0) return 0;
+  const theirs = words(other);
   let hit = 0;
-  for (const w of small) if (large.has(w)) hit++;
-  return hit / small.size;
+  for (const w of mine) if (theirs.has(w)) hit++;
+  return hit / mine.size;
 }
 
-export const repeats = (a: string, b: string) => overlap(a, b) >= 0.8;
+// `text` adds nothing to `other`.
+export const repeats = (text: string, other: string) => overlap(text, other) >= 0.8;
 
 // The summary without the sentences a finding of the chapter already states; null when nothing is left.
+// Split at the end of a sentence or a line, keeping every separator, so no word is ever lost.
 export function summaryWithoutRepeats(summary: string | null, findings: Finding[]): string | null {
   if (!summary) return null;
-  const sentences = summary.match(/[^.!?\n]+(?:[.!?]+(?=\s|$)|$)/g) ?? [summary];
-  const kept = sentences.filter((s) => s.trim() && !findings.some((f) => repeats(s, f.title) || repeats(s, f.body)));
-  const text = kept.join('').trim();
-  return text || null;
+  const parts = summary.split(/((?<=[.!?])\s+|\n+)/);
+  let out = '';
+  for (let i = 0; i < parts.length; i += 2) {
+    const sentence = parts[i] ?? '';
+    const stated = sentence.trim() !== '' && findings.some((f) => repeats(sentence, f.title) || repeats(sentence, f.body));
+    if (!stated) out += sentence + (parts[i + 1] ?? '');
+  }
+  return out.trim() || null;
 }
 
 // The explanation of a finding unless the comment already says it (or it only restates the title).
