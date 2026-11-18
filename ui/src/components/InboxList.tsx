@@ -4,6 +4,7 @@ import { byMergeRequest } from '../lib/approvalsApi';
 import { keyOf } from '../lib/inbox';
 import { cn } from '../lib/utils';
 import { SeverityDot } from './ds/Severity';
+import { hrefOf } from '../lib/hashRoute';
 
 // The inbox's list: proposals under their MR, one line each (how much it matters, what, where), the
 // selected one marked in the signal blue and kept in view as the keys move through it.
@@ -20,7 +21,7 @@ export function InboxList({ proposals, selected, onSelect }: { proposals: Propos
           <section key={first.slug} aria-label={first.mrTitle}>
             <h2 className="flex items-baseline gap-2 px-2 pb-1 text-xs">
               {/* The MR opens its review here; its number opens it on GitLab. */}
-              <a href={`#/${first.slug}`} title={`Open the review of ${first.mrTitle}`} className="min-w-0 truncate font-medium hover:underline">{first.mrTitle}</a>
+              <a href={hrefOf(first.slug)} title={`Open the review of ${first.mrTitle}`} className="min-w-0 truncate font-medium hover:underline">{first.mrTitle}</a>
               <span className="shrink-0 tabular-nums text-fg-muted">
                 {first.webUrl ? <a href={first.webUrl} target="_blank" rel="noreferrer" title="Open the MR on GitLab" className="hover:text-fg hover:underline">!{first.iid}</a> : `!${first.iid}`} · {group.length}
               </span>

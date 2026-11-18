@@ -9,6 +9,7 @@ import { LivePill } from './ds/LivePill';
 import { SeverityDot } from './ds/Severity';
 import { ChevronRight } from 'lucide-react';
 import { EASE_OUT } from '../lib/motion';
+import { hrefOf } from '../lib/hashRoute';
 
 // Where I stand on the MR, from GitLab (see standingOf), when it says more than the group the row
 // sits in: "Review requested" is what "Needs your first review" means, "You commented" what
@@ -46,7 +47,7 @@ export function ReviewRow({ item, unread, reviewing = false, held = false, arriv
       )}
     >
       <span className={unread ? 'size-2 shrink-0 rounded-full bg-run' : 'size-2 shrink-0'} aria-hidden />
-      <a href={`#/${item.slug}`} data-vt-title={item.slug} className="min-w-0 flex-1 basis-64 truncate font-medium hover:underline">{title}</a>
+      <a href={hrefOf(item.slug)} data-vt-title={item.slug} className="min-w-0 flex-1 basis-64 truncate font-medium hover:underline">{title}</a>
       {reason && <span className="shrink-0 text-xs text-fg-muted">{reason}</span>}
       {arrived && <Badge tone="info">New</Badge>}
       {reviewing && <LivePill tone="run" label="Reviewing" live title="Open it to follow the run" />}

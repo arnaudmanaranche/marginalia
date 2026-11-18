@@ -1,6 +1,4 @@
-import { APPROVALS_ROUTE } from './approvalsApi';
-import { contextRoute } from './contextApi';
-import { SETTINGS_ROUTE } from './hashRoute';
+import { APPROVALS_ROUTE, SETTINGS_ROUTE, contextRoute } from './hashRoute';
 
 // The screens the command palette goes to besides reviews: every one of them, so none is reachable
 // only from a link deep in another. `route` null is Home. `keywords` are what a person may type.

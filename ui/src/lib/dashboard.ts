@@ -37,7 +37,7 @@ export function groupOf(item: ReviewItem): GroupId | null {
   return turnOf(item.kind, item.myState);
 }
 
-export interface Standing {
+interface Standing {
   label: string;
   tone: 'success' | 'warning' | 'info' | 'neutral';
 }

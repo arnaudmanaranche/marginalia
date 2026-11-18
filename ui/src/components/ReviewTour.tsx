@@ -27,7 +27,7 @@ interface Post {
 // A guided read of the MR, one stop at a time, in the order the skill chose:
 // what the group of changes does, what to check, and the findings on it.
 // `diff` says where the code comes from: the MR's slug and the earlier review being read, if any.
-export interface DiffSource {
+interface DiffSource {
   slug: string;
   version: string | null;
   key: string | undefined;

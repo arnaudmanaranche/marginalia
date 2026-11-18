@@ -1,8 +1,8 @@
 import type { Proposal } from './approvalsApi';
 import { byMergeRequest } from './approvalsApi';
+import { postedKey } from './postedKey';
 
-// The inbox's reading order and what is selected as decisions are made. Pure.
-export const keyOf = (p: Pick<Proposal, 'slug' | 'findingId'>) => `${p.slug}:${p.findingId}`;
+export const keyOf = (p: Pick<Proposal, 'slug' | 'findingId'>) => postedKey(p.slug, p.findingId);
 
 // Proposals in the order the list shows them: by MR, as they came.
 export const ordered = (proposals: Proposal[]) => byMergeRequest(proposals).flat();

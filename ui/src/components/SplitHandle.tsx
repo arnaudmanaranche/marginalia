@@ -2,9 +2,9 @@ import { useRef } from 'react';
 
 // The bar between the chapter panel and the diff: drag it, or focus it and use ← →, to give one
 // side more room. `width` is in px and belongs to the panel on the left.
-export const MIN_PANEL = 320;
+const MIN_PANEL = 320;
 export const DEFAULT_PANEL = 544;
-export const maxPanel = (total: number) => Math.max(MIN_PANEL, Math.round(total * 0.7));
+const maxPanel = (total: number) => Math.max(MIN_PANEL, Math.round(total * 0.7));
 
 export function SplitHandle({ width, onWidth, container }: { width: number; onWidth: (w: number) => void; container: React.RefObject<HTMLElement | null> }) {
   const start = useRef<{ x: number; w: number } | null>(null);

@@ -17,7 +17,7 @@ import { agentsOf, swarmOf } from '../lib/agents';
 import { AgentFindings } from './AgentFindings';
 import { LivePill, type LiveTone } from './ds/LivePill';
 import { Panel, PanelFooter, PanelHeader } from './ds/Panel';
-import { StatusMark } from './ds/StatusMark';
+import { StatusMark, markOf } from './ds/StatusMark';
 
 const PILL: Record<Tone, { tone: LiveTone; label: string }> = {
   info: { tone: 'run', label: 'Running' },
@@ -107,7 +107,7 @@ export function RunPanel({ slug, awaiting, failure = null, collapsible = false, 
             {run && at && (
               <PanelFooter>
                 <span className="flex items-center gap-2">
-                  <StatusMark state={running ? 'running' : run.outcome === 'failed' ? 'failed' : run.outcome === 'skipped' ? 'skipped' : 'done'} size={14} />
+                  <StatusMark state={markOf(running ? 'running' : run.outcome)} size={14} />
                   <span><span className="font-medium text-zinc-900 dark:text-zinc-100">{pill.label}</span> · {at.current} of {at.total}</span>
                 </span>
                 <span className="tabular-nums">

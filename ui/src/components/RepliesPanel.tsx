@@ -1,14 +1,16 @@
 import { useState } from 'react';
 import { toast } from '../lib/toast';
-import { Check, Crosshair, Reply as ReplyIcon, Trash2, Upload } from 'lucide-react';
-import { deleteDraft, postReply, pushFixes, type FixesStatus, type PostedInfo, type Reply, type ReplyVerdict, type Thread } from '../lib/api';
-import { landedFix, pendingFix, replyBody } from '../lib/replies';
+import { Check, Crosshair, Reply as ReplyIcon, Trash2 } from 'lucide-react';
+import { deleteDraft, postReply, type FixesStatus, type PostedInfo, type Reply, type ReplyVerdict, type Thread } from '../lib/api';
+import { landedFix, replyBody } from '../lib/replies';
 import { Badge } from './ui/Badge';
 import type { BadgeTone } from './ui/badgeStyles';
 import { Button } from './ui/Button';
 import { cn } from '../lib/utils';
+import { PushOne, shortSha } from './PushOne';
 import { ThreadCard } from './ThreadRow';
 import { Spinner } from './ds/Spinner';
+import { postedKey } from '../lib/postedKey';
 
 const VERDICTS: Record<ReplyVerdict, { label: string; tone: BadgeTone }> = {
   fixed: { label: 'Fixed by the triage', tone: 'success' },
@@ -17,8 +19,6 @@ const VERDICTS: Record<ReplyVerdict, { label: string; tone: BadgeTone }> = {
   wrong: { label: 'Disagree', tone: 'warning' },
   answered: { label: 'Answered', tone: 'info' },
 };
-
-const short = (sha: string | null) => sha?.slice(0, 8) ?? '';
 
 // One card per reviewer thread of my own MR: the conversation, what the triage made of it, and my
 // answer, editable, added to my pending replies in that thread. A "fixed" reply waits until its fix
@@ -42,7 +42,7 @@ export function RepliesPanel({ slug, threads, replies, posted, fixes, onFixes, l
     <ul className="space-y-4">
       {threads.map((t) => (
         <li key={t.id}>
-          <ReplyCard slug={slug} thread={t} drafted={replies.find((r) => r.thread === t.id) ?? null} sent={posted[`${slug}:reply-${t.id}`] ?? null} fixes={fixes} onFixes={onFixes} locked={locked} reload={reload} selected={selected === t.id} onSelect={onSelect} />
+          <ReplyCard slug={slug} thread={t} drafted={replies.find((r) => r.thread === t.id) ?? null} sent={posted[postedKey(slug, `reply-${t.id}`)] ?? null} fixes={fixes} onFixes={onFixes} locked={locked} reload={reload} selected={selected === t.id} onSelect={onSelect} />
         </li>
       ))}
     </ul>
@@ -132,7 +132,7 @@ function ReplyCard({ slug, thread, drafted, sent, fixes, onFixes, locked, reload
             className="w-full resize-y rounded-md border border-line-strong bg-surface p-3 text-sm leading-relaxed outline-none focus-visible:border-run focus-visible:ring-2 focus-visible:ring-run/40"
           />
           {fixed && (landed
-            ? <p className="text-xs text-fg-muted">Ends with <code>Fixed in {short(landed)}.</code></p>
+            ? <p className="text-xs text-fg-muted">Ends with <code>Fixed in {shortSha(landed)}.</code></p>
             : <PushOne slug={slug} threadId={thread.id} fixes={fixes} locked={locked} onFixes={onFixes} />)}
           <div className="flex flex-wrap items-center justify-between gap-2">
             <label className="flex items-center gap-2 text-sm">
@@ -144,51 +144,6 @@ function ReplyCard({ slug, thread, drafted, sent, fixes, onFixes, locked, reload
             </Button>
           </div>
         </div>
-      )}
-    </div>
-  );
-}
-
-// The fix of one thread, not on the MR yet: pushed from here alone, after a second click that says
-// where it goes. The merge settling the conflicts goes first, from "Fixes to push": the fixes were
-// made on top of it.
-function PushOne({ slug, threadId, fixes, locked, onFixes }: { slug: string; threadId: string; fixes: FixesStatus | null; locked: boolean; onFixes: (fixes: FixesStatus) => void }) {
-  const [confirming, setConfirming] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const fix = pendingFix(threadId, fixes);
-  if (!fix || !fixes) return <p className="text-xs text-fg-muted">Push the fixes first: this reply names the commit that fixed it.</p>;
-  const oldest = fixes.commits[fixes.commits.length - 1];
-  const mergeFirst = oldest?.merge && oldest.sha !== fix.sha;
-  if (mergeFirst) return <p className="text-xs text-fg-muted">Its fix <code>{short(fix.sha)}</code> was made on top of the merge that settles the conflicts: push that one first, under Fixes to push.</p>;
-
-  const push = async () => {
-    setBusy(true);
-    try {
-      const after = await pushFixes(slug, fix.sha);
-      onFixes(after);
-      toast.success(`Fix pushed to ${fixes.branch}`, after.note ? { description: after.note } : undefined);
-    } catch (e) {
-      toast.error('Could not push this fix', { description: (e as Error).message });
-    } finally {
-      setBusy(false);
-      setConfirming(false);
-    }
-  };
-  return (
-    <div className="flex flex-wrap items-center gap-2 text-xs text-fg-muted">
-      {confirming ? (
-        <>
-          <span>Push <code>{short(fix.sha)}</code> alone to <code>{fixes.branch}</code>?{fixes.commits.length > 1 && ' The other fixes stay to push.'}</span>
-          <Button size="sm" variant="primary" disabled={busy || locked} onClick={push}>
-            {busy ? <Spinner className="size-3.5" /> : <Upload className="size-3.5" />}Push
-          </Button>
-          <Button size="sm" disabled={busy} onClick={() => setConfirming(false)}>Cancel</Button>
-        </>
-      ) : (
-        <>
-          <span>Its fix <code>{short(fix.sha)}</code> is not on the MR yet: the reply names it once pushed.</span>
-          <Button size="sm" disabled={locked} onClick={() => setConfirming(true)}><Upload className="size-3.5" />Push this fix</Button>
-        </>
       )}
     </div>
   );

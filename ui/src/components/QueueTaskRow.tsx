@@ -4,10 +4,8 @@ import { unfold } from '../lib/motion';
 import { kindOf, progressOf, ranMs, waitedMs, type QueueTask, type TaskJob } from '../lib/queue';
 import { duration } from '../lib/runs';
 import { cn, timeAgo } from '../lib/utils';
-import { StatusMark, type MarkState } from './ds/StatusMark';
+import { StatusMark, markOf } from './ds/StatusMark';
 
-const MARK: Record<QueueTask['status'], MarkState> = { queued: 'pending', running: 'running', done: 'done', failed: 'failed' };
-const JOB_MARK: Record<TaskJob['outcome'], MarkState> = { running: 'running', reviewed: 'done', skipped: 'skipped', failed: 'failed' };
 const clock = (iso: string | null) => (iso ? new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '–');
 const money = (usd: number) => `$${usd.toFixed(2)}`;
 // An Understand job leads to the context it learned, any other to its review.
@@ -28,7 +26,7 @@ export function QueueTaskRow({ task, now, estimate, open, onToggle, onOpen }: {
     <li>
       <button type="button" onClick={onToggle} aria-expanded={open} className={cn('touch-target grid w-full grid-cols-[1.5rem_1rem_minmax(0,1fr)_auto] items-center gap-x-3 px-4 py-2 text-left transition-colors duration-150', open ? 'bg-sunken/60' : 'hover:bg-sunken/40')}>
         <span className="text-right font-mono text-[11px] text-fg-muted">{task.position !== null ? `#${task.position}` : ''}</span>
-        <StatusMark state={MARK[task.status]} />
+        <StatusMark state={markOf(task.status)} />
         <span className="min-w-0">
           <span className="block truncate text-sm font-medium">{task.label}</span>
           <span className="block truncate text-xs text-fg-muted">
@@ -66,7 +64,7 @@ export function QueueTaskRow({ task, now, estimate, open, onToggle, onOpen }: {
                 {task.jobs.map((j) => (
                   <li key={`${j.slug}:${j.id}`}>
                     <button type="button" onClick={() => onOpen(routeOfJob(j))} className="touch-target grid w-full grid-cols-[1rem_minmax(0,1fr)_auto] items-center gap-x-2.5 px-3 py-1.5 text-left text-xs hover:bg-sunken/40">
-                      <StatusMark state={JOB_MARK[j.outcome]} size={14} />
+                      <StatusMark state={markOf(j.outcome)} size={14} />
                       <span className="truncate" title={j.slug}>{j.title ?? j.slug.slice(j.slug.indexOf('/') + 1)}</span>
                       <span className="tabular-nums text-fg-muted">{duration((j.endedAt ? Date.parse(j.endedAt) : now) - Date.parse(j.startedAt))}{j.costUsd !== null && ` · ${money(j.costUsd)}`}</span>
                     </button>

@@ -1,9 +1,9 @@
-import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { LazyMotion, MotionConfig } from 'motion/react';
 import { Toaster } from 'sonner';
 import { toast } from './lib/toast';
-import { loadSeen, saveSeen, type ReviewItem } from './lib/api';
-import { useReview, useReviews } from './lib/useReviews';
+import type { ReviewItem } from './lib/api';
+import { useReviews } from './lib/useReviews';
 import { useLiveEvents } from './lib/useLiveEvents';
 import { useArrivals } from './lib/arrivals';
 import { useSoundCues } from './lib/useSoundCues';
@@ -11,90 +11,40 @@ import { ALL_PROJECTS, activeFilter, filterByProject, filterOptions, hasSeveralP
 import { useMergedPosted } from './lib/pendingPosts';
 import { useNeedsYou } from './lib/useNeedsYou';
 import { usePersistentState, useOpenTabs } from './lib/layout';
+import { KEY_PREFIX } from './lib/storage';
+import { botBySlug } from './lib/botState';
+import { postedFor } from './lib/postedKey';
 import { StatusBar } from './components/StatusBar';
-import { TabStrip, type BotState } from './components/TabStrip';
+import { TabStrip } from './components/TabStrip';
 import { HomeFeed } from './components/HomeFeed';
 import { ProjectFilter } from './components/ProjectFilter';
-// Not needed on Home, and the heaviest part of the bundle (markdown, highlighting).
-const loadReader = () => import('./components/ReviewReader');
-const ReviewReader = lazy(() => loadReader().then((m) => ({ default: m.ReviewReader })));
+import { Screen, loadReader } from './components/Screen';
 import { CommandPalette } from './components/CommandPalette';
 import { TipLayer } from './components/ds/TipLayer';
 import { Crashed } from './components/Crashed';
-import { SettingsPage } from './components/SettingsPage';
-import { ApprovalsView } from './components/ApprovalsPage';
-import { APPROVALS_ROUTE, useApprovals } from './lib/approvalsApi';
+import { useApprovals } from './lib/approvalsApi';
 import { liveRunOf } from './lib/liveRun';
 import { useTheme } from './lib/theme';
-import { ProjectView } from './components/ProjectPage';
-import { contextKeyOf } from './lib/contextApi';
-import { StackBoard } from './components/StackBoard';
-import { ReviewMissing, ReviewSkeleton } from './components/ReviewSkeleton';
-import { SETTINGS_ROUTE } from './lib/hashRoute';
+import { APPROVALS_ROUTE, JOBS_ROUTE, SETTINGS_ROUTE, contextKeyOf, hrefOf } from './lib/hashRoute';
 import { useHashRoute } from './lib/useHashRoute';
+import { useSeen } from './lib/useSeen';
+import { useCloseTabShortcut } from './lib/useCloseTabShortcut';
 import { LinkContext } from './lib/links';
 import { ticketLinks } from './lib/tickets';
 import { palettePages } from './lib/palettePages';
 
 const EMPTY_POSTED = {};
-// `#/settings` is the settings page, not a review.
-// `#/jobs` was the jobs page; Home is the feed now (ADR 0007), so it lands there.
-const JOBS_ROUTE = 'jobs';
 // The animation features load after the first paint; until then `m` components just render.
 const loadMotionFeatures = () => import('./lib/motionFeatures').then((mod) => mod.default);
-
-// Which reviews were read, at which version. Opening a review marks it as read; saved here,
-// not inside a state updater.
-function useSeen(current: ReviewItem | undefined) {
-  const [seen, setSeen] = useState(loadSeen);
-  useEffect(() => {
-    if (!current || seen[current.slug] === current.reviewedAt) return;
-    const next = { ...seen, [current.slug]: current.reviewedAt };
-    saveSeen(next);
-    setSeen(next);
-  }, [current, seen]);
-  const isUnread = useCallback((i: ReviewItem) => seen[i.slug] !== i.reviewedAt, [seen]);
-  return { isUnread };
-}
-
-// Close the active review tab like a browser tab. ⌘W is reserved by the browser (a page never
-// receives it), so the working shortcuts are Ctrl+W, ⌥W and ⌘⌥W; plain ⌘W is handled too in case
-// it is ever delivered. The "W" is the character typed, not the physical position, so it also works
-// on AZERTY (where that key sits where QWERTY has Z). Ignored while typing.
-function useCloseTabShortcut(slug: string | null, palette: boolean, close: (slug: string) => void) {
-  // Physical key that types "w" on the current layout (AZERTY: KeyZ), used
-  // for Option combos where e.key is a symbol. Chromium only; else e.key alone.
-  const wCode = useRef<string | null>(null);
-  useEffect(() => {
-    const kb = (navigator as unknown as { keyboard?: { getLayoutMap?: () => Promise<Map<string, string>> } }).keyboard;
-    kb?.getLayoutMap?.().then((map) => {
-      for (const [code, ch] of map) if (ch === 'w') wCode.current = code;
-    }).catch(() => {});
-  }, []);
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      const isW = e.key.toLowerCase() === 'w' || e.key === '∑' || (wCode.current !== null && e.code === wCode.current);
-      if (!isW || e.shiftKey || !(e.ctrlKey || e.metaKey || e.altKey) || !slug) return;
-      const el = e.target as HTMLElement | null;
-      if (el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName))) return;
-      if (palette || document.querySelector('[role=dialog]')) return;
-      e.preventDefault();
-      close(slug);
-    };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  });
-}
 
 export function App() {
   const streaming = useLiveEvents();
   const { data, error, updatedAt, reload } = useReviews();
-  const [projectFilter, setProjectFilter] = usePersistentState('mr-review-viewer:project-filter', ALL_PROJECTS);
+  const [projectFilter, setProjectFilter] = usePersistentState(`${KEY_PREFIX}project-filter`, ALL_PROJECTS);
   const posted = useMergedPosted(data?.posted ?? EMPTY_POSTED);
   const { slug, finding, path: focusPath, version } = useHashRoute();
   const [palette, setPalette] = useState(false);
 
-  // One persistent toast while the API is unreachable, dismissed once it's back.
   useEffect(() => {
     if (error) toast.error('Studio API unreachable', { id: 'api-error', description: error, duration: Infinity });
     else toast.dismiss('api-error');
@@ -119,22 +69,12 @@ export function App() {
   const known = useMemo(() => (data ? new Set(data.items.map((i) => i.slug)) : null), [data]);
   const { tabs: openSlugs, close: closeTab } = useOpenTabs(slug, known);
   const tabItems = openSlugs.map((s) => items.find((i) => i.slug === s)).filter((i): i is ReviewItem => Boolean(i));
-  // Live bot state per review, from status.json (mr.reviewPath -> slug).
-  const botBySlug = useMemo(() => {
-    const m = new Map<string, BotState>();
-    for (const mr of data?.status?.mrs ?? []) {
-      const file = mr.reviewPath?.split('/').pop();
-      if (file) m.set(`${mr.project}/${file.replace(/\.md$/, '')}`, mr.held === 'budget' ? 'held' : mr.status as BotState);
-    }
-    return m;
-  }, [data]);
+  const bots = useMemo(() => botBySlug(data?.status?.mrs), [data]);
   // The bot is reviewing it right now: its row is disabled until the new report is written.
-  const isReviewing = (i: ReviewItem) => botBySlug.get(i.slug) === 'reviewing' || liveRunOf(data?.status, i) !== null;
-  const isHeld = (i: ReviewItem) => botBySlug.get(i.slug) === 'held';
-  const isPosted = (i: ReviewItem) => Object.keys(posted).some((k) => k.startsWith(`${i.slug}:`));
+  const isReviewing = (i: ReviewItem) => bots.get(i.slug) === 'reviewing' || liveRunOf(data?.status, i) !== null;
+  const isHeld = (i: ReviewItem) => bots.get(i.slug) === 'held';
+  const isPosted = (i: ReviewItem) => postedFor(posted, i.slug).length > 0;
   const current = items.find((i) => i.slug === slug);
-  const stack = current?.stackId ? data?.stacks.find((s) => s.id === current.stackId) : undefined;
-  const { content: review, error: reviewError, retry: retryReview } = useReview(slug === SETTINGS_ROUTE || slug === JOBS_ROUTE || slug === APPROVALS_ROUTE || contextKeyOf(slug) ? null : slug, current?.reviewedAt);
 
   const { isUnread } = useSeen(current);
   const projects = data?.projects;
@@ -152,7 +92,7 @@ export function App() {
   const [theme] = useTheme();
   const go = (s: string | null) => {
     // The new screen starts at the top (useHashRoute): scrolling here would move the one being left.
-    location.hash = s ? `#/${s}` : '';
+    location.hash = s ? hrefOf(s) : '';
   };
   const close = (s: string) => {
     const next = closeTab(s);
@@ -160,11 +100,9 @@ export function App() {
   };
 
   useCloseTabShortcut(slug, palette, close);
-  // An old `#/jobs` link lands on Home, which is the feed now.
   useEffect(() => { if (slug === JOBS_ROUTE) go(null); }, [slug]);
 
   return (
-    // reducedMotion="user": no layout animation if the OS asks for less motion.
     <MotionConfig reducedMotion="user">
     <LazyMotion features={loadMotionFeatures} strict>
       <Toaster position="bottom-right" theme={theme} richColors />
@@ -173,7 +111,7 @@ export function App() {
         <TabStrip
           tabs={tabItems}
           activeSlug={slug}
-          botBySlug={botBySlug}
+          botBySlug={bots}
           isUnread={isUnread}
           isPosted={isPosted}
           homeUnread={waitingAll}
@@ -189,27 +127,15 @@ export function App() {
         <main className="min-w-0 flex-1">
       {/* A screen that fails to render says so in its place; the bar and the tabs stay. */}
       <Crashed resetKey={slug}>
-      {slug === SETTINGS_ROUTE ? (
-        <SettingsPage settings={data?.settings ?? null} defaults={data?.settingsDefaults ?? null} projects={projects ?? []} nextPollAt={data?.status?.nextPollAt ?? null} />
-      ) : slug === APPROVALS_ROUTE ? (
-        <ApprovalsView onOpen={go} />
-      ) : contextKeyOf(slug) ? (
-        <ProjectView key={slug} projectKey={contextKeyOf(slug)!} focusPath={focusPath} />
-      ) : slug ? (
-        <>
-        {stack && current && <StackBoard stack={stack} items={items} current={current} isPosted={isPosted} onSelect={go} />}
-        {!data ? <ReviewSkeleton /> : !current ? <ReviewMissing /> : (
-        <Suspense fallback={<ReviewSkeleton />}>
-        <ReviewReader item={current} review={review} reviewError={reviewError} onRetry={retryReview} projectUrl={data?.projects?.find((p) => p.key === current?.project)?.url ?? data?.projectUrl ?? null} allowPosting={data?.allowPosting ?? false} showFullDiff={data?.settings.showFullDiff ?? true} live={current ? liveRunOf(data?.status, current) : null} finding={finding} version={version} posted={posted} reload={reload} />
-        </Suspense>
+      <Screen
+        route={{ slug, finding, path: focusPath, version }} data={data} items={items} posted={posted} reload={reload} isPosted={isPosted} onOpen={go}
+        home={(
+          <HomeFeed
+            loaded={Boolean(data)} items={shown} titles={titles} isUnread={isUnread} isReviewing={isReviewing} isHeld={isHeld} isNew={isNew} isChanged={isChanged} showProject={several} onOpen={go}
+            filter={several ? <ProjectFilter options={filterOptions(projects)} value={filter} onChange={setProjectFilter} /> : undefined}
+          />
         )}
-        </>
-      ) : (
-        <HomeFeed
-          loaded={Boolean(data)} items={shown} titles={titles} isUnread={isUnread} isReviewing={isReviewing} isHeld={isHeld} isNew={isNew} isChanged={isChanged} showProject={several} onOpen={go}
-          filter={several ? <ProjectFilter options={filterOptions(projects)} value={filter} onChange={setProjectFilter} /> : undefined}
-        />
-      )}
+      />
       </Crashed>
         </main>
       </div>

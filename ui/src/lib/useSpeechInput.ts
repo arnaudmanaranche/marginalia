@@ -32,7 +32,7 @@ const ERRORS: Record<string, string> = {
 };
 
 // Everything said in one dictation, words not yet final included, as it changes.
-export const dictatedText = (results: ArrayLike<ArrayLike<Alternative>>) => Array.from(results, (r) => r[0]?.transcript ?? '').join('').trim();
+const dictatedText = (results: ArrayLike<ArrayLike<Alternative>>) => Array.from(results, (r) => r[0]?.transcript ?? '').join('').trim();
 
 // Text typed before the dictation, then what was said: one space between, none if either is empty.
 export const withDictation = (base: string, dictated: string) => `${base.trimEnd()}${base.trim() && dictated ? ' ' : ''}${dictated}`;

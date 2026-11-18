@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Job } from './api';
 
-export const jobKey = (j: Job) => `${j.slug}:${j.id}`;
+const jobKey = (j: Job) => `${j.slug}:${j.id}`;
 
 // The jobs `known` has not seen. The first list (`known` null) is what was there when the page
 // opened: nothing in it is new.

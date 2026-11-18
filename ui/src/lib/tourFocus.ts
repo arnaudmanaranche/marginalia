@@ -1,3 +1,5 @@
+import { scrollBehavior } from './motion';
+
 // Pointing at a finding in a tour: the one on the left and its place in the diff on the right follow each other.
 // `source` says where the click came from, so the other side is the one that moves.
 export interface Focus {
@@ -20,7 +22,7 @@ function scrollParent(el: HTMLElement): HTMLElement | null {
 export function scrollInPane(el: HTMLElement, where: 'third' | 'nearest' = 'third', inset = 0) {
   const pane = scrollParent(el);
   if (!pane) return;
-  const behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
+  const behavior = scrollBehavior();
   const rect = el.getBoundingClientRect();
   const paneRect = pane.getBoundingClientRect();
   const top = rect.top - paneRect.top + pane.scrollTop;

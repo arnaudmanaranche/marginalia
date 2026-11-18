@@ -10,12 +10,13 @@ import { Button } from './ui/Button';
 import { ConfirmPost } from './ConfirmPost';
 import { PostedBadge } from './PostedBadge';
 import { CopyButton } from './CopyButton';
+import { postedKey } from '../lib/postedKey';
 
 // The id of the finding a comment belongs to, which survives a re-run that rewords it, and where
 // it stands on GitLab. Comments posted before findings existed were keyed by a hash of their text.
 function resolveComment(post: PostContextValue, original: string, legacyId: string) {
   const commentId = post.findings.find((f) => f.comment && squash(f.comment) === squash(original))?.id ?? legacyId;
-  const postedInfo = post.slug ? post.posted[`${post.slug}:${commentId}`] ?? post.posted[`${post.slug}:${legacyId}`] : undefined;
+  const postedInfo = post.slug ? post.posted[postedKey(post.slug, commentId)] ?? post.posted[postedKey(post.slug, legacyId)] : undefined;
   return { commentId, postedInfo };
 }
 

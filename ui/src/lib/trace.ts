@@ -1,6 +1,6 @@
 import type { Job, RunStage } from './api';
 
-// A job as spans and lists of jobs as the Jobs page shows them: filtered, grouped by day. Pure.
+// A job as spans and lists of jobs as the Jobs page shows them: filtered, grouped by day.
 
 export interface Span { id: string; label: string; state: RunStage['state']; start: number; end: number }
 

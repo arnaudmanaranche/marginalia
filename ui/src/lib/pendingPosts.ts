@@ -3,6 +3,7 @@ import { toast } from './toast';
 import { MutationObserver } from '@tanstack/react-query';
 import { postComment, type PostedInfo } from './api';
 import { queryClient } from './queryClient';
+import { postedKey } from './postedKey';
 
 // Comments being added to a pending review, shown as already there while GitLab answers.
 // An entry stays until the server's own record has it (then that one wins), or goes on failure.
@@ -36,7 +37,7 @@ export interface AddToReview {
 
 // Returns at once: the comment shows "Adding…" until GitLab confirms, and a toast tells how it went.
 export function addToReview(req: AddToReview) {
-  const key = `${req.slug}:${req.commentId}`;
+  const key = postedKey(req.slug, req.commentId);
   if (entries[key]) return;
   set({ ...entries, [key]: { at: new Date().toISOString(), iid: Number(req.iid), url: '', state: 'draft', pending: true } });
   const toastId = toast.loading(`Adding to your pending review of !${req.iid}…`);

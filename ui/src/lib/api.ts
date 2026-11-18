@@ -1,3 +1,5 @@
+import { fetchJson, sendJson } from './fetchRetry';
+
 export type Verdict = 'APPROVE' | 'REQUEST_CHANGES' | 'OTHER' | null;
 // `own`: my own MR or branch, reviewed for me alone; never posted.
 type Kind = 'review' | 'comments' | 'own' | 'retro';
@@ -295,10 +297,9 @@ export interface RunTrace extends RunSummary {
 }
 export interface FoundFinding { id: string; stage: string; severity: Severity; title: string; path: string | null; line: number | null; at: string }
 
-async function postRun(slug: string, runId: string, tail: string): Promise<void> {
-  const res = await fetch(`/api/reviews/${encodeURIComponent(slug)}/runs/${encodeURIComponent(runId)}/${tail}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' });
-  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? `HTTP ${res.status}`);
-}
+const postRun = async (slug: string, runId: string, tail: string): Promise<void> => {
+  await sendJson('POST', `/api/reviews/${encodeURIComponent(slug)}/runs/${encodeURIComponent(runId)}/${tail}`);
+};
 export const startDoctorFix = (slug: string, runId: string) => postRun(slug, runId, 'doctor/fix');
 export const pushDoctorFix = (slug: string, runId: string) => postRun(slug, runId, 'doctor/fix/push');
 
@@ -306,8 +307,7 @@ export const startDoctor = (slug: string, runId: string) => postRun(slug, runId,
 
 // Nudges the bot to poll now, as the menu bar's "Poll now" does.
 export async function pollNow(): Promise<void> {
-  const res = await fetch('/api/poll', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' });
-  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? `HTTP ${res.status}`);
+  await sendJson('POST', '/api/poll');
 }
 
 export interface LiveRun { project?: string; iid: number; title: string; startedAt: string; progress?: string[]; runId?: string; slug?: string; stages?: LiveStage[]; stepCount?: number }
@@ -362,23 +362,6 @@ export interface ReviewContent {
   shape: ReviewShape;
 }
 
-// "Read" tracking: slug -> reviewedAt seen. localStorage may be unavailable.
-const KEY = 'mr-review-viewer:seen';
-export function loadSeen(): Record<string, string> {
-  try {
-    return JSON.parse(localStorage.getItem(KEY) ?? '{}');
-  } catch {
-    return {};
-  }
-}
-export function saveSeen(seen: Record<string, string>) {
-  try {
-    localStorage.setItem(KEY, JSON.stringify(seen));
-  } catch {
-    /* ignore */
-  }
-}
-
 export interface Settings {
   pollIntervalMinutes: number;
   staleAfterDays: number;
@@ -392,60 +375,26 @@ export interface Settings {
 
 // Only the keys to change; null puts a key back on its .env default. The bot applies it without a restart.
 export async function saveSettings(patch: { [K in keyof Settings]?: Settings[K] | null }): Promise<{ settings: Settings; defaults: Settings }> {
-  const res = await fetch('/api/settings', {
-    method: 'PUT',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify(patch),
-  });
-  const j = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(j.error ?? `HTTP ${res.status}`);
-  return j;
+  return sendJson('PUT', '/api/settings', patch);
 }
 
-
 export async function postComment(slug: string, commentId: string, body: string, target?: { path: string; line?: number }): Promise<PostedInfo> {
-  const res = await fetch('/api/post', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ slug, commentId, body, ...target }),
-  });
-  const j = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(j.error ?? `HTTP ${res.status}`);
-  return j;
+  return sendJson('POST', '/api/post', { slug, commentId, body, ...target });
 }
 
 // A reply in a reviewer thread of my own MR, as a draft until the replies are submitted.
 export async function postReply(slug: string, threadId: string, body: string, resolve: boolean): Promise<PostedInfo> {
-  const res = await fetch('/api/replies', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ slug, threadId, body, resolve }),
-  });
-  const j = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(j.error ?? `HTTP ${res.status}`);
-  return j;
+  return sendJson('POST', '/api/replies', { slug, threadId, body, resolve });
 }
 
 export type ReviewAction = 'comment' | 'approve' | 'request_changes';
 
 export async function submitReview(slug: string, summary?: string, action: ReviewAction = 'comment'): Promise<{ submitted: number; summary: boolean; action: ReviewAction }> {
-  const res = await fetch('/api/submit-review', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ slug, summary, action }),
-  });
-  const j = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(j.error ?? `HTTP ${res.status}`);
-  return j;
+  return sendJson('POST', '/api/submit-review', { slug, summary, action });
 }
 
 export async function rerunReview(slug: string): Promise<void> {
-  const res = await fetch('/api/rerun', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ slug }),
-  });
-  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? `HTTP ${res.status}`);
+  await sendJson('POST', '/api/rerun', { slug });
 }
 
 export interface DraftNote {
@@ -456,24 +405,15 @@ export interface DraftNote {
 }
 
 export async function fetchDrafts(slug: string): Promise<DraftNote[]> {
-  const res = await fetch(`/api/drafts/${encodeURIComponent(slug)}`);
-  const j = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(j.error ?? `HTTP ${res.status}`);
-  return j.drafts;
+  return (await fetchJson<{ drafts: DraftNote[] }>(`/api/drafts/${encodeURIComponent(slug)}`, { retries: 0 })).drafts;
 }
 
 export async function updateDraft(slug: string, id: number, body: string): Promise<void> {
-  const res = await fetch(`/api/drafts/${encodeURIComponent(slug)}/${id}`, {
-    method: 'PUT',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ body }),
-  });
-  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? `HTTP ${res.status}`);
+  await sendJson('PUT', `/api/drafts/${encodeURIComponent(slug)}/${id}`, { body });
 }
 
 export async function deleteDraft(slug: string, id: number): Promise<void> {
-  const res = await fetch(`/api/drafts/${encodeURIComponent(slug)}/${id}`, { method: 'DELETE' });
-  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? `HTTP ${res.status}`);
+  await sendJson('DELETE', `/api/drafts/${encodeURIComponent(slug)}/${id}`);
 }
 
 export interface ReviewVersion {
@@ -482,17 +422,12 @@ export interface ReviewVersion {
 }
 
 export async function fetchHistory(slug: string): Promise<ReviewVersion[]> {
-  const res = await fetch(`/api/history/${encodeURIComponent(slug)}`);
-  const j = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(j.error ?? `HTTP ${res.status}`);
-  return j.versions;
+  return (await fetchJson<{ versions: ReviewVersion[] }>(`/api/history/${encodeURIComponent(slug)}`, { retries: 0 })).versions;
 }
 
 export async function fetchHistoryVersion(slug: string, id: string): Promise<ReviewContent> {
-  const res = await fetch(`/api/history/${encodeURIComponent(slug)}/${encodeURIComponent(id)}`);
-  const j = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(j.error ?? `HTTP ${res.status}`);
-  return { markdown: j.markdown, shape: j.shape };
+  const { markdown, shape } = await fetchJson<ReviewContent>(`/api/history/${encodeURIComponent(slug)}/${encodeURIComponent(id)}`, { retries: 0 });
+  return { markdown, shape };
 }
 
 // Where a triage's local fixes stand against the MR branch on origin (lib/fixes.mjs).
@@ -510,23 +445,14 @@ export interface FixesStatus {
 }
 
 export async function fetchFixes(slug: string): Promise<FixesStatus> {
-  const res = await fetch(`/api/fixes/${encodeURIComponent(slug)}`);
-  const j = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(j.error ?? `HTTP ${res.status}`);
+  const j = await fetchJson<FixesStatus>(`/api/fixes/${encodeURIComponent(slug)}`, { retries: 0 });
   if (!j.state) throw new Error('unexpected answer from the studio server');
   return j;
 }
 
 // Every fix, or with `sha` that one alone.
 export async function pushFixes(slug: string, sha?: string): Promise<FixesStatus> {
-  const res = await fetch('/api/push', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ slug, sha }),
-  });
-  const j = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(j.error ?? `HTTP ${res.status}`);
-  return j;
+  return sendJson('POST', '/api/push', { slug, sha });
 }
 
 // A thread of the MR's GitLab conversation that sits on a line of code.
@@ -555,10 +481,7 @@ export interface Thread {
 }
 
 export async function fetchThreads(slug: string, scope: 'lines' | 'all' = 'lines'): Promise<Thread[]> {
-  const res = await fetch(`/api/reviews/${encodeURIComponent(slug)}/threads${scope === 'all' ? '?scope=all' : ''}`);
-  const j = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(j.error ?? `HTTP ${res.status}`);
-  return j.threads;
+  return (await fetchJson<{ threads: Thread[] }>(`/api/reviews/${encodeURIComponent(slug)}/threads${scope === 'all' ? '?scope=all' : ''}`, { retries: 0 })).threads;
 }
 
 // One push of the MR (a GitLab version), oldest first: what it added, and who looked at it.

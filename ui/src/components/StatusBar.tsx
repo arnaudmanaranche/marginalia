@@ -6,7 +6,7 @@ import { AccountMenu } from './AccountMenu';
 import { Logo } from './Logo';
 
 // `shownSince`: when the data on screen was read; once the API is lost, it says how old that is.
-function BotState({ status, connection, shownSince }: { status: BotStatus | null; connection: 'connecting' | 'unreachable' | 'ok'; shownSince: number | null }) {
+function BotLine({ status, connection, shownSince }: { status: BotStatus | null; connection: 'connecting' | 'unreachable' | 'ok'; shownSince: number | null }) {
   if (connection === 'unreachable') {
     return <LivePill tone="warn" label="Cannot reach the studio" detail={shownSince ? <><span className="hidden sm:inline">showing what it said {timeAgo(new Date(shownSince).toISOString())}, </span>retrying</> : 'retrying'} title="What is on screen may be out of date until the studio answers again." live />;
   }
@@ -43,7 +43,7 @@ export function StatusBar({ status, connection, shownSince = null, streaming = t
     <div className="border-b border-line">
       <div className="flex h-14 items-center gap-4 px-4">
         <button onClick={onHome} className="touch-target flex items-center gap-2 font-semibold tracking-tight"><Logo />Marginalia</button>
-        <div className="ml-2 min-w-0 text-sm"><BotState status={status} connection={connection} shownSince={shownSince} />
+        <div className="ml-2 min-w-0 text-sm"><BotLine status={status} connection={connection} shownSince={shownSince} />
           {/* The API answers but the live stream is down: changes show within 30s instead of at once. */}
           {connection === 'ok' && !streaming && <span title="The live connection dropped and is reconnecting. Until then the page checks every 30 seconds." className="ml-2 hidden text-xs text-fg-muted sm:inline">· live updates paused, checking every 30s</span>}</div>
 

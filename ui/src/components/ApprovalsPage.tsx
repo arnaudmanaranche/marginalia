@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Inbox } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
-import { APPROVALS_KEY, useApprovals, useDismiss, type Proposal } from '../lib/approvalsApi';
+import { keys } from '../lib/queryKeys';
+import { useApprovals, useDismiss, type Proposal } from '../lib/approvalsApi';
 import { keyOf, ordered, selection, step } from '../lib/inbox';
 import { toast } from '../lib/toast';
 import { InboxList } from './InboxList';
 import { ProposalPane } from './ProposalPane';
 import { Button } from './ui/Button';
+import { postedKey } from '../lib/postedKey';
 
 // The approvals inbox (ADR 0006): every comment the factory proposes and nobody decided yet. The list
 // on the left, by MR; the selected one in full on the right, to add (as is or edited), or dismiss;
@@ -54,11 +56,11 @@ export function ApprovalsView({ onOpen }: { onOpen: (slug: string) => void }) {
   const { data, error, retry } = useApprovals();
   const dismiss = useDismiss();
   const client = useQueryClient();
-  const reload = () => void client.invalidateQueries({ queryKey: APPROVALS_KEY });
+  const reload = () => void client.invalidateQueries({ queryKey: keys.approvals });
   const onDismiss = (p: Proposal) => dismiss.mutate({ slug: p.slug, commentId: p.findingId }, {
     onSuccess: () => toast.success('Dismissed: nothing was sent', { action: { label: 'Undo', onClick: () => dismiss.mutate({ slug: p.slug, commentId: p.findingId, undo: true }) } }),
     onError: (err) => toast.error(`Could not dismiss: ${err.message}`),
   });
-  const busy = dismiss.isPending && dismiss.variables ? `${dismiss.variables.slug}:${dismiss.variables.commentId}` : null;
+  const busy = dismiss.isPending && dismiss.variables ? postedKey(dismiss.variables.slug, dismiss.variables.commentId) : null;
   return <ApprovalsPage proposals={data?.proposals ?? null} canPost={data?.canPost ?? false} error={error} onRetry={retry} busyId={busy} onDismiss={onDismiss} onOpen={onOpen} reload={reload} />;
 }

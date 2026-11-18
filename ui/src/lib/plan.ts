@@ -1,8 +1,6 @@
 import type { RunStage, RunStep } from './api';
 
-// A run as a plan: each stage with the steps taken in it, the tools they called (each once, in the
-// order first used) and what it did last. Pure.
-export interface PlanRow { stage: RunStage; steps: RunStep[]; tools: string[]; latest: string | null }
+interface PlanRow { stage: RunStage; steps: RunStep[]; tools: string[]; latest: string | null }
 
 export function planRows(stages: RunStage[], steps: RunStep[] = []): PlanRow[] {
   return stages.map((stage) => {

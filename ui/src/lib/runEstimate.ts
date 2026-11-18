@@ -1,7 +1,7 @@
 import type { Job } from './api';
 
 // What running a job on this MR again will likely cost (USD): the median of its own recent paid runs,
-// else of recent runs of the same kind; null when there are none. Pure.
+// else of recent runs of the same kind; null when there are none.
 const RECENT = 10;
 
 const median = (xs: number[]) => {

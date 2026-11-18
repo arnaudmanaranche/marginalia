@@ -1,8 +1,10 @@
-import { useContext, useEffect, useRef, useState } from 'react';
+import { useContext, useEffect, useRef } from 'react';
 import { cn } from '../lib/utils';
 import { LinkContext, repoUrl } from '../lib/links';
 import { ticketPage } from '../lib/tickets';
 import type { ContextCriticalPath, ContextItem, ContextSource, ContextTerm, ProjectContext } from '../lib/contextApi';
+import { scrollBehavior } from '../lib/motion';
+import { useFlash } from '../lib/useFlash';
 
 // A project's context, read top to bottom: what it is, what breaks the most, its words, how it is
 // built and what it does. Every item says where it was learned, so a person can check it.
@@ -50,15 +52,12 @@ function Section({ id, title, children }: { id: string; title: string; children:
 // The path a link pointed at comes into view and glows for a moment, as a changed row does on Home.
 function Path({ path, focused }: { path: ContextCriticalPath; focused: boolean }) {
   const ref = useRef<HTMLLIElement>(null);
-  const [glow, setGlow] = useState(false);
+  const [glow, flashGlow] = useFlash(1500);
   useEffect(() => {
     if (!focused) return;
-    const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
-    ref.current?.scrollIntoView({ block: 'center', behavior: still ? 'auto' : 'smooth' });
-    setGlow(true);
-    const t = setTimeout(() => setGlow(false), 1500);
-    return () => clearTimeout(t);
-  }, [focused]);
+    ref.current?.scrollIntoView({ block: 'center', behavior: scrollBehavior() });
+    flashGlow();
+  }, [focused, flashGlow]);
   return (
     <li ref={ref} aria-current={focused ? 'location' : undefined} className={cn('flex gap-3 p-4 transition-colors motion-reduce:transition-none', glow ? 'bg-run/20 duration-150' : 'duration-1000')}>
       <span className="w-6 shrink-0 text-right font-semibold tabular-nums text-fg-muted" aria-label={`Rank ${path.rank}`}>{path.rank}</span>

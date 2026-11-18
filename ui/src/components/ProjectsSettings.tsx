@@ -1,5 +1,5 @@
 import { ArrowUpRight } from 'lucide-react';
-import { contextRoute } from '../lib/contextApi';
+import { contextRoute, hrefOf } from '../lib/hashRoute';
 import { Chip } from './ds/Chip';
 import { SettingGroup } from './SettingRow';
 
@@ -16,7 +16,7 @@ export function ProjectsSettings({ projects }: { projects: Project[] }) {
           <span className="font-medium">{p.key}</span>
           {p.kind && <Chip>{p.kind}-end</Chip>}
           <code className="min-w-0 flex-1 truncate font-mono text-xs text-fg-muted" title={p.gitlabProjectId}>{p.gitlabProjectId}</code>
-          <a href={`#/${contextRoute(p.key)}`} className="inline-flex items-center gap-1 text-xs text-fg-muted hover:text-zinc-900 dark:hover:text-zinc-100">Context<ArrowUpRight className="size-3" aria-hidden /></a>
+          <a href={hrefOf(contextRoute(p.key))} className="inline-flex items-center gap-1 text-xs text-fg-muted hover:text-zinc-900 dark:hover:text-zinc-100">Context<ArrowUpRight className="size-3" aria-hidden /></a>
           {p.url && <a href={p.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-fg-muted hover:text-zinc-900 dark:hover:text-zinc-100">GitLab<ArrowUpRight className="size-3" aria-hidden /></a>}
         </div>
       ))}

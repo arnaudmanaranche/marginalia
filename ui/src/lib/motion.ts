@@ -20,3 +20,9 @@ export const unfold = {
   animate: { opacity: 1, height: 'auto', transition: transition.base },
   exit: { opacity: 0, height: 0, transition: transition.fast },
 };
+
+// The person asked the system for less motion: nothing slides or fades in for show.
+export const prefersStill = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// How a scroll that is not a jump moves.
+export const scrollBehavior = (): 'auto' | 'smooth' => (prefersStill() ? 'auto' : 'smooth');

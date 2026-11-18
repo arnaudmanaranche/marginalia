@@ -1,11 +1,11 @@
 import type { Finding } from './api';
 
 // A chapter says the same thing three times: its summary, the finding's explanation and the comment
-// to post. What a reader already has on screen is left out of the next one. Pure.
+// to post. What a reader already has on screen is left out of the next one.
 const words = (text: string) => new Set(text.toLowerCase().replace(/`/g, '').match(/[a-z0-9_]{3,}/g) ?? []);
 
 // The share of `text`'s words that `other` also has: 1 is `text` entirely inside `other`.
-export function overlap(text: string, other: string): number {
+function overlap(text: string, other: string): number {
   const mine = words(text);
   if (mine.size === 0) return 0;
   const theirs = words(other);

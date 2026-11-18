@@ -1,12 +1,13 @@
-import { useState, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { Check, Copy } from 'lucide-react';
 import { toast } from '../lib/toast';
+import { useCopied } from '../lib/useFlash';
 import { cn } from '../lib/utils';
 
 // A fenced code block as a card: a header bar with the language (and, for a diff,
 // how many lines it adds and removes) and a copy button, then the code.
 export function CodeBlock({ lang, text, children }: { lang: string | null; text: string; children: ReactNode }) {
-  const [copied, setCopied] = useState(false);
+  const [copied, flashCopied] = useCopied();
   const diff = lang === 'diff' || lang === 'patch';
   const lines = diff ? text.split('\n') : [];
   const added = lines.filter((l) => l.startsWith('+') && !l.startsWith('+++')).length;
@@ -14,8 +15,7 @@ export function CodeBlock({ lang, text, children }: { lang: string | null; text:
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
+      flashCopied();
     } catch {
       toast.error('Could not copy: clipboard access was denied');
     }

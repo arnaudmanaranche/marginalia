@@ -3,6 +3,7 @@ import { ChevronDown, ChevronRight } from 'lucide-react';
 import type { DiffFile, Finding, Thread } from '../lib/api';
 import { threadsForFile } from '../lib/threads';
 import { cn } from '../lib/utils';
+import { useFlash } from '../lib/useFlash';
 import { scrollInPane, type Focus } from '../lib/tourFocus';
 import { Badge } from './ui/Badge';
 import { ThreadCard, ThreadRow } from './ThreadRow';
@@ -16,7 +17,7 @@ const PREVIEW_LINES = 300;
 export function DiffFileView({ file, findings, threads, defaultOpen, focus, jump = null, onSelectFinding }: { file: DiffFile; findings: Finding[]; threads: Thread[]; defaultOpen: boolean; focus: Focus | null; jump?: { path: string; nonce: number } | null; onSelectFinding: (id: string) => void }) {
   const [open, setOpen] = useState(defaultOpen);
   const [all, setAll] = useState(false);
-  const [flash, setFlash] = useState<string | null>(null);
+  const [flashed, flash] = useFlash<string>(1800);
   const root = useRef<HTMLElement>(null);
   const handled = useRef(0);
   const mine = findings.filter((f) => f.path === file.path);
@@ -51,10 +52,9 @@ export function DiffFileView({ file, findings, threads, defaultOpen, focus, jump
     handled.current = focus.nonce;
     const el = root.current?.querySelector<HTMLElement>(`[data-finding="${targetId}"], [data-thread="${targetId}"]`) ?? root.current;
     if (el) scrollInPane(el);
-    setFlash(targetId);
-    const t = setTimeout(() => setFlash(null), 1800);
-    return () => clearTimeout(t);
-  }, [focus, targetId, open, all, targetIndex]);
+    flash(targetId);
+    return undefined;
+  }, [focus, targetId, open, all, targetIndex, flash]);
 
   return (
     <section ref={root} aria-label={file.path} className="overflow-hidden rounded-xl border border-line">
@@ -74,7 +74,7 @@ export function DiffFileView({ file, findings, threads, defaultOpen, focus, jump
             <tbody>
               {shown.map((l, i) => (
                 <Fragment key={i}>
-                  <tr className={cn(ROW[l.t], ((l.new != null && mine.some((f) => f.id === flash && f.line === l.new)) || byLine.get(i)?.some((t) => t.id === flash)) && 'bg-run/25')}>
+                  <tr className={cn(ROW[l.t], ((l.new != null && mine.some((f) => f.id === flashed && f.line === l.new)) || byLine.get(i)?.some((t) => t.id === flashed)) && 'bg-run/25')}>
                     <td className="w-10 select-none px-2 text-right text-fg-subtle">{l.old ?? ''}</td>
                     <td className="w-10 select-none px-2 text-right text-fg-subtle">{l.new ?? ''}</td>
                     <td className="whitespace-pre pr-3"><span aria-hidden className="select-none pr-1">{SIGN[l.t]}</span>{l.t === 'hunk' ? l.text : l.text || ' '}</td>
@@ -89,13 +89,13 @@ export function DiffFileView({ file, findings, threads, defaultOpen, focus, jump
                       onKeyDown={(e) => { if (e.key === 'Enter') onSelectFinding(f.id); }}
                       className="cursor-pointer"
                     >
-                      <td colSpan={3} className={cn('border-y border-warn/50 bg-warn/5 px-3 py-1.5 font-sans text-sm transition-colors hover:bg-warn/10', flash === f.id && 'bg-run/20 ring-2 ring-inset ring-run')}>
+                      <td colSpan={3} className={cn('border-y border-warn/50 bg-warn/5 px-3 py-1.5 font-sans text-sm transition-colors hover:bg-warn/10', flashed === f.id && 'bg-run/20 ring-2 ring-inset ring-run')}>
                         <SeverityBadge level={f.severity} className="mr-2" />
                         <span className={cn('font-medium')}>{f.title}</span>
                       </td>
                     </tr>
                   ))}
-                  {(byLine.get(i) ?? []).map((t) => <ThreadRow key={t.id} thread={t} flash={flash === t.id} />)}
+                  {(byLine.get(i) ?? []).map((t) => <ThreadRow key={t.id} thread={t} flash={flashed === t.id} />)}
                 </Fragment>
               ))}
             </tbody>
@@ -103,7 +103,7 @@ export function DiffFileView({ file, findings, threads, defaultOpen, focus, jump
           {loose.length > 0 && (
             <div className="space-y-2 border-t border-line p-3">
               <p className="text-xs text-fg-muted">Threads on this file whose line is not in this diff</p>
-              {loose.map((t) => <ThreadCard key={t.id} thread={t} showPlace flash={flash === t.id} />)}
+              {loose.map((t) => <ThreadCard key={t.id} thread={t} showPlace flash={flashed === t.id} />)}
             </div>
           )}
           {!all && file.lines.length > PREVIEW_LINES && (

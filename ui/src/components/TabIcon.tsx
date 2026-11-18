@@ -1,10 +1,8 @@
 import { VERDICT_ICON } from '../lib/verdictIcons';
 import type { ReviewItem } from '../lib/api';
 import { cn } from '../lib/utils';
+import type { BotState } from '../lib/botState';
 import { StatusMark } from './ds/StatusMark';
-
-// `held`: its automatic review waits for tomorrow's budget (GLOSSARY: Budget).
-export type BotState = 'pending' | 'reviewing' | 'failed' | 'skipped' | 'held' | 'up_to_date' | undefined;
 
 // What the bot is doing with this review, shown before the verdict so live
 // work is visible at a glance: running, waiting, or broken.

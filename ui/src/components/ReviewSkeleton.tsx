@@ -1,5 +1,6 @@
 import { ArrowRight } from 'lucide-react';
 import { DiffSkeleton } from './DiffSkeleton';
+import { hrefOf } from '../lib/hashRoute';
 
 const bar = 'shimmer rounded bg-zinc-200 dark:bg-zinc-800';
 
@@ -50,7 +51,7 @@ export function ReviewMissing() {
     <div className="mx-auto max-w-md px-6 py-24 text-center">
       <h1 className="text-xl font-semibold tracking-tight">This review is not here</h1>
       <p className="mt-2 text-fg-muted">It may have been removed, or the link is wrong.</p>
-      <a href="#/" className="mt-4 inline-block text-blue-600 hover:underline dark:text-blue-400">Back to the review queue</a>
+      <a href={hrefOf(null)} className="mt-4 inline-block text-blue-600 hover:underline dark:text-blue-400">Back to the review queue</a>
     </div>
   );
 }
