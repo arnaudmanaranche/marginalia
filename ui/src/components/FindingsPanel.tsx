@@ -8,6 +8,8 @@ import { scrollInPane, type Focus } from '../lib/tourFocus';
 import { Button } from './ui/Button';
 import { ConfirmPost } from './ConfirmPost';
 import { NoteMarkdown } from './NoteMarkdown';
+import { ClampedNote } from './ClampedNote';
+import { bodyToShow } from '../lib/repeats';
 import { PostedBadge } from './PostedBadge';
 import { FindingProof } from './FindingProof';
 import { CopyButton } from './CopyButton';
@@ -181,7 +183,7 @@ function FindingCard({ finding, raised, compact = false, focus = null, onFocus, 
           {finding.path && (
             <button type="button" onClick={() => onFocus?.(finding.id)} title="Show it in the diff" className="break-all text-left font-mono text-xs text-blue-600 hover:underline dark:text-blue-400">{finding.path}{finding.line ? `:${finding.line}` : ''}</button>
           )}
-          {finding.body !== finding.title && <NoteMarkdown className="mt-2 text-fg-muted">{finding.body}</NoteMarkdown>}
+          {bodyToShow(finding) && <ClampedNote className="mt-2 text-fg-muted">{bodyToShow(finding)!}</ClampedNote>}
           <FindingProof verification={finding.verification} />
           {comment}
         </div>
