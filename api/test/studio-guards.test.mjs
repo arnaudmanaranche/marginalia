@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { errorOf } from './support/studio.mjs';
 
 const dir = await mkdtemp(join(tmpdir(), 'marginalia-guards-'));
 Object.assign(process.env, {
@@ -18,7 +19,6 @@ const app = createApp();
 const OWN = { host: 'localhost:4477', 'content-type': 'application/json' };
 const send = (method, path, { headers = OWN, body } = {}) =>
   app.request(path, { method, headers, body: body === undefined ? undefined : typeof body === 'string' ? body : JSON.stringify(body) });
-const errorOf = async (res) => (await res.json()).error;
 
 test('a write from another Host (DNS rebinding) or another Origin is refused', async () => {
   assert.equal((await send('PUT', '/api/settings', { headers: { ...OWN, host: 'evil.example:4477' }, body: {} })).status, 403);
@@ -65,15 +65,21 @@ test('a review id of an unknown project, or without a project, is a bad slug', a
 
 test('an unknown write is refused as read-only, an unknown read falls through to the app', async () => {
   assert.equal((await send('POST', '/api/nothing', { body: {} })).status, 405);
-  assert.ok([200, 503].includes((await send('GET', '/some/route')).status));
+  // The app's own routes live in the browser: the index when the studio is built, a notice (503) when not.
+  const { uiDist } = await import('../dist/src/ui-assets.js');
+  const page = await send('GET', '/some/route');
+  assert.equal(page.status, uiDist() ? 200 : 503);
+  if (uiDist()) assert.match(page.headers.get('content-type'), /text\/html/);
 });
 
-test('the generated OpenAPI document covers every API route', async () => {
+test('every /api route the app registers is documented in the generated OpenAPI document', async () => {
   const doc = await (await send('GET', '/openapi.json')).json();
-  const paths = Object.keys(doc.paths);
-  for (const p of ['/api/reviews', '/api/reviews/{slug}', '/api/reviews/{slug}/pushes', '/api/post', '/api/submit-review', '/api/drafts/{slug}/{id}', '/api/chat', '/api/rerun', '/api/status', '/api/poll', '/api/push', '/api/fixes/{slug}', '/api/replies', '/api/settings']) {
-    assert.ok(paths.includes(p), p);
-  }
+  const documented = new Set(Object.keys(doc.paths));
+  // `ALL`/wildcard entries are guards and `/api/me` is the auth probe, not part of the contract.
+  const registered = [...new Set(app.routes.filter((r) => r.method !== 'ALL' && r.path.startsWith('/api/') && r.path !== '/api/me').map((r) => r.path.replace(/:(\w+)/g, '{$1}')))];
+  assert.ok(registered.length > 20, 'the router lists its routes');
+  for (const p of registered) assert.ok(documented.has(p), `${p} is not in the OpenAPI document`);
+  for (const p of documented) assert.ok(registered.includes(p), `${p} is documented but not routed`);
 });
 
 test('extra Host values (a container published on another port) are accepted only when listed', async () => {

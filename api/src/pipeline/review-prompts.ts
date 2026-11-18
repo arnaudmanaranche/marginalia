@@ -4,7 +4,7 @@
 import { Severity } from '@worldia/marginalia-contract';
 import { jsonAnswer, matchesPattern, text } from './json-answer.ts';
 import { normalizeProof } from '../finding-proof.ts';
-import { atLeastWorst, normalizeAxes, normalizeMitigations } from '../risk-axes.ts';
+import { RISK_LEVELS, atLeastWorst, normalizeAxes, normalizeMitigations } from '../risk-axes.ts';
 
 export const REVIEW_SYSTEM = "You are a senior engineer reviewing a colleague's merge request, as one stage of Marginalia's review. You only read and run read-only commands: never edit a file, never commit, never post anything on GitLab. Write everything in English, whatever language the MR, the ticket or the code comments use.";
 
@@ -27,7 +27,6 @@ export function mapPrompt(context: any) {
   ].join('\n');
 }
 
-const RISKS = ['low', 'medium', 'high'];
 
 // The map, checked: every changed file lands in a chapter (the ones the agent left out go to a last
 // one, said in `warnings`).
@@ -36,7 +35,7 @@ export function parseMap(answer: any, changed: any) {
   if (!json.ok) return json;
   const { overview, risk, chapters } = json.value;
   if (!text(overview?.before) || !text(overview?.after)) return { ok: false, error: 'overview needs "before" and "after"' };
-  if (!RISKS.includes(risk?.level)) return { ok: false, error: 'risk.level must be low, medium or high' };
+  if (!RISK_LEVELS.includes(risk?.level)) return { ok: false, error: 'risk.level must be low, medium or high' };
   if (!Array.isArray(chapters) || !chapters.length) return { ok: false, error: '"chapters" must be a non-empty array' };
   const kept = chapters
     .map((c) => ({ title: text(c?.title, 200), summary: text(c?.summary, 1500) ?? '', check: text(c?.check, 1500) ?? '', files: (Array.isArray(c?.files) ? c.files : []).map((f: any) => text(f, 300)).filter(Boolean) }))

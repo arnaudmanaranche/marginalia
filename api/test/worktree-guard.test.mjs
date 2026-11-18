@@ -7,13 +7,12 @@ import { existsSync } from 'node:fs';
 import { mkdtemp, mkdir, rm, writeFile, realpath } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { execFileSync } from 'node:child_process';
+import { git } from './support/git-repo.mjs';
 
 process.env.MR_REVIEW_BOT_SKIP_CONFIG_CHECK = '1';
 const { parseWorktrees, foreignWorktrees, botWorktreeProblem } = await import('../dist/src/worktree-guard.js');
 const { ensureBotWorktree, assertBotWorktree, checkoutMergeRequest } = await import('../dist/src/worktree.js');
 
-const git = (cwd, ...args) => execFileSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@t', '-c', 'commit.gpgsign=false', ...args], { cwd, encoding: 'utf8' }).trim();
 async function repoWithWorktree() {
   const root = await realpath(await mkdtemp(join(tmpdir(), 'marginalia-wt-')));
   const repo = join(root, 'repo');

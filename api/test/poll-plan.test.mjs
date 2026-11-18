@@ -1,8 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { planMergeRequests, needsTriage, triageSignal, recordBelow, pruneState } from '../dist/src/poll-plan.js';
+import { glMr } from './support/fixtures.mjs';
 
-const mr = (iid, source, target, author = 'alice', sha = `sha${iid}`) => ({ iid, sha, title: `MR ${iid}`, source_branch: source, target_branch: target, author: { username: author } });
+const mr = (iid, source, target, author = 'alice', sha = `sha${iid}`) => glMr(iid, { sha, source_branch: source, target_branch: target, author: { username: author } });
 const fresh = () => ({ mineComments: {}, stackBelow: {} });
 const plan = (openMrs, over = {}) => planMergeRequests({ openMrs, state: fresh(), allowedTargets: [], username: 'me', triageEnabled: true, ...over });
 
@@ -14,6 +15,13 @@ test('MRs by others are reviewed, mine are triaged', () => {
 
 test('without a triage command my own MRs are ignored', () => {
   assert.deepEqual(plan([mr(2, 'b', 'main', 'me')], { triageEnabled: false }).myMrs, []);
+});
+
+test('with reviewOwn, my MRs are planned for an own review too; without it, not', () => {
+  const open = [mr(1, 'a', 'main'), mr(2, 'b', 'main', 'me')];
+  assert.deepEqual(plan(open, { reviewOwn: true }).ownMrs.map((m) => m.iid), [2]);
+  assert.deepEqual(plan(open).ownMrs, []);
+  assert.deepEqual(plan(open, { reviewOwn: true }).reviewMrs.map((m) => m.iid), [1]);
 });
 
 test('allowed targets look at the branch the whole stack is based on', () => {

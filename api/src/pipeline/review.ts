@@ -20,7 +20,7 @@ import { REVIEW_SYSTEM, chapterPrompt, mapPrompt, parseChapter, parseMap } from 
 // back inconclusive, and the report warns.
 const unverified = (findings: any[], err: any) => {
   const why = String(err?.message ?? err).slice(0, 200);
-  const mark = (f: any) => (isVerifyCandidate(f) ? { ...f, verification: { status: 'inconclusive', evidence: `Could not run: ${why}`, command: null } } : f);
+  const mark = (f: any) => (isVerifyCandidate(f) && !f.verification ? { ...f, verification: { status: 'inconclusive', evidence: `Could not run: ${why}`, command: null } } : f);
   return { findings: findings.map(mark), warnings: [`verification failed: ${why}`] };
 };
 

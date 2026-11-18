@@ -2,18 +2,19 @@
 // each stage (fixtures/fake-claude.mjs) and a local server standing in for GitLab's discussions.
 import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
+import { git as gitIn } from './support/git-repo.mjs';
 import { createServer } from 'node:http';
 import { mkdtemp, mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { glMr, glNote } from './support/fixtures.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const tmp = await mkdtemp(join(tmpdir(), 'marginalia-staged-'));
 const repo = join(tmp, 'repo');
 // No hook of the machine running the tests may add files to the repo.
-const git = (...args) => execFileSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@t', '-c', 'core.hooksPath=/dev/null', ...args], { cwd: repo, stdio: 'pipe' }).toString().trim();
+const git = (...args) => gitIn(repo, ...args);
 await mkdir(join(repo, 'src'), { recursive: true });
 git('init', '-q', '-b', 'develop', '--template=');
 await writeFile(join(repo, 'CLAUDE.md'), '# Rules\nKeep pricing pure.\n');
@@ -27,7 +28,7 @@ await writeFile(join(repo, 'src/pricing.test.mjs'), 'test("coupon", () => {});\n
 git('add', '-A');
 git('commit', '-qm', 'coupons');
 
-const note = (id, body, path, line, user = 'bob') => ({ id, body, system: false, resolvable: true, resolved: false, created_at: '2026-10-01T10:00:00Z', author: { username: user, name: user }, position: path ? { new_path: path, new_line: line, head_sha: 'x' } : undefined });
+const note = (id, body, path, line, user = 'bob') => glNote(id, body, { resolvable: true, resolved: false, created_at: '2026-10-01T10:00:00Z', author: { username: user, name: user }, position: path ? { new_path: path, new_line: line, head_sha: 'x' } : undefined });
 const DISCUSSIONS = [
   { id: 'aaaaaaaa1111', notes: [note(1, 'What if the coupon is above 100%?', 'src/pricing.mjs', 1)] },
   { id: 'bbbbbbbb2222', notes: [note(2, 'Where does the coupon come from?')] },
@@ -52,7 +53,7 @@ const { buildShape } = await import('../dist/src/findings.js');
 const { RUNS_DIR } = await import('../dist/src/run-journal.js');
 
 const project = { key: 'demo', encodedId: encodeURIComponent('group/demo'), worktreeDir: repo, repoPath: repo, reviewsDir: join(tmp, 'reviews') };
-const mr = { iid: 7, title: 'feat: coupons at checkout', description: 'Coupons.', source_branch: 'feat/coupons', target_branch: 'develop', project, author: { username: 'alice' }, web_url: null };
+const mr = glMr(7, { title: 'feat: coupons at checkout', description: 'Coupons.', source_branch: 'feat/coupons', target_branch: 'develop', project, web_url: null });
 
 test('a staged review maps the change, reviews each chapter, and weighs the findings', async () => {
   const outputPath = join(project.reviewsDir, 'feat-coupons.md');

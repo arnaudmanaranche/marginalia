@@ -1,8 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { diffPosition, findNoteIdByBody, isNotFound, latestPeerNoteAt, toDiscussions, toDraft } from '../dist/src/gitlab-notes.js';
+import { glNote } from './support/fixtures.mjs';
 
-const note = (id, username, at, extra = {}) => ({ id, author: { username, name: username.toUpperCase() }, body: `note ${id}`, created_at: at, updated_at: at, ...extra });
+const note = (id, username, at, extra = {}) => glNote(id, `note ${id}`, { author: { username, name: username.toUpperCase() }, created_at: at, updated_at: at, ...extra });
 
 test('the latest peer note ignores system notes and my own', () => {
   const discussions = [

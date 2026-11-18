@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { cp, mkdtemp, readdir, readFile, rename, writeFile, lstat, realpath } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { execFileSync } from 'node:child_process';
+import { git } from './support/git-repo.mjs';
 import { syncTeam, loadTeam, teamRepoUrl, readMarker } from '../dist/src/team-sync.js';
 import { teamRunExtras, teamPaths } from '../dist/src/team-claude.js';
 import { commitsBehind } from '../dist/src/team-git.js';
@@ -14,7 +14,6 @@ import teamSync from '../dist/scripts/team-sync.js';
 const root = await mkdtemp(join(tmpdir(), 'marginalia-team-'));
 const origin = join(root, 'origin.git');
 const maint = join(root, 'maintainer');
-const git = (cwd, ...args) => execFileSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@t', '-c', 'commit.gpgsign=false', ...args], { cwd, encoding: 'utf8' }).trim();
 const publish = (msg) => { git(maint, 'add', '-A'); git(maint, 'commit', '--quiet', '-m', msg); git(maint, 'push', '--quiet', 'origin', 'HEAD:main'); };
 
 git(root, 'init', '--quiet', '--bare', '-b', 'main', origin);

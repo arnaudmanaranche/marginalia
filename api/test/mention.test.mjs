@@ -2,8 +2,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { findMentions, invocationOf, textAfterMention } from '../dist/src/mention.js';
 import { decideMention, mergeQueued } from '../dist/src/mention-guardrail.js';
+import { glNote } from './support/fixtures.mjs';
 
-const note = (id, body, over = {}) => ({ id, body, system: false, created_at: `2026-10-30T10:0${id}:00Z`, author: { username: 'bob' }, ...over });
+const note = glNote;
 
 test('the bot is addressed as a whole word, not inside code, a quote or another name', () => {
   assert.equal(textAfterMention('@marginalia', 'marginalia'), '');

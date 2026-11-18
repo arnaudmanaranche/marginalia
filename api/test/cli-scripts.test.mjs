@@ -79,11 +79,17 @@ test('service install on macOS, dry run: bootstraps the plist written to the fol
   assert.match(out.lines.join('\n'), /\[dry-run\] launchctl bootstrap gui\/\d+ .*com\.marginalia\.bot\.plist/);
 });
 
-test('service uninstall and status in dry run do not fail', () => {
+test('service status on a machine without the unit says so, and uninstall in dry run stops, removes and says so', () => {
   const dir = tmp();
-  const opts = { platform: 'linux', dryRun: true, dir, log: () => {}, warn: () => {}, env: { HOME: dir } };
-  assert.equal(runService('status', opts), 0);
-  assert.equal(runService('uninstall', opts), 0);
+  const status = collect();
+  const base = { platform: 'linux', dryRun: true, dir, warn: () => {}, env: { HOME: dir } };
+  assert.equal(runService('status', { ...base, log: status.log }), 0);
+  assert.match(status.lines.join('\n'), /Service not installed\./);
+  const out = collect();
+  assert.equal(runService('uninstall', { ...base, log: out.log }), 0);
+  const text = out.lines.join('\n');
+  assert.match(text, /\[dry-run\] systemctl --user disable --now marginalia\.service/);
+  assert.match(text, /Service removed\./);
 });
 
 test('on other platforms the service prints the pm2 instructions', () => {

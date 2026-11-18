@@ -14,7 +14,6 @@ export const keys = {
   threads: (slug: string, refreshKey?: string, scope: 'lines' | 'all' = 'lines') => ['threads', slug, scope, refreshKey ?? null] as const,
   diff: (slug: string, stop: string, from: string | null, version: string | null, refreshKey?: string) => ['diff', slug, stop, from, version, refreshKey ?? null] as const,
   pushes: (slug: string, refreshKey?: string) => ['pushes', slug, refreshKey ?? null] as const,
-  runsOf: (slug: string) => [...root.runs, slug] as const,
   runs: (slug: string) => [...root.runs, slug, 'list'] as const,
   run: (slug: string, id: string) => [...root.runs, slug, 'run', id] as const,
   // Under 'runs', so the live invalidation keeps these current with the jobs.

@@ -1,4 +1,4 @@
-import { KEY_PREFIX, readStored, writeStored } from './storage';
+import { KEY_PREFIX } from './storage';
 
 // Edits survive collapsing a section or reloading; keyed by the original text.
 export const editKey = (original: string) => {
@@ -6,5 +6,3 @@ export const editKey = (original: string) => {
   for (let i = 0; i < original.length; i += 1) h = (h * 31 + original.charCodeAt(i)) | 0;
   return `${KEY_PREFIX}edit:${h}`;
 };
-export const readEdit = readStored;
-export const writeEdit = writeStored;

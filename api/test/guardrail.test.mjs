@@ -50,8 +50,9 @@ test('a triage lists its replies, in the allowed verdicts', () => {
 });
 
 test('a broken contract is shown as its own failure', () => {
-  try { enforceContract('review', null); } catch (err) {
-    assert.ok(err.message.startsWith(CONTRACT_BROKEN));
-    assert.equal(failureKind(err.message).kind, 'contract');
-  }
+  let caught;
+  try { enforceContract('review', null); } catch (err) { caught = err; }
+  assert.ok(caught, 'a contract that is not an object must throw');
+  assert.ok(caught.message.startsWith(CONTRACT_BROKEN));
+  assert.equal(failureKind(caught.message).kind, 'contract');
 });

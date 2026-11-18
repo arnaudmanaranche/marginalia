@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { execFileSync } from 'node:child_process';
+import { git } from './support/git-repo.mjs';
 
 const root = await mkdtemp(join(tmpdir(), 'marginalia-record-'));
 const origin = join(root, 'origin.git');
@@ -14,7 +14,6 @@ const worktree = join(root, 'worktree');
 const other = join(root, 'other');
 process.env.MR_REVIEW_BOT_SKIP_CONFIG_CHECK = '1';
 
-const git = (cwd, ...args) => execFileSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@t', '-c', 'commit.gpgsign=false', ...args], { cwd, encoding: 'utf8' }).trim();
 git(root, 'init', '--quiet', '--bare', '-b', 'main', origin);
 git(root, 'clone', '--quiet', origin, worktree);
 git(worktree, 'commit', '--quiet', '--allow-empty', '-m', 'base');

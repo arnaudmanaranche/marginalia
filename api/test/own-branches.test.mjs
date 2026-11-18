@@ -5,6 +5,7 @@ import { passOver } from '../dist/src/poll-pass.js';
 import { ownReviewOutputPath, reviewOutputPath } from '../dist/src/paths.js';
 import { sameMr } from '../dist/src/status.js';
 import { branchCheck } from '../dist/src/preflight-checks.js';
+import { glMr } from './support/fixtures.mjs';
 
 const NOW = Date.parse('2026-11-05T12:00:00Z');
 const day = 24 * 60 * 60 * 1000;
@@ -42,7 +43,7 @@ test('a branch is told apart by its name in the status, and checked by its name 
 });
 
 const project = { key: 'p', reviewsDir: '/r', triage: false, reviewOwn: true };
-const mr = (iid, author, source) => ({ iid, sha: `sha-${source}`, title: `MR ${iid}`, source_branch: source, target_branch: 'develop', author: { username: author }, project });
+const mr = (iid, author, source) => glMr(iid, { sha: `sha-${source}`, source_branch: source, target_branch: 'develop', author: { username: author }, project });
 
 function setup(open, branches, stored = { mineComments: {}, stackBelow: {} }) {
   const calls = { runs: [], entries: null };

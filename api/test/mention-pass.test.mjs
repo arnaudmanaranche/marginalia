@@ -4,10 +4,11 @@ import { openDatabase } from '../dist/src/db.js';
 import { markMention, mentionRunsSince, readCursor, seenMentionIds, writeCursor } from '../dist/src/mention-store.js';
 import { intakePass } from '../dist/src/mention-pass.js';
 import { memoryGitlab } from './support/memory-gitlab.mjs';
+import { glNote, glThread } from './support/fixtures.mjs';
 
 const project = { key: 'app', encodedId: 'app' };
 const T0 = '2026-10-30T09:00:00Z';
-const note = (id, body, author = 'bob', at = '2026-10-30T10:00:00Z') => ({ id, body, system: false, created_at: at, author: { username: author } });
+const note = (id, body, author = 'bob', at = '2026-10-30T10:00:00Z') => glNote(id, body, { author: { username: author }, created_at: at });
 
 function setup({ members = { bob: 30 }, dailyCap = 20, mrAuthor = 'bob', threads = [], failRun = false, failureTitle = () => 'something went wrong' } = {}) {
   const db = openDatabase(':memory:');
@@ -32,7 +33,7 @@ function setup({ members = { bob: 30 }, dailyCap = 20, mrAuthor = 'bob', threads
   const replies = () => discussions.flatMap((d) => d.notes.filter((n) => n.author.username === 'marginalia').map((n) => n.body));
   return { db, deps, calls, replies };
 }
-const thread = (id, ...notes) => ({ id, notes });
+const thread = (id, ...notes) => glThread(id, notes);
 
 test('the first pass only sets the starting point', async () => {
   const db = openDatabase(':memory:');

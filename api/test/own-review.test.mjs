@@ -1,14 +1,14 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { passOver } from '../dist/src/poll-pass.js';
-import { planMergeRequests } from '../dist/src/poll-plan.js';
 import { kindOf } from '../dist/src/review-kind.js';
 import { ownReviewOutputPath, reviewOutputPath } from '../dist/src/paths.js';
 import { sameMr } from '../dist/src/status.js';
 import { parseConfig } from '../dist/src/config-schema.js';
+import { glMr } from './support/fixtures.mjs';
 
 const project = { key: 'p', reviewsDir: '/r', triage: true, reviewOwn: true };
-const mr = (iid, author, over = {}) => ({ iid, sha: `sha${iid}`, title: `MR ${iid}`, source_branch: `feat/b${iid}`, target_branch: 'main', author: { username: author }, project, ...over });
+const mr = (iid, author, over = {}) => glMr(iid, { source_branch: `feat/b${iid}`, author: { username: author }, project, ...over });
 
 function setup(open, stored = { mineComments: {}, stackBelow: {} }) {
   const calls = { runs: [], status: [], notified: [], entries: null };
@@ -45,14 +45,6 @@ function setup(open, stored = { mineComments: {}, stackBelow: {} }) {
   };
   return { deps, sink, calls, stored };
 }
-
-test('with reviewOwn, my MRs are planned for an own review too; without it, not', () => {
-  const open = [mr(1, 'alice'), mr(2, 'me')];
-  const base = { openMrs: open, state: { mineComments: {}, stackBelow: {} }, allowedTargets: [], username: 'me', triageEnabled: true };
-  assert.deepEqual(planMergeRequests({ ...base, reviewOwn: true }).ownMrs.map((m) => m.iid), [2]);
-  assert.deepEqual(planMergeRequests(base).ownMrs, []);
-  assert.deepEqual(planMergeRequests({ ...base, reviewOwn: true }).reviewMrs.map((m) => m.iid), [1]);
-});
 
 test('my MR gets an own review in its own file, once per sha, with its own status entry', async () => {
   const { deps, sink, calls, stored } = setup([mr(1, 'alice'), mr(2, 'me')]);

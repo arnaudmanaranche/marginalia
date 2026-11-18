@@ -29,7 +29,8 @@ test('Bash is confined to the worktree, the repo git dir and the reviews, and re
 test('CLAUDE_SANDBOX=false drops the sandbox but keeps the deny rules', () => {
   const settings = claudeSettings({ ...paths, sandbox: false });
   assert.equal(settings.sandbox, undefined);
-  assert.ok(settings.permissions.deny.length > 0);
+  assert.ok(settings.permissions.deny.includes('Bash(git push:*)'), 'the deny rules stay without the sandbox');
+  assert.ok(settings.permissions.deny.includes('Read(~/.ssh/**)'));
 });
 
 test('the tools that read secrets or rewrite trusted config are denied, in both .claude spellings', () => {
