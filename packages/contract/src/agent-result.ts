@@ -1,5 +1,5 @@
 import { z } from '@hono/zod-openapi';
-import { DiscussionId } from './common.ts';
+import { DiscussionId, Severity, RiskLevel } from './common.ts';
 
 // What the agent must write to `.marginalia-findings.json`, strictly. The reader in api/ is lenient
 // on purpose for reviews already stored; a run that breaks this fails visibly (ADR 0003).
@@ -8,7 +8,7 @@ const paths = z.array(text).min(1);
 
 const RiskAxis = z.object({
   axis: z.enum(['verification', 'alignment', 'impact', 'rollback', 'detection']),
-  level: z.enum(['low', 'medium', 'high']),
+  level: RiskLevel,
   note: text.optional(),
 });
 
@@ -22,7 +22,7 @@ export const FindingVerification = z.object({
 
 const AgentFinding = z.object({
   id: z.string().regex(/^[\w-]{1,56}$/).optional(),
-  severity: z.enum(['critical', 'important', 'suggestion', 'info']),
+  severity: Severity,
   title: text.max(300),
   path: text.nullish(),
   line: z.number().int().min(1).nullish(),
@@ -44,7 +44,7 @@ export const AgentReview = z.object({
   verdict: z.enum(['APPROVE', 'REQUEST_CHANGES']),
   summary: text,
   risk: z.object({
-    level: z.enum(['low', 'medium', 'high']),
+    level: RiskLevel,
     rationale: text.optional(),
     factors: z.array(text).optional(),
     // The five questions behind the level, and what would lower it.

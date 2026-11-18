@@ -1,9 +1,9 @@
 import { z } from '@hono/zod-openapi';
-import { DiscussionId, ReviewId, ReviewKind, ShapeSource, Verdict, nullable } from './common.ts';
+import { DiscussionId, ReviewId, ReviewKind, ShapeSource, Verdict, nullable, Severity, RiskLevel } from './common.ts';
 
 export const Finding = z.object({
   id: z.string().regex(/^[\w-]{1,64}$/).describe('Stable across re-runs. Also the `commentId` when posted.'),
-  severity: z.enum(['critical', 'important', 'suggestion', 'info']),
+  severity: Severity,
   title: z.string(),
   path: nullable(z.string()).describe('Repo-relative file the finding is about.'),
   line: nullable(z.number().int().min(1)).describe('Only set together with `path`.'),
@@ -35,7 +35,7 @@ export const ReviewShape = z.object({
   source: ShapeSource,
   verdict: Verdict,
   summary: nullable(z.string()),
-  risk: z.object({ level: z.enum(['low', 'medium', 'high']), axes: z.array(z.object({ axis: z.string(), level: z.enum(['low', 'medium', 'high']), note: z.string().nullable().optional() })).optional(), mitigations: z.array(z.string()).optional() }).passthrough().nullable().optional(),
+  risk: z.object({ level: RiskLevel, axes: z.array(z.object({ axis: z.string(), level: RiskLevel, note: z.string().nullable().optional() })).optional(), mitigations: z.array(z.string()).optional() }).passthrough().nullable().optional(),
   overview: z.object({ before: z.string(), after: z.string() }).nullable().optional(),
   criticalPaths: z.array(z.string()).optional().describe('The project\'s critical paths this MR touches, by name (from its approved project context).'),
   tour: z.array(z.object({ id: z.string(), title: z.string(), summary: z.string(), files: z.array(z.string()) }).passthrough()).optional(),
