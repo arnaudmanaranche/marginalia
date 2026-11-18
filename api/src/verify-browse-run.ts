@@ -8,6 +8,9 @@ import type { Runner } from './verify-runner.ts';
 
 // Chromium cannot start its own sandbox with every capability dropped: the container is the boundary.
 const DRIVER = ['agent-browser', '--args', '--no-sandbox'];
+// The project may still be starting when the first page opens: try this many times, this far apart.
+const START_ATTEMPTS = 20;
+const START_RETRY_MS = 1000;
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export interface Artifact { kind: 'screenshot' | 'log'; name: string }
@@ -22,10 +25,10 @@ export function browser({ runner, steps, hosts, evidenceDir }: { runner: () => P
   async function open(r: Runner, argv: string[]) {
     await startProject(r);
     let last: { code: number; output: string; timedOut?: boolean } = { code: 1, output: '' };
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i < START_ATTEMPTS; i++) {
       last = await r.argv([...DRIVER, ...argv]);
       if (last.code === 0 || last.timedOut || !NOT_LISTENING.test(last.output)) break;
-      await sleep(1000);
+      await sleep(START_RETRY_MS);
     }
     return last;
   }

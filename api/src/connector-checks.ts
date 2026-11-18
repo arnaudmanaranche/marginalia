@@ -19,7 +19,6 @@ const DETAIL = {
   failed: (name: string) => `${name} does not answer: the agent goes without it`,
 };
 
-/** @param {{ stdout?: string, error?: string | null }} probe */
 export function connectorChecks({ stdout = '', error = null }: { stdout?: string; error?: string | null }) {
   if (error && !stdout) return [{ label: 'Connectors', level: 'warn' as const, detail: `could not list them (${error.split('\n')[0].slice(0, 200)}): going on` }];
   return CONNECTORS.map(({ source, name }) => {

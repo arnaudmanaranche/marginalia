@@ -5,7 +5,7 @@
 // Only automatic work stops at the limit (a poll's reviews and triages, the doctor it starts on a
 // failure); what a person asks for always runs, and its cost counts like any other.
 
-export interface SpendRow { at: string; project: string | null; iid?: number | string | null; kind: string; costUsd?: number }
+interface SpendRow { at: string; project: string | null; iid?: number | string | null; kind: string; costUsd?: number }
 
 const round = (usd: number) => Math.round(usd * 100) / 100;
 const TOP_MRS = 5;

@@ -79,7 +79,7 @@ async function failed(mr: any, { label, entry }: any, err: any, { deps, sink, ou
 // A budget that cannot be read holds nothing back: the limit protects spend, never blocks the line.
 const readBudget = (deps: any) => {
   try {
-    return deps.budget?.() ?? null;
+    return deps.budget() ?? null;
   } catch (err) {
     logger.warn({ err }, 'Could not read today\'s budget');
     return null;

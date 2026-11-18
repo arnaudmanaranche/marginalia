@@ -10,7 +10,7 @@ import { trackFinding } from './telemetry.ts';
 // When an own review is made again at a new commit, the findings of the one it replaces whose code
 // that push changed are recorded as fixed before the MR (once each), and counted as an event. Run
 // before the new report is stored: it reads the previous one. Never fails the review.
-/** @param {{ project: any, slug: string, newSha: string, iid: number | null }} input @returns the ids of the findings fixed by this push */
+// Returns the ids of the findings fixed by this push.
 export async function recordFixedBefore({ project, slug, newSha, iid }: { project: any; slug: string; newSha: string; iid: number | string | null }): Promise<string[]> {
   const fixed: string[] = [];
   try {

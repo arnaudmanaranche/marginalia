@@ -14,7 +14,6 @@ const FLUSH_MS = 750;
 // Follows one run of `mr`: its trace on disk (run-journal.ts), the live status the studio and the
 // menu bar read, and the raw transcript. Nothing here may fail a review: a write that fails is logged.
 // `plan`: the stage list to start from (see STAGES in run-trace.ts), the kind's own by default.
-/** @param {any} mr @param {{ kind: 'review' | 'triage', command: string, outputPath: string, plan?: 'review' | 'triage' | 'understand' }} run */
 export async function followRun(mr: any, { kind, command, outputPath, plan }: any) {
   const at = new Date().toISOString();
   let trace = startTrace({ id: runId(at, kind), slug: reviewId(mr.project, basename(outputPath, '.md')), project: mr.project.key, iid: mr.iid, kind, command, at, plan });
@@ -25,7 +24,6 @@ export async function followRun(mr: any, { kind, command, outputPath, plan }: an
   transcript?.on('error', (err) => logger.warn({ err }, 'Could not write the run transcript'));
   void pruneTraces(trace.project, basename(outputPath, '.md')).catch(() => {});
 
-  /** @type {NodeJS.Timeout | null} */
   let timer: ReturnType<typeof setTimeout> | null = null;
   // Stages running side by side flush at the same time: saves go one after the other, each
   // writing the trace as it is by then.
@@ -63,32 +61,29 @@ export async function followRun(mr: any, { kind, command, outputPath, plan }: an
     get cost() {
       return trace.cost;
     },
-    /** @param {string} id */
     stage(id: any) {
       trace = enterStage(trace, id, new Date().toISOString());
       return flush();
     },
-    /** @param {string} after @param {[string, string][]} list stages learnt while running, in order */
+    // `list` are the stages learnt while running, in order.
     plan(after: any, list: any) {
       trace = planStages(trace, after, list);
       return flush();
     },
-    /** @param {string} id a stage that runs side by side with others */
+    // A stage that runs side by side with others.
     begin(id: any) {
       trace = beginStage(trace, id, new Date().toISOString());
       return flush();
     },
-    /** @param {string} id @param {'done' | 'failed' | 'skipped'} [state] */
     end(id: any, state = 'done') {
       trace = endStage(trace, id, new Date().toISOString(), state);
       return flush();
     },
-    /** @param {string} text @param {{ sub?: boolean, stage?: string }} [opts] */
     step(text: string, opts: any) {
       trace = addStep(trace, text, new Date().toISOString(), opts);
       later();
     },
-    /** @param {string} line one raw event of the stream */
+    // `line` is one raw event of the stream.
     event(line: string) {
       transcript?.write(`${line}\n`);
     },
@@ -109,7 +104,6 @@ export async function followRun(mr: any, { kind, command, outputPath, plan }: an
       const where = stage ?? trace.stages.find((s: any) => s.state === 'running')?.id;
       if (where) trace = addUsage(trace, where, stats);
     },
-    /** @param {'reviewed' | 'skipped' | 'failed'} outcome @param {string | null} [error] */
     async finish(outcome: 'reviewed' | 'skipped' | 'failed', error: string | null = null) {
       trace = finishTrace(trace, outcome, new Date().toISOString(), error);
       await flush();

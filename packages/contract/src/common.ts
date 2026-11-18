@@ -1,9 +1,5 @@
 import { z } from '@hono/zod-openapi';
 
-// The contract between the studio server and the React app, as zod schemas: the routes
-// validate requests with them and the OpenAPI document (/openapi.json) is generated from
-// them, so the two cannot drift. Response schemas document what the server sends.
-// Shared building blocks.
 export const nullable = (schema) => schema.nullable();
 
 export const ErrorBody = z.object({ error: z.string() }).describe('Something went wrong; the message is truncated to 300 characters for GitLab errors.').meta({ id: 'ErrorBody' });
@@ -14,6 +10,12 @@ export const ReviewId = z.string().regex(/^[a-z0-9][a-z0-9-]*\/[\w.-]+$/).descri
 
 export const Severity = z.enum(['critical', 'important', 'suggestion', 'info']);
 export const RiskLevel = z.enum(['low', 'medium', 'high']);
+export const FindingProof = z.enum(['runtime', 'static']);
+export const VerificationStatus = z.enum(['reproduced', 'not_reproduced', 'inconclusive', 'skipped']);
+export const ReplyVerdict = z.enum(['fixed', 'already_fixed', 'not_relevant', 'wrong', 'answered']);
+
+// A project key: lowercase letters, digits and dashes.
+export const PROJECT_KEY = /^[a-z0-9][a-z0-9-]*$/;
 
 export const Verdict = nullable(z.enum(['APPROVE', 'REQUEST_CHANGES', 'OTHER']));
 export const ReviewKind = z.enum(['review', 'comments', 'own']).describe('`comments` is a triage of reviewer comments on an MR you authored; `own` is a review of your own MR or branch, shown to you alone and never posted.').meta({ id: 'ReviewKind' });

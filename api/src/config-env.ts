@@ -47,5 +47,5 @@ export function envFromConfig(config: any) {
 // value for them (the schema fills in defaults), so without this it would override the real
 // environment even when the file never mentions them: `docker run -e CLAUDE_SANDBOX=false`
 // would be ignored. Everything else (GitLab, projects) is config.json's.
-export const ENV_OVERRIDES = ['CLAUDE_BIN', 'CLAUDE_SANDBOX', 'NOTIFICATIONS', 'STUDIO_PORT'];
+const ENV_OVERRIDES = ['CLAUDE_BIN', 'CLAUDE_SANDBOX', 'NOTIFICATIONS', 'STUDIO_PORT'];
 export const envOverrides = (env: any) => Object.fromEntries(ENV_OVERRIDES.filter((k) => env[k] !== undefined && env[k] !== '').map((k) => [k, env[k]]));

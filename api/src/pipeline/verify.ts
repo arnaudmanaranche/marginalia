@@ -10,13 +10,13 @@ import { homedir } from 'node:os';
 import { STAGE_VERIFY_BROWSER_TOOLS, STAGE_VERIFY_TOOLS } from '../allowed-tools.ts';
 import { DATA_DIR, DOCKER_BIN, VERIFY_EGRESS_NETWORK, VERIFY_EGRESS_PROXY, VERIFY_MAX_PER_REVIEW, VERIFY_RUNNER_IMAGE, VERIFY_WORK_DIR, VERIFY_WORK_VOLUME } from '../config.ts';
 import { todayBudget } from '../budget-today.ts';
-import { verifyLimits } from '../verify-limits.ts';
+import { DEFAULT_MAX_PER_REVIEW, verifyLimits } from '../verify-limits.ts';
 import { evidenceFolder, evidenceId, readEvidence } from '../verify-evidence.ts';
 import { agentStage } from './agent-stage.ts';
 import { copyWorktree } from './verify-copy.ts';
 import { VERIFY_SYSTEM, parseVerification, verifyPrompt } from './verify-prompts.ts';
 import { findingKey } from './review-merge.ts';
-import { OVER_LIMIT, selectForVerify } from './verify-select.ts';
+import { OVER_LIMIT, isVerifyCandidate, selectForVerify } from './verify-select.ts';
 import { createLimiter } from './limiter.ts';
 
 const CONCURRENCY = 2;
@@ -39,7 +39,7 @@ export function reviewVerifier({ run, mr, recipe, context, settings }: { run: an
   const limits = verifyLimits(mr.project);
   const slot = createLimiter(CONCURRENCY);
   const taken = new Set<string>();
-  let left = Number(VERIFY_MAX_PER_REVIEW) || 4;
+  let left = Number(VERIFY_MAX_PER_REVIEW) || DEFAULT_MAX_PER_REVIEW;
   let count = 0;
 
   async function reproduce(stage: string, finding: any, chapter: any) {
@@ -71,7 +71,7 @@ export function reviewVerifier({ run, mr, recipe, context, settings }: { run: an
   return async function chapter({ after, chapter, findings }: { after: string; chapter: any; findings: any[] }) {
     const out = findings.map((f) => ({ ...f }));
     // A finding another chapter already took is theirs: the merge keeps what they found.
-    const wanted = out.filter((f) => f.proof === 'runtime' && ['critical', 'important'].includes(f.severity) && !taken.has(findingKey(f)));
+    const wanted = out.filter((f) => isVerifyCandidate(f) && !taken.has(findingKey(f)));
     const blocked = wanted.length ? gate(mr, recipe) : { silent: true as const };
     if (blocked && 'silent' in blocked) return { findings: out, warnings: [] as string[] };
     if (blocked) {

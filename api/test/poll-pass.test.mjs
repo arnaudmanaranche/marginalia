@@ -23,7 +23,9 @@ function setup({ open = [], state = {}, ...over } = {}) {
     loadState: async () => stored,
     saveState: async (_p, s) => calls.saved.push(JSON.parse(JSON.stringify(s))),
     allowedTargets: () => [],
-    settlesConflicts: () => false,
+    budget: () => null,
+    reviewFacts: async () => ({ lastPushAt: null, approvedBy: [] }),
+    staleAfterDays: () => 14,
     username: 'me',
     notify: (title) => calls.notified.push(title),
     trackFailure: ({ kind }) => calls.failed.push(kind),
@@ -103,14 +105,10 @@ test('triages my own MR on a new peer comment and records the signal', async () 
   assert.deepEqual(calls.notified, ['Comments triaged']);
 });
 
-test('a conflict triggers a triage only when the triage settles conflicts', async () => {
-  const mine = mr(2, { author: { username: 'me' }, has_conflicts: true });
-  const off = setup({ open: [mine] });
-  await passOver(project, off.deps, off.sink);
-  assert.deepEqual(off.calls.triaged, []);
-  const on = setup({ open: [mine], settlesConflicts: () => true });
-  await passOver(project, on.deps, on.sink);
-  assert.deepEqual(on.calls.triaged, [2]);
+test('a conflict triggers a triage', async () => {
+  const { deps, sink, calls } = setup({ open: [mr(2, { author: { username: 'me' }, has_conflicts: true })] });
+  await passOver(project, deps, sink);
+  assert.deepEqual(calls.triaged, [2]);
 });
 
 test('state of MRs that are no longer open is pruned', async () => {

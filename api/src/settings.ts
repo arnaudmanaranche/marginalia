@@ -1,22 +1,19 @@
 import { readFileSync } from 'node:fs';
 import { writeFile, rename } from 'node:fs/promises';
+import { SETTING_BOUNDS } from '@worldia/marginalia-contract';
 import { DAILY_BUDGET_USD, POLL_INTERVAL_MINUTES, STALE_AFTER_DAYS, ALLOWED_TARGET_BRANCHES, EXCLUDE_AUTHORS, SETTINGS_FILE } from './config.ts';
-
-export const MIN_POLL_MINUTES = 1;
-export const MAX_POLL_MINUTES = 1440;
-export const MAX_STALE_DAYS = 365;
-export const MAX_BUDGET_USD = 10_000;
+const { pollIntervalMinutes: POLL, staleAfterDays: STALE, dailyBudgetUsd: BUDGET } = SETTING_BOUNDS;
 
 const clamp = (n: number, min: number, max: number) => Math.min(max, Math.max(min, Math.round(n)));
 const toList = (v: unknown) => (Array.isArray(v) ? v : String(v ?? '').split(',')).map((s) => String(s).trim()).filter(Boolean);
 const number = (v: unknown, fallback: any) => (Number.isFinite(Number(v)) && v !== '' && v !== null ? Number(v) : fallback);
 // Dollars and cents; 0 is no limit.
-const budget = (v: unknown, fallback: number) => Math.round(Math.min(MAX_BUDGET_USD, Math.max(0, number(v, fallback))) * 100) / 100;
+const budget = (v: unknown, fallback: number) => Math.round(Math.min(BUDGET.max, Math.max(BUDGET.min, number(v, fallback))) * 100) / 100;
 
 // What .env says: the default of every setting.
 export const envDefaults = () => ({
-  pollIntervalMinutes: clamp(number(POLL_INTERVAL_MINUTES, 5), MIN_POLL_MINUTES, MAX_POLL_MINUTES),
-  staleAfterDays: clamp(number(STALE_AFTER_DAYS, 14), 1, MAX_STALE_DAYS),
+  pollIntervalMinutes: clamp(number(POLL_INTERVAL_MINUTES, 5), POLL.min, POLL.max),
+  staleAfterDays: clamp(number(STALE_AFTER_DAYS, 14), STALE.min, STALE.max),
   allowedTargetBranches: toList(ALLOWED_TARGET_BRANCHES),
   excludeAuthors: toList(EXCLUDE_AUTHORS),
   showFullDiff: true,
@@ -40,8 +37,8 @@ export function loadSettings() {
   const defaults = envDefaults();
   const file = readOverrides();
   return {
-    pollIntervalMinutes: clamp(number(file.pollIntervalMinutes, defaults.pollIntervalMinutes), MIN_POLL_MINUTES, MAX_POLL_MINUTES),
-    staleAfterDays: clamp(number(file.staleAfterDays, defaults.staleAfterDays), 1, MAX_STALE_DAYS),
+    pollIntervalMinutes: clamp(number(file.pollIntervalMinutes, defaults.pollIntervalMinutes), POLL.min, POLL.max),
+    staleAfterDays: clamp(number(file.staleAfterDays, defaults.staleAfterDays), STALE.min, STALE.max),
     allowedTargetBranches: file.allowedTargetBranches === undefined ? defaults.allowedTargetBranches : toList(file.allowedTargetBranches),
     excludeAuthors: file.excludeAuthors === undefined ? defaults.excludeAuthors : toList(file.excludeAuthors),
     showFullDiff: typeof file.showFullDiff === 'boolean' ? file.showFullDiff : defaults.showFullDiff,
@@ -75,12 +72,12 @@ const amountUpTo = (key: string, max: number) => (v: any) => {
   return Math.round(v * 100) / 100;
 };
 const VALIDATORS: Record<string, (v: any) => any> = {
-  pollIntervalMinutes: integerIn('pollIntervalMinutes', MIN_POLL_MINUTES, MAX_POLL_MINUTES),
-  staleAfterDays: integerIn('staleAfterDays', 1, MAX_STALE_DAYS),
+  pollIntervalMinutes: integerIn('pollIntervalMinutes', POLL.min, POLL.max),
+  staleAfterDays: integerIn('staleAfterDays', STALE.min, STALE.max),
   allowedTargetBranches: listOf('allowedTargetBranches'),
   excludeAuthors: listOf('excludeAuthors'),
   showFullDiff: booleanOf('showFullDiff'),
-  dailyBudgetUsd: amountUpTo('dailyBudgetUsd', MAX_BUDGET_USD),
+  dailyBudgetUsd: amountUpTo('dailyBudgetUsd', BUDGET.max),
 };
 
 // A key set to null goes back to its .env default. Throws on invalid input so

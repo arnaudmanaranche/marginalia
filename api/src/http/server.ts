@@ -4,9 +4,9 @@
 // PUT /api/settings, POST /api/rerun, the posting routes (on other people's MRs only when
 // ALLOW_POSTING=true), and on my own MRs the replies to reviewers and POST /api/push.
 import { mkdirSync, watch, type FSWatcher } from 'node:fs';
-import { dirname } from 'node:path';
+import { basename, dirname } from 'node:path';
 import { serve } from '@hono/node-server';
-import { GITLAB_BASE_URL, STATUS_FILE, STUDIO_HOST, STUDIO_PORT } from '../config.ts';
+import { GITLAB_BASE_URL, SETTINGS_FILE, STATUS_FILE, STUDIO_HOST, STUDIO_PORT } from '../config.ts';
 import { readAuthConfig } from '../auth-config.ts';
 import { purgeSessions } from '../auth-store.ts';
 import { getDb } from '../store.ts';
@@ -39,7 +39,7 @@ export function startStudio() {
   // Watch the directory, not the files: status.json and settings.json are
   // written via tmp + rename, which leaves a file-level watcher on the old inode.
   try {
-    watchers.push(watch(dirname(STATUS_FILE), (_e, name) => (name === 'settings.json' || name === 'status.json') && broadcast()));
+    watchers.push(watch(dirname(STATUS_FILE), (_e, name) => (name === basename(SETTINGS_FILE) || name === basename(STATUS_FILE)) && broadcast()));
   } catch {
     /* same */
   }

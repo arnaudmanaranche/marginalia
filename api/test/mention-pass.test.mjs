@@ -9,14 +9,14 @@ const project = { key: 'app', encodedId: 'app' };
 const T0 = '2026-10-30T09:00:00Z';
 const note = (id, body, author = 'bob', at = '2026-10-30T10:00:00Z') => ({ id, body, system: false, created_at: at, author: { username: author } });
 
-function setup({ members = { bob: 30 }, dailyCap = 20, mrAuthor = 'bob', threads = [], failRun = false } = {}) {
+function setup({ members = { bob: 30 }, dailyCap = 20, mrAuthor = 'bob', threads = [], failRun = false, failureTitle = () => 'something went wrong' } = {}) {
   const db = openDatabase(':memory:');
   writeCursor(db, 'app', T0);
   const { gitlab, discussions } = memoryGitlab({ me: 'marginalia', members });
   discussions.push(...threads);
   const calls = { review: [], triage: [], answer: [] };
   const deps = {
-    bot: 'marginalia', dailyCap, now: () => new Date('2026-10-30T12:00:00Z'),
+    bot: 'marginalia', dailyCap, failureTitle, now: () => new Date('2026-10-30T12:00:00Z'),
     openMergeRequests: async () => [{ iid: 7, updated_at: '2026-10-30T10:30:00Z', author: { username: mrAuthor } }],
     listRawDiscussions: gitlab.listRawDiscussions, memberAccessLevel: gitlab.memberAccessLevel, replyToDiscussion: gitlab.replyToDiscussion,
     run: {
@@ -83,8 +83,8 @@ test('two review mentions on one MR become one review', async () => {
 });
 
 test('a failed run is told by its kind, not by the raw error', async () => {
-  const { deps, replies } = setup({ failRun: true, threads: [thread('d1', note(1, '@marginalia'))] });
-  await intakePass(project, deps, (err) => `the cause: ${err.message.length}`);
+  const { deps, replies } = setup({ failRun: true, failureTitle: (err) => `the cause: ${err.message.length}`, threads: [thread('d1', note(1, '@marginalia'))] });
+  await intakePass(project, deps);
   assert.equal(replies()[0], 'I could not do that: the cause: 12.');
 });
 

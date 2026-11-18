@@ -22,7 +22,6 @@ export function claudeEnv(env: Record<string, string | undefined>, passthrough: 
 }
 
 // `resume` continues an earlier session (a stage told its answer did not fit the contract).
-/** @param {{ prompt: string, tools: string[], systemPrompt: string, settings?: object | null, resume?: string | null }} options */
 export function claudeArgs({ prompt, tools, systemPrompt, settings = null, resume = null }: { prompt: string; tools: string[]; systemPrompt: string; settings?: object | null; resume?: string | null }) {
   return [
     '-p', prompt,

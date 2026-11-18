@@ -37,7 +37,6 @@ export function planMergeRequests({ openMrs, state, allowedTargets, username, tr
 // its target at a head the triage has not seen conflict yet (only the staged triage settles them,
 // so only it passes `conflictSha`). Stored as "<peer comment at>|<conflicting head>"; a value
 // stored before conflicts counted is the peer comment time alone, and reads the same.
-/** @param {string | null} peerCommentAt @param {string | null} [conflictSha] */
 export const triageSignal = (peerCommentAt: any, conflictSha = null) => (peerCommentAt === null && conflictSha === null ? null : `${peerCommentAt ?? ''}|${conflictSha ?? ''}`);
 const signalParts = (signal: any) => {
   const [peer = '', conflict = ''] = String(signal ?? '').split('|');

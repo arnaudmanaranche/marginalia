@@ -9,16 +9,16 @@ export interface GuardConfig {
   volume: string;
   // Networks a runner may join besides `none`: the egress one.
   networks: string[];
-  namePrefix?: string;
-  maxMemoryMb?: number;
-  maxCpus?: number;
-  maxPids?: number;
 }
 export type Decision = { ok: true; track?: 'container' | 'exec' } | { ok: false; reason: string };
 export interface Known { container: (ref: string) => boolean; exec: (id: string) => boolean }
 
 const no = (reason: string): Decision => ({ ok: false, reason });
-const PREFIX = 'marginalia-verify-';
+// The name every runner container carries, and the most one may ask for.
+export const RUNNER_PREFIX = 'marginalia-verify-';
+const MAX_MEMORY_BYTES = 16384 * 1024 * 1024;
+const MAX_NANO_CPUS = 8 * 1e9;
+const MAX_PIDS = 4096;
 
 // A value that asks for nothing: what the docker CLI sends for the options that were not given.
 export function empty(v: any): boolean {
@@ -32,9 +32,8 @@ const TOP = new Set(['Hostname', 'Domainname', 'AttachStdin', 'AttachStdout', 'A
 const HOST = new Set(['AutoRemove', 'ReadonlyRootfs', 'Tmpfs', 'CapDrop', 'SecurityOpt', 'NanoCpus', 'Memory', 'MemorySwap', 'PidsLimit', 'NetworkMode', 'Mounts', 'LogConfig', 'RestartPolicy']);
 const TMPFS = new Set(['/tmp', '/home/runner']);
 
-export function validateCreate(name: string | null, body: any, cfg: GuardConfig): Decision {
-  const prefix = cfg.namePrefix ?? PREFIX;
-  if (!name || !name.startsWith(prefix) || !/^[a-z0-9-]+$/.test(name)) return no(`a runner is named ${prefix}…`);
+function validateCreate(name: string | null, body: any, cfg: GuardConfig): Decision {
+  if (!name || !name.startsWith(RUNNER_PREFIX) || !/^[a-z0-9-]+$/.test(name)) return no(`a runner is named ${RUNNER_PREFIX}…`);
   if (!body || typeof body !== 'object') return no('no container description');
   for (const [k, v] of Object.entries(body)) if (!TOP.has(k) && !empty(v)) return no(`${k} is not allowed`);
   if (body.Image !== cfg.image) return no('not the runner image');
@@ -49,10 +48,9 @@ export function validateCreate(name: string | null, body: any, cfg: GuardConfig)
   const opts = h.SecurityOpt;
   if (!Array.isArray(opts) || !opts.length || !opts.every((o: any) => o === 'no-new-privileges' || o === 'no-new-privileges:true')) return no('only no-new-privileges is allowed');
   if (!['none', ...cfg.networks].includes(h.NetworkMode)) return no('the network is none or the egress network');
-  const mb = (cfg.maxMemoryMb ?? 16384) * 1024 * 1024;
-  if (!(h.Memory > 0 && h.Memory <= mb) || h.MemorySwap !== h.Memory) return no('a memory limit, with no swap');
-  if (!(h.NanoCpus > 0 && h.NanoCpus <= (cfg.maxCpus ?? 8) * 1e9)) return no('a cpu limit');
-  if (!(h.PidsLimit > 0 && h.PidsLimit <= (cfg.maxPids ?? 4096))) return no('a pids limit');
+  if (!(h.Memory > 0 && h.Memory <= MAX_MEMORY_BYTES) || h.MemorySwap !== h.Memory) return no('a memory limit, with no swap');
+  if (!(h.NanoCpus > 0 && h.NanoCpus <= MAX_NANO_CPUS)) return no('a cpu limit');
+  if (!(h.PidsLimit > 0 && h.PidsLimit <= MAX_PIDS)) return no('a pids limit');
   if (!['', 'no', undefined].includes(h.RestartPolicy?.Name)) return no('no restart policy');
   if (!['', 'json-file', 'local', undefined].includes(h.LogConfig?.Type) || !empty(h.LogConfig?.Config)) return no('the default logging');
   if (Object.keys(h.Tmpfs ?? {}).some((t) => !TMPFS.has(t))) return no('tmpfs at /tmp and /home/runner only');

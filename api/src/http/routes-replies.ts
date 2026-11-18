@@ -1,7 +1,9 @@
+import { isNotFound } from '../gitlab-notes.ts';
 import { posted } from '../posted.ts';
 import { gitlab as defaultGitlab } from '../gitlab-api.ts';
 import { PostedInfo, ReplyRequest } from '@worldia/marginalia-contract';
 import { jsonBody, jsonOf, route } from './route-kit.ts';
+import { notTracked } from './read-kit.ts';
 import { broadcast, locate, postQueue, refreshState, shortMessage } from './context.ts';
 
 // The comment id a reply is recorded under: one reply per thread.
@@ -20,7 +22,7 @@ export function replyRoutes(app: any, gitlab = defaultGitlab) {
   }), (c: any) => postQueue(async () => {
     const { slug, threadId, body, resolve } = c.req.valid('json');
     const found = await locate(slug);
-    if (!found?.mr) return c.json({ error: 'no tracked merge request for this review' }, 404);
+    if (!found?.mr) return notTracked(c);
     const { project, mr } = found;
     if (mr.kind !== 'comments') return c.json({ error: 'replies are only for your own merge requests' }, 403);
     const already = posted.find(project.key, found.slug, replyCommentId(threadId));
@@ -29,7 +31,7 @@ export function replyRoutes(app: any, gitlab = defaultGitlab) {
     try {
       draft = await gitlab.createReplyDraftNote(project, mr.iid, threadId, body, resolve);
     } catch (err: any) {
-      return c.json({ error: shortMessage(err) }, / -> 404:/.test(String(err.message)) ? 404 : 502);
+      return c.json({ error: shortMessage(err) }, isNotFound(err) ? 404 : 502);
     }
     const entry = posted.recordDraft(project.key, found.slug, replyCommentId(threadId), { iid: mr.iid, draftId: draft.id, body, mrUrl: mr.web_url, url: mr.web_url, threadId, resolve });
     refreshState(project, mr, gitlab);

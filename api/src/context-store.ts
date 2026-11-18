@@ -28,7 +28,6 @@ async function save(dataDir: string, stored: unknown) {
   return path;
 }
 
-/** @param {{ key: string, commit: string, context: unknown, now?: Date }} input */
 export const saveDraft = (dataDir: string, { key, commit, context, now = new Date() }: { key: string; commit: string; context: unknown; now?: Date }) => save(dataDir, {
   project: key, commit, learnedAt: now.toISOString(), state: 'draft', approvedBy: null, approvedAt: null, context,
 });

@@ -1,14 +1,13 @@
 import { readFile } from 'node:fs/promises';
-import { join } from 'node:path';
 import { z } from '@hono/zod-openapi';
 import { visibleProjects } from './request-scope.ts';
-import { parseReviewId } from '../review-id.ts';
+import { parseReviewId, reviewFile } from '../review-id.ts';
 import { artifactAt } from '../artifact.ts';
 import { buildShape } from '../findings.ts';
 import { ReviewContent, ReviewId, ReviewsPayload, Version, Versions } from '@worldia/marginalia-contract';
 import { jsonOf, route } from './route-kit.ts';
 import { listReviews } from './reviews-list.ts';
-import { kindOf } from './review-kind.ts';
+import { kindOf } from '../review-kind.ts';
 import { badSlug, slug } from './read-kit.ts';
 import { mrReadRoutes } from './routes-read-mr.ts';
 import { imageRoute } from './routes-read-image.ts';
@@ -31,7 +30,7 @@ export function readRoutes(app: any) {
     const where = parseReviewId(id, visibleProjects());
     if (!where) return badSlug(c);
     try {
-      const md = await readFile(join(where.project.reviewsDir, `${where.slug}.md`), 'utf8');
+      const md = await readFile(reviewFile(where.project, where.slug), 'utf8');
       return c.json({ slug: id, kind: kindOf(where.slug), markdown: md, shape: await artifactAt(where.project.reviewsDir, where.slug).readShape(md) }, 200);
     } catch {
       return c.json({ error: 'not found' }, 404);

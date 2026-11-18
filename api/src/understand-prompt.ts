@@ -6,7 +6,6 @@ export const CONTEXT_FILE = '.marginalia-context.json';
 
 export const UNDERSTAND_SYSTEM = 'You are running headless, driven by marginalia, to learn a repository. You only read: never post, comment, reply or change anything anywhere, never edit repository files, never `git push`. Do not ask questions; nobody can answer. Take the safest default.';
 
-/** @param {{ methodPath: string, worktreeDir: string, project: { key: string, gitlabProjectId: string, kind: string | null }, branch: string }} input */
 export function understandPrompt({ methodPath, worktreeDir, project, branch }: { methodPath: string; worktreeDir: string; project: { key: string; gitlabProjectId: string; kind: string | null }; branch: string }) {
   return [
     `Learn the repository checked out in ${worktreeDir} (GitLab project ${project.gitlabProjectId}, default branch ${branch}${project.kind ? `, declared as a ${project.kind}-end` : ''}).`,

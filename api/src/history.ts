@@ -5,8 +5,11 @@ import { join } from 'node:path';
 // <slug>.md, so the file it replaces is first copied to .history/<slug>/<timestamp>.md (the
 // timestamp is when that version was written, see writtenAt). The dot-directory keeps these out of the studio's
 // review list, which only reads *.md at the top of the reviews dir.
-const idOf = (date: Date) => date.toISOString().replace(/[:.]/g, '-');
-// The ISO time an id stands for (the reverse of idOf).
+// An id that sorts by time and reads as one: the ISO time with its `:` and `.` turned into `-`.
+export const timeId = (iso: string) => iso.replace(/[:.]/g, '-');
+// Whether `id` is safe to use in a file name.
+export const isSafeId = (id: string) => /^[\w-]+$/.test(id);
+// The ISO time an id stands for (the reverse of timeId).
 export const versionTime = (id: string) => id.replace(/^(\d{4}-\d{2}-\d{2}T\d{2})-(\d{2})-(\d{2})-(\d{3})Z$/, '$1:$2:$3.$4Z');
 
 // When a review was written, in ms: the time its shape stores, since copying the reviews dir (a
@@ -20,6 +23,9 @@ export async function writtenAt(markdownPath: string, shapePath: string) {
   return Number.isFinite(stored) ? stored : file.mtimeMs;
 }
 
+// The name a review's shape (the normalized findings) is kept under, after the slug or version id.
+export const SHAPE_SUFFIX = '.findings.json';
+
 // The versions of the review whose files are `markdownPath` and `shapePath`, kept in `dir`.
 export function historyIn(dir: string, markdownPath: string, shapePath: string) {
   return {
@@ -28,11 +34,11 @@ export function historyIn(dir: string, markdownPath: string, shapePath: string) 
     async keep(nextContent: string) {
       const [previous, at] = await Promise.all([readFile(markdownPath, 'utf8').catch(() => null), writtenAt(markdownPath, shapePath)]);
       if (previous === null || at === null || previous === nextContent) return null;
-      const id = idOf(new Date(at));
+      const id = timeId(new Date(at).toISOString());
       await mkdir(dir, { recursive: true });
       await copyFile(markdownPath, join(dir, `${id}.md`));
       // The normalized findings that went with it, when it had them.
-      await copyFile(shapePath, join(dir, `${id}.findings.json`)).catch(() => {});
+      await copyFile(shapePath, join(dir, `${id}${SHAPE_SUFFIX}`)).catch(() => {});
       return id;
     },
 
@@ -54,10 +60,10 @@ export function historyIn(dir: string, markdownPath: string, shapePath: string) 
     // { markdown, shape } of one version; shape is null for a version kept before findings were
     // stored (the caller derives one from the markdown).
     async read(id: string) {
-      if (!/^[\w-]+$/.test(id)) return null;
+      if (!isSafeId(id)) return null;
       try {
         const markdown = await readFile(join(dir, `${id}.md`), 'utf8');
-        const shape = await readFile(join(dir, `${id}.findings.json`), 'utf8').then(JSON.parse, () => null);
+        const shape = await readFile(join(dir, `${id}${SHAPE_SUFFIX}`), 'utf8').then(JSON.parse, () => null);
         return { markdown, shape };
       } catch {
         return null;

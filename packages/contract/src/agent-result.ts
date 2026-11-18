@@ -1,5 +1,5 @@
 import { z } from '@hono/zod-openapi';
-import { DiscussionId, Severity, RiskLevel } from './common.ts';
+import { DiscussionId, Severity, RiskLevel, FindingProof, VerificationStatus, ReplyVerdict } from './common.ts';
 
 // What the agent must write to `.marginalia-findings.json`, strictly. The reader in api/ is lenient
 // on purpose for reviews already stored; a run that breaks this fails visibly (ADR 0003).
@@ -13,9 +13,8 @@ const RiskAxis = z.object({
 });
 
 // Whether a finding could be reproduced by running the project (ADR 0009), and what a reproduction found.
-export const FindingProof = z.enum(['runtime', 'static']);
 export const FindingVerification = z.object({
-  status: z.enum(['reproduced', 'not_reproduced', 'inconclusive', 'skipped']),
+  status: VerificationStatus,
   evidence: text.nullish(),
   command: text.nullish(),
 });
@@ -71,7 +70,7 @@ export const AgentTriage = z.object({
   findings: z.array(AgentFinding).optional(),
   replies: z.array(z.object({
     thread: DiscussionId,
-    verdict: z.enum(['fixed', 'already_fixed', 'not_relevant', 'wrong', 'answered']),
+    verdict: ReplyVerdict,
     reply: text,
     resolve: z.boolean(),
   })),

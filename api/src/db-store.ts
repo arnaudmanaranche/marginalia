@@ -3,14 +3,15 @@ import { transaction } from './db.ts';
 // The queries behind state.ts, posted.ts and runlog.ts, on a given database so
 // they are tested on an in-memory one. The shapes in and out are the ones the
 // JSON files had (see state-shape.ts); only where they live changed.
-const KINDS = { sha: null, peer: 'mineComments', below: 'stackBelow' };
+// Entries of kind `sha` sit at the top of the state; the others sit in the group named here.
+const GROUP_OF_KIND: Record<string, string> = { peer: 'mineComments', below: 'stackBelow' };
 
 // { <iid>: sha, mineComments: { <iid>: t }, stackBelow: { <iid>: sha } } of one project.
 export function readProjectState(db: any, project: any) {
   const state = { mineComments: {}, stackBelow: {} };
   const rows = db.prepare('SELECT kind, iid, value FROM state_entry WHERE project = ?').all(project);
   for (const { kind, iid, value } of rows) {
-    const target = (KINDS as any)[kind] ? (state as any)[(KINDS as any)[kind]] : state;
+    const target = GROUP_OF_KIND[kind] ? (state as any)[GROUP_OF_KIND[kind]] : state;
     (target as any)[iid] = JSON.parse(value);
   }
   return state;
@@ -21,10 +22,11 @@ export function writeProjectState(db: any, project: any, state: any) {
   transaction(db, () => {
     db.prepare('DELETE FROM state_entry WHERE project = ?').run(project);
     for (const [iid, value] of Object.entries(state)) {
-      if (iid !== 'mineComments' && iid !== 'stackBelow') insert.run(project, 'sha', iid, JSON.stringify(value));
+      if (!Object.values(GROUP_OF_KIND).includes(iid)) insert.run(project, 'sha', iid, JSON.stringify(value));
     }
-    for (const [iid, value] of Object.entries(state.mineComments ?? {})) insert.run(project, 'peer', iid, JSON.stringify(value));
-    for (const [iid, value] of Object.entries(state.stackBelow ?? {})) insert.run(project, 'below', iid, JSON.stringify(value));
+    for (const [kind, group] of Object.entries(GROUP_OF_KIND)) {
+      for (const [iid, value] of Object.entries(state[group] ?? {})) insert.run(project, kind, iid, JSON.stringify(value));
+    }
   });
 }
 

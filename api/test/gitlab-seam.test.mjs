@@ -10,10 +10,10 @@ const files = roots.flatMap((dir) => readdirSync(dir).filter((f) => f.endsWith('
 const outside = files.filter((f) => !/(^|\/)gitlab[^/]*\.ts$/.test(f));
 
 test('only the gitlab modules import the REST client or its helpers', () => {
-  assert.deepEqual(outside.filter((f) => /gitlab-(client|http)\.ts/.test(readFileSync(f, 'utf8'))), []);
+  assert.deepEqual(outside.filter((f) => /gitlab-http\.ts/.test(readFileSync(f, 'utf8'))), []);
 });
 
-test('only gitlab-api.ts builds anything from the configured client', () => {
-  const users = files.filter((f) => /gitlab-client\.ts/.test(readFileSync(f, 'utf8')));
+test('only gitlab-api.ts builds a REST client', () => {
+  const users = files.filter((f) => f !== 'src/gitlab-http.ts' && /createGitlabClient\(/.test(readFileSync(f, 'utf8')));
   assert.deepEqual(users, ['src/gitlab-api.ts']);
 });

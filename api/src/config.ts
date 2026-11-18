@@ -12,14 +12,12 @@ export const ROOT = PACKAGE_ROOT;
 // Where the bot keeps its own files (see src/paths-home.ts): the install folder
 // for an existing clone, ~/.marginalia for a packaged install.
 export const DATA_DIR = resolveDataDir({ root: ROOT });
-// The validated config.json of the data dir, or null (then .env is the config).
 // The team's shared defaults (src/team-merge.ts) when a valid team copy has been synced.
 export const TEAM = readTeamSync(DATA_DIR);
 export const FILE_CONFIG = readConfigFile(DATA_DIR, { team: TEAM });
 export const ensureDataDir = () => mkdirSync(DATA_DIR, { recursive: true });
 // Live status for the SwiftBar menu bar plugin (swiftbar/menubar.mjs).
 export const STATUS_FILE = join(DATA_DIR, 'status.json');
-// Settings changed at runtime from the studio (see src/settings.ts).
 export const SETTINGS_FILE = process.env.SETTINGS_FILE || join(DATA_DIR, 'settings.json');
 
 // core.hooksPath=.husky is shared with the real checkout, but `git clean -fdx`
@@ -56,6 +54,8 @@ export const {
   // What a day of automatic work may cost in USD (the studio's Settings page wins); 0 is no limit.
   // What a person asks for always runs.
   DAILY_BUDGET_USD = '25',
+  // The most runs mentions may start in a day, all projects together.
+  MENTION_DAILY_CAP = '20',
   // Verification (ADR 0009): the runner container a reproduction runs in. The image needs the
   // project's toolchain; the egress network and proxy, both or neither, are how a recipe's hosts are
   // reached: an operator-made network that only the proxy sits on, the proxy enforcing the allowlist.
@@ -94,7 +94,6 @@ export const {
   BOT_WORKTREE_DIR: RAW_BOT_WORKTREE_DIR,
   // macOS notifications when a review finishes/fails or a poll errors out.
   NOTIFICATIONS = 'true',
-  // Port of the local review reader (studio/server.ts), bound to 127.0.0.1.
   STUDIO_PORT = process.env.VIEWER_PORT ?? '4477', // VIEWER_PORT: legacy name
   // The studio has no login: it listens on loopback only. A container has to listen on 0.0.0.0
   // inside (the host publishes the port on 127.0.0.1); STUDIO_ALLOWED_HOSTS lists the extra Host

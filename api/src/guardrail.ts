@@ -10,7 +10,7 @@ export const CONTRACT_BROKEN = 'The result broke the contract';
 
 const SCHEMA = { review: AgentReview, triage: AgentTriage, context: AgentProjectContext };
 
-/** @param findingsRaw the content of the findings file (or the context file) */
+// `findingsRaw` is the content of the findings file (or the context file).
 export function enforceContract(kind: keyof typeof SCHEMA, findingsRaw: string | null): unknown {
   if (findingsRaw === null) throw new Error(`${CONTRACT_BROKEN}: no findings file was written.`);
   let data: unknown;

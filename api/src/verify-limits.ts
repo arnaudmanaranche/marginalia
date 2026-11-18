@@ -3,6 +3,9 @@
 
 export const DEFAULT_LIMITS = { cpus: 2, memoryMb: 4096, pids: 256, timeoutMinutes: 10 };
 
+// How many findings one review tries to reproduce when VERIFY_MAX_PER_REVIEW is not a positive number.
+export const DEFAULT_MAX_PER_REVIEW = 4;
+
 export type VerifyLimits = typeof DEFAULT_LIMITS;
 
 export function verifyLimits(project: { verifyLimits?: Partial<VerifyLimits> | null } | null | undefined): VerifyLimits {

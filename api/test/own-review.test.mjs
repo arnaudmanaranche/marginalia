@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { passOver } from '../dist/src/poll-pass.js';
 import { planMergeRequests } from '../dist/src/poll-plan.js';
-import { kindOf } from '../dist/src/http/review-kind.js';
+import { kindOf } from '../dist/src/review-kind.js';
 import { ownReviewOutputPath, reviewOutputPath } from '../dist/src/paths.js';
 import { sameMr } from '../dist/src/status.js';
 import { parseConfig } from '../dist/src/config-schema.js';
@@ -28,7 +28,9 @@ function setup(open, stored = { mineComments: {}, stackBelow: {} }) {
     loadState: async () => stored,
     saveState: async () => {},
     allowedTargets: () => [],
-    settlesConflicts: () => false,
+    budget: () => null,
+    reviewFacts: async () => ({ lastPushAt: null, approvedBy: [] }),
+    staleAfterDays: () => 14,
     username: 'me',
     notify: (title) => calls.notified.push(title),
     trackFailure: () => {},

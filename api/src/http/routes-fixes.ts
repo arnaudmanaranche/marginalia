@@ -8,6 +8,15 @@ import { locate, serialQueue, shortMessage } from './context.ts';
 // Two clicks must not race on the same push.
 const pushQueue = serialQueue();
 
+// The tracked triage of a review and the MR branch its fixes go to, or null.
+async function trackedTriage(slug: string) {
+  const found = await locate(slug);
+  const mr = found?.mr;
+  if (!found || mr?.kind !== 'comments' || !mr.sourceBranch) return null;
+  return { project: found.project, target: { iid: mr.iid, source_branch: mr.sourceBranch } };
+}
+const noTriage = (c: any) => c.json({ error: 'no tracked triage for this slug' }, 404);
+
 export function fixesRoutes(app: any) {
   // Where the local fixes of one triage stand against its MR branch on origin.
   app.openapi(route({
@@ -16,11 +25,10 @@ export function fixesRoutes(app: any) {
     request: { params: z.object({ slug: ReviewId }) },
     responses: { 200: jsonOf(FixesStatus, 'The fixes against the MR branch.') }, errors: [400, 404, 502],
   }), async (c: any) => {
-    const found = await locate(c.req.valid('param').slug);
-    const mr = found?.mr;
-    if (!found || mr?.kind !== 'comments' || !mr.sourceBranch) return c.json({ error: 'no tracked triage for this slug' }, 404);
+    const triage = await trackedTriage(c.req.valid('param').slug);
+    if (!triage) return noTriage(c);
     try {
-      return c.json(await fixesStatus(found.project, { iid: mr.iid, source_branch: mr.sourceBranch }), 200);
+      return c.json(await fixesStatus(triage.project, triage.target), 200);
     } catch (err) {
       return c.json({ error: shortMessage(err) }, 502);
     }
@@ -35,17 +43,16 @@ export function fixesRoutes(app: any) {
     responses: { 200: jsonOf(FixesStatus, 'Pushed; the status after the push.') }, errors: [400, 403, 404, 409, 415, 502],
   }), (c: any) => pushQueue(async () => {
     const { slug, sha } = c.req.valid('json');
-    const found = await locate(slug);
-    const mr = found?.mr;
-    if (!found || mr?.kind !== 'comments' || !mr.sourceBranch) return c.json({ error: 'no tracked triage for this slug' }, 404);
-    const target = { iid: mr.iid, source_branch: mr.sourceBranch };
+    const triage = await trackedTriage(slug);
+    if (!triage) return noTriage(c);
+    const { project, target } = triage;
     try {
       if (sha) {
-        const one = await pushOneFix(found.project, target, sha);
+        const one = await pushOneFix(project, target, sha);
         if (!one.pushed) return c.json({ error: one.error, status: one.status }, 409);
         return c.json(one.status, 200);
       }
-      const { pushed, status } = await pushFixes(found.project, target);
+      const { pushed, status } = await pushFixes(project, target);
       if (!pushed) return c.json({ error: status.state === 'outdated' ? 'the MR branch moved since the triage: re-run it' : `nothing to push (${status.state})`, status }, 409);
       return c.json(status, 200);
     } catch (err) {

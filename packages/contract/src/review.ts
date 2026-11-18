@@ -1,5 +1,5 @@
 import { z } from '@hono/zod-openapi';
-import { DiscussionId, ReviewId, ReviewKind, ShapeSource, Verdict, nullable, Severity, RiskLevel } from './common.ts';
+import { DiscussionId, ReviewId, ReviewKind, ShapeSource, Verdict, nullable, Severity, RiskLevel, FindingProof, VerificationStatus, ReplyVerdict } from './common.ts';
 
 export const Finding = z.object({
   id: z.string().regex(/^[\w-]{1,64}$/).describe('Stable across re-runs. Also the `commentId` when posted.'),
@@ -9,9 +9,9 @@ export const Finding = z.object({
   line: nullable(z.number().int().min(1)).describe('Only set together with `path`.'),
   body: z.string(),
   comment: nullable(z.string()).describe('The comment to post on the merge request, ready as is.'),
-  proof: z.enum(['runtime', 'static']).optional().describe('runtime: a claim about behaviour that running the project could reproduce; static: a pattern or a rule, never run.'),
+  proof: FindingProof.optional().describe('runtime: a claim about behaviour that running the project could reproduce; static: a pattern or a rule, never run.'),
   verification: z.object({
-    status: z.enum(['reproduced', 'not_reproduced', 'inconclusive', 'skipped']),
+    status: VerificationStatus,
     evidence: z.string().nullable().optional(),
     command: z.string().nullable().optional(),
     artifacts: z.array(z.object({
@@ -24,7 +24,7 @@ export const Finding = z.object({
 
 export const Reply = z.object({
   thread: DiscussionId,
-  verdict: z.enum(['fixed', 'already_fixed', 'not_relevant', 'wrong', 'answered']).describe('`fixed`: fixed by this triage, sent once the fix is pushed.'),
+  verdict: ReplyVerdict.describe('`fixed`: fixed by this triage, sent once the fix is pushed.'),
   reply: z.string().describe('The drafted answer to the reviewer, first person.'),
   resolve: z.boolean().describe('Whether sending it also resolves the thread.'),
   commit: z.string().optional().describe('The commit that fixed this thread (staged triage): the reply names it once pushed.'),

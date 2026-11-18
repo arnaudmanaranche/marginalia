@@ -1,13 +1,12 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { CLAUDE_BIN, ROOT } from './config.ts';
-import { claudeArgs, parseRunOutput } from './claude-cli.ts';
+import { ROOT } from './config.ts';
+import { claudeArgs } from './claude-cli.ts';
 import { DOCTOR_TOOLS, doctorPrompt, parseDoctorAnswer } from './doctor-prompt.ts';
 import { logger } from './logger.ts';
-import { runStreaming } from './progress.ts';
+import { runClaudeOnce } from './run-claude-once.ts';
 import { listTraces, readRunPart, readTrace, readTranscript, saveRunPart } from './run-journal.ts';
-import { runEnv, runSettings } from './run-settings.ts';
-import { appendRun } from './runlog.ts';
+import { runSettings } from './run-settings.ts';
 
 const TIMEOUT_MS = 10 * 60_000;
 const SYSTEM = "You are Marginalia's doctor. Marginalia is a bot that reviews GitLab merge requests with headless Claude runs. You diagnose one failed run from its trace and the code. You only read; you change nothing.";
@@ -33,7 +32,6 @@ async function sameAsBefore(project: any, fileSlug: string, trace: any) {
 
 // Starts the doctor on a failed run, in the background; its answer lands in <id>.doctor.json.
 // `auto`: started by the poller after a failure, so a repeat of a known one reuses its diagnosis.
-/** @param {{ project: any, fileSlug: string, runId: string, auto?: boolean }} input */
 export async function startDoctor({ project, fileSlug, runId, auto = false }: { project: any; fileSlug: string; runId: string; auto?: boolean }) {
   const key = `${project.key}/${fileSlug}/${runId}`;
   if (running.has(key)) return { ok: false, status: 409, error: 'the doctor is already on this run' };
@@ -60,9 +58,7 @@ async function diagnose(project: any, fileSlug: string, trace: any) {
     const dirs = agentDirs(project);
     const prompt = doctorPrompt({ trace, transcript: await readTranscript(project.key, fileSlug, trace.id, { maxBytes: 60_000 }), sourceDir: ROOT, agentDirs: dirs });
     const args = [...claudeArgs({ prompt, tools: DOCTOR_TOOLS, systemPrompt: SYSTEM, settings: runSettings(project) }), ...dirs.flatMap((d) => ['--add-dir', d])];
-    const { stdout } = await runStreaming(CLAUDE_BIN, args, { cwd: ROOT, timeout: TIMEOUT_MS, env: runEnv() }, undefined, undefined, { name: 'doctor', kind: 'doctor' });
-    const { text, stats } = parseRunOutput(stdout);
-    if (stats) await appendRun({ project: project.key, iid: trace.iid, kind: 'doctor', command: 'doctor', ...stats });
+    const { text, stats } = await runClaudeOnce({ args, cwd: ROOT, timeout: TIMEOUT_MS, meta: { name: 'doctor', kind: 'doctor' }, log: { project: project.key, iid: trace.iid, kind: 'doctor', command: 'doctor' } });
     const answer = parseDoctorAnswer(text);
     await save(answer ? { state: 'done', ...answer, cost: stats ? stats.costUsd : null } : { state: 'failed', error: 'The doctor gave no usable answer.', raw: text.slice(0, 2000) });
   } catch (err) {

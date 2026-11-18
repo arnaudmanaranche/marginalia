@@ -28,17 +28,17 @@ export async function assertBotWorktree(dir: string) {
 // agent, and the GitLab/Atlassian connectors are available in it exactly as
 // in your real checkout.
 export async function ensureBotWorktree(project: any) {
-  const { repoPath: REPO_LOCAL_PATH, worktreeDir: BOT_WORKTREE_DIR } = project;
-  const claudeLink = join(BOT_WORKTREE_DIR, '.claude');
+  const { repoPath, worktreeDir } = project;
+  const claudeLink = join(worktreeDir, '.claude');
 
-  const problem = await containerRepoProblem(REPO_LOCAL_PATH);
+  const problem = await containerRepoProblem(repoPath);
   if (problem) throw new Error(problem);
 
-  if (!(await fileExists(BOT_WORKTREE_DIR))) {
-    logger.info({ project: project.key }, `Creating dedicated bot worktree at ${BOT_WORKTREE_DIR}...`);
-    await addWorktree(REPO_LOCAL_PATH, BOT_WORKTREE_DIR);
+  if (!(await fileExists(worktreeDir))) {
+    logger.info({ project: project.key }, `Creating dedicated bot worktree at ${worktreeDir}...`);
+    await addWorktree(repoPath, worktreeDir);
   }
-  await assertBotWorktree(BOT_WORKTREE_DIR);
+  await assertBotWorktree(worktreeDir);
 
   let linkOk = false;
   try {
@@ -48,52 +48,52 @@ export async function ensureBotWorktree(project: any) {
     linkOk = false;
   }
   if (!linkOk) {
-    const repoClaude = join(REPO_LOCAL_PATH, '.claude');
+    const repoClaude = join(repoPath, '.claude');
     if (await fileExists(repoClaude)) {
       // A real folder already there (not ours to delete) must not stop the bot: it only loses the repo's settings.
       await symlink(repoClaude, claudeLink, 'dir').catch((err) => logger.warn({ project: project.key, err }, `${claudeLink} exists and is not a link to ${repoClaude}: the bot runs without the repo's .claude/.`));
     } else {
-      logger.info({ project: project.key }, `No .claude/ in ${REPO_LOCAL_PATH}: no code-reviewer checklist nor repo settings for the bot.`);
+      logger.info({ project: project.key }, `No .claude/ in ${repoPath}: no code-reviewer checklist nor repo settings for the bot.`);
     }
   }
 
   try {
-    await originUrl(REPO_LOCAL_PATH);
+    await originUrl(repoPath);
   } catch {
-    throw new Error(`${REPO_LOCAL_PATH} has no "origin" remote: the bot fetches merge-requests/<iid>/head from it.`);
+    throw new Error(`${repoPath} has no "origin" remote: the bot fetches merge-requests/<iid>/head from it.`);
   }
 
   // Never `git worktree prune` here: it deletes the registration of every worktree whose folder is
   // not visible right now (an unplugged drive, another mount of this repo), including ones that are
   // not ours. Entries left behind by a crashed EnterWorktree cycle are only reported.
-  const stale = (await listWorktrees(REPO_LOCAL_PATH)).filter((w: any) => w.prunable);
-  if (stale.length) logger.info({ project: project.key }, `${stale.length} stale worktree entr${stale.length === 1 ? 'y' : 'ies'} in ${REPO_LOCAL_PATH} (their folders are gone). If none is on an unplugged drive, \`git worktree prune\` there clears them.`);
+  const stale = (await listWorktrees(repoPath)).filter((w: any) => w.prunable);
+  if (stale.length) logger.info({ project: project.key }, `${stale.length} stale worktree entr${stale.length === 1 ? 'y' : 'ies'} in ${repoPath} (their folders are gone). If none is on an unplugged drive, \`git worktree prune\` there clears them.`);
 }
 
 // Refuses to review if the MR's branch is checked out in some other worktree
 // (most likely your own day-to-day checkout) — checking it out here too would
 // fail, and forcing it would be surprising for whatever has it checked out.
 export async function branchCheckedOutElsewhere(project: any, branchName: string) {
-  const { repoPath: REPO_LOCAL_PATH, worktreeDir: BOT_WORKTREE_DIR } = project;
+  const { repoPath, worktreeDir } = project;
   if (BOT_CHECKOUT === 'detached') return false;
-  const entries = await listWorktrees(REPO_LOCAL_PATH);
-  return entries.some((e: any) => e.branch === branchName && e.path !== BOT_WORKTREE_DIR);
+  const entries = await listWorktrees(repoPath);
+  return entries.some((e: any) => e.branch === branchName && e.path !== worktreeDir);
 }
 
 // `detached`: an own review only reads, and my branch is usually checked out in my own clone, so
 // it never takes the branch name. A branch without an MR (mr.iid null) is fetched by its name.
 export async function checkoutMergeRequest(mr: any, { detached = false }: { detached?: boolean } = {}) {
-  const BOT_WORKTREE_DIR = mr.project.worktreeDir;
-  await assertBotWorktree(BOT_WORKTREE_DIR);
+  const worktreeDir = mr.project.worktreeDir;
+  await assertBotWorktree(worktreeDir);
   // A run can leave changes to tracked files (a triage whose commit failed), which
   // `git clean` does not touch and which would make the checkout below refuse.
-  await resetHard(BOT_WORKTREE_DIR);
-  await cleanWorktree(BOT_WORKTREE_DIR, { ignored: true });
-  if (mr.iid === null) await gitIn(BOT_WORKTREE_DIR).run('fetch', '--quiet', 'origin', mr.source_branch);
-  else await fetchMrHead(BOT_WORKTREE_DIR, mr.iid);
+  await resetHard(worktreeDir);
+  await cleanWorktree(worktreeDir, { ignored: true });
+  if (mr.iid === null) await gitIn(worktreeDir).run('fetch', '--quiet', 'origin', mr.source_branch);
+  else await fetchMrHead(worktreeDir, mr.iid);
   const checkout = detached || BOT_CHECKOUT === 'detached' ? ['--detach', 'FETCH_HEAD'] : ['-B', mr.source_branch, 'FETCH_HEAD'];
-  await gitIn(BOT_WORKTREE_DIR).run('checkout', '--quiet', ...checkout);
-  await resetHard(BOT_WORKTREE_DIR, 'FETCH_HEAD');
+  await gitIn(worktreeDir).run('checkout', '--quiet', ...checkout);
+  await resetHard(worktreeDir, 'FETCH_HEAD');
   // A target branch that was rebased (a stack's lower layer) is not a fast-forward: fetched forced.
-  await fetchBranch(BOT_WORKTREE_DIR, mr.target_branch, `refs/remotes/origin/${mr.target_branch}`);
+  await fetchBranch(worktreeDir, mr.target_branch, `refs/remotes/origin/${mr.target_branch}`);
 }

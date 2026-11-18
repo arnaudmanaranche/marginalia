@@ -1,6 +1,7 @@
 // The staged review, as the agents are asked it: one agent maps the change (overview, risk,
 // chapters), then one agent per chapter reviews it. Each answer is checked here before the next
 // stage uses it. Pure: tested on plain values.
+import { Severity } from '@worldia/marginalia-contract';
 import { jsonAnswer, matchesPattern, text } from './json-answer.ts';
 import { normalizeProof } from '../finding-proof.ts';
 import { atLeastWorst, normalizeAxes, normalizeMitigations } from '../risk-axes.ts';
@@ -9,7 +10,6 @@ export const REVIEW_SYSTEM = "You are a senior engineer reviewing a colleague's 
 
 const PLAIN = 'Write for someone who has not seen the code: name behaviour a user or a teammate would recognise, not functions or files. Names of code may come later in a summary, never in a title or in the overview.';
 
-/** @param {string} context */
 export function mapPrompt(context: any) {
   return [
     'Your stage: map the change, so the reviewers after you and the person reading the review grasp it without opening every file. Do not look for bugs yet.',
@@ -31,7 +31,6 @@ const RISKS = ['low', 'medium', 'high'];
 
 // The map, checked: every changed file lands in a chapter (the ones the agent left out go to a last
 // one, said in `warnings`).
-/** @param {string} answer @param {string[]} changed */
 export function parseMap(answer: any, changed: any) {
   const json = jsonAnswer(answer);
   if (!json.ok) return json;
@@ -70,7 +69,6 @@ const weakAxes = (risk: any) => {
   return weak.length ? `\nWeakest points of the change: ${weak.map((a: any) => `${a.axis} (${a.level}${a.note ? `: ${a.note}` : ''})`).join('; ')}. Weigh your files against them.` : '';
 };
 
-/** @param {{ context: string, map: any, chapter: any, index: number, checklist: string | null }} input */
 export function chapterPrompt({ context, map, chapter, index, checklist }: any) {
   const others = map.chapters.map((c: any, i: any) => `${i + 1}. ${c.title}${i === index ? ' (yours)' : ''}`).join('\n');
   return [
@@ -93,15 +91,12 @@ export function chapterPrompt({ context, map, chapter, index, checklist }: any) 
   ].filter((l) => l !== '').join('\n');
 }
 
-const SEVERITIES = ['critical', 'important', 'suggestion', 'info'];
-
-/** @param {string} answer */
 export function parseChapter(answer: any) {
   const json = jsonAnswer(answer);
   if (!json.ok) return json;
   if (!Array.isArray(json.value.findings)) return { ok: false, error: '"findings" must be an array' };
   const findings = json.value.findings
-    .filter((f: any) => f && text(f.title) && SEVERITIES.includes(f.severity))
+    .filter((f: any) => f && text(f.title) && Severity.options.includes(f.severity))
     .map((f: any) => ({
       id: typeof f.id === 'string' && /^[a-z0-9-]{2,40}$/.test(f.id) ? f.id : null,
       severity: f.severity, title: text(f.title, 200), body: text(f.body, 6000) ?? text(f.title, 200),

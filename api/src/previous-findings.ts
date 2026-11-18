@@ -5,7 +5,6 @@
 const MAX_FINDINGS = 40;
 const one = (s: unknown) => String(s ?? '').replace(/\s+/g, ' ').trim();
 
-/** @param {{ id?: string, severity?: string, title?: string, path?: string | null, line?: number | null }[]} findings */
 export function previousFindingsPrompt(findings: any[]) {
   const kept = findings.filter((f: any) => f?.id).slice(0, MAX_FINDINGS);
   if (!kept.length) return '';

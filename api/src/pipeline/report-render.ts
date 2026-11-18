@@ -1,7 +1,8 @@
 // The markdown report of a staged run, written from its findings file: what a person reads in the
 // studio when there is no tour, and what is kept in the review history. Pure.
+import { Severity } from '@worldia/marginalia-contract';
 
-const SECTIONS = [['critical', 'Critical'], ['important', 'Important'], ['suggestion', 'Suggestions'], ['info', 'Notes']];
+const HEADINGS: Record<string, string> = { critical: 'Critical', important: 'Important', suggestion: 'Suggestions', info: 'Notes' };
 const quote = (s: string) => s.split('\n').map((l: string) => `> ${l}`).join('\n');
 const axisLine = (a: any) => `- ${a.axis}: ${a.level}${a.note ? `, ${a.note}` : ''}`;
 const riskLines = (risk: any) => [
@@ -13,7 +14,6 @@ const REPRODUCTION = { reproduced: 'Reproduced', not_reproduced: 'Not reproduced
 const proofLines = (v: any) => (v ? [`**${REPRODUCTION[v.status] ?? v.status}.**${v.evidence ? ` ${v.evidence}` : ''}${v.command ? ` Command: \`${v.command}\`.` : ''}`, ''] : []);
 const place = (f: any) => (f.path ? `\`${f.path}${f.line ? `:${f.line}` : ''}\` ` : '');
 
-/** @param {{ title: string, iid: number | string, branch: string }} mr @param {any} data the findings file of a review */
 export function renderReview(mr: { title: string; iid: number | string; branch: string }, data: any) {
   const lines = [
     `# ${mr.title}`, '',
@@ -25,10 +25,10 @@ export function renderReview(mr: { title: string; iid: number | string; branch: 
     '## The change, chapter by chapter', '',
     ...data.tour.flatMap((c: any, i: number) => [`### ${i + 1}. ${c.title}`, '', c.summary, '', `Files: ${c.files.map((f: string) => `\`${f}\``).join(', ')}`, '']),
   ];
-  for (const [sev, heading] of SECTIONS) {
+  for (const sev of Severity.options) {
     const here = data.findings.filter((f: any) => f.severity === sev);
     if (!here.length) continue;
-    lines.push(`## ${heading}`, '');
+    lines.push(`## ${HEADINGS[sev]}`, '');
     for (const f of here) {
       lines.push(`- ${place(f)}**${f.title}**`, '', f.body, '', ...proofLines(f.verification));
       if (f.comment) lines.push('**Comment to post:**', '', quote(f.comment), '');
@@ -40,7 +40,6 @@ export function renderReview(mr: { title: string; iid: number | string; branch: 
 const VERDICT_WORDS: Record<string, string> = { fixed: 'Fixed', already_fixed: 'Already fixed', not_relevant: 'Not relevant', wrong: 'Disagree', answered: 'Answered' };
 
 // What merging the target branch in came to (conflicts.ts), when it had conflicts.
-/** @param {any} c */
 function conflictLines(c: any) {
   if (!c) return [];
   const files = c.files.map((f: string) => `\`${f}\``).join(', ');
@@ -49,7 +48,6 @@ function conflictLines(c: any) {
     : `Not settled (${c.error}): ${files} still conflict, to settle yourself.`, ''];
 }
 
-/** @param {{ title: string, iid: number | string, branch: string }} mr @param {any[]} threads @param {any} data the findings file of a triage @param {any} [conflicts] */
 export function renderTriage(mr: { title: string; iid: number | string; branch: string }, threads: any[], data: any, conflicts: any = null) {
   const lines = [`# ${mr.title}`, '', `**MR:** !${mr.iid} | **Branch:** ${mr.branch}`, '', ...conflictLines(conflicts), '## Replies to the reviewers', '', data.summary, ''];
   for (const r of data.replies) {

@@ -2,18 +2,17 @@
 // and given ids, the verdict from their severities, the tour from the map. A chapter that failed
 // is said in the report, never dropped silently. Pure.
 
+import { Severity } from '@worldia/marginalia-contract';
+import { BLOCKING } from './verify-select.ts';
+
 const slug = (s: unknown) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'finding';
 // A finding's identity across chapters: where it is and what it says.
 export const findingKey = (f: any) => `${f.path ?? ''}|${f.line ?? ''}|${f.title.toLowerCase()}`;
 // What a reproduction is worth when two copies of a finding disagree: the one that showed something wins.
 const RANK = ['skipped', 'inconclusive', 'not_reproduced', 'reproduced'];
 const rank = (v: any) => (v ? RANK.indexOf(v.status) + 1 : 0);
-const BLOCKING = new Set(['critical', 'important']);
 
-/**
- * @param {{ map: any, chapters: { result: { findings: any[], verified: string } | null, error?: string | null }[] }} input
- * The findings file's shape (see findings.ts), and the warnings to show.
- */
+// The findings file's shape (see findings.ts), and the warnings to show.
 export function mergeReview({ map, chapters }: { map: any, chapters: { result: { findings: any[], verified: string } | null, error?: string | null }[] }) {
   const seen = new Map<string, Record<string, any>>();
   const ids = new Set<string>();
@@ -40,9 +39,9 @@ export function mergeReview({ map, chapters }: { map: any, chapters: { result: {
   });
   const failed = chapters.filter((c) => !c.result).length;
   const count = (sev: string) => findings.filter((f) => f.severity === sev).length;
-  const blocking = findings.filter((f) => BLOCKING.has(f.severity)).length;
+  const blocking = findings.filter((f) => BLOCKING.includes(f.severity)).length;
   const tally = findings.length
-    ? `${findings.length} finding${findings.length > 1 ? 's' : ''}: ${['critical', 'important', 'suggestion', 'info'].map((s) => [count(s), s]).filter(([n]) => n).map(([n, s]) => `${n} ${s}`).join(', ')}.`
+    ? `${findings.length} finding${findings.length > 1 ? 's' : ''}: ${Severity.options.map((s) => [count(s), s]).filter(([n]) => n).map(([n, s]) => `${n} ${s}`).join(', ')}.`
     : 'No finding.';
   return {
     data: {

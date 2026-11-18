@@ -4,10 +4,9 @@
 // config import: bin/docker-guard.ts reads the environment and hands it over.
 import { createServer, request as httpRequest, type IncomingMessage, type Server } from 'node:http';
 import { connect } from 'node:net';
-import { decide, type GuardConfig } from './docker-guard-policy.ts';
+import { RUNNER_PREFIX, decide, type GuardConfig } from './docker-guard-policy.ts';
 
 const MAX_BODY = 1_000_000;
-const PREFIX = 'marginalia-verify-';
 
 function readBody(req: IncomingMessage): Promise<Buffer | null> {
   return new Promise((resolve) => {
@@ -23,7 +22,7 @@ export function createGuard(cfg: GuardConfig, upstream: string, log: (line: stri
   const containers = new Set<string>();
   const execs = new Set<string>();
   const known = {
-    container: (ref: string) => ref.startsWith(cfg.namePrefix ?? PREFIX) || containers.has(ref),
+    container: (ref: string) => ref.startsWith(RUNNER_PREFIX) || containers.has(ref),
     exec: (id: string) => execs.has(id),
   };
   const refuse = (res: any, reason: string, req: IncomingMessage) => {

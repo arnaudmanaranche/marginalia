@@ -7,7 +7,6 @@ import { normalizeVerification } from '../finding-proof.ts';
 
 export const VERIFY_SYSTEM = "You are checking one claim a reviewer made about a merge request, as one stage of Marginalia's review, by running the project. You only have these ways to run anything: the `run` tool (one step of the approved recipe, with arguments), `write_file` (a new file in a disposable copy of the project) and, when the recipe says where the project is served, `browse` (one browser step at a time on that copy). You cannot change an existing file and you must not try. Write everything in English. A reproduction proves or fails to prove the claim; it never edits the project's code to make it true.";
 
-/** @param {{ steps: { purpose: string, run: string, summary: string }[], hosts?: string[], notes?: string }} recipe */
 export function recipeText(recipe: any) {
   const steps = recipe.steps.map((s: any) => `- ${s.purpose}: \`${s.run}\` (${s.summary})`).join('\n');
   return [
@@ -19,7 +18,6 @@ export function recipeText(recipe: any) {
   ].filter(Boolean).join('\n');
 }
 
-/** @param {{ context: string, finding: any, chapter: any, recipe: any }} input */
 export function verifyPrompt({ context, finding, chapter, recipe }: { context: string; finding: any; chapter: any; recipe: any }) {
   return [
     'Your stage: try to reproduce this finding by running the project. The code is read from the checkout you are in; the copy where things run is separate and disposable.',
@@ -38,7 +36,6 @@ export function verifyPrompt({ context, finding, chapter, recipe }: { context: s
   ].filter((l) => l !== '').join('\n');
 }
 
-/** @param {string} answer */
 export function parseVerification(answer: any) {
   const json = jsonAnswer(answer);
   if (!json.ok) return json;

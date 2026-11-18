@@ -13,7 +13,6 @@ const at = (iso: any) => (iso ? Date.parse(iso) : NaN);
  * - reports:     the bot's reports written on this push's head, newest first: a history version id,
  *                or null for the current report (`reports` in input, newest first, as { id, sha }).
  * `defaultFrom` is where to start reading: after the push I last reviewed, unless it is the head.
- * @param {{ versions: any[], commitsByVersion: Map<any, any[]>, myReviewAt?: string | null, reports?: { id: string | null, sha: string | null | undefined }[] }} input
  */
 export function buildPushes({ versions, commitsByVersion, myReviewAt = null, reports = [] }: { versions: any[], commitsByVersion: Map<any, any[]>, myReviewAt?: string | null, reports?: { id: string | null, sha: string | null | undefined }[] }) {
   const oldestFirst = [...versions].reverse();

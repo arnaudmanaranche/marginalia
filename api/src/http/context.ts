@@ -1,8 +1,8 @@
 import { readFile } from 'node:fs/promises';
-import { join } from 'node:path';
 import { STATUS_FILE } from '../config.ts';
 import { currentScope, visibleProjects } from './request-scope.ts';
-import { parseReviewId } from '../review-id.ts';
+import { parseReviewId, reviewFile } from '../review-id.ts';
+import { logger } from '../logger.ts';
 import { warn } from '../log.ts';
 import { fetchReviewState } from '../mr-state.ts';
 
@@ -35,7 +35,7 @@ export async function locate(id: string) {
   const parsed = parseReviewId(id, visibleProjects());
   if (!parsed) return null;
   const status = await readStatus();
-  const mr = (status?.mrs ?? []).find((m: any) => m.project === parsed.project.key && m.reviewPath === join(parsed.project.reviewsDir, `${parsed.slug}.md`));
+  const mr = (status?.mrs ?? []).find((m: any) => m.project === parsed.project.key && m.reviewPath === reviewFile(parsed.project, parsed.slug));
   return { ...parsed, mr, status };
 }
 
@@ -62,7 +62,7 @@ export function serialQueue() {
   let tail = Promise.resolve();
   return (task: () => any) => {
     const run = tail.then(task);
-    tail = run.catch(() => {});
+    tail = run.catch((err) => logger.debug({ err }, 'A queued task failed; the next one still runs'));
     return run;
   };
 }

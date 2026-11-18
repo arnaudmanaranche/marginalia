@@ -1,4 +1,5 @@
-import { eventUuid, errorKind } from './run-events.ts';
+import { eventUuid } from './event-uuid.ts';
+import { errorKind } from './run-events.ts';
 import type { ToolCall } from './tool-calls.ts';
 
 // PostHog AI Observability events for one Claude call (a `claude -p` run): a `$ai_generation` with the
@@ -9,9 +10,9 @@ import type { ToolCall } from './tool-calls.ts';
 const CONTENT_MAX = 100_000;
 const clip = (text: string) => (text.length > CONTENT_MAX ? `${text.slice(0, CONTENT_MAX)}\n[cut at ${CONTENT_MAX} characters]` : text);
 // PostHog ids allow a limited alphabet.
-export const aiId = (value: string) => value.replace(/[^A-Za-z0-9_~.@()!'|:-]/g, '_');
+const aiId = (value: string) => value.replace(/[^A-Za-z0-9_~.@()!'|:-]/g, '_');
 
-export interface AiCall {
+interface AiCall {
   traceId: string;
   name: string;
   kind?: string;
@@ -31,7 +32,7 @@ export interface AiCall {
 
 const number = (n: unknown) => (typeof n === 'number' && Number.isFinite(n) ? n : undefined);
 
-/** @returns the events of one call, generation first. */
+// The events of one call, generation first.
 export function aiEvents(call: AiCall) {
   const { result, traceId } = call;
   const sessionId = typeof result?.session_id === 'string' ? aiId(result.session_id) : null;

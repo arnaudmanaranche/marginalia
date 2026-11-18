@@ -1,5 +1,6 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { gitlab as defaultGitlab } from '../gitlab-api.ts';
+import { GITLAB_USERNAME } from '../config.ts';
 import { PROJECTS } from '../projects.ts';
 
 // Who a studio request is for. In local mode nobody is signed in, there is no scope, and the
@@ -11,6 +12,9 @@ const store = new AsyncLocalStorage<Scope>();
 
 export const runInScope = <T>(scope: Scope, fn: () => T): T => store.run(scope, fn);
 export const currentScope = (): Scope | undefined => store.getStore();
+
+// Who acts: the signed-in person, else the bot's own GitLab user.
+export const actorName = () => currentScope()?.user.username ?? GITLAB_USERNAME;
 
 // The watched projects this request may see.
 export const visibleProjects = () => {

@@ -58,7 +58,6 @@ const UNKNOWN = {
   advice: 'The cause is not a known one: the doctor reads the run and the bot to find it.',
 };
 
-/** @param {string | null | undefined} message @returns {Failure} */
 export function failureKind(message: unknown) {
   const text = String(message ?? '');
   for (const [re, failure] of RULES) if (re.test(text)) return failure;
@@ -68,7 +67,6 @@ export function failureKind(message: unknown) {
 // The failures the doctor has nothing to add to: their cause is already plain (a login, a token,
 // a check before the run), and so is what to do.
 const PLAIN = ['claude_login', 'gitlab_auth', 'preflight'];
-/** @param {Failure} failure */
 export const needsDoctor = (failure: Failure) => !failure.transient && !PLAIN.includes(failure.kind);
 
 // How soon a poll comes back after a failure that passes by itself, when the interval is longer.

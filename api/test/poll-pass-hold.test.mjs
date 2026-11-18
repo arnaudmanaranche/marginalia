@@ -12,8 +12,8 @@ const sink = () => {
 test('without a stale limit, an old push does not hold the review, an approval since still does', async () => {
   const old = { lastPushAt: Date.now() - 400 * DAY, approvedBy: [] };
   const s = sink();
-  assert.equal(await heldBack('review', mr, { deps: { reviewFacts: async () => old }, sink: s, asked: null }), false);
+  assert.equal(await heldBack('review', mr, { deps: { reviewFacts: async () => old, staleAfterDays: () => Infinity }, sink: s, asked: null }), false);
   const approved = { lastPushAt: Date.now() - DAY, approvedBy: [{ username: 'bob', at: new Date().toISOString() }] };
-  assert.equal(await heldBack('review', mr, { deps: { reviewFacts: async () => approved }, sink: s, asked: null }), true);
+  assert.equal(await heldBack('review', mr, { deps: { reviewFacts: async () => approved, staleAfterDays: () => Infinity }, sink: s, asked: null }), true);
   assert.equal(s.calls[0].status, 'skipped');
 });

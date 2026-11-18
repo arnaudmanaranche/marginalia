@@ -2,12 +2,12 @@
 // the contract stays strict, the result handed to it is made to satisfy it. Pure; says what it did.
 // A chapter naming a finding that is not in `findings` (typically one fixed since the last report,
 // kept in the markdown's "Resolved" part) keeps its place in the tour without the dangling id.
-export interface Repaired {
+interface Repaired {
   data: unknown;
   repairs: string[];
 }
 
-/** @param data the parsed findings file of a review */
+// `data` is the parsed findings file of a review.
 export function repairReview(data: any): Repaired {
   if (!data || typeof data !== 'object' || !Array.isArray(data.tour) || !Array.isArray(data.findings)) return { data, repairs: [] };
   const known = new Set(data.findings.map((f: any) => f?.id));

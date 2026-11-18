@@ -15,7 +15,6 @@ export function jiraKeyOf(mr: any) {
   return null;
 }
 
-/** @returns {Promise<any>} */
 async function jiraRequest(path: string): Promise<any> {
   const auth = Buffer.from(`${JIRA_EMAIL}:${JIRA_API_TOKEN}`).toString('base64');
   const res = await fetch(`${JIRA_BASE_URL.replace(/\/+$/, '')}/rest/api/3${path}`, {
@@ -27,7 +26,6 @@ async function jiraRequest(path: string): Promise<any> {
 
 // Jira lists priorities in the order the site configured them, most urgent
 // first, so the index is the rank. Fetched once per process.
-/** @type {Promise<Map<string, number>> | null} */
 let ranks: Promise<Map<string, number>> | null = null;
 async function priorityRanks() {
   ranks ??= jiraRequest('/priority').then((list: any) => new Map(list.map((p: any, i: number) => [p.id, i])));

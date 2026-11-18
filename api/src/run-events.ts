@@ -1,17 +1,8 @@
-import { createHash } from 'node:crypto';
+import { eventUuid } from './event-uuid.ts';
 
 // The analytics event for one Claude run, as a plain object: pure, so what leaves the machine is
 // tested. Ids and numbers only: never an MR title, a branch name, a diff or any review text.
 export const RUN_EVENT = 'marginalia_run';
-
-// The same run always gets the same id, so a backfill and the live event of one run are one event
-// to PostHog (it de-duplicates on uuid). A v5-shaped UUID from a hash of `seed`.
-/** @param {string} seed */
-export function eventUuid(seed: string) {
-  const h = createHash('sha1').update(seed).digest('hex');
-  const variant = ((parseInt(h.slice(16, 18), 16) & 0x3f) | 0x80).toString(16);
-  return `${h.slice(0, 8)}-${h.slice(8, 12)}-5${h.slice(13, 16)}-${variant}${h.slice(18, 20)}-${h.slice(20, 32)}`;
-}
 
 /** The seed of a run: where and when it ran, which MR, which kind of pass. */
 export const runSeed = (run: any) => `run|${run.project ?? ''}|${run.iid ?? ''}|${run.kind}|${run.at}`;
@@ -65,7 +56,6 @@ export function runEvent({ run, runNumber, reviewer, version, container, report 
 }
 
 // A short class of failure, from the message; the message itself (paths, output) never leaves.
-/** @param {string} message */
 export function errorKind(message: string) {
   if (/GitLab API/.test(message)) return 'gitlab';
   if (/timed? ?out|ETIMEDOUT|timeout/i.test(message)) return 'timeout';

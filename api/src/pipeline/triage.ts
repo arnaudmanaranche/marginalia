@@ -1,3 +1,5 @@
+import { ReplyVerdict } from '@worldia/marginalia-contract';
+import { committerIn } from '../git-identity.ts';
 import { gitIn } from '../git.ts';
 import { cleanWorktree, head, resetHard } from '../git-refs.ts';
 import { THREAD_TRAILER } from '../fixes-log.ts';
@@ -11,13 +13,12 @@ import { renderTriage } from './report-render.ts';
 import { TRIAGE_SYSTEM, fixPrompt, judgePrompt, parseFix, parseJudge } from './triage-prompts.ts';
 
 const place = (t: any) => (t?.path ? `${t.path}${t.line ? `:${t.line}` : ''}` : 'general comment');
-const VERDICT: Record<string, string> = { already_fixed: 'already_fixed', not_relevant: 'not_relevant', wrong: 'wrong', answer: 'answered' };
+const VERDICT: Record<string, string> = { already_fixed: ReplyVerdict.enum.already_fixed, not_relevant: ReplyVerdict.enum.not_relevant, wrong: ReplyVerdict.enum.wrong, answer: ReplyVerdict.enum.answered };
 
 // Marginalia's own triage of my MR, in stages a person can follow: the bot gathers the open
 // reviewer threads with the code they are about, merges the target in when the MR conflicts with
 // it, one agent weighs the threads, then one agent per thread to fix makes that fix, which the bot
 // commits on its own, so each fix can be pushed and answered thread by thread.
-/** @param {{ mr: any, run: any, settings: object | null }} input */
 export async function stagedTriage({ mr, run, settings }: { mr: any; run: any; settings: object | null }) {
   const cwd = mr.project.worktreeDir;
   await run.stage('context');
@@ -44,7 +45,7 @@ export async function stagedTriage({ mr, run, settings }: { mr: any; run: any; s
   await run.plan('judge', toFix.map((v: any, i: number) => [ids[i], `Fix: ${place(open.find((t: any) => t.id === v.thread))}`]));
   await run.end('judge');
 
-  const replies = verdicts.filter((v: any) => v.verdict !== 'fix').map((v: any) => ({ thread: v.thread, verdict: VERDICT[v.verdict], reply: v.reply, resolve: v.verdict === 'already_fixed', why: v.why }));
+  const replies = verdicts.filter((v: any) => v.verdict !== 'fix').map((v: any) => ({ thread: v.thread, verdict: VERDICT[v.verdict], reply: v.reply, resolve: VERDICT[v.verdict] === ReplyVerdict.enum.already_fixed, why: v.why }));
   // One after the other: they change the same tree, and each commit must hold one fix only.
   for (const [i, v] of toFix.entries()) {
     const thread: any = open.find((t: any) => t.id === v.thread);
@@ -58,7 +59,7 @@ export async function stagedTriage({ mr, run, settings }: { mr: any; run: any; s
       await git.run('reset', '--soft', '-q', before);
       if (await git.run('status', '--porcelain')) {
         await git.run('add', '-A');
-        await git.run('commit', '-q', '-m', `fix: ${done.what || 'review comment'}`, '-m', `${THREAD_TRAILER}: ${thread.id}`);
+        await (await committerIn(cwd)).run('commit', '-q', '-m', `fix: ${done.what || 'review comment'}`, '-m', `${THREAD_TRAILER}: ${thread.id}`);
       }
       const after = await head(cwd);
       const commit = after !== before ? after : null;

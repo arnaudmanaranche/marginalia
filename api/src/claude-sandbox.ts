@@ -44,7 +44,7 @@ export function denyRules({ rootDir, repoPath, worktreeDir }: { rootDir: string;
 
 // `gitHost` is the only network host Bash may reach. autoAllowBashIfSandboxed is
 // off so the allowed-tools list, not the sandbox, decides which commands run.
-export function sandboxSettings({ rootDir, repoPath, worktreeDir, reviewsDir, gitHost }: { rootDir: string; repoPath: string; worktreeDir?: string; reviewsDir?: string; gitHost?: string }) {
+function sandboxSettings({ rootDir, repoPath, worktreeDir, reviewsDir, gitHost }: { rootDir: string; repoPath: string; worktreeDir?: string; reviewsDir?: string; gitHost?: string }) {
   return {
     enabled: true,
     failIfUnavailable: true,
@@ -58,7 +58,6 @@ export function sandboxSettings({ rootDir, repoPath, worktreeDir, reviewsDir, gi
   };
 }
 
-/** @param {{ sandbox?: boolean } & Record<string, any>} options */
 export function claudeSettings({ sandbox = true, ...paths }: { sandbox?: boolean } & Record<string, any>) {
   const known = paths as any;
   return {

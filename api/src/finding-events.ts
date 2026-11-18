@@ -1,11 +1,11 @@
-import { eventUuid } from './run-events.ts';
+import { eventUuid } from './event-uuid.ts';
 
 // The analytics event for what became of one finding: the review line's measure (ADR 0006,
 // Finding outcome). Pure, so what leaves the machine is tested. Ids, kinds and counts only: never
 // a title, a comment, a path or a branch name.
 export const FINDING_EVENT = 'marginalia_finding';
 
-export type FindingOutcome = 'posted' | 'posted_edited' | 'dismissed' | 'fixed_before_mr';
+type FindingOutcome = 'posted' | 'posted_edited' | 'dismissed' | 'fixed_before_mr';
 
 // Posted as the review proposed it, or edited first. Whitespace around the text does not count.
 export const postedOutcome = (proposed: string | null | undefined, sent: string): FindingOutcome => (proposed && proposed.trim() === sent.trim() ? 'posted' : 'posted_edited');

@@ -18,7 +18,6 @@ const ERRORS = {
 /**
  * A route as the OpenAPI document wants it, plus `errors`: the status codes (see ERRORS) that
  * answer `{ error }`, so each route lists what it can refuse without repeating the shape.
- * @param {import('@hono/zod-openapi').RouteConfig & { errors?: (keyof typeof ERRORS)[] }} config
  */
 export function route({ errors = [], responses, ...rest }: Omit<RouteConfig, 'path'> & { path: string; errors?: (keyof typeof ERRORS)[] }) {
   const failures = Object.fromEntries(errors.map((code) => [code, jsonOf(ErrorBody, ERRORS[code])]));

@@ -57,7 +57,7 @@ function setup(open, branches, stored = { mineComments: {}, stackBelow: {} }) {
     reviewPath: (m) => reviewOutputPath(m), commentsPath: (m) => `/r/c-${m.iid}.md`, ownPath: (m) => ownReviewOutputPath(m),
     runReview: async (m, path, _stack, opts) => (calls.runs.push([m.iid, path, opts?.own ?? false]), 'reviewed'),
     runMrComments: async () => 'reviewed', loadState: async () => stored, saveState: async () => {},
-    allowedTargets: () => [], settlesConflicts: () => false, username: 'me', notify: () => {}, trackFailure: () => {}, startDoctor: async () => {},
+    allowedTargets: () => [], budget: () => null, reviewFacts: async () => ({ lastPushAt: null, approvedBy: [] }), staleAfterDays: () => 14, username: 'me', notify: () => {}, trackFailure: () => {}, startDoctor: async () => {},
   };
   const sink = { begin: async () => {}, setMr: async () => {}, end: async () => {}, entriesOf: () => [], setEntries: async (_p, e) => { calls.entries = e; } };
   return { deps, sink, calls, stored };

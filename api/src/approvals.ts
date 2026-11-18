@@ -2,12 +2,11 @@ import { basename } from 'node:path';
 import { readFile } from 'node:fs/promises';
 import { artifactAt } from './artifact.ts';
 import { postedKey } from './state-shape.ts';
-import { kindOf } from './http/review-kind.ts';
+import { kindOf } from './review-kind.ts';
 
 // The approvals inbox (ADR 0006): every comment the factory proposes on someone else's MR and no
 // person has decided on yet (neither posted nor dismissed), newest review first. An own review
 // proposes nothing to post; a triage's replies have their own board.
-/** @param {{ projects: any[], mrs: any[], posted: Record<string, any>, dismissed: Set<string> }} input */
 export async function listProposals({ projects, mrs, posted, dismissed }: { projects: any[]; mrs: any[]; posted: Record<string, any>; dismissed: Set<string> }) {
   const byKey = new Map(projects.map((p: any) => [p.key, p]));
   const tracked = mrs.filter((m: any) => m.reviewPath && byKey.has(m.project) && kindOf(basename(m.reviewPath, '.md')) === 'review');

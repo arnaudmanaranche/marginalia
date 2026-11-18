@@ -1,7 +1,7 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { basename, dirname, join } from 'node:path';
 import { buildShape } from './findings.ts';
-import { historyIn, writtenAt } from './history.ts';
+import { SHAPE_SUFFIX, historyIn, writtenAt } from './history.ts';
 
 // The review of one MR as it is kept in the reviews dir: <slug>.md, <slug>.findings.json (the
 // normalized shape, with the head commit the run read) and the earlier versions of both under
@@ -9,7 +9,7 @@ import { historyIn, writtenAt } from './history.ts';
 // in; the runner and the studio both go through it.
 export function artifactAt(reviewsDir: string, slug: string) {
   const markdownPath = join(reviewsDir, `${slug}.md`);
-  const shapePath = join(reviewsDir, `${slug}.findings.json`);
+  const shapePath = join(reviewsDir, `${slug}${SHAPE_SUFFIX}`);
   const history = historyIn(join(reviewsDir, '.history', slug), markdownPath, shapePath);
   return {
     markdownPath,
@@ -21,7 +21,6 @@ export function artifactAt(reviewsDir: string, slug: string) {
     // Stores a run's report. The review it replaces is kept first, unless it reads the same; returns
     // that version's id, or null. `reviewedSha` is the head commit the run read: it is what lets the
     // studio show the code this review covered.
-    /** @param {{ content: string, shape: any }} report @param {string | null} [reviewedSha] */
     async write({ content, shape }: { content: string; shape: any }, reviewedSha: string | null = null) {
       const kept = await history.keep(content);
       await writeFile(markdownPath, content);

@@ -3,10 +3,9 @@ import { deriveFromMarkdown } from './findings-markdown.ts';
 import { clip, plain } from './findings-text.ts';
 
 export { SEVERITIES, VERDICTS, normalizeSeverity, normalizeVerdict } from './findings-vocabulary.ts';
-export { cleanPath, findingId } from './findings-text.ts';
-export { RISK_LEVELS } from './findings-walkthrough.ts';
+export { findingId } from './findings-text.ts';
 export { normalizeFindingsData, parseFindingsJson } from './findings-json.ts';
-export { deriveFromMarkdown, extractSummary, findingsFromMarkdown, parseVerdict } from './findings-markdown.ts';
+export { parseVerdict } from './findings-markdown.ts';
 
 // What the studio relies on, whatever skill or command wrote the review.
 //
@@ -42,7 +41,6 @@ export const NO_FINDINGS_WARNING = 'No findings could be read from this report: 
 
 // `findingsRaw` is the content of .marginalia-findings.json, or null when the
 // command wrote none.
-/** @param {{ markdown: string, findingsRaw?: string | null }} input */
 export function buildShape({ markdown, findingsRaw = null }: { markdown: string; findingsRaw?: string | null }) {
   const warnings: string[] = [];
   const derived = deriveFromMarkdown(markdown);

@@ -8,6 +8,8 @@ import { Ok, ReviewId, RunTrace, Runs } from '@worldia/marginalia-contract';
 import { broadcast } from './context.ts';
 import { jsonOf, route } from './route-kit.ts';
 
+const runParams = z.object({ slug: ReviewId, runId: z.string().regex(/^[\w-]+$/) });
+
 // The runs of the bot on one review: queued, running, done or failed, each with the stages it went
 // through. They are read from the run journal, so an MR with no report yet has them too.
 export function runRoutes(app: any) {
@@ -23,7 +25,7 @@ export function runRoutes(app: any) {
 
   app.openapi(route({
     method: 'get', path: '/api/reviews/{slug}/runs/{runId}', tags: ['Runs'], operationId: 'getRun',
-    summary: 'One run with its steps', request: { params: z.object({ slug: ReviewId, runId: z.string().regex(/^[\w-]+$/) }) },
+    summary: 'One run with its steps', request: { params: runParams },
     responses: { 200: jsonOf(RunTrace, 'The run.') }, errors: [400, 404],
   }), async (c: any) => {
     const { slug, runId } = c.req.valid('param');
@@ -39,7 +41,7 @@ export function runRoutes(app: any) {
   app.openapi(route({
     method: 'post', path: '/api/reviews/{slug}/runs/{runId}/doctor', tags: ['Runs'], operationId: 'startDoctor',
     summary: 'Ask the doctor why a run failed', description: 'Starts a read-only Claude run that reads the failed run and Marginalia\'s code; its diagnosis shows on the run when done.',
-    request: { params: z.object({ slug: ReviewId, runId: z.string().regex(/^[\w-]+$/) }) },
+    request: { params: runParams },
     responses: { 200: jsonOf(Ok, 'Started.') }, errors: [400, 404, 409],
   }), async (c: any) => {
     const { slug, runId } = c.req.valid('param');
@@ -58,7 +60,7 @@ export function runRoutes(app: any) {
   ] as const)) {
     app.openapi(route({
       method: 'post', path, tags: ['Runs'], operationId, summary,
-      request: { params: z.object({ slug: ReviewId, runId: z.string().regex(/^[\w-]+$/) }) },
+      request: { params: runParams },
       responses: { 200: jsonOf(Ok, 'Done or started.') }, errors: [400, 404, 409, 502],
     }), async (c: any) => {
       const { slug, runId } = c.req.valid('param');

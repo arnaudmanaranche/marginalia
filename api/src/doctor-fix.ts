@@ -1,18 +1,16 @@
 import { existsSync } from 'node:fs';
 import { rm, symlink } from 'node:fs/promises';
 import { join } from 'node:path';
-import { CLAUDE_BIN, DATA_DIR, ROOT } from './config.ts';
-import { claudeArgs, parseRunOutput } from './claude-cli.ts';
+import { DATA_DIR, ROOT } from './config.ts';
+import { claudeArgs } from './claude-cli.ts';
 import { FIX_TOOLS, fixPrompt } from './doctor-prompt.ts';
 import { execFileAsync } from './exec.ts';
 import { gitIn } from './git.ts';
 import { head, originUrl } from './git-refs.ts';
 import { removeWorktree } from './git-worktree.ts';
 import { logger } from './logger.ts';
-import { runStreaming } from './progress.ts';
+import { runClaudeOnce } from './run-claude-once.ts';
 import { readRunPart, readTrace, saveRunPart } from './run-journal.ts';
-import { runEnv } from './run-settings.ts';
-import { appendRun } from './runlog.ts';
 
 // The doctor's fix for a failure that belongs in Marginalia: made by Claude in a worktree of a git
 // clone of Marginalia (MARGINALIA_SOURCE_DIR, else the install itself when it is one), on a branch
@@ -64,9 +62,7 @@ async function prepare({ trace, doctor, save }: { trace: any, doctor: any, save:
       if (existsSync(join(SOURCE_DIR, sub))) await symlink(join(SOURCE_DIR, sub), join(dir, sub)).catch(() => {});
     }
     const args = claudeArgs({ prompt: fixPrompt({ trace, doctor }), tools: FIX_TOOLS, systemPrompt: SYSTEM });
-    const { stdout } = await runStreaming(CLAUDE_BIN, args, { cwd: dir, timeout: TIMEOUT_MS, env: runEnv() }, undefined, undefined, { name: 'doctor-fix', kind: 'doctor' });
-    const { text, stats } = parseRunOutput(stdout);
-    if (stats) await appendRun({ project: trace.project, iid: trace.iid, kind: 'doctor-fix', command: 'doctor fix', ...stats });
+    const { text, stats } = await runClaudeOnce({ args, cwd: dir, timeout: TIMEOUT_MS, meta: { name: 'doctor-fix', kind: 'doctor' }, log: { project: trace.project, iid: trace.iid, kind: 'doctor-fix', command: 'doctor fix' } });
     const fixed = await head(dir);
     if (fixed === base) {
       await save({ state: 'nothing', branch, note: text.trim().slice(0, 2000) });

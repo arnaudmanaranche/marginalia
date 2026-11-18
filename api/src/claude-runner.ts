@@ -48,7 +48,7 @@ async function runStages(mr: any, { kind, outputPath, label, stack = null, detac
   const report = await stagedRun({ mr, run, kind, outputPath, stack });
   const { content, source, shape } = report;
   const cost = run.cost;
-  const row = cost ? await appendRun({ project: mr.project.key, iid: mr.iid, sha: baseSha, kind, command: PIPELINE, costUsd: cost.usd, outputTokens: cost.outputTokens, turns: cost.turns, durationMs: Date.now() - Date.parse(run.startedAt) }) : null;
+  const row = cost ? appendRun({ project: mr.project.key, iid: mr.iid, sha: baseSha, kind, command: PIPELINE, costUsd: cost.usd, outputTokens: cost.outputTokens, turns: cost.turns, durationMs: Date.now() - Date.parse(run.startedAt) }) : null;
   if (cost) log(mr, `Cost: $${cost.usd.toFixed(2)}, ${cost.outputTokens} output tokens, ${cost.turns} turns.`);
   if (shape.warnings.length) warn(mr, `Report contract: ${shape.warnings.join(' ')}`);
   // An own review replaces the last one: first, which of its findings did this push fix?
@@ -62,7 +62,7 @@ async function runStages(mr: any, { kind, outputPath, label, stack = null, detac
 }
 
 // `own`: an own review (my MR or branch), read from a detached checkout.
-export function runReview(mr: any, outputPath = reviewOutputPath(mr), stack = /** @type {any} */ (null), { own = false }: { own?: boolean } = {}) {
+export function runReview(mr: any, outputPath = reviewOutputPath(mr), stack = null, { own = false }: { own?: boolean } = {}) {
   return runCommand(mr, {
     stack,
     detached: own,

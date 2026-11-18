@@ -1,7 +1,6 @@
 import { logger, stripAnsi } from './logger.ts';
 
 export const isFancyTerminal = Boolean(process.stdout.isTTY) && !process.env.NO_COLOR;
-/** @type {Record<'reset' | 'bold' | 'dim' | 'red' | 'green' | 'yellow' | 'cyan', string>} */
 export const c: Record<'reset' | 'bold' | 'dim' | 'red' | 'green' | 'yellow' | 'cyan', string> = isFancyTerminal
   ? {
       reset: '\x1b[0m',

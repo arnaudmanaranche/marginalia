@@ -3,8 +3,8 @@
 // never run), `verification` is what a reproduction found. Pure: no config, no I/O.
 import { clip, plain, str } from './findings-text.ts';
 
-export const PROOFS = ['runtime', 'static'];
-export const REPRODUCTIONS = ['reproduced', 'not_reproduced', 'inconclusive', 'skipped'];
+const PROOFS = ['runtime', 'static'];
+const REPRODUCTIONS = ['reproduced', 'not_reproduced', 'inconclusive', 'skipped'];
 
 export function normalizeProof(raw: unknown) {
   const value = String(raw ?? '').trim().toLowerCase();
@@ -27,7 +27,7 @@ export function normalizeVerification(raw: any) {
 const KINDS = ['screenshot', 'log'];
 const ARTIFACT_NAME = /^[\w-]{1,40}\.(png|txt)$/;
 const ARTIFACT_REF = /^\/api\/evidence\/[A-Za-z0-9][\w-]{0,199}\/[\w-]{1,120}\/[\w-]{1,40}\.(png|txt)$/;
-export function normalizeArtifacts(raw: unknown) {
+function normalizeArtifacts(raw: unknown) {
   if (!Array.isArray(raw)) return undefined;
   const list = raw.filter((a: any) => KINDS.includes(a?.kind) && typeof a.name === 'string' && typeof a.ref === 'string' && ARTIFACT_NAME.test(a.name) && ARTIFACT_REF.test(a.ref) && a.ref.endsWith(`/${a.name}`))
     .slice(0, 8).map((a: any) => ({ kind: a.kind, name: a.name, ref: a.ref }));

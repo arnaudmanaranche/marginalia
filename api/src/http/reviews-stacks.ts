@@ -1,4 +1,6 @@
 
+import { slugOfPath } from '../review-id.ts';
+
 // Stacks of 2+ MRs from status.json, layers bottom to top. A layer without a
 // review file yet has slug null.
 export function buildStacks(status: any) {
@@ -11,7 +13,7 @@ export function buildStacks(status: any) {
       iid: mr.iid,
       title: mr.title,
       webUrl: mr.web_url,
-      slug: mr.reviewPath ? `${mr.project}/${mr.reviewPath.split('/').pop().replace(/\.md$/, '')}` : null,
+      slug: mr.reviewPath ? `${mr.project}/${slugOfPath(mr.reviewPath)}` : null,
       status: mr.status,
       parentIid: mr.stack.parentIid,
       position: mr.stack.position,

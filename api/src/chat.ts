@@ -1,11 +1,9 @@
 import { existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { CLAUDE_BIN } from './config.ts';
 import { CHAT_SYSTEM, CHAT_TOOLS } from './chat-prompt.ts';
-import { claudeArgs, parseRunOutput } from './claude-cli.ts';
-import { runEnv, runSettings } from './run-settings.ts';
-import { runStreaming } from './progress.ts';
-import { appendRun } from './runlog.ts';
+import { claudeArgs } from './claude-cli.ts';
+import { runClaudeOnce } from './run-claude-once.ts';
+import { runSettings } from './run-settings.ts';
 
 const TIMEOUT_MS = 180_000;
 
@@ -14,15 +12,13 @@ const TIMEOUT_MS = 180_000;
 // is returned, never posted. Runs in the bot's checkout when there is one.
 export async function askAboutStop({ project, iid, prompt }: { project: any; iid: any; prompt: string }) {
   const cwd = existsSync(project.worktreeDir) ? project.worktreeDir : tmpdir();
-  const { stdout } = await runStreaming(
-    CLAUDE_BIN,
-    claudeArgs({ prompt, tools: CHAT_TOOLS, systemPrompt: CHAT_SYSTEM, settings: runSettings(project) }),
-    { cwd, timeout: TIMEOUT_MS, env: runEnv() },
-    undefined, undefined,
-    { name: 'chat', kind: 'chat', project: project.key },
-  );
-  const { text, stats } = parseRunOutput(stdout);
-  if (stats) await appendRun({ project: project.key, iid, kind: 'chat', command: 'chat', ...stats });
+  const { text } = await runClaudeOnce({
+    args: claudeArgs({ prompt, tools: CHAT_TOOLS, systemPrompt: CHAT_SYSTEM, settings: runSettings(project) }),
+    cwd,
+    timeout: TIMEOUT_MS,
+    meta: { name: 'chat', kind: 'chat', project: project.key },
+    log: { project: project.key, iid, kind: 'chat', command: 'chat' },
+  });
   if (!text.trim()) throw new Error('Claude returned no answer');
   return text.trim();
 }

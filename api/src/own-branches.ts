@@ -17,7 +17,7 @@ const projectInfo = (project: any) => {
   return defaults.get(project.key)!;
 };
 
-/** @param {any} project @param {any[]} openMrs the open MRs the pass saw (drafts left out) @param {any} state */
+// `openMrs` are the open MRs the pass saw (drafts left out).
 export async function listOwnBranches(project: any, openMrs: any[], state: any) {
   const [user, info, branches] = await Promise.all([whoAmI(), projectInfo(project), gitlab.listBranches(project)]);
   const defaultBranch = info.default_branch;

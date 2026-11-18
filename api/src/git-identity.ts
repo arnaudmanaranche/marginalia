@@ -1,3 +1,4 @@
+import { gitIn } from './git.ts';
 import { gitlab } from './gitlab-api.ts';
 import { logger } from './logger.ts';
 
@@ -21,15 +22,12 @@ export function identityOf(env: Record<string, string | undefined>, user: any): 
 }
 
 // The environment that makes git author and commit as `id`.
-/** @param {Identity | null} id @returns {Record<string, string>} */
 export const identityEnv = (id: Identity | null): Record<string, string> => (id
   ? { GIT_AUTHOR_NAME: id.name, GIT_AUTHOR_EMAIL: id.email, GIT_COMMITTER_NAME: id.name, GIT_COMMITTER_EMAIL: id.email }
   : {});
 
-/** @type {Promise<Identity | null> | null} */
 let cached: Promise<Identity | null> | null = null;
 // Read once per process; a GitLab that can't be read now is asked again next time.
-/** @returns {Promise<Identity | null>} */
 export function commitIdentity(): Promise<Identity | null> {
   cached ??= gitlab.currentUser().then((user: any) => identityOf(process.env, user), (err: Error) => {
     logger.warn(`Could not read the GitLab user for the commit identity: ${err.message}`);
@@ -40,4 +38,7 @@ export function commitIdentity(): Promise<Identity | null> {
 }
 
 // The environment of a git command that commits, as me.
-export const commitEnv = async () => ({ ...process.env, ...identityEnv(await commitIdentity()) });
+export const commitEnv = async (): Promise<Record<string, string>> => ({ ...process.env, ...identityEnv(await commitIdentity()) } as Record<string, string>);
+
+// A git on `cwd` whose commits are made as me.
+export const committerIn = async (cwd: string) => gitIn(cwd, { env: await commitEnv() });

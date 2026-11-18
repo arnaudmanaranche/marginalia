@@ -3,7 +3,7 @@
 // helper hands git the token at the moment it asks, so the token is never written to a gitconfig
 // or put in the environment (where it would reach the Claude runs). Pure: strings in, strings out.
 
-/** @param {string} baseUrl e.g. https://git.example.com or https://git.example.com:8443 */
+// `baseUrl` is e.g. https://git.example.com or https://git.example.com:8443.
 export function httpsRewrites(baseUrl: string) {
   const url = new URL(baseUrl);
   const https = `${url.origin}/`;
@@ -18,7 +18,6 @@ export function httpsRewrites(baseUrl: string) {
 /**
  * What a git credential helper answers to `get`: the token for the GitLab host, nothing for any
  * other host (so it is never sent elsewhere). `input` is git's `key=value` lines.
- * @param {string} input @param {string} baseUrl @param {string} token
  */
 export function credentialResponse(input: string, baseUrl: string, token: string) {
   const asked = Object.fromEntries(input.split('\n').filter((l) => l.includes('=')).map((l) => [l.slice(0, l.indexOf('=')), l.slice(l.indexOf('=') + 1)]));

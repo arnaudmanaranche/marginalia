@@ -9,7 +9,6 @@ import pretty from 'pino-pretty';
 const ANSI = /\x1b\[[0-9;]*m|\x1b\]8;;[^\x07]*\x07/g;
 export const stripAnsi = (text: string) => String(text).replace(ANSI, '');
 
-/** @param {{ json?: boolean, level?: string, destination?: NodeJS.WritableStream, colorize?: boolean }} [options] */
 export function createLogger({ json = false, level = 'info', destination = process.stdout, colorize = Boolean(process.stdout.isTTY) && !process.env.NO_COLOR } = {}) {
   const stream = json
     ? destination
@@ -21,7 +20,7 @@ export function createLogger({ json = false, level = 'info', destination = proce
       translateTime: 'UTC:yyyy-mm-dd"T"HH:MM:ss.l"Z"',
       messageFormat: '{if project}[{project}] {end}{if iid}[MR !{iid}] {end}{msg}',
     });
-  return pino({ level }, /** @type {any} */ (stream));
+  return pino({ level }, stream);
 }
 
 export const logger = createLogger({ json: process.env.MARGINALIA_LOG === 'json', level: process.env.MARGINALIA_LOG_LEVEL || 'info' });

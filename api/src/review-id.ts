@@ -1,9 +1,14 @@
 // A review is addressed in the studio as `<project key>/<slug>`: the slug alone (the
 // review file's name, from the MR's branch) can repeat from one project to another.
 // Pure: the projects are passed in.
+import { basename, join } from 'node:path';
+
 const SLUG_RE = /^[\w.-]+$/;
 
 export const reviewId = (project: any, slug: string) => `${project.key}/${slug}`;
+// A review file's slug from its path, and the path of a project's review file from its slug.
+export const slugOfPath = (path: string) => basename(path, '.md');
+export const reviewFile = (project: any, slug: string) => join(project.reviewsDir, `${slug}.md`);
 
 // { project, slug } for a well-formed id of a known project, else null.
 export function parseReviewId(id: string, projects: any[]) {
