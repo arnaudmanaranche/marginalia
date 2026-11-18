@@ -9,7 +9,7 @@ import { runEnv } from '../run-settings.ts';
 
 const TIMEOUT_MS = 20 * 60_000;
 
-export async function agentStage({ run, stage, prompt, system, tools, cwd, settings = null, addDirs = [], extraArgs = [], parse }: { run: any; stage: string; prompt: string; system: string; tools: string[]; cwd: string; settings?: object | null; addDirs?: string[]; extraArgs?: string[]; parse: (text: string) => { ok: boolean; value?: any; error?: string } }) {
+export async function agentStage<T = any>({ run, stage, prompt, system, tools, cwd, settings = null, addDirs = [], extraArgs = [], parse }: { run: any; stage: string; prompt: string; system: string; tools: string[]; cwd: string; settings?: object | null; addDirs?: string[]; extraArgs?: string[]; parse: (text: string) => { ok: boolean; value?: T; error?: string } }): Promise<T> {
   const call = async (text: string, resume: string | null) => {
     const args = [...claudeArgs({ prompt: text, tools, systemPrompt: system, settings, resume }), ...addDirs.flatMap((d) => ['--add-dir', d]), ...extraArgs];
     const { stdout, model } = await runStreaming(
@@ -25,12 +25,12 @@ export async function agentStage({ run, stage, prompt, system, tools, cwd, setti
   };
   let out = await call(prompt, null);
   let parsed = parse(out.text);
-  if (parsed.ok) return parsed.value;
+  if (parsed.ok) return parsed.value as T;
   if (out.sessionId) {
     run.step(`The answer did not fit the contract (${parsed.error}): asking again`, { stage });
     out = await call(`Your answer could not be used: ${parsed.error}. Answer again with only the JSON block, in the shape asked.`, out.sessionId);
     parsed = parse(out.text);
-    if (parsed.ok) return parsed.value;
+    if (parsed.ok) return parsed.value as T;
   }
   throw new Error(`The "${stage}" stage gave no usable answer: ${parsed.error}`);
 }

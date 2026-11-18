@@ -29,7 +29,7 @@ export async function setNotificationsOn(on: boolean): Promise<boolean> {
     if (on && notificationsSupported() && Notification.permission !== 'granted') await Notification.requestPermission();
     const granted = on && notificationsSupported() && Notification.permission === 'granted';
     writeStored(KEY, granted ? 'on' : 'off');
-    return granted;
+    return granted && readStored(KEY) === 'on';
   } catch {
     return false;
   }

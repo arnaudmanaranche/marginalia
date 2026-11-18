@@ -39,7 +39,8 @@ export function reviewVerifier({ run, mr, recipe, context, settings }: { run: an
   const limits = verifyLimits(mr.project);
   const slot = createLimiter(CONCURRENCY);
   const taken = new Set<string>();
-  let left = Number(VERIFY_MAX_PER_REVIEW) || DEFAULT_MAX_PER_REVIEW;
+  const cap = Number(VERIFY_MAX_PER_REVIEW);
+  let left = cap > 0 ? cap : DEFAULT_MAX_PER_REVIEW;
   let count = 0;
 
   async function reproduce(stage: string, finding: any, chapter: any) {

@@ -2,7 +2,7 @@ import { transaction } from './db.ts';
 
 // The queries behind state.ts, posted.ts and runlog.ts, on a given database so
 // they are tested on an in-memory one. The shapes in and out are the ones the
-// JSON files had (see state-shape.ts); only where they live changed.
+// JSON files had (see state-legacy.ts); only where they live changed.
 // Entries of kind `sha` sit at the top of the state; the others sit in the group named here.
 const GROUP_OF_KIND: Record<string, string> = { peer: 'mineComments', below: 'stackBelow' };
 

@@ -2,7 +2,7 @@ import { createWriteStream } from 'node:fs';
 import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { DATA_DIR } from './config.ts';
-import { isSafeId, timeId } from './history.ts';
+import { isSafeId, timeId } from './safe-id.ts';
 import { traceIdsIn } from './run-dirs.ts';
 import { runSummary } from './run-trace.ts';
 

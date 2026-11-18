@@ -6,7 +6,7 @@ import { join } from 'node:path';
 const isTraceFile = (name: string) => name.endsWith('.json') && !/\.(doctor|fix)\.json$/.test(name);
 
 async function subdirs(path: string) {
-  return (await readdir(path, { withFileTypes: true }).catch(() => [])).filter((e) => e.isDirectory()).map((e) => e.name);
+  return (await readdir(path, { withFileTypes: true }).catch((err) => { if (err?.code === 'ENOENT') return []; throw err; })).filter((e) => e.isDirectory()).map((e) => e.name);
 }
 
 // The run ids kept in one review's directory, newest first; [] when there is none.

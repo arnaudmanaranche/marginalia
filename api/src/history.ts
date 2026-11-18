@@ -1,14 +1,11 @@
 import { copyFile, mkdir, readFile, readdir, stat } from 'node:fs/promises';
 import { join } from 'node:path';
+import { isSafeId, timeId } from './safe-id.ts';
 
 // Previous versions of a review, kept by the artifact (artifact.ts). A re-run overwrites
 // <slug>.md, so the file it replaces is first copied to .history/<slug>/<timestamp>.md (the
 // timestamp is when that version was written, see writtenAt). The dot-directory keeps these out of the studio's
 // review list, which only reads *.md at the top of the reviews dir.
-// An id that sorts by time and reads as one: the ISO time with its `:` and `.` turned into `-`.
-export const timeId = (iso: string) => iso.replace(/[:.]/g, '-');
-// Whether `id` is safe to use in a file name.
-export const isSafeId = (id: string) => /^[\w-]+$/.test(id);
 // The ISO time an id stands for (the reverse of timeId).
 export const versionTime = (id: string) => id.replace(/^(\d{4}-\d{2}-\d{2}T\d{2})-(\d{2})-(\d{2})-(\d{3})Z$/, '$1:$2:$3.$4Z');
 

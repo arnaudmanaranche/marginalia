@@ -40,7 +40,7 @@ export const contextKeyOf = (route: string | null) => (route?.startsWith(CONTEXT
 export const criticalPathRoute = (projectKey: string, name: string) => `${contextRoute(projectKey)}?path=${encodeURIComponent(name)}`;
 
 // Whether a route is a review rather than a page.
-export const isReviewRoute = (slug: string | null): slug is string => slug !== null && slug !== SETTINGS_ROUTE && slug !== APPROVALS_ROUTE && slug !== JOBS_ROUTE && contextKeyOf(slug) === null;
+export const isReviewRoute = (slug: string | null) => slug !== null && slug !== SETTINGS_ROUTE && slug !== APPROVALS_ROUTE && slug !== JOBS_ROUTE && contextKeyOf(slug) === null;
 
 // The link to a route; no route is Home.
 export const hrefOf = (route: string | null) => (route ? `#/${route}` : '#/');

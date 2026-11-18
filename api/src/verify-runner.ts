@@ -5,6 +5,7 @@ import { randomUUID } from 'node:crypto';
 import { execFileAsync } from './exec.ts';
 import { commandAllowed, execArgs, execArgv, removeArgs, startArgs, runArgs, truncateOutput } from './verify-runner-args.ts';
 import type { VerifyLimits } from './verify-limits.ts';
+import { RUNNER_PREFIX } from './docker-guard-policy.ts';
 
 export interface Runner {
   exec: (command: string) => Promise<{ code: number; output: string; timedOut: boolean; refused?: string }>;
@@ -21,7 +22,7 @@ export interface RunnerOptions { image: string; workdir: string; limits: VerifyL
 
 export async function startRunner({ image, workdir, limits, steps, hosts = [], forbidden = [], docker = 'docker', egress = null, work = null }: RunnerOptions): Promise<Runner> {
   if (!image) throw new Error('no runner image: set VERIFY_RUNNER_IMAGE');
-  const name = `marginalia-verify-${randomUUID().slice(0, 8)}`;
+  const name = `${RUNNER_PREFIX}${randomUUID().slice(0, 8)}`;
   const user = `${process.getuid?.() ?? 1000}:${process.getgid?.() ?? 1000}`;
   await execFileAsync(docker, runArgs({ name, image, workdir, limits, user, egress, hosts, forbidden, work }), { timeout: 60_000 });
   const deadline = Date.now() + limits.timeoutMinutes * 60_000;

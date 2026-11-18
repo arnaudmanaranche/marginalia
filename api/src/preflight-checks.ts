@@ -4,9 +4,10 @@
 // A check is { label, level, detail }: `ok`, `warn` (the run goes on without it, and says what it
 // will miss) or `block` (the run stops here, before any agent is paid for).
 
-const ok = (label: string, detail: string) => ({ label, level: 'ok', detail });
-const warn = (label: string, detail: string) => ({ label, level: 'warn', detail });
-const block = (label: string, detail: string) => ({ label, level: 'block', detail });
+type Check = { label: string; level: 'ok' | 'warn' | 'block'; detail: string };
+const ok = (label: string, detail: string): Check => ({ label, level: 'ok', detail });
+const warn = (label: string, detail: string): Check => ({ label, level: 'warn', detail });
+const block = (label: string, detail: string): Check => ({ label, level: 'block', detail });
 const firstLine = (text: any) => String(text ?? '').trim().split('\n').find(Boolean)?.slice(0, 200) ?? '';
 
 // `claude auth status` prints JSON. An older CLI without the command can't tell: the run goes on.
