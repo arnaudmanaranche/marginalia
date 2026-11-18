@@ -6,7 +6,7 @@ import type { ContextState, StoredContext } from '../lib/contextApi';
 import { useContextActions, useProjectContext } from '../lib/contextApi';
 import { toast } from '../lib/toast';
 import { ContextSections } from './ContextSections';
-import { SETTINGS_ROUTE } from '../lib/hashRoute';
+import { SETTINGS_ROUTE, hrefOf } from '../lib/hashRoute';
 import { Badge } from './ui/Badge';
 import { Button } from './ui/Button';
 import { Spinner } from './ds/Spinner';
@@ -41,7 +41,7 @@ export function ProjectPage({ state, error, onRetry, busy, onApprove, onLearn, f
         <div className="min-w-0">
           {/* Where this page lives: Settings, under Projects, which the top bar's Settings icon shows too. */}
           <nav aria-label="Breadcrumb" className="mb-1 text-xs text-fg-muted">
-            <a href={`#/${SETTINGS_ROUTE}`} className="hover:text-zinc-900 dark:hover:text-zinc-100">Settings</a><span aria-hidden> › </span>Projects<span aria-hidden> › </span><span aria-current="page">{state.project}</span>
+            <a href={hrefOf(SETTINGS_ROUTE)} className="hover:text-zinc-900 dark:hover:text-zinc-100">Settings</a><span aria-hidden> › </span>Projects<span aria-hidden> › </span><span aria-current="page">{state.project}</span>
           </nav>
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="text-3xl font-semibold tracking-tight">{state.project}</h1>

@@ -1,7 +1,7 @@
 // An own review made again at a new commit: which findings of the old one did the push fix? Real git.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
+import { git } from './support/git-repo.mjs';
 import { mkdtemp, mkdir, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -11,7 +11,6 @@ const { recordFixedBefore } = await import('../dist/src/own-fixed.js');
 const { getDb } = await import('../dist/src/store.js');
 const { isFixed } = await import('../dist/src/fixed-store.js');
 
-const git = (cwd, ...args) => execFileSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@t', ...args], { cwd, encoding: 'utf8' }).trim();
 const repo = await mkdtemp(join(tmpdir(), 'fixed-'));
 git(repo, 'init', '-q');
 await writeFile(join(repo, 'a.ts'), ['one', 'two', 'three', 'four', 'five', ''].join('\n'));

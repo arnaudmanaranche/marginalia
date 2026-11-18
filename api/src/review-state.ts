@@ -16,7 +16,6 @@ import { isBotAuthor } from './gitlab-notes.ts';
 //   unresolved       threads still open
 
 // My decision shows in the MR's system notes ("requested changes", "approved this merge request").
-/** @type {[RegExp, string | null][]} */
 const DECISIONS: [RegExp, string | null][] = [
   [/^approved this merge request/i, 'approved'],
   [/^requested changes/i, 'changes_requested'],

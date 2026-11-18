@@ -2,8 +2,9 @@ import { botQueue } from './bot-queue.ts';
 import { gitlab } from './gitlab-api.ts';
 import { logger } from './logger.ts';
 import { intakeNote } from './mention-pass.ts';
-import { failureTitleOf, mentionDeps } from './mention-deps.ts';
+import { mentionDeps } from './mention-deps.ts';
 import { PROJECTS } from './projects.ts';
+import { webhookConfig } from './webhook-config.ts';
 import { startWebhook } from './webhook-server.ts';
 import { projectOfEvent, type NoteEvent } from './webhook.ts';
 
@@ -24,12 +25,12 @@ botQueue.handle('mention', async ({ project: key, iid, noteId }) => {
   if (!project) throw new Error(`No project "${key}" any more`);
   const mr = await gitlab.getMergeRequest(project, iid);
   if (mr.state !== 'opened') return;
-  await intakeNote(project, { ...mr, project }, noteId, mentionDeps, failureTitleOf);
+  await intakeNote(project, { ...mr, project }, noteId, mentionDeps);
 });
 
 // Started only with a secret: without one the listener does not exist (polling stays the intake).
 export function startWebhookIfConfigured(env = process.env) {
-  const secret = env.WEBHOOK_SECRET;
+  const { secret, port, host } = webhookConfig(env);
   if (!secret) return null;
-  return startWebhook({ secret, port: Number(env.WEBHOOK_PORT) || 4478, host: env.WEBHOOK_HOST || '127.0.0.1', onNote: handleNoteEvent });
+  return startWebhook({ secret, port, host, onNote: handleNoteEvent });
 }

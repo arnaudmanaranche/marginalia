@@ -2,7 +2,8 @@ import { Children, useContext, useEffect, useMemo, useRef, useState, type ReactN
 import { Check, Pencil, Send, Undo2 } from 'lucide-react';
 import { toast } from '../lib/toast';
 import { textOf } from '../lib/markdown';
-import { editKey, readEdit, writeEdit } from '../lib/commentEdits';
+import { editKey } from '../lib/commentEdits';
+import { readStored, writeStored } from '../lib/storage';
 import { addToReview } from '../lib/pendingPosts';
 import { commentTargetAt, squash, writtenComment } from '../lib/reviewComments';
 import { PostContext, SourceContext, type PostContextValue } from '../lib/reviewContexts';
@@ -10,12 +11,13 @@ import { Button } from './ui/Button';
 import { ConfirmPost } from './ConfirmPost';
 import { PostedBadge } from './PostedBadge';
 import { CopyButton } from './CopyButton';
+import { postedKey } from '../lib/postedKey';
 
 // The id of the finding a comment belongs to, which survives a re-run that rewords it, and where
 // it stands on GitLab. Comments posted before findings existed were keyed by a hash of their text.
 function resolveComment(post: PostContextValue, original: string, legacyId: string) {
   const commentId = post.findings.find((f) => f.comment && squash(f.comment) === squash(original))?.id ?? legacyId;
-  const postedInfo = post.slug ? post.posted[`${post.slug}:${commentId}`] ?? post.posted[`${post.slug}:${legacyId}`] : undefined;
+  const postedInfo = post.slug ? post.posted[postedKey(post.slug, commentId)] ?? post.posted[postedKey(post.slug, legacyId)] : undefined;
   return { commentId, postedInfo };
 }
 
@@ -25,7 +27,7 @@ export function Quote({ children, offset }: { children?: ReactNode; offset?: num
   const ref = useRef<HTMLDivElement>(null);
   const [original, setOriginal] = useState(() => textOf(children).trim());
   const key = editKey(original);
-  const [edited, setEdited] = useState<string | null>(() => readEdit(key));
+  const [edited, setEdited] = useState<string | null>(() => readStored(key));
   const [editing, setEditing] = useState(false);
   const post = useContext(PostContext);
   const source = useContext(SourceContext);
@@ -57,11 +59,11 @@ export function Quote({ children, offset }: { children?: ReactNode; offset?: num
   };
   const update = (v: string) => {
     setEdited(v);
-    writeEdit(key, v);
+    writeStored(key, v);
   };
   const reset = () => {
     setEdited(null);
-    writeEdit(key, null);
+    writeStored(key, null);
     setEditing(false);
     toast('Reverted to the generated comment');
   };

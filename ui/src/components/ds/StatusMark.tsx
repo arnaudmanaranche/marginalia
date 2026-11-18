@@ -1,6 +1,10 @@
 // `current`: where a person is in a sequence they are reading (a chapter), not work going on.
 export type MarkState = 'done' | 'running' | 'pending' | 'failed' | 'skipped' | 'current';
 
+// The mark of a run's outcome, a queue task's status or a job's tone: they all name the same few states.
+export const markOf = (outcome: 'running' | 'queued' | 'pending' | 'reviewed' | 'done' | 'skipped' | 'failed'): MarkState =>
+  outcome === 'queued' ? 'pending' : outcome === 'reviewed' ? 'done' : outcome;
+
 const LABEL: Record<MarkState, string> = { done: 'Done', running: 'In progress', pending: 'Not started', failed: 'Failed', skipped: 'Skipped', current: 'Here' };
 
 // The state of a step, a job or a run, drawn the same everywhere: a filled disc with a check when

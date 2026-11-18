@@ -31,3 +31,8 @@ test('an approval older than the last push, or by the author, does not hold', ()
 test('an own review is never held by an approval', () => {
   assert.equal(hold({ kind: 'own', facts: { approvedBy: [{ username: 'bob', at: null }] } }), null);
 });
+
+test('without a stale limit an old push does not hold, an approval since still does', () => {
+  assert.equal(hold({ staleDays: Infinity, facts: { lastPushAt: now - 400 * DAY } }), null);
+  assert.match(hold({ staleDays: Infinity, facts: { approvedBy: [{ username: 'bob', at: new Date(now).toISOString() }] } }), /Approved on GitLab by bob/);
+});

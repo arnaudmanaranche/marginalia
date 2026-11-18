@@ -2,6 +2,7 @@ import { ALLOW_POSTING } from '../config.ts';
 import { projectByKey } from '../projects.ts';
 import { posted } from '../posted.ts';
 import { gitlab } from '../gitlab-api.ts';
+import { logger } from '../logger.ts';
 import { broadcast, postQueue } from './context.ts';
 
 // Forgets posted comments that were deleted on GitLab, so they can be posted
@@ -34,10 +35,10 @@ export async function reconcilePosted() {
           posted.forget(key);
           changed = true;
         }
-      } catch {
-        /* GitLab unreachable: keep it for now */
+      } catch (err) {
+        logger.debug({ err, key }, 'Could not check a posted comment against GitLab: kept for now');
       }
     }
     if (changed) broadcast();
-  }).catch(() => {});
+  }).catch((err) => logger.debug({ err }, 'Reconciling the posted comments failed'));
 }

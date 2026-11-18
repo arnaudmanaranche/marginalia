@@ -1,5 +1,5 @@
 // The daily budget (GLOSSARY: Budget), as GET /api/queue gives it (Budget in the contract), and how
-// the studio reads it. Pure.
+// the studio reads it.
 
 export interface Budget {
   since: string; resetsAt: string; limitUsd: number | null; spentUsd: number; leftUsd: number | null; over: boolean; runs: number;
@@ -8,7 +8,7 @@ export interface Budget {
 }
 
 // Past this share of the limit the meter turns amber: the day's automatic work is about to stop.
-export const NEAR = 0.8;
+const NEAR = 0.8;
 
 export const money = (usd: number) => `$${usd.toFixed(2)}`;
 

@@ -1,13 +1,15 @@
 import { OpenAPIHono } from '@hono/zod-openapi';
-import { errorHandler, ownHosts, requirePosting, validationHook, writeGuard } from './guards.ts';
+import { POSTING_ROUTES, errorHandler, ownHosts, requirePosting, validationHook, writeGuard } from './guards.ts';
 import { authRoutes } from './auth-routes.ts';
 import { sessionMiddleware } from './auth-middleware.ts';
 import { currentScope, scopedGitlab } from './request-scope.ts';
 import type { AuthConfig } from '../auth-config.ts';
-import { STUDIO_ALLOWED_HOSTS } from '../config.ts';
+import { STUDIO_ALLOWED_HOSTS, STUDIO_PORT } from '../config.ts';
 import { readRoutes } from './routes-read.ts';
 import { writeRoutes } from './routes-write.ts';
-import { actionRoutes } from './routes-actions.ts';
+import { botRoutes } from './routes-bot.ts';
+import { chatRoute } from './routes-chat.ts';
+import { fixesRoutes } from './routes-fixes.ts';
 import { replyRoutes } from './routes-replies.ts';
 import { runRoutes } from './routes-runs.ts';
 import { jobRoutes } from './routes-jobs.ts';
@@ -18,7 +20,7 @@ import { liveRoutes, serveStatic } from './routes-live.ts';
 
 const DESCRIPTION = `The contract between the studio server and the React app. Generated from the zod schemas the routes validate with.
 
-**Local only.** The server binds to \`127.0.0.1\` (default port \`4477\`) and is a thin layer over the review files, \`status.json\`, and the GitLab API called with the owner's \`GITLAB_TOKEN\`.
+**Local only.** The server binds to \`127.0.0.1\` (port \`${STUDIO_PORT}\`) and is a thin layer over the review files, \`status.json\`, and the GitLab API called with the owner's \`GITLAB_TOKEN\`.
 
 **Reviews are addressed as \`<project key>/<file name>\`**, URL-encoded in paths (\`back%2Ffeat-x\`): one install can watch several GitLab projects.
 
@@ -48,14 +50,13 @@ export function createApp({ hosts, gitlab, auth }: { hosts?: () => Set<string>; 
   if (!auth) app.get('/api/me', (c) => c.json({}));
   gitlab ??= scopedGitlab();
 
-  app.use('/api/post', requirePosting);
-  app.use('/api/submit-review', requirePosting);
-  app.use('/api/drafts/*', requirePosting);
-  app.use('/api/replies', requirePosting);
+  for (const path of POSTING_ROUTES) app.use(path, requirePosting);
 
   readRoutes(app);
   writeRoutes(app, gitlab);
-  actionRoutes(app);
+  botRoutes(app);
+  chatRoute(app);
+  fixesRoutes(app);
   replyRoutes(app, gitlab);
   runRoutes(app);
   jobRoutes(app);
@@ -67,7 +68,7 @@ export function createApp({ hosts, gitlab, auth }: { hosts?: () => Set<string>; 
   app.doc31('/openapi.json', {
     openapi: '3.1.0',
     info: { title: 'Marginalia studio API', version: '2.0.0', description: DESCRIPTION },
-    servers: [{ url: 'http://localhost:4477', description: 'Studio server (`npm start`). In dev the Vite proxy forwards `/api` and `/events` here.' }],
+    servers: [{ url: `http://localhost:${STUDIO_PORT}`, description: 'Studio server (`npm start`). In dev the Vite proxy forwards `/api` and `/events` here.' }],
     tags: [{ name: 'Reviews' }, { name: 'Settings' }, { name: 'Pending review' }, { name: 'Triage fixes' }, { name: 'Replies' }, { name: 'Runs' }],
   });
 

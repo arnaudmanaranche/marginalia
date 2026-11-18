@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { PROJECT_KEY } from '@worldia/marginalia-contract';
 
 // team.json, the file at the root of the shared team repo: defaults and the list of
 // GitLab projects the team reviews. Pure (no config or I/O import), like config-schema.ts.
@@ -18,7 +19,7 @@ const reviewFields = {
 // Strict on purpose: a typo ("excludeAuthor") would otherwise be silently ignored.
 export const TeamProjectSchema = z.strictObject({
   gitlabProjectId: z.string().trim().min(1),
-  key: z.string().regex(/^[a-z0-9][a-z0-9-]*$/, 'lowercase letters, digits and dashes').optional(),
+  key: z.string().regex(PROJECT_KEY, 'lowercase letters, digits and dashes').optional(),
   kind: z.enum(['back', 'front']).optional(),
   ...reviewFields,
 });

@@ -4,6 +4,7 @@ import type { CrossFinding, ReviewItem, Stack, StackLayer } from '../lib/api';
 import { cn } from '../lib/utils';
 import { Badge } from './ui/Badge';
 import type { BadgeTone } from './ui/badgeStyles';
+import { hrefOf } from '../lib/hashRoute';
 
 const KIND: Record<CrossFinding['kind'], { label: string; tone: BadgeTone }> = {
   'settled-later': { label: 'Settled in a later layer', tone: 'neutral' },
@@ -75,7 +76,7 @@ export function StackBoard({ stack, items, current, isPosted, onSelect }: {
               <li key={r.layer.iid} className="flex items-center gap-1">
                 {i > 0 && <ChevronRight className="size-3.5 text-fg-subtle" aria-hidden />}
                 {r.item && !active
-                  ? <a href={`#/${r.item.slug}`} onClick={() => onSelect(r.item!.slug)} title={title} className={chip}>{label}</a>
+                  ? <a href={hrefOf(r.item.slug)} onClick={() => onSelect(r.item!.slug)} title={title} className={chip}>{label}</a>
                   : <span aria-current={active ? 'true' : undefined} title={title} className={chip}>{label}</span>}
               </li>
             );
@@ -109,7 +110,7 @@ export function StackBoard({ stack, items, current, isPosted, onSelect }: {
                   {other !== null && (
                     <p className="mt-0.5 text-xs text-fg-muted">
                       {c.from === here?.layer.iid ? 'Concerns' : 'Raised by'}{' '}
-                      {slug ? <a href={`#/${slug}`} onClick={(e) => { e.preventDefault(); onSelect(slug); }} className="text-blue-600 hover:underline dark:text-blue-400">!{other}</a> : `!${other}`}
+                      {slug ? <a href={hrefOf(slug)} onClick={(e) => { e.preventDefault(); onSelect(slug); }} className="text-blue-600 hover:underline dark:text-blue-400">!{other}</a> : `!${other}`}
                     </p>
                   )}
                 </div>

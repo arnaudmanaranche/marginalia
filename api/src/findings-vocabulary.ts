@@ -4,7 +4,6 @@
 export const SEVERITIES = ['critical', 'important', 'suggestion', 'info'];
 export const VERDICTS = ['APPROVE', 'REQUEST_CHANGES', 'OTHER'];
 
-/** @type {[RegExp, string][]} */
 const SEVERITY_ALIASES: [RegExp, string][] = [
   [/^(critical|blocker|blocking|bloquant|bloquante|critique|must[ _-]?fix|high|severe)$/, 'critical'],
   [/^(important|major|majeur|majeure|should[ _-]?fix|warning|medium|moderate)$/, 'important'],

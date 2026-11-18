@@ -1,4 +1,5 @@
 import { basename } from 'node:path';
+import { parseMcpName } from './tool-label.ts';
 
 // One readable line per step of a run, for the studio's live panel: what the
 // run says it is doing, and the tools it calls.
@@ -9,7 +10,7 @@ export function describeStep(block: any) {
   }
   if (block.type !== 'tool_use') return null;
   const input = block.input ?? {};
-  const name = block.name.replace(/^mcp__[^_]+(?:-[^_]+)*__/, '');
+  const name = parseMcpName(block.name)?.tool ?? block.name;
   switch (name) {
     case 'Bash': return `$ ${String(input.command ?? '').split('\n')[0].slice(0, 120)}`;
     case 'Read': return `Reading ${basename(String(input.file_path ?? ''))}`;

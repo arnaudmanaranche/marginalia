@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { execFileSync } from 'node:child_process';
+import { git } from './support/git-repo.mjs';
 
 const root = await mkdtemp(join(tmpdir(), 'marginalia-fixes-'));
 const origin = join(root, 'origin.git');
@@ -17,7 +17,6 @@ process.env.REPO_LOCAL_PATH = repo;
 process.env.MARGINALIA_GIT_NAME = 't';
 process.env.MARGINALIA_GIT_EMAIL = 't@t';
 
-const git = (cwd, ...args) => execFileSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@t', '-c', 'commit.gpgsign=false', ...args], { cwd, encoding: 'utf8' }).trim();
 git(root, 'init', '--quiet', '--bare', '-b', 'main', origin);
 git(root, 'clone', '--quiet', origin, repo);
 git(repo, 'commit', '--quiet', '--allow-empty', '-m', 'base');

@@ -1,10 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { computeReviewState } from '../dist/src/review-state.js';
+import { glNote, glThread } from './support/fixtures.mjs';
 
-const note = (user, body, at, over = {}) => ({ id: Math.random(), body, system: false, created_at: at, author: { username: user }, ...over });
+const note = (user, body, at, over = {}) => glNote(Math.random(), body, { author: { username: user }, created_at: at, ...over });
 const sys = (user, body, at) => note(user, body, at, { system: true });
-const thread = (...notes) => ({ id: `t${Math.random()}`, notes });
+const thread = (...notes) => glThread(`t${Math.random()}`, notes);
 const base = { me: 'me', author: 'alice', discussions: [], now: Date.parse('2026-10-12T20:00:00Z') };
 
 test('an MR I never touched is not reviewed, even with other people active on it', () => {

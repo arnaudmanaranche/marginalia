@@ -1,4 +1,6 @@
 import { useEffect, useSyncExternalStore } from 'react';
+import { prefersStill } from './motion';
+import { readStored, writeStored } from './storage';
 
 // The studio's theme: follow the system, or be light or dark whatever the system says. The result is
 // written on <html> as data-theme, which the stylesheet reads (index.css); the choice is kept in this
@@ -19,11 +21,7 @@ export const resolveTheme = (choice: ThemeChoice, systemDark: boolean): Theme =>
 const systemDark = () => typeof matchMedia === 'function' && matchMedia('(prefers-color-scheme: dark)').matches;
 
 export function readChoice(): ThemeChoice {
-  try {
-    return parseChoice(localStorage.getItem(THEME_KEY));
-  } catch {
-    return 'system';
-  }
+  return parseChoice(readStored(THEME_KEY));
 }
 
 export function applyTheme(choice: ThemeChoice) {
@@ -50,9 +48,7 @@ function subscribe(notify: () => void) {
 }
 
 export function setChoice(next: ThemeChoice) {
-  try {
-    localStorage.setItem(THEME_KEY, next);
-  } catch { /* the choice still applies for this page */ }
+  writeStored(THEME_KEY, next);
   switchSmoothly(() => window.dispatchEvent(new Event(EVENT)));
 }
 
@@ -64,7 +60,7 @@ let turn = 0;
 function switchSmoothly(apply: () => void) {
   const root = document.documentElement;
   const mine = ++turn;
-  const still = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const still = prefersStill();
   root.classList.add('theme-switching');
   const done = () => requestAnimationFrame(() => requestAnimationFrame(() => {
     if (mine === turn) root.classList.remove('theme-switching');

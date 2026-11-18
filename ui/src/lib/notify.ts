@@ -1,3 +1,4 @@
+import { readStored, writeStored } from './storage';
 import type { Cue } from './sounds';
 
 // A system notification for what the studio would sound, when the page is not the one in front: a
@@ -16,7 +17,7 @@ export const notificationsSupported = () => typeof Notification !== 'undefined';
 
 export function notificationsOn(): boolean {
   try {
-    return notificationsSupported() && Notification.permission === 'granted' && localStorage.getItem(KEY) === 'on';
+    return notificationsSupported() && Notification.permission === 'granted' && readStored(KEY) === 'on';
   } catch {
     return false;
   }
@@ -27,8 +28,8 @@ export async function setNotificationsOn(on: boolean): Promise<boolean> {
   try {
     if (on && notificationsSupported() && Notification.permission !== 'granted') await Notification.requestPermission();
     const granted = on && notificationsSupported() && Notification.permission === 'granted';
-    localStorage.setItem(KEY, granted ? 'on' : 'off');
-    return granted;
+    writeStored(KEY, granted ? 'on' : 'off');
+    return granted && readStored(KEY) === 'on';
   } catch {
     return false;
   }

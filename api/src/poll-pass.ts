@@ -15,10 +15,10 @@ import { heldBack } from './poll-pass-hold.ts';
 // deps: listOpenMergeRequests(project), latestPeerCommentAt(mr), reviewFileCoversLastPush(mr),
 //   fetchReviewStates(project, mrs), jiraPriorityOf(mr), mtime(path), reviewPath(mr), commentsPath(mr),
 //   ownPath(mr), listOwnBranches(project, openMrs, state), runReview(mr, path, stack, { own }), runMrComments(mr), loadState(project), saveState(project, state),
-//   allowedTargets(project), settlesConflicts(project), username, notify(title, message, path),
+//   allowedTargets(project), username, notify(title, message, path),
 //   trackFailure({ mr, kind, command, error }), startDoctor({ project, fileSlug, runId, auto }),
-//   budget() (optional: today's budget, budget.ts; once it is over, automatic work waits),
-//   reviewFacts(mr) and staleAfterDays() (optional: what holds an automatic review, poll-pass-hold.ts).
+//   budget() (today's budget, budget.ts; once it is over, automatic work waits),
+//   reviewFacts(mr) and staleAfterDays() (what holds an automatic review, poll-pass-hold.ts).
 // sink: begin(mr), setMr(mr, patch), end(), entriesOf(project), setEntries(project, entries).
 // `asked`: the MR a person asked to review again (a rerun task), or null for a poll.
 export async function passOver(project: any, deps: any, sink: any, asked: any = null) {
@@ -43,8 +43,7 @@ export async function passOver(project: any, deps: any, sink: any, asked: any = 
     : [];
   const peerCommentAts = await Promise.all(myMrs.map((mr: any) => deps.latestPeerCommentAt(mr)));
   // GitLab's has_conflicts: the staged triage merges the target in and settles them.
-  const settles = deps.settlesConflicts(project);
-  const mine = myMrs.map((mr: any, i: any) => ({ mr, signal: triageSignal(peerCommentAts[i], settles && mr.has_conflicts ? mr.sha : null) }));
+  const mine = myMrs.map((mr: any, i: any) => ({ mr, signal: triageSignal(peerCommentAts[i], mr.has_conflicts ? mr.sha : null) }));
   const toTriage = mine.filter(({ mr, signal }: any) => needsTriage(state, mr, signal));
 
   await sink.setEntries(project, await buildEntries({ project, plan, state, mine, branches, previous: sink.entriesOf(project), deps }));

@@ -11,7 +11,6 @@ export function parseVerdict(md: string) {
   return m ? normalizeVerdict(m[1]) : null;
 }
 
-/** @type {[RegExp, string][]} */
 const HEADING_SEVERITIES: [RegExp, string][] = [
   [/critical|critique|blocker|blocking|bloquant|must[ -]fix/i, 'critical'],
   [/important|major|majeur|should[ -]fix|warning|[àa] corriger/i, 'important'],

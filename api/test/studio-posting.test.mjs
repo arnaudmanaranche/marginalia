@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, writeFile, mkdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { sender, errorOf } from './support/studio.mjs';
 
 const dir = await mkdtemp(join(tmpdir(), 'marginalia-posting-'));
 Object.assign(process.env, {
@@ -18,9 +19,7 @@ await mkdir(PROJECTS[0].reviewsDir, { recursive: true });
 await writeFile(join(dir, 'status.json'), JSON.stringify({ pid: 1, phase: 'idle', mrs: [] }));
 const app = createApp();
 
-const OWN = { host: 'localhost:4477', 'content-type': 'application/json' };
-const send = (method, path, body) => app.request(path, { method, headers: OWN, body: body === undefined ? undefined : JSON.stringify(body) });
-const errorOf = async (res) => (await res.json()).error;
+const send = sender(app);
 const good = { slug: 'demo/feat-x', commentId: 'c1', body: 'Please rename this.' };
 
 test('a comment needs a review id, a comment id and a non-empty body', async () => {

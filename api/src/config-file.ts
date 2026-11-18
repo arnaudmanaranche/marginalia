@@ -22,7 +22,7 @@ export function readConfigFile(dir: string, options: { team?: any } = {}) {
   try {
     raw = JSON.parse(text);
   } catch (err) {
-    throw new Error(`${file} is not valid JSON: ${/** @type {Error} */ (err).message}`);
+    throw new Error(`${file} is not valid JSON: ${err.message}`);
   }
   const result = parseConfig(applyTeam(raw, team));
   if (!result.ok) throw new Error(`${file} is invalid:\n  ${result.errors.join('\n  ')}`);

@@ -1,5 +1,5 @@
 import { z } from '@hono/zod-openapi';
-import { DiscussionId } from './common.ts';
+import { DiscussionId, Severity, RiskLevel, FindingProof, VerificationStatus, ReplyVerdict } from './common.ts';
 
 // What the agent must write to `.marginalia-findings.json`, strictly. The reader in api/ is lenient
 // on purpose for reviews already stored; a run that breaks this fails visibly (ADR 0003).
@@ -8,21 +8,20 @@ const paths = z.array(text).min(1);
 
 const RiskAxis = z.object({
   axis: z.enum(['verification', 'alignment', 'impact', 'rollback', 'detection']),
-  level: z.enum(['low', 'medium', 'high']),
+  level: RiskLevel,
   note: text.optional(),
 });
 
 // Whether a finding could be reproduced by running the project (ADR 0009), and what a reproduction found.
-export const FindingProof = z.enum(['runtime', 'static']);
 export const FindingVerification = z.object({
-  status: z.enum(['reproduced', 'not_reproduced', 'inconclusive', 'skipped']),
+  status: VerificationStatus,
   evidence: text.nullish(),
   command: text.nullish(),
 });
 
 const AgentFinding = z.object({
   id: z.string().regex(/^[\w-]{1,56}$/).optional(),
-  severity: z.enum(['critical', 'important', 'suggestion', 'info']),
+  severity: Severity,
   title: text.max(300),
   path: text.nullish(),
   line: z.number().int().min(1).nullish(),
@@ -44,7 +43,7 @@ export const AgentReview = z.object({
   verdict: z.enum(['APPROVE', 'REQUEST_CHANGES']),
   summary: text,
   risk: z.object({
-    level: z.enum(['low', 'medium', 'high']),
+    level: RiskLevel,
     rationale: text.optional(),
     factors: z.array(text).optional(),
     // The five questions behind the level, and what would lower it.
@@ -71,7 +70,7 @@ export const AgentTriage = z.object({
   findings: z.array(AgentFinding).optional(),
   replies: z.array(z.object({
     thread: DiscussionId,
-    verdict: z.enum(['fixed', 'already_fixed', 'not_relevant', 'wrong', 'answered']),
+    verdict: ReplyVerdict,
     reply: text,
     resolve: z.boolean(),
   })),

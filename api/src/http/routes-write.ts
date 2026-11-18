@@ -4,12 +4,12 @@ import { recordPosted } from '../finding-outcome.ts';
 import { loadState } from '../state.ts';
 import { reviewerStateFor } from '../review-actions.ts';
 import { gitlab as defaultGitlab } from '../gitlab-api.ts';
+import { isNotFound } from '../gitlab-notes.ts';
 import { warn } from '../log.ts';
 import { AddToReviewRequest, DraftEdit, Ok, PostedInfo, ReviewId, SubmitRequest, Submitted } from '@worldia/marginalia-contract';
 import { jsonBody, jsonOf, route } from './route-kit.ts';
+import { notTracked } from './read-kit.ts';
 import { broadcast, locate, postQueue, refreshState, shortMessage } from './context.ts';
-
-const gone = (c: any, status = 404) => c.json({ error: 'no tracked merge request for this review' }, status);
 
 // Comments go up as GitLab draft notes (the "pending review"): private to the token's owner until
 // submitted. The MR is always resolved server-side from status.json, never taken from the request.
@@ -26,7 +26,7 @@ export function writeRoutes(app: any, gitlab = defaultGitlab) {
   }), (c: any) => postQueue(async () => {
     const { slug, commentId, body, path, line } = c.req.valid('json');
     const found = await locate(slug);
-    if (!found?.mr) return gone(c);
+    if (!found?.mr) return notTracked(c);
     const { project, mr } = found;
     const already = posted.find(project.key, found.slug, commentId);
     if (already) return c.json({ error: 'already posted', posted: already }, 409);
@@ -69,7 +69,7 @@ export function writeRoutes(app: any, gitlab = defaultGitlab) {
   }), (c: any) => postQueue(async () => {
     const { slug, summary, action } = c.req.valid('json');
     const found = await locate(slug);
-    if (!found?.mr) return gone(c);
+    if (!found?.mr) return notTracked(c);
     const { project, mr } = found;
     const drafts = posted.draftsOf(project.key, found.slug);
     const text = summary?.trim();
@@ -114,14 +114,14 @@ export function writeRoutes(app: any, gitlab = defaultGitlab) {
   const mutate = (c: any, { edit }: { edit: boolean }) => postQueue(async () => {
     const { slug, id: draftId } = c.req.valid('param');
     const found = await locate(slug);
-    if (!found?.mr) return gone(c);
+    if (!found?.mr) return notTracked(c);
     const { project, mr } = found;
     const text = edit ? c.req.valid('json').body : null;
     try {
       if (edit) await gitlab.updateDraftNote(project, mr.iid, draftId, text);
       else await gitlab.deleteDraftNote(project, mr.iid, draftId);
     } catch (err) {
-      return c.json({ error: shortMessage(err) }, / -> 404:/.test(String(err.message)) ? 404 : 502);
+      return c.json({ error: shortMessage(err) }, isNotFound(err) ? 404 : 502);
     }
     // Keep the local record in step: a deleted draft can be added again, an edited one keeps its new text for matching.
     if (edit) posted.editDraft(project.key, draftId, mr.iid, text);

@@ -5,11 +5,7 @@
 // listed in config.json, which is the same decision as accepting the dialog in their own checkout.
 // Pure: the config object in, a new one out.
 
-/**
- * @param {Record<string, any>} claudeJson contents of Claude's config file
- * @param {string[]} paths folders to mark as trusted
- * @returns {{ config: Record<string, any>, added: string[] }}
- */
+// `claudeJson` is the contents of Claude's config file, `paths` the folders to mark as trusted.
 export function withTrust(claudeJson: any, paths: any) {
   const projects = { ...(claudeJson.projects ?? {}) };
   const added: string[] = [];

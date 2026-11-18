@@ -1,15 +1,16 @@
 import { z } from 'zod';
+import { PROJECT_KEY } from '@worldia/marginalia-contract';
 
 // The shape of the team-ready config: settings shared by every project, and one
 // entry per GitLab project (a back and a front repo are two projects).
 const list = z.array(z.string().trim().min(1)).default([]);
 
-export const ProjectSchema = z.object({
+const ProjectSchema = z.object({
   // Numeric id, or "group/subgroup/project".
   gitlabProjectId: z.string().trim().min(1),
   // Short name used in studio URLs, state and worktree folders. Derived from the
   // GitLab path when omitted (group/back-end -> back-end).
-  key: z.string().regex(/^[a-z0-9][a-z0-9-]*$/, 'lowercase letters, digits and dashes').optional(),
+  key: z.string().regex(PROJECT_KEY, 'lowercase letters, digits and dashes').optional(),
   repoLocalPath: z.string().trim().min(1),
   kind: z.enum(['back', 'front']).optional(),
   // Triage the reviewer comments on my own MRs; false ignores my own MRs.
@@ -28,7 +29,7 @@ export const ProjectSchema = z.object({
   }).partial().optional(),
 });
 
-export const ConfigSchema = z.object({
+const ConfigSchema = z.object({
   gitlabBaseUrl: z.string().trim().min(1).transform((u) => u.replace(/\/+$/, '')),
   gitlabUsername: z.string().trim().min(1),
   gitlabToken: z.string().trim().min(1),

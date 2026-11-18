@@ -1,23 +1,18 @@
 import { atLeastWorst, normalizeAxes, normalizeMitigations } from './risk-axes.ts';
-import { cleanPath, clip, plain, str } from './findings-text.ts';
+import { DISCUSSION_ID, cleanPath, clip, plain, str } from './findings-text.ts';
 import { firstSentence, technicalWord } from './plain-words.ts';
 import { coreFirst, isSupportingStop } from './supporting-files.ts';
 
 // What gives a reader the whole picture of a review, beyond the list of findings: how
 // risky the MR is, what changed before and after, and the order to read it in.
 
-export const RISK_LEVELS = ['low', 'medium', 'high'];
-
-const DISCUSSION_ID = /^[0-9a-f]{8,64}$/i;
-
-/** @type {[RegExp, string][]} */
 const RISK_ALIASES: [RegExp, string][] = [
   [/^(low|minor|safe|trivial|small)$/, 'low'],
   [/^(medium|moderate|mid|average)$/, 'medium'],
   [/^(high|major|risky|critical|severe|dangerous)$/, 'high'],
 ];
 
-export function normalizeRiskLevel(value: unknown) {
+function normalizeRiskLevel(value: unknown) {
   const key = String(value ?? '').trim().toLowerCase();
   return RISK_ALIASES.find(([re]) => re.test(key))?.[1] ?? null;
 }

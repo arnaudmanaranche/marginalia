@@ -1,7 +1,7 @@
 import { STAGE_READ_TOOLS } from '../allowed-tools.ts';
-import { agentStage, mapLimit } from './agent-stage.ts';
+import { agentStage } from './agent-stage.ts';
 import { gatherContext } from './context.ts';
-import { contextText } from './context-text.ts';
+import { CHECKLIST, contextText } from './context-text.ts';
 import { renderReview } from './report-render.ts';
 import { mergeReview } from './review-merge.ts';
 import { DATA_DIR, REVIEW_PROMPT_EXTRA } from '../config.ts';
@@ -12,25 +12,25 @@ import { withTeamDeny } from '../team-plugin.ts';
 import { readContext } from '../context-store.ts';
 import { projectContextPrompt } from '../context-prompt.ts';
 import { reviewVerifier } from './verify.ts';
+import { isVerifyCandidate } from './verify-select.ts';
+import { createLimiter } from './limiter.ts';
 import { REVIEW_SYSTEM, chapterPrompt, mapPrompt, parseChapter, parseMap } from './review-prompts.ts';
 
 // A reproduction that broke is said, never silent: the blocking findings about behaviour it was to try come
 // back inconclusive, and the report warns.
 const unverified = (findings: any[], err: any) => {
   const why = String(err?.message ?? err).slice(0, 200);
-  const mark = (f: any) => (f.proof === 'runtime' && ['critical', 'important'].includes(f.severity) && !f.verification ? { ...f, verification: { status: 'inconclusive', evidence: `Could not run: ${why}`, command: null } } : f);
+  const mark = (f: any) => (isVerifyCandidate(f) && !f.verification ? { ...f, verification: { status: 'inconclusive', evidence: `Could not run: ${why}`, command: null } } : f);
   return { findings: findings.map(mark), warnings: [`verification failed: ${why}`] };
 };
 
 // Chapters reviewed side by side, at most this many at once.
 const CONCURRENCY = 3;
-const CHECKLIST = '.claude/agents/code-reviewer.md';
 
 // Marginalia's own review of someone else's MR, in stages a person can follow in the studio:
 // the bot gathers the context, one agent maps the change into chapters, one agent per chapter
 // reviews it, and the bot weighs the findings into the report. Returns the report and its
 // findings, as the studio reads them.
-/** @param {{ mr: any, run: any, outputPath: string, stack?: any, settings: object | null }} input */
 export async function stagedReview({ mr, run, outputPath, stack = null, settings }: { mr: any; run: any; outputPath: string; stack?: any; settings: object | null }) {
   const cwd = mr.project.worktreeDir;
   await run.stage('context');
@@ -57,7 +57,8 @@ export async function stagedReview({ mr, run, outputPath, stack = null, settings
   // Each chapter's blocking findings about behaviour are reproduced as soon as it is reviewed, while the
   // other chapters are still being read (ADR 0009, 0010).
   const verify = reviewVerifier({ run, mr, recipe: approved?.context.verification ?? null, context: text, settings });
-  const reviewed = await mapLimit(map.chapters, CONCURRENCY, async (chapter, i) => {
+  const limit = createLimiter(CONCURRENCY);
+  const reviewed = await Promise.all(map.chapters.map((chapter: any, i: number) => limit(async () => {
     await run.begin(ids[i]);
     try {
       const result = await agentStage({ run, stage: ids[i], prompt: chapterPrompt({ context: text, map, chapter, index: i, checklist }), ...lens, cwd, parse: parseChapter });
@@ -70,7 +71,7 @@ export async function stagedReview({ mr, run, outputPath, stack = null, settings
       run.step(`This chapter could not be reviewed: ${String(err.message).slice(0, 200)}`, { stage: ids[i] });
       return { result: null, error: String(err.message).slice(0, 200), verifying: null };
     }
-  });
+  })));
   const verifiedWarnings = new Set<string>();
   const chapters = await Promise.all(reviewed.map(async (c: any) => {
     if (!c.verifying) return c;

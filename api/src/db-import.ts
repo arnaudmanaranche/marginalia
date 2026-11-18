@@ -1,7 +1,7 @@
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { transaction } from './db.ts';
-import { migrateState, migratePosted } from './state-shape.ts';
+import { migrateState, migratePosted } from './state-legacy.ts';
 import { writeProjectState, writePosted, insertRun } from './db-store.ts';
 
 const readJson = (file: string) => {

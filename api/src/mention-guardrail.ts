@@ -1,8 +1,8 @@
+import { DEVELOPER } from './gitlab-access.ts';
 import type { Mention } from './mention.ts';
 
 // The guardrails a mention passes before anything runs (PRODUCT.md, ADR 0004), in the order they
 // are applied. Pure: what the bot remembers and what GitLab says arrive as arguments.
-export const DEVELOPER = 30; // GitLab's access level for Developer
 export type Decision = { action: 'run' } | { action: 'ignore'; reason: 'duplicate' | 'not-a-member' | 'daily-cap' };
 
 export interface Standing {

@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, writeFile, mkdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { sender, errorOf } from './support/studio.mjs';
 
 const dir = await mkdtemp(join(tmpdir(), 'marginalia-replies-'));
 Object.assign(process.env, {
@@ -21,8 +22,7 @@ const tracked = (iid, kind, file) => ({ project: 'demo', iid, kind, reviewPath: 
 await writeFile(join(dir, 'status.json'), JSON.stringify({ pid: 1, phase: 'idle', mrs: [tracked(1, 'comments', 'mr-comments-mine'), tracked(2, 'review', 'theirs')] }));
 const app = createApp();
 
-const send = (method, path, body) => app.request(path, { method, headers: { host: 'localhost:4477', 'content-type': 'application/json' }, body: JSON.stringify(body) });
-const errorOf = async (res) => (await res.json()).error;
+const send = sender(app);
 const THREAD = 'abcdef0123456789';
 const reply = { slug: 'demo/mr-comments-mine', threadId: THREAD, body: 'Fixed, thanks.' };
 

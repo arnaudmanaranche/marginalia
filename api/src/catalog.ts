@@ -7,7 +7,6 @@ export const CATALOG_PLUGIN = 'marginalia';
 export interface CatalogSkill { name: string; source: 'built-in' | 'team'; dir: string; description: string }
 type Found = { name: string; dir: string; description: string };
 
-/** @param {{ builtIn: Found[], team: Found[] }} input */
 export function planCatalog({ builtIn, team }: { builtIn: Found[]; team: Found[] }): CatalogSkill[] {
   const byName = new Map<string, CatalogSkill>();
   for (const s of builtIn) byName.set(s.name, { ...s, source: 'built-in' });

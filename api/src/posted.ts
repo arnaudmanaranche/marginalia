@@ -6,7 +6,6 @@ import { postedKey } from './state-shape.ts';
 // { at, iid, state: 'draft' | 'published', draftId, body, url, ... }. A comment is a draft note
 // until its review is submitted, then published. The key format is private to this module, and
 // each operation writes its own row only. `dbOf` gives the database (tests pass an in-memory one).
-/** @param {() => import('node:sqlite').DatabaseSync} [dbOf] */
 export function postedRecord(dbOf = getDb) {
   const entries = () => Object.entries(readPosted(dbOf())).map(([key, info]) => ({ key, projectKey: key.split('/')[0], info }));
   const draftWith = (projectKey: string, draftId: any, iid: any) => entries().find((e) => e.projectKey === projectKey && e.info.state === 'draft' && e.info.draftId === draftId && e.info.iid === iid);

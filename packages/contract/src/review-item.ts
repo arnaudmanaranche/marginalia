@@ -1,5 +1,5 @@
 import { z } from '@hono/zod-openapi';
-import { ReviewId, ReviewKind, ShapeSource, Verdict, nullable } from './common.ts';
+import { ReviewId, ReviewKind, ShapeSource, Verdict, nullable, RiskLevel } from './common.ts';
 
 const Highlight = z.object({ severity: z.enum(['critical', 'important']), text: z.string() }).meta({ id: 'Highlight' });
 const CrossFinding = z.object({ kind: z.enum(['settled-later', 'belongs-lower', 'assumes-upper']), iid: z.number().int(), text: z.string() }).meta({ id: 'CrossFinding' });
@@ -18,7 +18,7 @@ export const ReviewItem = z.object({
   webUrl: nullable(z.string()),
   branch: nullable(z.string()),
   verdict: Verdict,
-  risk: nullable(z.enum(['low', 'medium', 'high'])),
+  risk: nullable(RiskLevel),
   critical: z.number().int().min(0),
   important: z.number().int().min(0),
   summary: nullable(z.string()),

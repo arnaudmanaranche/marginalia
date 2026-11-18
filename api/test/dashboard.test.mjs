@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { groupOf, groupReviews, standingOf, waitingOnYou } from '../../ui/src/lib/dashboard.ts';
+import { groupOf, standingOf } from '../../ui/src/lib/dashboard.ts';
 
 const state = (over = {}) => ({
   requested: false, decision: null, reviewed: false, drafts: 0, myActivityAt: null, lastPushAt: null,
@@ -48,21 +48,6 @@ test('a closed MR, one without a reading, and a retro are not waiting on me', ()
   assert.equal(groupOf(review('a', state(), { kind: 'retro' })), null);
 });
 
-test('groups come in the order they need you, empty ones are left out, and the count adds up', () => {
-  const items = [
-    review('a-done', state({ reviewed: true, decision: 'approved', myActivityAt: DAY1 })), review('b-first', state()), review('c-first', state()),
-    review('d-returned', state({ reviewed: true, myActivityAt: DAY1, lastPushAt: DAY2 })),
-    review('e-mine', state({ unresolved: 1, peerActivityAt: DAY2 }), { kind: 'comments' }), review('f-retro', state(), { kind: 'retro' }),
-  ];
-  const groups = groupReviews(items);
-  assert.deepEqual(groups.map((g) => [g.id, g.items.map((i) => i.slug)]), [
-    ['first', ['b-first', 'c-first']], ['returned', ['d-returned']], ['mine', ['e-mine']], ['done', ['a-done']],
-  ]);
-  assert.equal(waitingOnYou(groups), 4);
-  assert.equal(groups.at(-1).collapsed, true);
-  assert.deepEqual(groupReviews([]), []);
-});
-
 test('where I stand is said the same way everywhere, in order of what matters most', () => {
   const stand = (o, kind = 'review') => standingOf(kind, state(o));
   assert.deepEqual(stand({ decision: 'approved', reviewed: true }), { label: 'You approved', tone: 'success' });
@@ -80,6 +65,4 @@ test('my own work reviewed for me lists under "Your branches", with or without a
   assert.equal(groupOf(review('own-b', state({ unresolved: 2 }), { kind: 'own', iid: 7 })), 'own');
   assert.equal(groupOf(review('own-c', null, { kind: 'own', tracked: false })), 'done');
   assert.equal(standingOf('own', state({ drafts: 3 })), null);
-  const groups = groupReviews([review('own-a', null, { kind: 'own' }), review('x', state({ reviewed: true, myActivityAt: DAY1 }))]);
-  assert.deepEqual(groups.map((g) => [g.id, g.title, g.needsYou]), [['own', 'Your branches', false], ['waiting', 'Waiting on others', false]]);
 });

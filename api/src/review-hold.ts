@@ -1,3 +1,5 @@
+import { DAY_MS } from './day-ms.ts';
+
 // Why a poll's automatic review of an MR waits (GLOSSARY: Hold), or null when it runs. Pure: the
 // inputs are GitLab's answers, so it is tested on plain fixtures.
 //
@@ -13,7 +15,6 @@ export interface ReviewFacts {
   approvedBy: { username: string | null; at: string | null }[];
 }
 
-const DAY_MS = 24 * 60 * 60 * 1000;
 const day = (ms: number) => new Date(ms).toISOString().slice(0, 10);
 
 export function reviewHold({ kind, author, facts, staleDays, now }: { kind: 'review' | 'own'; author: string; facts: ReviewFacts; staleDays: number; now: number }): string | null {

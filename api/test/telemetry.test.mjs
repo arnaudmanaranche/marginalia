@@ -5,7 +5,8 @@ Object.assign(process.env, {
   MR_REVIEW_BOT_SKIP_CONFIG_CHECK: '1', MARGINALIA_DB: ':memory:',
   GITLAB_BASE_URL: 'https://git.example.com', GITLAB_USERNAME: 'dev1', GITLAB_TOKEN: 't', GITLAB_PROJECT_ID: 'group/demo', REPO_LOCAL_PATH: '/tmp/none',
 });
-const { eventUuid, runEvent, failureEvent, errorKind, eventsFromRuns } = await import('../dist/src/run-events.js');
+const { eventUuid } = await import('../dist/src/event-uuid.js');
+const { runEvent, failureEvent, errorKind, eventsFromRuns } = await import('../dist/src/run-events.js');
 const { createPosthogClient, posthogFromEnv } = await import('../dist/src/posthog.js');
 const { openDatabase } = await import('../dist/src/db.js');
 const { insertRun, countRuns } = await import('../dist/src/db-store.js');

@@ -22,7 +22,7 @@ export function runTime(run: RunSummary, now: number): string {
 }
 
 // The stage a run is on (running) or stopped at (failed).
-export const stageAt = (run: RunSummary) => run.stages.find((s) => s.state === 'running' || s.state === 'failed') ?? null;
+const stageAt = (run: RunSummary) => run.stages.find((s) => s.state === 'running' || s.state === 'failed') ?? null;
 
 export type Tone = 'info' | 'danger' | 'warning' | 'neutral';
 

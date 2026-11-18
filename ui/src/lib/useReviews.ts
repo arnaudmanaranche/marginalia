@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchJson } from './fetchRetry';
-import { keys } from './queryKeys';
+import { isUnder, keys } from './queryKeys';
 import type { ReviewContent, ReviewsPayload } from './api';
 
 const POLL_MS = 30_000;
@@ -41,7 +41,7 @@ export function useReview(slug: string | null, refreshKey: string | undefined) {
     queryKey: keys.review(slug ?? '', refreshKey),
     enabled: slug !== null,
     queryFn: ({ signal }) => fetchJson<ReviewContent>(`/api/reviews/${encodeURIComponent(slug!)}`, { signal }),
-    placeholderData: (previous, previousQuery) => (previousQuery?.queryKey[1] === slug ? previous : undefined),
+    placeholderData: (previous, previousQuery) => (previousQuery && isUnder(previousQuery.queryKey, keys.reviewsOf(slug ?? '')) ? previous : undefined),
   });
   const content = slug && query.data ? { markdown: query.data.markdown, shape: query.data.shape } : null;
   return { content, error: content ? null : query.error?.message ?? null, retry: () => void query.refetch() };

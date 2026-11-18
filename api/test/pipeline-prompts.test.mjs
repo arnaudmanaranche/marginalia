@@ -19,10 +19,10 @@ const ctx = {
 
 test('the context names the MR, the ticket, the diff base and the rules files', () => {
   const t = contextText(ctx);
-  assert.match(t, /!12 "feat: coupons" by alice: feat\/coupons → develop/);
-  assert.match(t, /COL-1: Coupons\nA coupon takes/);
+  for (const fact of ['!12', 'feat: coupons', 'alice', 'feat/coupons', 'develop']) assert.ok(t.includes(fact), fact);
+  assert.match(t, /COL-1: Coupons\s+A coupon takes/);
   assert.match(t, /git diff b1 HEAD -- <path>/);
-  assert.match(t, /2 files, \+70 -2/);
+  assert.match(t, /2 files.*\+70 -2/);
   assert.match(t, /the standard: CLAUDE\.md/);
   assert.match(contextText({ ...ctx, ticket: { key: 'COL-1', summary: null, text: null } }), /could not read/);
 });

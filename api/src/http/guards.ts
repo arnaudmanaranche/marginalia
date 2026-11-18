@@ -3,7 +3,11 @@ import { bodyLimit } from 'hono/body-limit';
 import { STUDIO_PORT, STUDIO_ALLOWED_HOSTS, ALLOW_POSTING } from '../config.ts';
 import { locate } from './context.ts';
 import { currentScope } from './request-scope.ts';
-import { kindOf } from './review-kind.ts';
+import { kindOf } from '../review-kind.ts';
+
+const DRAFTS_PREFIX = '/api/drafts/';
+// The routes that write to GitLab as a person: they need posting to be allowed (see requirePosting).
+export const POSTING_ROUTES = ['/api/post', '/api/submit-review', `${DRAFTS_PREFIX}*`, '/api/replies'];
 
 // Write endpoints are guarded against other web pages hitting localhost: Host must be us
 // (DNS rebinding), Origin must be us when present, and a body must be JSON (a cross-origin
@@ -32,7 +36,7 @@ export function writeGuard(hosts = ownHosts) {
 
 // The review id a request is about: in the path (/api/drafts/<id>[/<draft>]) or the JSON body.
 async function reviewIdOf(c: any) {
-  const inPath = c.req.path.match(/^\/api\/drafts\/([^/]+)/)?.[1];
+  const inPath = c.req.path.startsWith(DRAFTS_PREFIX) ? c.req.path.slice(DRAFTS_PREFIX.length).split('/')[0] : '';
   if (inPath) return decodeURIComponent(inPath);
   const body = await c.req.json().catch(() => null);
   return typeof body?.slug === 'string' ? body.slug : null;

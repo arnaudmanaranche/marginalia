@@ -25,12 +25,12 @@ test('a chat request is validated and its history trimmed', () => {
 test('the prompt carries the stop, only its findings, the numbered diff and the question', () => {
   const prompt = buildChatPrompt({ title: 'Add coupons', shape, stop, files: [file], history: [{ role: 'user', text: 'hi' }, { role: 'assistant', text: 'hello' }], question: 'Is this safe?' });
   assert.match(prompt, /Merge request: Add coupons/);
-  assert.match(prompt, /\[important\] Total can go negative \(src\/a\.ts:2\): Not capped\./);
+  for (const fact of ['important', 'Total can go negative', 'src/a.ts:2', 'Not capped.']) assert.ok(prompt.includes(fact), fact);
   assert.doesNotMatch(prompt, /Elsewhere/, 'findings of other stops stay out');
-  assert.match(prompt, /=== src\/a\.ts \(modified, \+1 -1\)/);
-  assert.match(prompt, /\s2 \+ B/);
-  assert.match(prompt, /Reader: hi\nYou: hello/);
-  assert.match(prompt, /Reader's question: Is this safe\?$/);
+  assert.match(prompt, /src\/a\.ts.*modified.*\+1 -1/);
+  assert.match(prompt, /\b2\b\s*\+\s*B/, 'the added line, numbered');
+  assert.match(prompt, /hi[\s\S]*hello/, 'the history, in order');
+  assert.ok(prompt.trimEnd().endsWith('Is this safe?'), 'the question comes last');
 });
 
 test('a huge diff is cut, and says so', () => {

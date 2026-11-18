@@ -1,14 +1,15 @@
+import { DAY_MS } from './day-ms.ts';
 import { randomToken, seal, unseal, SESSION_DAYS } from './auth.ts';
 import type { Tokens } from './auth-gitlab.ts';
 
 // Sessions of the signed-in studio, in table `session`: the person, the projects they may use and
 // their GitLab tokens (sealed). The cookie holds only the random id.
-export interface Session { id: string; username: string; name: string; projects: string[]; tokens: Tokens }
+interface Session { id: string; username: string; name: string; projects: string[]; tokens: Tokens }
 
 export function createSession(db: any, secret: string, { username, name, projects, tokens }: Omit<Session, 'id'>, now = Date.now()): string {
   const id = randomToken();
   db.prepare('INSERT INTO session (id, username, name, projects, tokens, expires_at) VALUES (?, ?, ?, ?, ?, ?)')
-    .run(id, username, name, JSON.stringify(projects), seal(JSON.stringify(tokens), secret), now + SESSION_DAYS * 86_400_000);
+    .run(id, username, name, JSON.stringify(projects), seal(JSON.stringify(tokens), secret), now + SESSION_DAYS * DAY_MS);
   return id;
 }
 

@@ -1,3 +1,5 @@
+import { prefersStill } from './motion';
+
 // Moving between screens carries what was clicked into what opens: a review's title in a Home row
 // becomes the title of the review (and back), through the View Transitions API. Elements that show a
 // review's title carry `data-vt-title={slug}`; the one on each side gets the shared name for the move.
@@ -33,8 +35,7 @@ function waitFor<T>(find: () => T | null, ms: number): Promise<T | null> {
 // (a React update through flushSync), so the new screen is there when it returns.
 export function changeScreen(update: () => void, from: string | null, to: string | null) {
   const key = sharedTitle(from, to);
-  const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (key === undefined || still || typeof document.startViewTransition !== 'function' || document.visibilityState !== 'visible') {
+  if (key === undefined || prefersStill() || typeof document.startViewTransition !== 'function' || document.visibilityState !== 'visible') {
     update();
     return;
   }

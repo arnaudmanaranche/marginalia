@@ -10,7 +10,7 @@ import { byPriorityThenDate } from '../jira.ts';
 import { envDefaults, loadSettings } from '../settings.ts';
 import { parseAcrossLayers } from '../stack.ts';
 import { newerState, readStatus, stateOverrides } from './context.ts';
-import { kindOf } from './review-kind.ts';
+import { kindOf } from '../review-kind.ts';
 import { reconcilePosted } from './reviews-reconcile.ts';
 import { buildStacks } from './reviews-stacks.ts';
 import { AWAITING, awaitingItem, holdOf } from './reviews-awaiting.ts';

@@ -1,8 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { analyzeStacks, layersAbove, stackPrompt, parseAcrossLayers } from '../dist/src/stack.js';
+import { glMr } from './support/fixtures.mjs';
 
-const mr = (iid, source, target) => ({ iid, title: `MR ${iid}`, source_branch: source, target_branch: target });
+const mr = (iid, source, target) => glMr(iid, { source_branch: source, target_branch: target });
 const chain = [mr(3, 'c', 'b'), mr(1, 'a', 'main'), mr(2, 'b', 'a'), mr(9, 'solo', 'main')];
 
 test('chain is ordered bottom to top whatever the list order', () => {

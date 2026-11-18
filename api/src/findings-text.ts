@@ -7,6 +7,8 @@ export const plain = (t: string) => t
   .replace(/[*`>]/g, '')
   .replace(/\s+/g, ' ')
   .trim();
+// A GitLab discussion id: the hex a thread is known by.
+export const DISCUSSION_ID = /^[0-9a-f]{8,64}$/i;
 export const clip = (t: string, n: number) => (t.length > n ? `${t.slice(0, n - 1).trimEnd()}…` : t);
 
 // A repo-relative path (it has a slash and an extension), with an optional line.

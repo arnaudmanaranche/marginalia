@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { editKey, readEdit, writeEdit } from './commentEdits';
+import { editKey } from './commentEdits';
+import { readStored as readEdit, writeStored as writeEdit } from './storage';
 
 afterEach(() => localStorage.clear());
 

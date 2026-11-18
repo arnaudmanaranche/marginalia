@@ -15,13 +15,18 @@ const SERVERS: Record<string, string> = {
 // `notion-search` -> `search`, `slack_read_thread` -> `read_thread`, `searchJiraIssuesUsingJql` stays.
 const shortTool = (server: string, name: string) => name.replace(new RegExp(`^${server}[-_]`, 'i'), '');
 
-/** @param {{ type?: string, name?: string, input?: any }} block a content block of an assistant event */
+// The server and the tool of an MCP tool name (`mcp__<server>__<tool>`), or null for any other name.
+export function parseMcpName(name: string) {
+  const match = /^mcp__(.+?)__(.+)$/.exec(name);
+  return match ? { server: match[1], tool: match[2] } : null;
+}
+
 export function toolOf(block: any): string | null {
   if (block?.type !== 'tool_use' || typeof block.name !== 'string') return null;
-  const mcp = /^mcp__([^_]+(?:_[^_]+)*?)__(.+)$/.exec(block.name);
+  const mcp = parseMcpName(block.name);
   if (mcp) {
-    const source = SERVERS[mcp[1]] ?? mcp[1].replace(/^claude_ai_/, '').toLowerCase();
-    return `${source}.${shortTool(source, mcp[2])}`;
+    const source = SERVERS[mcp.server] ?? mcp.server.replace(/^claude_ai_/, '').toLowerCase();
+    return `${source}.${shortTool(source, mcp.tool)}`;
   }
   if (block.name === 'Bash') {
     const program = String(block.input?.command ?? '').trim().split(/\s+/)[0]?.split('/').pop() ?? '';

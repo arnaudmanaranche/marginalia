@@ -2,7 +2,7 @@
 // and the measures the studio draws from it. Pure: the clock comes in as `now`.
 import type { Budget } from './budget';
 
-export type TaskStatus = 'queued' | 'running' | 'done' | 'failed';
+type TaskStatus = 'queued' | 'running' | 'done' | 'failed';
 
 export interface TaskJob {
   slug: string; id: string; outcome: 'running' | 'reviewed' | 'skipped' | 'failed';
@@ -15,7 +15,7 @@ export interface QueueTask {
   error: string | null; position: number | null; detail: string | null; jobs: TaskJob[];
 }
 
-export interface QueueWorker { id: string; name: string; detail: string | null; taskId: string | null }
+interface QueueWorker { id: string; name: string; detail: string | null; taskId: string | null }
 
 export interface QueueView {
   now: string; workers: QueueWorker[]; tasks: QueueTask[]; totals: { done: number; failed: number };
@@ -54,7 +54,7 @@ export const progressOf = (t: QueueTask, estimate: number | null, now: number) =
   estimate ? Math.min(0.95, (ranMs(t, now) ?? 0) / estimate) : null
 );
 
-export interface Measures { waiting: number; running: number; medianWait: number | null; medianRun: number | null; done: number; failed: number; costUsd: number }
+interface Measures { waiting: number; running: number; medianWait: number | null; medianRun: number | null; done: number; failed: number; costUsd: number }
 
 export function measuresOf(view: QueueView, now: number): Measures {
   const started = view.tasks.filter((t) => t.startedAt);

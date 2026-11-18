@@ -35,3 +35,12 @@ export async function fetchJson<T>(url: string, { retries = 4, signal }: { retri
     }
   }
 }
+
+// A write: sends `body` as JSON (`{}` when there is none, except for a DELETE) and answers the parsed JSON. No retry: a
+// second try of a write could do it twice.
+export async function sendJson<T = unknown>(method: 'POST' | 'PUT' | 'DELETE', url: string, body?: object, send: typeof fetch = (u, i) => fetch(u, i)): Promise<T> {
+  const res = await send(url, method === 'DELETE' ? { method } : { method, headers: { 'content-type': 'application/json' }, body: JSON.stringify(body ?? {}) });
+  const answer = await res.json().catch(() => ({}));
+  if (!res.ok) throw new HttpError(res.status, (answer as { error?: string }).error ?? `HTTP ${res.status}`);
+  return answer as T;
+}

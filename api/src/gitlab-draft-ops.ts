@@ -17,7 +17,6 @@ export function draftsOf(client: any) {
   }
 
   return {
-    // General (non-inline) draft comment on an MR.
     createDraftNote: (project: any, iid: any, body: any) => post(project, iid, { note: body }),
     // Draft reply inside an existing thread. `resolve` resolves the thread when the review is
     // submitted, as GitLab's "Resolve thread" checkbox under a reply does.

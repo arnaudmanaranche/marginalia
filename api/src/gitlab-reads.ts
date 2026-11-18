@@ -14,12 +14,9 @@ export function readsOf(client: any, me: string) {
     return versions.length ? new Date(versions[0].created_at).getTime() : null;
   };
   return {
-    // The open MRs of the project, as GitLab lists them (newest update first).
     openMergeRequests: (project: any) => client.paginate(`/projects/${project.encodedId}/merge_requests?state=opened&order_by=updated_at&sort=desc`),
-    // The files an MR changes, each with its unified diff (across all pages).
     listMergeRequestDiffs: (project: any, iid: number) => client.paginate(`${mrPath(project, iid)}/diffs`),
     lastPushAt,
-    // Most recent discussion note left by someone other than me; null if no peer has commented.
     latestPeerCommentAt: async (mr: any) => latestPeerNoteAt(await rawDiscussions(mr.project, mr.iid), me),
     // The id of my published note whose text is `body` (a draft that left the drafts list was
     // published, possibly from GitLab's own UI), else null.
@@ -43,7 +40,7 @@ export function readsOf(client: any, me: string) {
     // GitLab answers 409: the approval then only covers the code that was reviewed.
     approveMergeRequest: (project: any, iid: number, sha?: string) => client.request(`${mrPath(project, iid)}/approve`, { method: 'POST', body: JSON.stringify(sha ? { sha } : {}) }),
     getProject: (project: any) => client.request(`/projects/${project.encodedId}`),
-    // The project's branches, most recently updated first (one page: the recent ones are what matter).
+    // One page only: the recent branches are what matter.
     listBranches: (project: any) => client.request(`/projects/${project.encodedId}/repository/branches?sort=updated_desc&per_page=100`),
     getMergeRequest: (project: any, iid: number | string) => client.request(mrPath(project, iid)),
     currentUser: () => client.request('/user'),

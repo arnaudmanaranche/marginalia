@@ -1,17 +1,17 @@
 import { z } from '@hono/zod-openapi';
-import { ContextSummaries, ProjectContextState } from '@worldia/marginalia-contract';
-import { DATA_DIR, GITLAB_USERNAME } from '../config.ts';
+import { ContextSummaries, PROJECT_KEY, ProjectContextState } from '@worldia/marginalia-contract';
+import { DATA_DIR } from '../config.ts';
 import { approveDraft, readContext } from '../context-store.ts';
 import { understandProject } from '../understand.ts';
 import { logger } from '../logger.ts';
-import { currentScope, visibleProjects } from './request-scope.ts';
+import { actorName, visibleProjects } from './request-scope.ts';
 import { broadcast } from './context.ts';
 import { jsonOf, route } from './route-kit.ts';
 
 // A project's learned context in the studio (ADR 0006): read it, approve the draft so reviews use
 // it, or learn the project again. The person approving is the one signed in, or the bot's user locally.
 const learning = new Set<string>();
-const projectParam = { params: z.object({ key: z.string().regex(/^[a-z0-9][a-z0-9-]*$/) }) };
+const projectParam = { params: z.object({ key: z.string().regex(PROJECT_KEY) }) };
 const find = (key: string) => visibleProjects().find((p: any) => p.key === key) ?? null;
 const stateOf = async (project: any) => ({
   project: project.key,
@@ -48,7 +48,7 @@ export function contextRoutes(app: any) {
   }), async (c: any) => {
     const project = find(c.req.valid('param').key);
     if (!project) return c.json({ error: 'no such project' }, 404);
-    const approved = await approveDraft(DATA_DIR, project.key, currentScope()?.user.username ?? GITLAB_USERNAME);
+    const approved = await approveDraft(DATA_DIR, project.key, actorName());
     if (!approved) return c.json({ error: 'there is no draft to approve' }, 409);
     broadcast();
     return c.json(await stateOf(project), 200);

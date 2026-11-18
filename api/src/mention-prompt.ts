@@ -12,7 +12,7 @@ export const MENTION_SYSTEM = [
 const MAX_NOTES = 12;
 const MAX_NOTE_CHARS = 2000;
 
-/** @param {{ title: string, description?: string | null }} mr @param {{ author: string, body: string }[]} thread oldest first */
+// `thread` comes oldest first.
 export function mentionPrompt(mr: { title: string; description?: string | null }, thread: { author: string; body: string }[], question: string): string {
   const notes = thread.slice(-MAX_NOTES).map((n) => `${n.author}: ${n.body.slice(0, MAX_NOTE_CHARS)}`).join('\n\n');
   return [

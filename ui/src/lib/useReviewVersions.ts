@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { toast } from './toast';
 import { fetchHistory, fetchHistoryVersion, type ReviewVersion } from './api';
 import { keys } from './queryKeys';
-import { versionRoute } from './hashRoute';
+import { hrefOf, versionRoute } from './hashRoute';
 
 const NONE: ReviewVersion[] = [];
 
@@ -11,7 +11,7 @@ const NONE: ReviewVersion[] = [];
 // `versionId` is null while the latest is on screen. It lives in the URL (`?version=`): opening one is
 // a step Back undoes, and a reload keeps it. A failed one is replaced by the latest, without a step.
 export function useReviewVersions(slug: string | undefined, reviewedAt: string | undefined, versionId: string | null) {
-  const setVersionId = (id: string | null) => { if (slug) location.hash = `#/${versionRoute(slug, id)}`; };
+  const setVersionId = (id: string | null) => { if (slug) location.hash = hrefOf(versionRoute(slug, id)); };
   const list = useQuery({
     queryKey: keys.historyList(slug ?? '', reviewedAt),
     enabled: Boolean(slug),
@@ -32,7 +32,7 @@ export function useReviewVersions(slug: string | undefined, reviewedAt: string |
   useEffect(() => {
     if (!version.isError || version.isFetching) return;
     toast.error('Could not load that version', { description: version.error.message });
-    if (slug) location.replace(`#/${versionRoute(slug, null)}`);
+    if (slug) location.replace(hrefOf(versionRoute(slug, null)));
   }, [version.isError, version.isFetching, version.error, version.errorUpdatedAt]);
   return {
     versions: slug ? list.data ?? NONE : NONE,

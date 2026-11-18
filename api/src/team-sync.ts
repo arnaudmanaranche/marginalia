@@ -8,7 +8,6 @@ import { assemblePlugin, listTeamContent, teamPaths } from './team-claude.ts';
 // only: the copy is read-only, so a failed sync always leaves the last good one in place.
 
 // MARGINALIA_TEAM_REPO wins over `teamRepo` of config.json; null when neither is set.
-/** @param {{ config?: any, env?: NodeJS.ProcessEnv }} [options] */
 export const teamRepoUrl = ({ config, env = process.env }: { config?: any; env?: NodeJS.ProcessEnv } = {}) => (env.MARGINALIA_TEAM_REPO || config?.teamRepo || '').trim() || null;
 
 export async function readMarker(dataDir: string) {
@@ -26,7 +25,6 @@ async function writeMarker(dataDir: string, marker: any) {
 }
 
 // The copy on disk, parsed: { present, team, errors, tooOld, content } (no network).
-/** @returns {Promise<{ present: boolean, ok?: boolean, team?: any, errors?: string[], tooOld?: boolean, content?: any }>} */
 export async function loadTeam(dataDir: string, running: any) {
   const { teamDir } = teamPaths(dataDir);
   if (!(await fileExists(teamDir))) return { present: false };

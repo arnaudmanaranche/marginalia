@@ -7,11 +7,9 @@ import { spansOf } from '../lib/trace';
 import { cn, timeAgo } from '../lib/utils';
 import { Elapsed } from './ds/Elapsed';
 import { SpanBar } from './ds/SpanBar';
-import { StatusMark, type MarkState } from './ds/StatusMark';
+import { StatusMark, markOf } from './ds/StatusMark';
 import { JobTrace } from './JobTrace';
 
-// Each job state as the design system's mark: the word beside it is the second code.
-const MARK: Record<JobTone, MarkState> = { running: 'running', done: 'done', failed: 'failed', skipped: 'skipped' };
 const TEXT: Record<JobTone, string> = { running: 'text-run', done: 'text-fg-muted', failed: 'text-fail', skipped: 'text-fg-muted' };
 
 // One job as a line of a trace: its state, what it ran on, its stages as one bar (each as long as it
@@ -23,7 +21,7 @@ export function JobRow({ job, showProject, open, fresh = false, repeats = 1, tar
   return (
     <li className={fresh ? 'animate-[job-in_0.6s_cubic-bezier(0.16,1,0.3,1)] motion-reduce:animate-none' : undefined}>
       <button type="button" onClick={onToggle} aria-expanded={open} className={cn('touch-target grid w-full grid-cols-[1rem_minmax(0,1fr)_auto] items-center gap-x-3 px-4 py-2.5 text-left transition-colors duration-150 sm:grid-cols-[1rem_minmax(0,1fr)_minmax(6rem,14rem)_5rem_4rem_3.5rem]', open ? 'bg-sunken/60' : 'hover:bg-sunken/40')}>
-        <StatusMark state={MARK[state.tone]} label={state.label} />
+        <StatusMark state={markOf(state.tone)} label={state.label} />
         <span className="min-w-0">
           <span className="flex items-center gap-2 text-sm font-medium">
             <span className="truncate" title={targetOf(job)}>{targetOf(job)}</span>

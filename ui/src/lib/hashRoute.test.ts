@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { criticalPathRoute, findingRoute, parseHash, versionRoute } from './hashRoute';
+import { APPROVALS_ROUTE, JOBS_ROUTE, SETTINGS_ROUTE, contextRoute, criticalPathRoute, findingRoute, hrefOf, isReviewRoute, parseHash, versionRoute } from './hashRoute';
 
 describe('hash route', () => {
   it('reads a page or a review', () => {
@@ -19,5 +19,16 @@ describe('hash route', () => {
   });
   it('treats a malformed escape as no review', () => {
     expect(parseHash('#/%E0%A4')).toEqual({ slug: null, finding: null, path: null, version: null });
+  });
+});
+
+describe('isReviewRoute and hrefOf', () => {
+  it('a review slug is a review; the pages and no route are not', () => {
+    expect(isReviewRoute('back/feat-x')).toBe(true);
+    for (const page of [SETTINGS_ROUTE, APPROVALS_ROUTE, JOBS_ROUTE, contextRoute('webapp'), null]) expect(isReviewRoute(page)).toBe(false);
+  });
+  it('a link to no route is Home', () => {
+    expect(hrefOf(null)).toBe('#/');
+    expect(hrefOf('back/feat-x')).toBe('#/back/feat-x');
   });
 });

@@ -1,7 +1,7 @@
 import { useContext } from 'react';
 import { ExternalLink, Send } from 'lucide-react';
 import type { Risk, ReviewItem } from '../lib/api';
-import { cn, timeAgo } from '../lib/utils';
+import { timeAgo } from '../lib/utils';
 import { RiskBadge } from './RiskBadge';
 import { VerdictBadge } from './VerdictBadge';
 import { Button } from './ui/Button';
@@ -10,7 +10,7 @@ import { Spinner } from './ds/Spinner';
 import { RerunButton } from './RerunButton';
 import { LinkContext, Linked } from '../lib/links';
 import { ticketUrl } from '../lib/tickets';
-import { criticalPathRoute } from '../lib/hashRoute';
+import { criticalPathRoute, hrefOf } from '../lib/hashRoute';
 
 // Title, verdict and the actions on a review. On my own MR there is no verdict to give: the
 // action is sending my replies to the reviewers.
@@ -61,7 +61,7 @@ export function ReaderHeader({ item, risk, criticalPaths = [], showSubmit, draft
             <span>Touches</span>
             {/* Each opens the project context on that path: what it is, where it lives, what breaks. */}
             {criticalPaths.map((p) => item ? (
-              <a key={p} href={`#/${criticalPathRoute(item.project, p)}`} title="See this critical path in the project context" className="rounded-md hover:[&>span]:ring-fg-subtle"><Chip>{p}</Chip></a>
+              <a key={p} href={hrefOf(criticalPathRoute(item.project, p))} title="See this critical path in the project context" className="rounded-md hover:[&>span]:ring-fg-subtle"><Chip>{p}</Chip></a>
             ) : <Chip key={p}>{p}</Chip>)}
           </p>
         )}

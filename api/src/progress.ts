@@ -9,10 +9,6 @@ import { createCallTracker, type ToolCall } from './tool-calls.ts';
 // the id of the Agent call that started it); every raw line goes to onEvent; each tool call goes to
 // onCall when it starts and again when its result comes (tool-calls.ts). The final "result" event is
 // returned as the JSON the run would have printed with --output-format json, with the model.
-/**
- * @param {(step: string, info: { sub: boolean, tool: string | null }) => void} [onStep]
- * @param {(line: string) => void} [onEvent]
- */
 export function runStreaming(
   bin: string,
   args: string[],
@@ -26,7 +22,6 @@ export function runStreaming(
     const child = spawn(bin, args, { ...options, stdio: ['ignore', 'pipe', 'pipe'] });
     let buffer = '';
     let stderr = '';
-    /** @type {any} */
     let result: any = null;
     const calls = createCallTracker();
     let model: string | null = null;

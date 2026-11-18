@@ -1,10 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { passOver } from '../dist/src/poll-pass.js';
+import { glMr } from './support/fixtures.mjs';
 
 // passOver() across its interface only: fake deps, a recording sink, plain-object state.
 const project = { key: 'p', triage: true };
-const mr = (iid, over = {}) => ({ iid, sha: `sha${iid}`, title: `MR ${iid}`, source_branch: `b${iid}`, target_branch: 'main', author: { username: 'alice' }, project, ...over });
+const mr = (iid, over = {}) => glMr(iid, { project, ...over });
 
 function setup({ open = [], state = {}, ...over } = {}) {
   const calls = { reviewed: [], triaged: [], saved: [], notified: [], failed: [], doctor: [], entries: null, mrStatus: [], busy: 0 };
@@ -23,7 +24,9 @@ function setup({ open = [], state = {}, ...over } = {}) {
     loadState: async () => stored,
     saveState: async (_p, s) => calls.saved.push(JSON.parse(JSON.stringify(s))),
     allowedTargets: () => [],
-    settlesConflicts: () => false,
+    budget: () => null,
+    reviewFacts: async () => ({ lastPushAt: null, approvedBy: [] }),
+    staleAfterDays: () => 14,
     username: 'me',
     notify: (title) => calls.notified.push(title),
     trackFailure: ({ kind }) => calls.failed.push(kind),
@@ -103,14 +106,10 @@ test('triages my own MR on a new peer comment and records the signal', async () 
   assert.deepEqual(calls.notified, ['Comments triaged']);
 });
 
-test('a conflict triggers a triage only when the triage settles conflicts', async () => {
-  const mine = mr(2, { author: { username: 'me' }, has_conflicts: true });
-  const off = setup({ open: [mine] });
-  await passOver(project, off.deps, off.sink);
-  assert.deepEqual(off.calls.triaged, []);
-  const on = setup({ open: [mine], settlesConflicts: () => true });
-  await passOver(project, on.deps, on.sink);
-  assert.deepEqual(on.calls.triaged, [2]);
+test('a conflict triggers a triage', async () => {
+  const { deps, sink, calls } = setup({ open: [mr(2, { author: { username: 'me' }, has_conflicts: true })] });
+  await passOver(project, deps, sink);
+  assert.deepEqual(calls.triaged, [2]);
 });
 
 test('state of MRs that are no longer open is pruned', async () => {
@@ -164,7 +163,7 @@ test('over the budget, a failure does not start the doctor by itself', async () 
   assert.deepEqual(calls.doctor, []);
 });
 
-// Holds (GLOSSARY: Hold): the poll reads the last push and the approvals of an MR it would review.
+// Holds (GLOSSARY: Hold; the rules are tested in review-hold.test.mjs): the poll reads the last push and the approvals of an MR it would review.
 const DAY = 24 * 60 * 60 * 1000;
 const facts = (pushedDaysAgo, approvedBy = []) => async () => ({ lastPushAt: Date.now() - pushedDaysAgo * DAY, approvedBy });
 
@@ -174,24 +173,6 @@ test('an MR with no push in the stale window waits, and is not recorded', async 
   assert.deepEqual(calls.reviewed, []);
   assert.equal(stored[1], undefined);
   assert.deepEqual(calls.mrStatus, [[1, 'skipped']]);
-});
-
-test('an MR a person approved since its last push waits; one approved before it runs', async () => {
-  const before = new Date(Date.now() - 3 * DAY).toISOString();
-  const after = new Date(Date.now() - DAY).toISOString();
-  const { deps, sink, calls } = setup({
-    open: [mr(1), mr(2)],
-    staleAfterDays: () => 14,
-    reviewFacts: async (m) => ({ lastPushAt: Date.now() - 2 * DAY, approvedBy: [{ username: 'bob', at: m.iid === 1 ? after : before }] }),
-  });
-  await passOver(project, deps, sink);
-  assert.deepEqual(calls.reviewed, [2]);
-});
-
-test("the author's own approval does not hold the review", async () => {
-  const { deps, sink, calls } = setup({ open: [mr(1)], staleAfterDays: () => 14, reviewFacts: facts(1, [{ username: 'alice', at: null }]) });
-  await passOver(project, deps, sink);
-  assert.deepEqual(calls.reviewed, [1]);
 });
 
 test('the MR a person asked to review again runs past a hold', async () => {

@@ -15,9 +15,6 @@ const WHERE_TEXT: Record<string, string> = {
   repo: 'the reviewed repository or its MR (conflicts, broken branch, huge diff)',
 };
 
-/**
- * @param {{ trace: any, transcript: string | null, sourceDir: string, agentDirs: string[] }} input
- */
 export function doctorPrompt({ trace, transcript, sourceDir, agentDirs }: any) {
   const stages = trace.stages.map((s: any) => `- ${s.label}: ${s.state}${s.startedAt ? ` (${s.startedAt} → ${s.endedAt ?? '…'})` : ''}`).join('\n');
   const steps = trace.steps.slice(-80).map((s: any) => `${s.at} [${s.stage ?? '-'}]${s.sub ? ' (sub-agent)' : ''} ${s.text}`).join('\n');
@@ -35,7 +32,7 @@ export function doctorPrompt({ trace, transcript, sourceDir, agentDirs }: any) {
     '',
     transcript ? `The raw event stream of the run (its end) is below, one JSON event per line.\n\`\`\`\n${transcript}\n\`\`\`` : 'No raw event stream was kept for this run.',
     '',
-    `Marginalia's source is in ${sourceDir} (start from src/claude-runner.ts, src/report.ts, src/artifact.ts and poll.ts).`,
+    `Marginalia's source is in ${sourceDir} (start from src/claude-runner.ts, src/pipeline/review.ts, src/artifact.ts and poll.ts).`,
     agentDirs.length ? `The review and triage instructions the run followed are under: ${agentDirs.join(', ')} (agents/, skills/).` : '',
     '',
     'Read the code paths the error went through before concluding. Do not guess: when the evidence does not settle it, say so and lower your confidence.',
@@ -57,7 +54,6 @@ export function doctorPrompt({ trace, transcript, sourceDir, agentDirs }: any) {
 const str = (v: unknown, max = 2000) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : null);
 
 // The doctor's answer, checked; null when it is not one.
-/** @param {string} text */
 export function parseDoctorAnswer(text: unknown) {
   const block = String(text ?? '').match(/```json\s*([\s\S]*?)```/)?.[1] ?? String(text ?? '').match(/\{[\s\S]*\}/)?.[0];
   if (!block) return null;
@@ -90,7 +86,6 @@ export function parseDoctorAnswer(text: unknown) {
 // It may edit and commit there; pushing is left to the person, from the studio.
 export const FIX_TOOLS = ['Read', 'Edit', 'Write', 'Grep', 'Glob', 'Bash(npm test:*)', 'Bash(node --test:*)', 'Bash(npm run check:size)', 'Bash(git status:*)', 'Bash(git diff:*)', 'Bash(git add:*)', 'Bash(git commit:*)'];
 
-/** @param {{ trace: any, doctor: any }} input */
 export function fixPrompt({ trace, doctor }: any) {
   return [
     `A Marginalia run failed, and the diagnosis says the fix belongs in Marginalia. You are in a worktree of Marginalia's source, on a branch of its own. Make the fix.`,

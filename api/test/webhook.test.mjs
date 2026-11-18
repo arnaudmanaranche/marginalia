@@ -52,7 +52,7 @@ test('a note announced by webhook and found again by polling runs once', async (
   discussions.push({ id: 'd1', notes: [{ id: 11, body: '@marginalia', system: false, created_at: '2026-10-30T10:00:00Z', author: { username: 'bob' } }] });
   const reviews = [];
   const deps = {
-    bot: 'marginalia', dailyCap: 20, now: () => new Date('2026-10-30T12:00:00Z'),
+    bot: 'marginalia', dailyCap: 20, failureTitle: () => 'something went wrong', now: () => new Date('2026-10-30T12:00:00Z'),
     listRawDiscussions: gitlab.listRawDiscussions, memberAccessLevel: gitlab.memberAccessLevel, replyToDiscussion: gitlab.replyToDiscussion,
     run: { review: async (mr) => reviews.push(mr.iid), triage: async () => {}, answer: async () => '' },
     store: { seen: (p) => seenMentionIds(db, p), mark: (p, r) => markMention(db, p, r), runsSince: (i) => mentionRunsSince(db, i), cursor: (p) => readCursor(db, p), setCursor: (p, i) => writeCursor(db, p, i) },

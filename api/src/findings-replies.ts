@@ -1,4 +1,4 @@
-import { clip, str } from './findings-text.ts';
+import { DISCUSSION_ID, clip, str } from './findings-text.ts';
 
 // The replies a triage drafted for the reviewer threads of my own MR, one per thread:
 //   { thread, verdict, reply, resolve }
@@ -10,12 +10,10 @@ import { clip, str } from './findings-text.ts';
 //            'answered'       a question, answered
 // - resolve: whether sending the reply also resolves the thread
 // - commit:  for a 'fixed' reply of the staged triage, the commit that fixed this thread
-export const REPLY_VERDICTS = ['fixed', 'already_fixed', 'not_relevant', 'wrong', 'answered'];
+const REPLY_VERDICTS = ['fixed', 'already_fixed', 'not_relevant', 'wrong', 'answered'];
 
 // A fix settles the thread; a disagreement is left for the reviewer to resolve.
 const RESOLVED_BY_DEFAULT = new Set(['fixed', 'already_fixed']);
-
-const DISCUSSION_ID = /^[0-9a-f]{8,64}$/i;
 
 function normalizeVerdict(raw: unknown) {
   const v = String(raw ?? '').trim().toLowerCase().replace(/[\s-]+/g, '_');

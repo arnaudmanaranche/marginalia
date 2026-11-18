@@ -1,4 +1,4 @@
-import { useContext, useEffect, useMemo, useState } from 'react';
+import { useContext, useMemo, useState } from 'react';
 import { toast } from '../lib/toast';
 import { useMutation } from '@tanstack/react-query';
 import { submitReview, type BotStatus, type PostedInfo, type ReviewAction, type ReviewContent, type ReviewItem } from '../lib/api';
@@ -12,10 +12,8 @@ import { useFixes } from '../lib/useFixes';
 import { useRuns } from '../lib/useRuns';
 import { runToFlag } from '../lib/runs';
 import { reviewerThreads } from '../lib/replies';
-import { stopsToRead } from '../lib/stops';
-import { squash } from '../lib/reviewComments';
 import { PostContext } from '../lib/reviewContexts';
-import { extractMeta, rankOf, SUPPORTING_RANK, splitSections } from '../lib/reviewSections';
+import { useReportParts } from '../lib/useReportParts';
 import { CollapsibleCard } from './CollapsibleCard';
 import { ConfirmSubmit } from './ConfirmSubmit';
 import { FindingsPanel } from './FindingsPanel';
@@ -31,6 +29,7 @@ import { CleanReview } from './CleanReview';
 import { RunPanel } from './RunPanel';
 import { TourSkeleton } from './ReviewSkeleton';
 import { Button } from './ui/Button';
+import { postedFor } from '../lib/postedKey';
 
 export function ReviewReader({ item, review: currentReview, reviewError, onRetry, projectUrl, allowPosting, showFullDiff, live, finding = null, version = null, posted, reload }: { showFullDiff: boolean; finding?: string | null; version?: string | null; item: ReviewItem | undefined; review: ReviewContent | null; reviewError: string | null; onRetry: () => void; projectUrl: string | null; allowPosting: boolean; live: BotStatus['current']; posted: Record<string, PostedInfo>; reload: () => void }) {
   const [submitting, setSubmitting] = useState(false);
@@ -51,9 +50,9 @@ export function ReviewReader({ item, review: currentReview, reviewError, onRetry
     ? <RunPanel key={item.slug} slug={item.slug} awaiting={awaiting} failure={item.failure ?? null} collapsible={!awaiting && !live} defaultOpen={Boolean(awaiting || live)} liveRunId={live?.runId ?? null} />
     : null;
   const submit = useMutation({ mutationFn: (v: { slug: string; summary?: string; action: ReviewAction }) => submitReview(v.slug, v.summary, v.action) });
-  const draftCount = item ? Object.entries(posted).filter(([k, p]) => k.startsWith(`${item.slug}:`) && p.state === 'draft').length : 0;
+  const draftCount = item ? postedFor(posted, item.slug).filter((p) => p.state === 'draft').length : 0;
   // A comment still on its way would land after the submit, as a new pending one: wait for it.
-  const sending = item ? Object.entries(posted).some(([k, p]) => k.startsWith(`${item.slug}:`) && p.pending) : false;
+  const sending = item ? postedFor(posted, item.slug).some((p) => p.pending) : false;
   const locked = rerunning || Boolean(live) || viewingOld;
   // My own MR: I answer the reviewers and push the triage's fixes, I do not review it.
   const author = item?.kind === 'comments';
@@ -66,38 +65,8 @@ export function ReviewReader({ item, review: currentReview, reviewError, onRetry
   const postCtx = useMemo(() => ({ allowPosting: mayPost, slug: item?.slug ?? null, iid: item?.tracked ? item.iid : null, posted, reload, locked, findings: shape?.findings ?? [] }), [mayPost, item?.slug, item?.tracked, item?.iid, posted, reload, locked, shape]);
   const { tickets } = useContext(LinkContext);
   const linkCtx = useMemo(() => ({ projectUrl, branch: item?.branch ?? null, mrWebUrl: item?.webUrl ?? null, tickets }), [projectUrl, item?.branch, item?.webUrl, tickets]);
-  const meta = useMemo(() => extractMeta(markdown ?? ''), [markdown]);
-  // The tour skips the chapters with nothing to act on (stops.ts): a clean chapter is not a stop.
-  const stops = useMemo(() => stopsToRead(shape?.tour ?? [], shape?.findings ?? []), [shape]);
-  // Findings the person can't reach otherwise: with a tour, the ones no chapter holds; without one,
-  // those with no comment card in the report's own text.
-  const loose = useMemo(() => {
-    const findings = shape?.findings ?? [];
-    const tour = stops;
-    if (tour.length) return findings.filter((f) => !tour.some((s) => s.findingIds.includes(f.id)));
-    const text = squash(markdown ?? '');
-    return findings.filter((f) => !f.comment || !text.includes(squash(f.comment)));
-  }, [markdown, shape, stops]);
-  // What others already raised folds those findings up; read only when there are some to post.
-  // A link to a finding no chapter holds (`?finding=`) opens the findings card on it, in view and lit up.
-  const looseFocus = useMemo(() => (finding && loose.some((f) => f.id === finding) ? { id: finding, source: 'diff' as const, nonce: 1 } : null), [finding, loose]);
-  useEffect(() => {
-    if (!looseFocus) return;
-    const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
-    requestAnimationFrame(() => document.getElementById('findings')?.scrollIntoView({ block: 'start', behavior: still ? 'auto' : 'smooth' }));
-  }, [looseFocus]);
+  const { stops, loose, looseFocus, intro, sections, ordered, firstSupporting } = useReportParts(markdown, shape, finding, item?.title);
   const threads = useThreads(!author && item?.tracked && item.iid && !viewingOld && loose.length ? item.slug : null, item?.reviewedAt);
-  const { intro: rawIntro, sections } = useMemo(() => splitSections(meta.markdown), [meta]);
-  // The report's own `# title` repeats the header above it: said once.
-  const intro = useMemo(() => {
-    const h1 = rawIntro.match(/^\s*#\s+(.+)\n?/);
-    return h1 && h1[1].trim() === item?.title?.trim() ? rawIntro.slice(h1[0].length) : rawIntro;
-  }, [rawIntro, item?.title]);
-  const ordered = useMemo(
-    () => sections.map((s, i) => ({ s, i })).sort((a, b) => rankOf(a.s.title) - rankOf(b.s.title) || a.i - b.i).map((x) => x.s),
-    [sections],
-  );
-  const firstSupporting = ordered.find((s) => rankOf(s.title) === SUPPORTING_RANK && ordered.some((o) => rankOf(o.title) < SUPPORTING_RANK))?.id;
   const { overrides, setOverrides, isOpen } = useSectionState(sections);
   // My own MR is not reviewed but answered: the reviewer threads and the fixes take the place of a tour.
   const answering = Boolean(author && onLatest && item?.iid);

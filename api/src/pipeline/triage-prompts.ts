@@ -8,7 +8,6 @@ export const TRIAGE_SYSTEM = "You are the author of this merge request, working 
 const VOICE = 'Write each reply as me, the author, answering a teammate on my own MR: first person, casual and direct, like a real GitLab comment, one to three sentences. Never a third-person report about "the fix" or "this MR", never a dash used to join two clauses (write two sentences or use a comma), no filler, no inflated words, no list of three for rhythm.';
 
 // One thread as the agents see it: where it is, who said what, and the code it is about at head.
-/** @param {any} t */
 export function threadText(t: any) {
   return [
     `### Thread ${t.id}${t.path ? ` on ${t.path}${t.line ? `:${t.line}` : ''}` : ' (general comment)'}`,
@@ -19,7 +18,6 @@ export function threadText(t: any) {
 
 export const JUDGE_VERDICTS = ['fix', 'already_fixed', 'not_relevant', 'wrong', 'answer'];
 
-/** @param {{ context: string, threads: any[] }} input */
 export function judgePrompt({ context, threads }: { context: string; threads: any[] }) {
   return [
     'Your stage: weigh each open reviewer comment on my MR. Do not change any file in this stage.',
@@ -39,7 +37,6 @@ export function judgePrompt({ context, threads }: { context: string; threads: an
   ].join('\n');
 }
 
-/** @param {string} answer @param {string[]} ids the threads asked about */
 export function parseJudge(answer: string, ids: string[]) {
   const json = jsonAnswer(answer);
   if (!json.ok) return json;
@@ -59,7 +56,6 @@ export function parseJudge(answer: string, ids: string[]) {
   return { ok: true, value: out };
 }
 
-/** @param {{ context: string, thread: any, plan: string }} input */
 export function fixPrompt({ context, thread, plan }: { context: string; thread: any; plan: string }) {
   return [
     'Your stage: fix one reviewer comment on my MR, in this working tree.',
@@ -76,7 +72,6 @@ export function fixPrompt({ context, thread, plan }: { context: string; thread: 
   ].join('\n');
 }
 
-/** @param {string} answer */
 export function parseFix(answer: string) {
   const json = jsonAnswer(answer);
   if (!json.ok) return json;
@@ -87,7 +82,6 @@ export function parseFix(answer: string) {
 
 // Settling the conflicts of merging the target branch into mine. The bot started the merge and
 // commits it: the agent only edits the conflicted files.
-/** @param {{ context: string, target: string, files: string[] }} input */
 export function conflictPrompt({ context, target, files }: { context: string; target: string; files: string[] }) {
   return [
     `Your stage: settle the conflicts of merging ${target} into my MR's branch. The bot started the merge; the conflicted files hold git's conflict markers.`,
@@ -102,7 +96,6 @@ export function conflictPrompt({ context, target, files }: { context: string; ta
   ].join('\n');
 }
 
-/** @param {string} answer */
 export function parseConflict(answer: string) {
   const json = jsonAnswer(answer);
   if (!json.ok) return json;

@@ -22,7 +22,7 @@ import { moveReviewsHome } from './src/reviews-home.ts';
 import { closeInterruptedRuns } from './src/run-recover.ts';
 import { startWebhookIfConfigured } from './src/webhook-intake.ts';
 import { intakePass } from './src/mention-pass.ts';
-import { failureTitleOf, mentionDeps } from './src/mention-deps.ts';
+import { mentionDeps } from './src/mention-deps.ts';
 
 // A failure that passes by itself (GitLab unreachable, Claude overloaded) brings the next poll closer.
 let retrySoon = false;
@@ -32,7 +32,7 @@ let retrySoon = false;
 // is never shared by two runs, two projects run side by side.
 async function pollProject(project: any) {
   if ((await passOver(project, passDeps, statusSink)).retrySoon) retrySoon = true;
-  await intakePass(project, mentionDeps, failureTitleOf);
+  await intakePass(project, mentionDeps);
 }
 
 const BANNER = [

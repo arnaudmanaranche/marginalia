@@ -1,4 +1,5 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto';
+import { DEVELOPER } from './gitlab-access.ts';
 
 // The pure half of the studio login (GitLab OAuth, authorization code with PKCE): the values that
 // go to GitLab and back, and how a person's token is kept at rest. No config, no I/O.
@@ -42,7 +43,6 @@ export function unseal(sealed: string, secret: string): string | null {
 }
 
 // The projects a person may use here: the ones where their GitLab access is Developer or above.
-export const DEVELOPER = 30;
 export const allowedProjects = (levels: Record<string, number>): string[] => Object.entries(levels).filter(([, level]) => level >= DEVELOPER).map(([key]) => key);
 
 // The access level GitLab reports for the signed-in person on a project (`GET /projects/:id`).

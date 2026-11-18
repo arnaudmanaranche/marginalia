@@ -1,13 +1,14 @@
 import { Approvals, DismissRequest, Ok } from '@worldia/marginalia-contract';
-import { ALLOW_POSTING, GITLAB_USERNAME } from '../config.ts';
+import { ALLOW_POSTING } from '../config.ts';
 import { listProposals } from '../approvals.ts';
 import { dismissFinding, dismissedKeys, restoreFinding } from '../dismissed-store.ts';
 import { posted } from '../posted.ts';
 import { getDb } from '../store.ts';
 import { trackFinding } from '../telemetry.ts';
-import { currentScope, visibleProjects } from './request-scope.ts';
+import { actorName, currentScope, visibleProjects } from './request-scope.ts';
 import { broadcast, locate, readStatus } from './context.ts';
 import { jsonBody, jsonOf, route } from './route-kit.ts';
+import { notTracked } from './read-kit.ts';
 
 // The approvals inbox: every comment proposed and not decided yet, and the way to say no to one.
 // Saying yes is adding it to the pending review (POST /api/post), as on the review page.
@@ -29,12 +30,12 @@ export function approvalRoutes(app: any) {
   }), async (c: any) => {
     const { slug, commentId, undo } = c.req.valid('json');
     const found = await locate(slug);
-    if (!found?.mr) return c.json({ error: 'no tracked merge request for this review' }, 404);
+    if (!found?.mr) return notTracked(c);
     const { project, mr } = found;
     if (posted.find(project.key, found.slug, commentId)) return c.json({ error: 'already added to the review' }, 409);
     if (undo) restoreFinding(getDb(), project.key, found.slug, commentId);
     else {
-      dismissFinding(getDb(), project.key, found.slug, commentId, currentScope()?.user.username ?? GITLAB_USERNAME);
+      dismissFinding(getDb(), project.key, found.slug, commentId, actorName());
       trackFinding({ project: project.key, iid: mr.iid, findingId: commentId, severity: null, outcome: 'dismissed', own: false, criticalPaths: 0 });
     }
     broadcast();

@@ -1,4 +1,5 @@
 import { readFile } from 'node:fs/promises';
+import { committerIn } from '../git-identity.ts';
 import { join } from 'node:path';
 import { gitIn } from '../git.ts';
 import { cleanWorktree, head } from '../git-refs.ts';
@@ -15,7 +16,6 @@ const MARKER = /^(<{7}|>{7})( |$)|^={7}$/m;
 // fast-forward), one agent settles the conflicted files, and the bot checks no marker is left
 // before committing the merge. The fixes are then made on top of it. When the agent can't
 // settle them, the merge is undone and the triage goes on without it.
-/** @param {{ mr: any, run: any, context: string, settings: object | null }} input */
 export async function settleConflicts({ mr, run, context, settings }: { mr: any; run: any; context: string; settings: any }) {
   const cwd = mr.project.worktreeDir;
   const target = mr.target_branch;
@@ -37,7 +37,7 @@ export async function settleConflicts({ mr, run, context, settings }: { mr: any;
     if (left.length) throw new Error(`conflict markers are left in ${left.join(', ')}`);
     if (!done.settled) throw new Error(done.how);
     await git.run('add', '-A');
-    await git.run('commit', '-q', '-m', `Merge ${target} into ${mr.source_branch}, settling the conflicts`, '-m', done.how);
+    await (await committerIn(cwd)).run('commit', '-q', '-m', `Merge ${target} into ${mr.source_branch}, settling the conflicts`, '-m', done.how);
     const commit = await head(cwd);
     run.step(`Committed the merge ${commit.slice(0, 8)}: ${done.how}`, { stage: 'conflicts' });
     return { files, commit, how: done.how, error: null };

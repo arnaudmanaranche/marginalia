@@ -1,7 +1,9 @@
 import { createWriteStream } from 'node:fs';
-import { mkdir, readdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { DATA_DIR } from './config.ts';
+import { isSafeId, timeId } from './safe-id.ts';
+import { traceIdsIn } from './run-dirs.ts';
 import { runSummary } from './run-trace.ts';
 
 // Where the runs of each review are kept, so a run can be followed while it goes and read again
@@ -11,17 +13,14 @@ export const RUNS_DIR = join(DATA_DIR, 'runs');
 // The runs kept per review, newest first; older ones are deleted as new ones start.
 export const KEEP_RUNS = 20;
 
-const ID_RE = /^[\w-]+$/;
 // Each write goes through its own temporary file: two writes of one file may overlap.
 let writes = 0;
 const tmpOf = (file: string) => `${file}.${process.pid}-${(writes += 1)}.tmp`;
 const dirOf = (root: string, project: string, slug: string) => join(root, project, slug);
 
 // A run id sorts by time and reads as one: 2026-10-28T16-05-51-598Z-review.
-/** @param {string} at @param {string} kind */
-export const runId = (at: string, kind: string) => `${at.replace(/[:.]/g, '-')}-${kind}`;
+export const runId = (at: string, kind: string) => `${timeId(at)}-${kind}`;
 
-/** @param {{ id: string, project: string, slug: string }} trace @param {string} [root] */
 export async function saveTrace(trace: any, root = RUNS_DIR) {
   const dir = dirOf(root, trace.project, fileSlugOf(trace.slug));
   await mkdir(dir, { recursive: true });
@@ -32,7 +31,6 @@ export async function saveTrace(trace: any, root = RUNS_DIR) {
 }
 
 // The raw events of one run, appended as they come.
-/** @param {{ id: string, project: string, slug: string }} trace @param {string} [root] */
 export async function openTranscript(trace: any, root = RUNS_DIR) {
   const dir = dirOf(root, trace.project, fileSlugOf(trace.slug));
   await mkdir(dir, { recursive: true });
@@ -42,21 +40,8 @@ export async function openTranscript(trace: any, root = RUNS_DIR) {
 // The review's file name, from its id (`<project>/<file name>`).
 const fileSlugOf = (slug: string) => slug.slice(slug.indexOf('/') + 1);
 
-async function ids(root: string, project: string, fileSlug: string) {
-  try {
-    return (await readdir(dirOf(root, project, fileSlug)))
-      .filter((n) => n.endsWith('.json') && !/\.(doctor|fix)\.json$/.test(n))
-      .map((n) => n.slice(0, -'.json'.length))
-      .sort()
-      .reverse();
-  } catch {
-    return [];
-  }
-}
-
-/** @param {string} project @param {string} fileSlug @param {string} id @param {string} [root] */
 export async function readTrace(project: string, fileSlug: string, id: string, root = RUNS_DIR) {
-  if (!ID_RE.test(id)) return null;
+  if (!isSafeId(id)) return null;
   try {
     return JSON.parse(await readFile(join(dirOf(root, project, fileSlug), `${id}.json`), 'utf8'));
   } catch {
@@ -65,16 +50,14 @@ export async function readTrace(project: string, fileSlug: string, id: string, r
 }
 
 // The review's runs, newest first, without their steps.
-/** @param {string} project @param {string} fileSlug @param {{ limit?: number, root?: string }} [opts] */
 export async function listTraces(project: string, fileSlug: string, { limit = KEEP_RUNS, root = RUNS_DIR } = {}) {
-  const traces = await Promise.all((await ids(root, project, fileSlug)).slice(0, limit).map((id) => readTrace(project, fileSlug, id, root)));
+  const traces = await Promise.all((await traceIdsIn(dirOf(root, project, fileSlug))).slice(0, limit).map((id) => readTrace(project, fileSlug, id, root)));
   return traces.filter(Boolean).map(runSummary);
 }
 
 // The transcript of one run, for the doctor: the last `maxBytes` of it.
-/** @param {string} project @param {string} fileSlug @param {string} id @param {{ maxBytes?: number, root?: string }} [opts] */
 export async function readTranscript(project: string, fileSlug: string, id: string, { maxBytes = 200_000, root = RUNS_DIR } = {}) {
-  if (!ID_RE.test(id)) return null;
+  if (!isSafeId(id)) return null;
   try {
     const text = await readFile(join(dirOf(root, project, fileSlug), `${id}.stream.jsonl`), 'utf8');
     return text.length > maxBytes ? text.slice(-maxBytes) : text;
@@ -84,16 +67,14 @@ export async function readTranscript(project: string, fileSlug: string, id: stri
 }
 
 // Keeps the newest `keep` runs of a review.
-/** @param {string} project @param {string} fileSlug @param {{ keep?: number, root?: string }} [opts] */
 export async function pruneTraces(project: string, fileSlug: string, { keep = KEEP_RUNS, root = RUNS_DIR } = {}) {
-  const old = (await ids(root, project, fileSlug)).slice(keep);
+  const old = (await traceIdsIn(dirOf(root, project, fileSlug))).slice(keep);
   const dir = dirOf(root, project, fileSlug);
   await Promise.all(old.flatMap((id) => ['.json', '.stream.jsonl', '.doctor.json', '.fix.json'].map((ext) => rm(join(dir, `${id}${ext}`), { force: true }))));
 }
 
 // What came after a failed run, next to it: <id>.doctor.json (the diagnosis), <id>.fix.json (the
 // fix the doctor prepared on a branch).
-/** @param {string} project @param {string} fileSlug @param {string} id @param {'doctor' | 'fix'} part @param {object} data @param {string} [root] */
 export async function saveRunPart(project: string, fileSlug: string, id: string, part: string, data: any, root = RUNS_DIR) {
   const dir = dirOf(root, project, fileSlug);
   await mkdir(dir, { recursive: true });
@@ -103,9 +84,8 @@ export async function saveRunPart(project: string, fileSlug: string, id: string,
   await rename(tmp, file);
 }
 
-/** @param {string} project @param {string} fileSlug @param {string} id @param {'doctor' | 'fix'} part @param {string} [root] */
 export async function readRunPart(project: string, fileSlug: string, id: string, part: string, root = RUNS_DIR) {
-  if (!ID_RE.test(id)) return null;
+  if (!isSafeId(id)) return null;
   try {
     return JSON.parse(await readFile(join(dirOf(root, project, fileSlug), `${id}.${part}.json`), 'utf8'));
   } catch {

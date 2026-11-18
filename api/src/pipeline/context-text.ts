@@ -2,13 +2,14 @@
 // so no agent spends turns or connectors fetching it. Pure: tested on plain values.
 
 // Files a repo writes its own rules in, read by the agents before they judge anything.
-export const GUIDANCE_FILES = ['CLAUDE.md', 'AGENTS.md', 'CONTRIBUTING.md', '.github/CONTRIBUTING.md', 'docs/adr', '.claude/agents/code-reviewer.md'];
+// The reviewer checklist a repository may keep: a rule file the bot reads, and the one a chapter's reviewer is pointed at.
+export const CHECKLIST = '.claude/agents/code-reviewer.md';
+export const GUIDANCE_FILES = ['CLAUDE.md', 'AGENTS.md', 'CONTRIBUTING.md', '.github/CONTRIBUTING.md', 'docs/adr', CHECKLIST];
 
 const MAX_DESCRIPTION = 4000;
 const MAX_FILES = 300;
 
 // `git diff --numstat` as [{ path, added, removed }] (a binary file counts 0 and 0).
-/** @param {string} out */
 export function parseNumstat(out: string) {
   return out.split('\n').filter(Boolean).map((line) => {
     const [a, r, ...rest] = line.split('\t');
@@ -21,23 +22,12 @@ export function parseNumstat(out: string) {
 
 // The files `git merge-tree --write-tree --name-only` reports conflicted: after the tree id, one
 // per line, up to the blank line before its messages.
-/** @param {string} out */
 export function parseMergeTree(out: string): string[] {
   const [, ...rest] = out.split('\n');
   const end = rest.indexOf('');
   return [...new Set(end < 0 ? rest : rest.slice(0, end))].filter(Boolean);
 }
 
-/**
- * @typedef {{
- *   mr: { iid: number | string | null, title: string, author: string | null, description: string | null, source: string, target: string, url: string | null },
- *   base: string, head: string, files: { path: string, added: number, removed: number }[],
- *   ticket: { key: string, summary: string | null, text: string | null } | null,
- *   guidance: string[], conversation: string, previous: string, stack: string,
- * }} Context
- */
-
-/** @param {Context} ctx */
 export function contextText(ctx: any) {
   const { mr, files } = ctx;
   const added = files.reduce((n: number, f: any) => n + f.added, 0);

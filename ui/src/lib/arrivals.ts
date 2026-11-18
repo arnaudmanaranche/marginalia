@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 
 // Each entry is a key and its signature: what, once different, means the thing changed in a way a
 // person should see (a new report, a new verdict, queued or failed).
-export type Entry = readonly [key: string, signature: string];
+type Entry = readonly [key: string, signature: string];
 
 // The keys in `entries` that `known` has not seen, and those it saw with another signature. The first
 // list (`known` null) is what was already there when the page opened: nothing in it counts.

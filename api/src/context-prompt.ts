@@ -4,7 +4,7 @@
 
 const list = (items: string[] | undefined) => (items?.length ? items.join(', ') : '');
 
-/** @param {any | null} stored an approved StoredProjectContext */
+// `stored` is an approved StoredProjectContext, or null.
 export function projectContextPrompt(stored: any) {
   if (!stored || stored.state !== 'approved') return '';
   const c = stored.context;

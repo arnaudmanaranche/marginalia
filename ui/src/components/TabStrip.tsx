@@ -3,10 +3,10 @@ import * as m from 'motion/react-m';
 import { Check, LayoutGrid, X } from 'lucide-react';
 import type { ReviewItem } from '../lib/api';
 import { cn } from '../lib/utils';
-import { TabIcon, type BotState } from './TabIcon';
+import type { BotState } from '../lib/botState';
+import { TabIcon } from './TabIcon';
 import { VERDICT_ICON } from '../lib/verdictIcons';
-
-export type { BotState };
+import { hrefOf } from '../lib/hashRoute';
 
 interface Props {
   tabs: ReviewItem[];
@@ -27,7 +27,7 @@ export function TabStrip({ tabs, activeSlug, botBySlug, isUnread, isPosted, home
       <ul className="flex min-w-0 flex-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <li className="flex shrink-0">
         <a
-          href="#/"
+          href={hrefOf(null)}
           aria-current={activeSlug === null ? 'page' : undefined}
           onClick={(e) => {
             e.preventDefault();
@@ -65,7 +65,7 @@ export function TabStrip({ tabs, activeSlug, botBySlug, isUnread, isPosted, home
               className={cn('@container group relative flex shrink grow-0 items-stretch overflow-hidden border-r border-t-2 border-line', active ? cn('bg-white dark:bg-zinc-950', accent) : 'border-t-transparent hover:bg-zinc-200/60 dark:hover:bg-zinc-800/60')}
             >
               <a
-                href={`#/${item.slug}`}
+                href={hrefOf(item.slug)}
                 title={item.title}
                 aria-current={active ? 'page' : undefined}
                 aria-label={`${item.iid ? `!${item.iid} ` : ''}${item.title}${unread ? ' (unread)' : ''}${isPosted(item) ? ' (comment posted)' : ''}`}

@@ -40,6 +40,10 @@ test('the target of a CONNECT and of a plain request', () => {
   assert.equal(urlTarget('/relative'), null);
 });
 
+// The OS hands out a free port (listen on 0), released just before the proxy takes it.
+const freePort = () => new Promise((resolve, reject) => {
+  const s = createServer().once('error', reject).listen(0, '127.0.0.1', () => { const { port } = s.address(); s.close(() => resolve(port)); });
+});
 const here = dirname(fileURLToPath(import.meta.url));
 async function proxyOn(port, allow) {
   const child = spawn(process.execPath, [join(here, '../dist/bin/egress-proxy.js')], { env: { ...process.env, EGRESS_PORT: String(port), EGRESS_ALLOW: allow }, stdio: ['ignore', 'ignore', 'pipe'] });
@@ -48,7 +52,7 @@ async function proxyOn(port, allow) {
 }
 
 test('the proxy refuses a host that is not listed, a private address and a port that is not 80 or 443, and tunnels a listed one', async () => {
-  const port = 38000 + (process.pid % 1000);
+  const port = await freePort();
   const proxy = await proxyOn(port, 'localhost');
   try {
     const status = (path) => new Promise((resolve) => {

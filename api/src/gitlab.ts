@@ -1,3 +1,4 @@
+import { DAY_MS } from './day-ms.ts';
 import { excludedAuthors, staleAfterDays } from './settings.ts';
 import { gitlab } from './gitlab-api.ts';
 import { log } from './log.ts';
@@ -13,7 +14,7 @@ export async function listOpenMergeRequests(project: any) {
   const mrs = (await gitlab.openMergeRequests(project)).map((mr: any) => ({ ...mr, project }));
   const staleDays = staleAfterDays();
   const excluded = excludedAuthors(project);
-  const staleCutoff = Date.now() - staleDays * 24 * 60 * 60 * 1000;
+  const staleCutoff = Date.now() - staleDays * DAY_MS;
   return mrs.filter((mr: any) => {
     if (mr.draft) return false;
     if (excluded.has(mr.author.username.toLowerCase())) return false;

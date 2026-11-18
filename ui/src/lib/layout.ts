@@ -1,16 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { KEY_PREFIX, readJson, writeJson } from './storage';
 
-// State mirrored in localStorage (JSON). It can be unavailable or throw, so
-// every access is guarded and the UI works without it.
+// State mirrored in localStorage (JSON).
 export function usePersistentState<T>(key: string, initial: T) {
-  const [value, setValue] = useState<T>(() => {
-    try {
-      const raw = localStorage.getItem(key);
-      return raw === null ? initial : (JSON.parse(raw) as T);
-    } catch {
-      return initial;
-    }
-  });
+  const [value, setValue] = useState<T>(() => readJson(key, initial));
   // Written after the state changes, not inside the updater (which React may run twice);
   // the first render only read it, so nothing is written until the value is set.
   const loaded = useRef(true);
@@ -19,20 +12,14 @@ export function usePersistentState<T>(key: string, initial: T) {
       loaded.current = false;
       return;
     }
-    try {
-      localStorage.setItem(key, JSON.stringify(value));
-    } catch {
-      /* ignore */
-    }
+    writeJson(key, value);
   }, [key, value]);
-  const set = useCallback((next: T | ((prev: T) => T)) => setValue(next), []);
-  return [value, set] as const;
+  return [value, setValue] as const;
 }
 
-// The "working set": reviews opened as tabs. Opening one (any navigation to
-// #/slug) adds it; tabs for reviews that no longer exist are dropped.
+// The "working set": reviews opened as tabs. Opening one adds it; tabs for reviews that no longer exist are dropped.
 export function useOpenTabs(slug: string | null, known: Set<string> | null) {
-  const [tabs, setTabs] = usePersistentState<string[]>('mr-review-viewer:tabs', []);
+  const [tabs, setTabs] = usePersistentState<string[]>(`${KEY_PREFIX}tabs`, []);
 
   useEffect(() => {
     if (slug && known?.has(slug)) setTabs((p) => (p.includes(slug) ? p : [...p, slug]));

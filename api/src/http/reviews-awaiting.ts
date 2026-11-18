@@ -1,6 +1,6 @@
-import { reviewId } from '../review-id.ts';
+import { reviewId, slugOfPath } from '../review-id.ts';
 import { newerState, stateOverrides } from './context.ts';
-import { kindOf } from './review-kind.ts';
+import { kindOf } from '../review-kind.ts';
 
 // Why a poll left this MR's review for later, other than the budget (which keeps its own mark): its reason.
 export const holdOf = (mr: any): string | null => (mr?.status === 'skipped' && mr.held !== 'budget' ? mr.error ?? null : null);
@@ -11,7 +11,7 @@ export const AWAITING = new Set(['pending', 'reviewing', 'failed', 'skipped']);
 // An MR the poll just picked up has no report yet: it is listed at once, `awaiting` its first one,
 // so it arrives in the queue when the bot finds it rather than minutes later.
 export function awaitingItem(project: any, mr: any) {
-  const fileSlug = mr.reviewPath.split('/').pop().replace(/\.md$/, '');
+  const fileSlug = slugOfPath(mr.reviewPath);
   const at = mr.updatedAt ?? new Date().toISOString();
   return {
     slug: reviewId(project, fileSlug),

@@ -7,7 +7,6 @@ const firstLine = (text: unknown) => String(text ?? '').trim().split('\n').find(
 const ok = (label: string, detail: string) => ({ label, level: 'ok' as const, detail });
 const warn = (label: string, detail: string) => ({ label, level: 'warn' as const, detail });
 
-/** @param {{ image: string, docker: { stdout?: string, error?: string | null }, imageProbe: { error?: string | null }, recipe: any, egress: { network: string, proxy: string } | null }} input */
 export function verifyChecks({ image, docker, imageProbe, browserProbe = null, recipe, egress }: { browserProbe?: { error?: string | null } | null; image: string; docker: { stdout?: string; error?: string | null }; imageProbe: { error?: string | null }; recipe: any; egress: { network: string; proxy: string } | null }) {
   const checks = [];
   checks.push(docker.error ? warn('Docker', `does not answer (${firstLine(docker.error)}): findings are not verified`) : ok('Docker', `answers (server ${firstLine(docker.stdout) || 'unknown version'})`));

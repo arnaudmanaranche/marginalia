@@ -31,8 +31,6 @@ export const passDeps = {
   loadState,
   saveState,
   allowedTargets,
-  // The staged triage merges the target in and settles its conflicts.
-  settlesConflicts: () => true,
   username: GITLAB_USERNAME,
   notify,
   trackFailure,

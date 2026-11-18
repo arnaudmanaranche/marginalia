@@ -7,12 +7,12 @@ import { layersAbove, stackPrompt } from './stack.ts';
 // them without network access) and lists the existing reviews of the stack, then
 // renders the stack instructions. `stack` is { stacks, info } from poll.ts.
 export async function buildStackPrompt(mr: any, stack: any) {
-  const BOT_WORKTREE_DIR = mr.project.worktreeDir;
+  const worktreeDir = mr.project.worktreeDir;
   const upperRefs: Record<string, string> = {};
   for (const iid of layersAbove(stack.stacks, mr.iid)) {
     const ref = `refs/marginalia/stack/${iid}`;
     try {
-      await fetchMrHead(BOT_WORKTREE_DIR, iid, ref);
+      await fetchMrHead(worktreeDir, iid, ref);
       upperRefs[iid] = ref;
     } catch (err) {
       warn(mr, `Could not fetch layer !${iid}, the review will not see it: ${err.message}`);

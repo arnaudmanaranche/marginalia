@@ -1,20 +1,21 @@
 import { useEffect, useRef, useState } from 'react';
-import { ChevronRight, MessagesSquare, Pencil, Send, X } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import type { Finding, PostedInfo, Thread } from '../lib/api';
 import { addToReview } from '../lib/pendingPosts';
 import { raisedElsewhere, type RaisedBy } from '../lib/raisedElsewhere';
+import { useFlash } from '../lib/useFlash';
 import { cn } from '../lib/utils';
 import { scrollInPane, type Focus } from '../lib/tourFocus';
 import { Button } from './ui/Button';
 import { ConfirmPost } from './ConfirmPost';
+import { CommentArea, FindingHeader, RaisedCard, findingTarget } from './FindingParts';
 import { NoteMarkdown } from './NoteMarkdown';
 import { ClampedNote } from './ClampedNote';
 import { bodyToShow } from '../lib/repeats';
 import { PostedBadge } from './PostedBadge';
 import { FindingProof } from './FindingProof';
-import { CopyButton } from './CopyButton';
-import { SeverityBadge, SeverityDot } from './ds/Severity';
-
+import { SeverityDot } from './ds/Severity';
+import { postedKey } from '../lib/postedKey';
 
 interface PostProps {
   slug: string;
@@ -39,85 +40,6 @@ export function FindingsPanel({ findings, threads = [], compact = false, focus =
   );
 }
 
-function findingTarget(finding: Finding) {
-  return finding.path ? { path: finding.path, ...(finding.line ? { line: finding.line } : {}) } : null;
-}
-
-function FindingHeader({ finding, info }: { finding: Finding; info: PostedInfo | undefined }) {
-  return (
-    <div className="flex flex-wrap items-center gap-2">
-      <SeverityBadge level={finding.severity} />
-      <span className="font-medium">{finding.title}</span>
-      {finding.path && <code className="break-all text-xs text-fg-muted">{finding.path}{finding.line ? `:${finding.line}` : ''}</code>}
-      <PostedBadge info={info} />
-    </div>
-  );
-}
-
-// The comment to post: read, or edited in place (a finding without a comment starts in the editor).
-function CommentArea({ finding, text, onText, editing, onEditing, showActions, locked, canPost, onPost }: {
-  finding: Finding;
-  text: string;
-  onText: (t: string) => void;
-  editing: boolean;
-  onEditing: () => void;
-  showActions: boolean;
-  locked: boolean;
-  canPost: boolean;
-  onPost: () => void;
-}) {
-  return (
-    <div className="mt-2">
-      {editing || !finding.comment ? (
-        <textarea
-          value={text}
-          onChange={(e) => onText(e.target.value)}
-          rows={Math.min(10, Math.max(3, text.split('\n').length + 1))}
-          placeholder={finding.comment ? undefined : 'Write the comment to post on this point'}
-          aria-label={`Comment on: ${finding.title}`}
-          className="w-full resize-y rounded-md border border-line-strong bg-surface p-2 text-sm outline-none focus-visible:border-run focus-visible:ring-2 focus-visible:ring-run/40"
-        />
-      ) : (
-        <div className="whitespace-pre-wrap rounded-md border border-blue-500/30 bg-blue-500/5 p-2">{text}</div>
-      )}
-      {!showActions && text.trim() && (
-        <div className="mt-3 flex gap-2"><CopyButton label="Copy" getText={() => text} /></div>
-      )}
-      <div className={cn('mt-3 flex gap-2', !showActions && 'hidden')}>
-        {finding.comment && (
-          <Button size="sm" variant="ghost" disabled={locked} onClick={onEditing}>
-            {editing ? <X className="size-3.5" /> : <Pencil className="size-3.5" />}{editing ? 'Done' : 'Edit'}
-          </Button>
-        )}
-        <Button size="sm" variant="primary" disabled={!canPost} onClick={onPost}>
-          <Send className="size-3.5" />Add to review
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-// Folded: who raised the point first and what they said, with a way to comment on it anyway, or
-// only to read the comment where nothing can be posted (an own review, posting off).
-function RaisedCard({ finding, raised, canPost, onFocus, onUnfold }: { finding: Finding; raised: RaisedBy; canPost: boolean; onFocus?: (id: string) => void; onUnfold: () => void }) {
-  const { path, line, resolved } = raised.thread;
-  const where = path ? `${path.split('/').pop()}${line ? `:${line}` : ''}` : 'the MR';
-  return (
-    <div className="flex gap-2 rounded-lg border border-dashed border-line-strong px-3 py-2 text-sm text-fg-muted">
-      <MessagesSquare className="mt-0.5 size-4 shrink-0 text-fg-subtle" aria-hidden />
-      <div className="min-w-0 flex-1">
-        <p className="font-medium leading-snug text-zinc-900 dark:text-zinc-100"><span className="sr-only">{finding.severity}: </span>{finding.title}</p>
-        <p className="mt-0.5 text-xs">
-          Already raised by {raised.author} in a {resolved ? 'resolved' : 'open'} thread on{' '}
-          <button type="button" onClick={() => onFocus?.(finding.id)} title={`${path}${line ? `:${line}` : ''} (show it in the diff)`} className="break-all font-mono text-blue-600 hover:underline dark:text-blue-400">{where}</button>
-        </p>
-        <NoteMarkdown className="mt-1.5 line-clamp-4 border-l-2 border-line-strong pl-2 text-xs text-fg-muted prose-p:my-0">{raised.body}</NoteMarkdown>
-        <Button size="sm" variant="ghost" className="-ml-2 mt-2" onClick={onUnfold}>{canPost ? 'Comment anyway' : 'Show the comment'}</Button>
-      </div>
-    </div>
-  );
-}
-
 function FindingCard({ finding, raised, compact = false, focus = null, onFocus, slug, iid, allowPosting, locked, posted, reload }: { finding: Finding; raised: RaisedBy | null; compact?: boolean; focus?: Focus | null; onFocus?: (id: string) => void } & PostProps) {
   const [unfolded, setUnfolded] = useState(false);
   const [text, setText] = useState(finding.comment ?? '');
@@ -126,19 +48,18 @@ function FindingCard({ finding, raised, compact = false, focus = null, onFocus, 
   const [editing, setEditing] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
-  const [flash, setFlash] = useState(false);
+  const [flashed, flash] = useFlash(1800);
   // Chosen in the diff: open it here, bring it into view, and light it up for a moment.
   useEffect(() => {
     if (focus?.source !== 'diff' || focus.id !== finding.id) return undefined;
     setExpanded(true);
     requestAnimationFrame(() => rootRef.current && scrollInPane(rootRef.current, 'nearest', 56));
-    setFlash(true);
-    const t = setTimeout(() => setFlash(false), 1800);
-    return () => clearTimeout(t);
-  }, [focus, finding.id]);
-  const info = posted[`${slug}:${finding.id}`];
+    flash();
+    return undefined;
+  }, [focus, finding.id, flash]);
+  const info = posted[postedKey(slug, finding.id)];
   // Once posted it is mine whatever the thread says: it shows as posted, not as folded.
-  if (raised && !info && !unfolded) return <div ref={rootRef} tabIndex={-1} className={cn('rounded-lg transition-shadow focus:outline-none', flash && 'ring-2 ring-blue-500')}><RaisedCard finding={finding} raised={raised} canPost={allowPosting} onFocus={onFocus} onUnfold={() => { setUnfolded(true); setExpanded(true); }} /></div>;
+  if (raised && !info && !unfolded) return <div ref={rootRef} tabIndex={-1} className={cn('rounded-lg transition-shadow focus:outline-none', flashed && 'ring-2 ring-blue-500')}><RaisedCard finding={finding} raised={raised} canPost={allowPosting} onFocus={onFocus} onUnfold={() => { setUnfolded(true); setExpanded(true); }} /></div>;
   const target = findingTarget(finding);
   // Once posted the comment is not shown, so the explanation is the only text left: it stays.
   const body = bodyToShow(info ? { ...finding, comment: null } : finding);
@@ -161,7 +82,7 @@ function FindingCard({ finding, raised, compact = false, focus = null, onFocus, 
   );
   if (!compact) {
     return (
-      <div ref={rootRef} tabIndex={-1} className={cn('rounded-lg border border-line bg-canvas p-3 text-sm transition-shadow focus:outline-none motion-reduce:transition-none', flash && 'ring-2 ring-blue-500')}>
+      <div ref={rootRef} tabIndex={-1} className={cn('rounded-lg border border-line bg-canvas p-3 text-sm transition-shadow focus:outline-none motion-reduce:transition-none', flashed && 'ring-2 ring-blue-500')}>
         <FindingHeader finding={finding} info={info} />
         {finding.body !== finding.title && <NoteMarkdown className="mt-2 text-fg-muted">{finding.body}</NoteMarkdown>}
         <FindingProof verification={finding.verification} />
@@ -171,7 +92,7 @@ function FindingCard({ finding, raised, compact = false, focus = null, onFocus, 
     );
   }
   return (
-    <div ref={rootRef} tabIndex={-1} className={cn('rounded-lg border border-line text-sm transition-shadow focus:outline-none', flash && 'ring-2 ring-blue-500')}>
+    <div ref={rootRef} tabIndex={-1} className={cn('rounded-lg border border-line text-sm transition-shadow focus:outline-none', flashed && 'ring-2 ring-blue-500')}>
       <div className="flex items-start gap-2 px-3 py-2">
         <button type="button" aria-expanded={expanded} onClick={() => { if (!expanded) onFocus?.(finding.id); setExpanded((e) => !e); }} className="flex min-w-0 flex-1 items-start gap-2 text-left">
           <SeverityDot level={finding.severity} className="mt-1.5" />

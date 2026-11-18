@@ -1,3 +1,4 @@
+import { readStored, writeStored } from './storage';
 import { defineSound, ensureReady, setMasterVolume, type SoundDefinition } from '@web-kits/audio';
 
 // The studio's sounds, synthesized in the browser (@web-kits/audio): no file, no network. Short and
@@ -35,16 +36,10 @@ const players = Object.fromEntries(Object.entries(DEFINITIONS).map(([k, d]) => [
 // On by default; switched off in Settings, for this browser only.
 const KEY = 'marginalia.sounds';
 export function soundsOn(): boolean {
-  try {
-    return localStorage.getItem(KEY) !== 'off';
-  } catch {
-    return true;
-  }
+  return readStored(KEY) !== 'off';
 }
 export function setSoundsOn(on: boolean) {
-  try {
-    localStorage.setItem(KEY, on ? 'on' : 'off');
-  } catch { /* private window: the choice lasts this page */ }
+  writeStored(KEY, on ? 'on' : 'off');
 }
 
 // A browser lets a page play sound only after the person touched it: the audio starts on the first

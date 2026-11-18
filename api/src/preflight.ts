@@ -16,7 +16,6 @@ const probe = (bin: string, args: string[], opts?: any) => execFileAsync(bin, ar
 // a triage, push access for its fixes. The connectors the agent reads through are listed too. Each answer is a step of the run; one that would stop the
 // run half way stops it here instead, with what to do. The ticket is checked too, but a run
 // without it goes on.
-/** @param {any} mr @param {{ kind: 'review' | 'triage', run: any }} opts */
 export async function preflight(mr: any, { kind, run }: any) {
   await run.stage('preflight');
   const { repoPath } = mr.project;

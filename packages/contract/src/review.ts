@@ -1,17 +1,17 @@
 import { z } from '@hono/zod-openapi';
-import { DiscussionId, ReviewId, ReviewKind, ShapeSource, Verdict, nullable } from './common.ts';
+import { DiscussionId, ReviewId, ReviewKind, ShapeSource, Verdict, nullable, Severity, RiskLevel, FindingProof, VerificationStatus, ReplyVerdict } from './common.ts';
 
 export const Finding = z.object({
   id: z.string().regex(/^[\w-]{1,64}$/).describe('Stable across re-runs. Also the `commentId` when posted.'),
-  severity: z.enum(['critical', 'important', 'suggestion', 'info']),
+  severity: Severity,
   title: z.string(),
   path: nullable(z.string()).describe('Repo-relative file the finding is about.'),
   line: nullable(z.number().int().min(1)).describe('Only set together with `path`.'),
   body: z.string(),
   comment: nullable(z.string()).describe('The comment to post on the merge request, ready as is.'),
-  proof: z.enum(['runtime', 'static']).optional().describe('runtime: a claim about behaviour that running the project could reproduce; static: a pattern or a rule, never run.'),
+  proof: FindingProof.optional().describe('runtime: a claim about behaviour that running the project could reproduce; static: a pattern or a rule, never run.'),
   verification: z.object({
-    status: z.enum(['reproduced', 'not_reproduced', 'inconclusive', 'skipped']),
+    status: VerificationStatus,
     evidence: z.string().nullable().optional(),
     command: z.string().nullable().optional(),
     artifacts: z.array(z.object({
@@ -24,7 +24,7 @@ export const Finding = z.object({
 
 export const Reply = z.object({
   thread: DiscussionId,
-  verdict: z.enum(['fixed', 'already_fixed', 'not_relevant', 'wrong', 'answered']).describe('`fixed`: fixed by this triage, sent once the fix is pushed.'),
+  verdict: ReplyVerdict.describe('`fixed`: fixed by this triage, sent once the fix is pushed.'),
   reply: z.string().describe('The drafted answer to the reviewer, first person.'),
   resolve: z.boolean().describe('Whether sending it also resolves the thread.'),
   commit: z.string().optional().describe('The commit that fixed this thread (staged triage): the reply names it once pushed.'),
@@ -35,7 +35,7 @@ export const ReviewShape = z.object({
   source: ShapeSource,
   verdict: Verdict,
   summary: nullable(z.string()),
-  risk: z.object({ level: z.enum(['low', 'medium', 'high']), axes: z.array(z.object({ axis: z.string(), level: z.enum(['low', 'medium', 'high']), note: z.string().nullable().optional() })).optional(), mitigations: z.array(z.string()).optional() }).passthrough().nullable().optional(),
+  risk: z.object({ level: RiskLevel, axes: z.array(z.object({ axis: z.string(), level: RiskLevel, note: z.string().nullable().optional() })).optional(), mitigations: z.array(z.string()).optional() }).passthrough().nullable().optional(),
   overview: z.object({ before: z.string(), after: z.string() }).nullable().optional(),
   criticalPaths: z.array(z.string()).optional().describe('The project\'s critical paths this MR touches, by name (from its approved project context).'),
   tour: z.array(z.object({ id: z.string(), title: z.string(), summary: z.string(), files: z.array(z.string()) }).passthrough()).optional(),
