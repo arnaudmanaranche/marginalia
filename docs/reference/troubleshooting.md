@@ -2,7 +2,6 @@
 
 - **`did not produce a report`**: run `npm run doctor -- --dry-run <iid>` and read the command's raw output in the error.
 - **Tool refused**: add it to `CLAUDE_EXTRA_ALLOWED_TOOLS`.
-- **MR skipped, branch checked out elsewhere**: switch branch in your own checkout; retried next poll.
 - **Studio says "not built"**: `npm run studio:build`.
 - **Command not found in headless mode**: commands from plugins are not seen by `doctor`; `--dry-run` is the real test.
 

@@ -39,8 +39,8 @@ It also reviews your branches that have no open MR yet (a draft MR does not coun
 last commit is yours (by your GitLab emails or name), pushed within `STALE_AFTER_DAYS`, other than
 the default or a protected branch. The diff is taken from where the branch left the default branch.
 The review goes to the same `own-<branch>.md`, so when you open the MR its own review continues
-there, and is not run again at the same commit. Own reviews use a detached checkout: your branch
-can stay checked out in your own clone.
+there, and is not run again at the same commit. Like every run, own reviews use a detached checkout: your
+branch can stay checked out in your own clone.
 
 ## Verification
 

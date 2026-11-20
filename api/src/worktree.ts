@@ -1,7 +1,6 @@
 import { existsSync } from 'node:fs';
 import { lstat, realpath, symlink } from 'node:fs/promises';
 import { join } from 'node:path';
-import { BOT_CHECKOUT } from './config.ts';
 import { gitIn } from './git.ts';
 import { cleanWorktree, fetchBranch, fetchMrHead, originUrl, resetHard } from './git-refs.ts';
 import { addWorktree, listWorktrees, worktreePorcelain, worktreeTop } from './git-worktree.ts';
@@ -70,19 +69,10 @@ export async function ensureBotWorktree(project: any) {
   if (stale.length) logger.info({ project: project.key }, `${stale.length} stale worktree entr${stale.length === 1 ? 'y' : 'ies'} in ${repoPath} (their folders are gone). If none is on an unplugged drive, \`git worktree prune\` there clears them.`);
 }
 
-// Refuses to review if the MR's branch is checked out in some other worktree
-// (most likely your own day-to-day checkout) — checking it out here too would
-// fail, and forcing it would be surprising for whatever has it checked out.
-export async function branchCheckedOutElsewhere(project: any, branchName: string) {
-  const { repoPath, worktreeDir } = project;
-  if (BOT_CHECKOUT === 'detached') return false;
-  const entries = await listWorktrees(repoPath);
-  return entries.some((e: any) => e.branch === branchName && e.path !== worktreeDir);
-}
-
-// `detached`: an own review only reads, and my branch is usually checked out in my own clone, so
-// it never takes the branch name. A branch without an MR (mr.iid null) is fetched by its name.
-export async function checkoutMergeRequest(mr: any, { detached = false }: { detached?: boolean } = {}) {
+// The MR's head, detached (ADR 0011): the worktree shares its refs with the repo a person works in,
+// so the bot never takes, moves or commits on a local branch of theirs. A triage's fixes go to
+// marginalia/<slug> instead (fixes.ts). A branch without an MR (mr.iid null) is fetched by its name.
+export async function checkoutMergeRequest(mr: any) {
   const worktreeDir = mr.project.worktreeDir;
   await assertBotWorktree(worktreeDir);
   // A run can leave changes to tracked files (a triage whose commit failed), which
@@ -91,8 +81,7 @@ export async function checkoutMergeRequest(mr: any, { detached = false }: { deta
   await cleanWorktree(worktreeDir, { ignored: true });
   if (mr.iid === null) await gitIn(worktreeDir).run('fetch', '--quiet', 'origin', mr.source_branch);
   else await fetchMrHead(worktreeDir, mr.iid);
-  const checkout = detached || BOT_CHECKOUT === 'detached' ? ['--detach', 'FETCH_HEAD'] : ['-B', mr.source_branch, 'FETCH_HEAD'];
-  await gitIn(worktreeDir).run('checkout', '--quiet', ...checkout);
+  await gitIn(worktreeDir).run('checkout', '--quiet', '--detach', 'FETCH_HEAD');
   await resetHard(worktreeDir, 'FETCH_HEAD');
   // A target branch that was rebased (a stack's lower layer) is not a fast-forward: fetched forced.
   await fetchBranch(worktreeDir, mr.target_branch, `refs/remotes/origin/${mr.target_branch}`);

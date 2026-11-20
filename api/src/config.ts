@@ -105,11 +105,6 @@ export const {
   // reviewers and pushing the triage's fixes need no switch: each still waits
   // for your click and a confirmation.
   ALLOW_POSTING = 'false',
-  // "branch" (default): the bot checks out the MR's branch, and skips the MR
-  // while that branch is checked out in another worktree. "detached": it checks
-  // out the MR's head without any local branch, so a branch open in your own
-  // worktree never blocks it and no local branch is ever moved.
-  BOT_CHECKOUT = 'branch',
   // Optional: JIRA_BASE_URL alone links the ticket in the studio's side panel;
   // with all three set, the studio also lists reviews by the Jira priority of
   // the ticket named in the MR, most urgent first.

@@ -16,12 +16,10 @@
 - On first run, creates a git worktree of `REPO_LOCAL_PATH` at
   `BOT_WORKTREE_DIR` (detached, then a `.claude` symlink back to your real
   checkout so the command/agent/settings/connectors are available in it).
-  Before each review/triage, checks out the MR's branch there — skipping the
-  MR instead of forcing it if that branch happens to be checked out somewhere
-  else (e.g. your own working copy). If you keep a worktree open per MR, set
-  `BOT_CHECKOUT=detached`: the bot then checks out the MR's head without any
-  local branch, so it never skips and never moves one of your branches
-  (triage fixes still land on `marginalia/<branch-slug>`).
+  Before each review/triage, checks out the MR's head there, detached: no local
+  branch is taken, moved or committed on, so a branch you have checked out
+  never blocks a review (ADR 0011). Triage fixes land on
+  `marginalia/<branch-slug>`.
 
 ## Stacked MRs
 

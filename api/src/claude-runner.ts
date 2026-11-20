@@ -2,7 +2,7 @@ import { basename } from 'node:path';
 import { head } from './git-refs.ts';
 import { c, log, warn } from './log.ts';
 import { artifactOf } from './artifact.ts';
-import { branchCheckedOutElsewhere, checkoutMergeRequest } from './worktree.ts';
+import { checkoutMergeRequest } from './worktree.ts';
 import { reviewOutputPath, mrCommentsOutputPath } from './paths.ts';
 import { recordFixes } from './fixes.ts';
 import { appendRun } from './runlog.ts';
@@ -20,7 +20,7 @@ async function runCommand(mr: any, opts: any) {
   const run = await followRun(mr, { ...opts, command: PIPELINE });
   try {
     const outcome = await runStages(mr, opts, run);
-    await run.finish(outcome, outcome === 'skipped' ? `Branch "${mr.source_branch}" is checked out in another worktree.` : null);
+    await run.finish(outcome);
     return outcome;
   } catch (err) {
     await run.finish('failed', err.message);
@@ -30,19 +30,14 @@ async function runCommand(mr: any, opts: any) {
   }
 }
 
-async function runStages(mr: any, { kind, outputPath, label, stack = null, detached = false }: any, run: any) {
+async function runStages(mr: any, { kind, outputPath, label, stack = null, own = false }: any, run: any): Promise<'reviewed'> {
   const { worktreeDir: BOT_WORKTREE_DIR, reviewsDir: REVIEWS_DIR } = mr.project;
   log(mr, `Starting ${label}: ${c.bold}"${mr.title}"${c.reset} (${mr.source_branch} -> ${mr.target_branch})`);
 
-  if (!detached && (await branchCheckedOutElsewhere(mr.project, mr.source_branch))) {
-    warn(mr, `Branch "${mr.source_branch}" is checked out in another worktree, skipping this pass.`);
-    return 'skipped';
-  }
-
   await preflight(mr, { kind, run });
   await run.stage('checkout');
-  log(mr, `Checking out ${mr.iid === null ? 'the branch' : 'MR branch'} in the bot worktree...`);
-  await checkoutMergeRequest(mr, { detached });
+  log(mr, `Checking out ${mr.iid === null ? 'the branch' : 'MR'} head in the bot worktree...`);
+  await checkoutMergeRequest(mr);
   const baseSha = await head(BOT_WORKTREE_DIR);
 
   const report = await stagedRun({ mr, run, kind, outputPath, stack });
@@ -52,20 +47,20 @@ async function runStages(mr: any, { kind, outputPath, label, stack = null, detac
   if (cost) log(mr, `Cost: $${cost.usd.toFixed(2)}, ${cost.outputTokens} output tokens, ${cost.turns} turns.`);
   if (shape.warnings.length) warn(mr, `Report contract: ${shape.warnings.join(' ')}`);
   // An own review replaces the last one: first, which of its findings did this push fix?
-  if (detached) await recordFixedBefore({ project: mr.project, slug: basename(outputPath, '.md'), newSha: baseSha, iid: mr.iid });
+  if (own) await recordFixedBefore({ project: mr.project, slug: basename(outputPath, '.md'), newSha: baseSha, iid: mr.iid });
   if (await artifactOf(outputPath).write(report, baseSha)) log(mr, `Previous report kept in ${REVIEWS_DIR}/.history.`);
 
   if (kind === 'triage') await recordFixes(mr, baseSha);
   log(mr, `Report (${source}) written to ${outputPath}. Nothing was posted to GitLab.`);
-  if (row) trackRun({ run: row, report: { source, ...listFields(shape), warnings: shape.warnings.length, own: detached, criticalPaths: (shape.criticalPaths ?? []).length } });
+  if (row) trackRun({ run: row, report: { source, ...listFields(shape), warnings: shape.warnings.length, own, criticalPaths: (shape.criticalPaths ?? []).length } });
   return 'reviewed';
 }
 
-// `own`: an own review (my MR or branch), read from a detached checkout.
+// `own`: an own review (my MR or branch).
 export function runReview(mr: any, outputPath = reviewOutputPath(mr), stack = null, { own = false }: { own?: boolean } = {}) {
   return runCommand(mr, {
     stack,
-    detached: own,
+    own,
     kind: 'review',
     outputPath,
     label: 'review',

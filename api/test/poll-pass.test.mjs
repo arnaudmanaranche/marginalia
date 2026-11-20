@@ -69,14 +69,6 @@ test('trusts a review file newer than the last push for an MR it never saw', asy
   assert.equal(stored[1], 'sha1');
 });
 
-test('a skipped run is not recorded, so the next poll retries it', async () => {
-  const { deps, sink, calls, stored } = setup({ open: [mr(1)], runReview: async () => 'skipped' });
-  await passOver(project, deps, sink);
-  assert.equal(stored[1], undefined);
-  assert.deepEqual(calls.mrStatus, [[1, 'skipped']]);
-  assert.deepEqual(calls.notified, []);
-});
-
 test('a transient failure asks for a sooner poll and raises no alarm', async () => {
   const { deps, sink, calls } = setup({ open: [mr(1)], runReview: async () => { throw new Error('getaddrinfo ENOTFOUND gitlab.example.com'); } });
   const out = await passOver(project, deps, sink);

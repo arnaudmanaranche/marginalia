@@ -104,13 +104,7 @@ export async function workOnMr(kind: string, mr: any, ctx: any, pass: any) {
   }
   await sink.begin(mr, spec.entry);
   try {
-    const outcome = await spec.run(deps, mr, ctx);
-    if (outcome !== 'reviewed') {
-      // Not recorded in state on a skip: the next poll retries it, once the branch has
-      // been switched away from in the other worktree.
-      await sink.setMr(mr, { status: 'skipped', error: `Branch "${mr.source_branch}" is checked out in another worktree.` }, spec.entry);
-      return;
-    }
+    await spec.run(deps, mr, ctx);
     spec.record(state, mr, ctx);
     await deps.saveState(mr.project, state);
     await sink.setMr(mr, { status: 'up_to_date', reviewedAt: new Date().toISOString() }, spec.entry);
