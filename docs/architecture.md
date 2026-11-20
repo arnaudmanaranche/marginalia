@@ -32,7 +32,7 @@ mention ──────┤ intake (webhook | polling) → one mention record
         guardrails: Developer+ member? not a bot note? note id unseen?
                     one run per MR (extra mentions queue as one follow-up), daily cap
               ▼
-        run: ephemeral worktree, read-only token, tool allowlist,
+        run: project's worktree, reset to the MR head, detached; read-only token, tool allowlist,
              agent picks skills from the catalog and works freely
               ▼
         guardrail: result validated against the contract  ── invalid → visible failure, nothing posted
