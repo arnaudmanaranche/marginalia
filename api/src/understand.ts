@@ -8,6 +8,7 @@ import { gitlab } from './gitlab-api.ts';
 import { gitIn } from './git.ts';
 import { fetchBranch } from './git-refs.ts';
 import { addWorktree } from './git-worktree.ts';
+import { resetWorktreeTo } from './worktree.ts';
 import { UNDERSTAND_TOOLS } from './allowed-tools.ts';
 import { claudeArgs, parseRunOutput } from './claude-cli.ts';
 import { runEnv, runSettings } from './run-settings.ts';
@@ -33,8 +34,7 @@ async function checkoutDefault(project: any) {
   await fetchBranch(project.repoPath, branch, ref);
   const dir = join(DATA_DIR, 'worktrees', `${project.key}-understand`);
   if (existsSync(dir)) {
-    await gitIn(dir).run('checkout', '--quiet', '--detach', '--force', ref);
-    await gitIn(dir).run('clean', '-fdxq');
+    await resetWorktreeTo(dir, ref);
   } else {
     await addWorktree(project.repoPath, dir, ref);
   }

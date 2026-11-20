@@ -22,6 +22,14 @@ export async function assertBotWorktree(dir: string) {
   if (problem) throw new Error(problem);
 }
 
+// A worktree of the bot's own, back at `ref` with nothing a run left: checked first, since a folder
+// that lost its registration would force and clean whatever repository git finds above it.
+export async function resetWorktreeTo(dir: string, ref: string) {
+  await assertBotWorktree(dir);
+  await gitIn(dir).run('checkout', '--quiet', '--detach', '--force', ref);
+  await cleanWorktree(dir, { ignored: true });
+}
+
 // Sets up (once) and keeps healthy a worktree of the project's repo dedicated
 // to this bot, with a .claude symlink so /code-review, the code-reviewer
 // agent, and the GitLab/Atlassian connectors are available in it exactly as

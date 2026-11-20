@@ -12,7 +12,7 @@ import { git } from './support/git-repo.mjs';
 
 process.env.MR_REVIEW_BOT_SKIP_CONFIG_CHECK = '1';
 const { parseWorktrees, foreignWorktrees, botWorktreeProblem } = await import('../dist/src/worktree-guard.js');
-const { ensureBotWorktree, assertBotWorktree, checkoutMergeRequest } = await import('../dist/src/worktree.js');
+const { ensureBotWorktree, assertBotWorktree, checkoutMergeRequest, resetWorktreeTo } = await import('../dist/src/worktree.js');
 
 async function repoWithWorktree() {
   const root = await realpath(await mkdtemp(join(tmpdir(), 'marginalia-wt-')));
@@ -70,6 +70,18 @@ test('a worktree whose registration was lost is refused rather than cleaned or u
   await writeFile(join(project.worktreeDir, 'keep.txt'), 'mine');
   await rm(join(repo, '.git', 'worktrees'), { recursive: true });
   await assert.rejects(ensureBotWorktree(project), /not a working git worktree/);
+  assert.ok(existsSync(join(project.worktreeDir, 'keep.txt')));
+});
+
+test('a worktree reset to a ref is refused, not forced or cleaned, once its registration is lost', async () => {
+  const { repo, project } = await repoWithWorktree();
+  git(repo, 'worktree', 'add', '--quiet', '--detach', project.worktreeDir);
+  await writeFile(join(project.worktreeDir, 'left.txt'), 'by a run');
+  await resetWorktreeTo(project.worktreeDir, 'HEAD');
+  assert.ok(!existsSync(join(project.worktreeDir, 'left.txt')), 'a healthy one is cleaned');
+  await writeFile(join(project.worktreeDir, 'keep.txt'), 'mine');
+  await rm(join(repo, '.git', 'worktrees'), { recursive: true });
+  await assert.rejects(resetWorktreeTo(project.worktreeDir, 'HEAD'), /not a working git worktree/);
   assert.ok(existsSync(join(project.worktreeDir, 'keep.txt')));
 });
 
