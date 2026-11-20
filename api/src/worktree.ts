@@ -1,13 +1,14 @@
 import { existsSync } from 'node:fs';
-import { lstat, realpath, symlink } from 'node:fs/promises';
+import { lstat, realpath, rename, rm, stat, symlink } from 'node:fs/promises';
 import { join } from 'node:path';
+import { DATA_DIR } from './config.ts';
 import { gitIn } from './git.ts';
 import { cleanWorktree, fetchBranch, fetchMrHead, originUrl, resetHard } from './git-refs.ts';
 import { addWorktree, listWorktrees, worktreePorcelain, worktreeTop } from './git-worktree.ts';
 import { logger } from './logger.ts';
 import { fileExists } from './paths.ts';
 import { sweepScratchWorktrees } from './scratch-worktree.ts';
-import { botWorktreeProblem, foreignWorktrees, foreignWorktreesMessage } from './worktree-guard.ts';
+import { botWorktreeProblem, foreignWorktrees, foreignWorktreesMessage, ownedWorktree } from './worktree-guard.ts';
 
 // In the container image: the reason this repo cannot be worked in from here, or null.
 export async function containerRepoProblem(repoPath: string) {
@@ -31,6 +32,31 @@ export async function resetWorktreeTo(dir: string, ref: string) {
   await cleanWorktree(dir, { ignored: true });
 }
 
+// A broken worktree the bot made itself (ownedWorktree) is mended without a person: `git worktree
+// repair` when only its links are off (the data dir moved), else the folder is set aside, never
+// deleted, and the caller makes a new one. One a person placed is left to the refusal it gets.
+async function healOwnWorktree({ key, repoPath, worktreeDir }: any) {
+  const healthy = () => assertBotWorktree(worktreeDir).then(() => true, () => false);
+  if ((await healthy()) || !ownedWorktree(worktreeDir, DATA_DIR)) return;
+  await gitIn(repoPath).run('worktree', 'repair', worktreeDir).catch(() => null);
+  if (await healthy()) return logger.info({ project: key }, `Repaired the links of the bot worktree at ${worktreeDir}.`);
+  const aside = `${worktreeDir}.broken-${Date.now()}`;
+  await rename(worktreeDir, aside);
+  logger.warn({ project: key }, `The bot worktree at ${worktreeDir} had lost its registration: set aside at ${aside} (delete it when you like), a new one is made.`);
+}
+
+// Only the task of the project's lane works in its worktree, so an index.lock older than any git
+// command takes is one a killed run left; it would make every later checkout refuse.
+const STALE_LOCK_MS = 2 * 60_000;
+async function clearStaleIndexLock(dir: string, now = Date.now()) {
+  const lock = join(await gitIn(dir).run('rev-parse', '--absolute-git-dir'), 'index.lock');
+  const age = await stat(lock).then((s) => now - s.mtimeMs, () => null);
+  if (age !== null && age > STALE_LOCK_MS) {
+    await rm(lock, { force: true });
+    logger.warn(`Removed ${lock}, left by a stopped run.`);
+  }
+}
+
 // Sets up (once) and keeps healthy a worktree of the project's repo dedicated
 // to this bot, with a .claude symlink so /code-review, the code-reviewer
 // agent, and the GitLab/Atlassian connectors are available in it exactly as
@@ -42,6 +68,7 @@ export async function ensureBotWorktree(project: any) {
   const problem = await containerRepoProblem(repoPath);
   if (problem) throw new Error(problem);
 
+  if (await fileExists(worktreeDir)) await healOwnWorktree(project);
   if (!(await fileExists(worktreeDir))) {
     logger.info({ project: project.key }, `Creating dedicated bot worktree at ${worktreeDir}...`);
     await addWorktree(repoPath, worktreeDir);
@@ -87,6 +114,7 @@ export async function ensureBotWorktree(project: any) {
 export async function checkoutMergeRequest(mr: any) {
   const worktreeDir = mr.project.worktreeDir;
   await assertBotWorktree(worktreeDir);
+  await clearStaleIndexLock(worktreeDir);
   // A run can leave changes to tracked files (a triage whose commit failed), which
   // `git clean` does not touch and which would make the checkout below refuse.
   await resetHard(worktreeDir);

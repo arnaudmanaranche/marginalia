@@ -6,6 +6,8 @@
 // happened once (the registrations of every worktree of a developer's repo were lost), so the
 // bot never prunes, and a container refuses to work in a checkout that has worktrees it cannot see.
 
+import { dirname, join, resolve } from 'node:path';
+
 // Reads the output of `git worktree list --porcelain`.
 export function parseWorktrees(porcelain: string) {
   return porcelain.split('\n\n').filter(Boolean).map((block: string) => ({
@@ -22,6 +24,14 @@ export const foreignWorktreesMessage = (repoPath: string, foreign: { path: strin
   `${repoPath} has ${foreign.length} git worktree(s) whose folders this container cannot see (${foreign.slice(0, 3).map((w) => w.path).join(', ')}${foreign.length > 3 ? ', ...' : ''}): it is a checkout you also use from the host. `
   + 'Working in it would leave worktree entries that point inside the container, and the host\'s own would look broken. '
   + 'Mount a dedicated clone that only the container uses (see "Run in a container" in the README).';
+
+// A worktree folder the bot made at a place of its own choosing (<data>/worktree, <data>/worktrees/*),
+// which it may therefore repair or set aside by itself. One a person named (BOT_WORKTREE_DIR set
+// elsewhere) is only reported. Paths are compared resolved, without touching the disk.
+export const ownedWorktree = (dir: string, dataDir: string) => {
+  const d = resolve(dir);
+  return d === join(resolve(dataDir), 'worktree') || dirname(d) === join(resolve(dataDir), 'worktrees');
+};
 
 // The folder the bot is about to `git clean -fdx`: git must say it is the top of its own
 // work tree. A folder that lost its registration, or one that is merely inside another repo,
