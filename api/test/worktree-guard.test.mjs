@@ -141,6 +141,21 @@ test('what a run left uncommitted, staged or not, does not block the next checko
   assert.ok(!existsSync(join(project.worktreeDir, 'new.ts')));
 });
 
+test('the checkout is detached: a local branch named like the MR\'s stays where it was (ADR 0011)', async () => {
+  const { repo, project } = await repoWithWorktree();
+  git(repo, 'checkout', '--quiet', '-b', 'feat/mr');
+  git(repo, 'commit', '--quiet', '--allow-empty', '-m', 'mine, never pushed');
+  const mine = git(repo, 'rev-parse', 'feat/mr');
+  git(repo, 'checkout', '--quiet', 'main');
+  git(repo, 'update-ref', 'refs/merge-requests/1/head', 'main');
+  git(repo, 'remote', 'set-url', 'origin', repo);
+  git(repo, 'worktree', 'add', '--quiet', '--detach', project.worktreeDir, 'main');
+  await checkoutMergeRequest({ iid: 1, source_branch: 'feat/mr', target_branch: 'main', project });
+  assert.equal(git(repo, 'rev-parse', 'feat/mr'), mine, 'the local branch did not move');
+  assert.equal(git(project.worktreeDir, 'rev-parse', 'HEAD'), git(repo, 'rev-parse', 'main'));
+  assert.throws(() => git(project.worktreeDir, 'symbolic-ref', '-q', 'HEAD'), 'HEAD is detached');
+});
+
 test('a target branch that was rebased since the last fetch is still fetched', async () => {
   const { repo, project } = await repoWithWorktree();
   git(repo, 'update-ref', 'refs/merge-requests/1/head', 'main');
