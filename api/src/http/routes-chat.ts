@@ -32,7 +32,7 @@ export function chatRoute(app: any) {
     try {
       const files = filesOfStop((await gitlab.listMergeRequestDiffs(project, mr.iid)).map(toDiffFile), stop, shape.findings);
       const prompt = buildChatPrompt({ title: mr.title, shape, stop, files, history, question });
-      return c.json({ answer: await askAboutStop({ project, iid: mr.iid, prompt }) }, 200);
+      return c.json({ answer: await askAboutStop({ project, iid: mr.iid, sha: shape.reviewedSha ?? null, prompt }) }, 200);
     } catch (err) {
       return c.json({ error: shortMessage(err) }, 502);
     } finally {
