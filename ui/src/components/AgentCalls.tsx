@@ -14,7 +14,7 @@ export function AgentCalls({ calls, startedAt, running }: { calls: ToolCallRecor
   const [openId, setOpenId] = useState<string | null>(null);
   if (!calls.length) return <p className="px-3 py-2 text-xs text-fg-muted">{running ? 'No tool called yet.' : 'It called no tool.'}</p>;
   const t0 = Date.parse(startedAt ?? calls[0].startedAt);
-  const newest = [...calls].reverse();
+  const newest = calls.toReversed();
   return (
     // Three rows tall; while a call's card is open the list grows, so the card is never cut.
     <ul aria-label="Tool calls" className={cn('divide-y divide-line overflow-y-auto', openId ? 'max-h-80' : 'max-h-[6.75rem]')}>

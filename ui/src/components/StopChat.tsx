@@ -74,7 +74,7 @@ export function StopChat({ slug, stopId }: { slug: string; stopId: string }) {
               speech.stop();
               setText(e.target.value);
             }}
-            onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(text); } }}
+            onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (!e.nativeEvent.isComposing && e.keyCode !== 229) send(text); } }}
             rows={1}
             maxLength={2000}
             placeholder={speech.listening ? 'Listening…' : 'Ask about this stop'}

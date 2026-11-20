@@ -32,5 +32,5 @@ export function replyBody(text: string, fixed: boolean, landed: string | null): 
 
 // The order I answer them in on my own MR: file by file, down each file, general comments last.
 export function byPlace(threads: Thread[]): Thread[] {
-  return [...threads].sort((a, b) => (a.path === null ? 1 : 0) - (b.path === null ? 1 : 0) || (a.path ?? '').localeCompare(b.path ?? '') || (a.line ?? 0) - (b.line ?? 0));
+  return threads.toSorted((a, b) => (a.path === null ? 1 : 0) - (b.path === null ? 1 : 0) || (a.path ?? '').localeCompare(b.path ?? '') || (a.line ?? 0) - (b.line ?? 0));
 }

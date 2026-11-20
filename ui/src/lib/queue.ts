@@ -39,7 +39,7 @@ export const ranMs = (t: QueueTask, now: number) => (t.startedAt ? (t.endedAt ? 
 
 export function median(values: number[]): number | null {
   if (!values.length) return null;
-  const sorted = [...values].sort((a, b) => a - b);
+  const sorted = values.toSorted((a, b) => a - b);
   const mid = Math.floor(sorted.length / 2);
   return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
 }

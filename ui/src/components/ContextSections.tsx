@@ -124,7 +124,7 @@ export function ContextSections({ context, focusPath = null }: { context: Projec
     <>
       <p className="mt-6 max-w-[80ch] text-base leading-7">{context.summary}</p>
       <Section id="ctx-paths" title={`Critical paths (${context.criticalPaths.length})`}>
-        <ol>{[...context.criticalPaths].sort((a, b) => a.rank - b.rank).map((p) => <Path key={p.name} path={p} focused={p.name === focusPath} />)}</ol>
+        <ol>{context.criticalPaths.toSorted((a, b) => a.rank - b.rank).map((p) => <Path key={p.name} path={p} focused={p.name === focusPath} />)}</ol>
       </Section>
       <Section id="ctx-glossary" title={`Glossary (${context.glossary.length})`}>
         <ul>{context.glossary.map((t) => <Term key={t.name} term={t} />)}</ul>
