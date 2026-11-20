@@ -22,7 +22,10 @@ shared, and up to `QUEUE_WORKERS` projects run side by side. `"triage": false` (
 in a single-project `.env`) ignores your own MRs on that project. A project's `key`
 (from the last part of its GitLab path, or set with `"key"`) prefixes its reviews in the
 studio (`back-end/feat-x`), its entries in `state.json` and `posted.json`, and its worktree
-(`<data dir>/worktrees/<key>`; the first project keeps `BOT_WORKTREE_DIR`). The first run
+(`<data dir>/worktrees/<key>`; the first project keeps `BOT_WORKTREE_DIR`). Throwaway
+worktrees (a question about a stop, a fix replayed before its push) go under
+`<data dir>/tmp-worktrees` and are removed after; the ones a stopped run left there are removed at
+startup, one by one, and no other worktree of the repo is touched. The first run
 after upgrading moves the single-project `state.json` and `posted.json` under the first
 project's key: keep a copy if you may go back to an older version. The studio's Settings
 page overrides allowed target branches and excluded authors for all projects at once.

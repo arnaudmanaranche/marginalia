@@ -77,6 +77,8 @@ async function prepare({ trace, doctor, save }: { trace: any, doctor: any, save:
     await save({ state: 'ready', branch, base, commit: fixed, dir, diffStat, testsPassed, note: text.trim().slice(0, 2000), cost: stats?.costUsd ?? null });
   } catch (err) {
     logger.warn({ err }, 'The doctor could not prepare the fix');
+    // A failed fix keeps nothing to push: its worktree goes, the branch stays for a look.
+    await removeWorktree(SOURCE_DIR, dir).catch(() => {});
     await save({ state: 'failed', branch, error: String(err.message ?? err).slice(0, 1000) });
   }
 }

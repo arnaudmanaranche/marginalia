@@ -6,6 +6,7 @@ import { cleanWorktree, fetchBranch, fetchMrHead, originUrl, resetHard } from '.
 import { addWorktree, listWorktrees, worktreePorcelain, worktreeTop } from './git-worktree.ts';
 import { logger } from './logger.ts';
 import { fileExists } from './paths.ts';
+import { sweepScratchWorktrees } from './scratch-worktree.ts';
 import { botWorktreeProblem, foreignWorktrees, foreignWorktreesMessage } from './worktree-guard.ts';
 
 // In the container image: the reason this repo cannot be worked in from here, or null.
@@ -72,7 +73,10 @@ export async function ensureBotWorktree(project: any) {
 
   // Never `git worktree prune` here: it deletes the registration of every worktree whose folder is
   // not visible right now (an unplugged drive, another mount of this repo), including ones that are
-  // not ours. Entries left behind by a crashed EnterWorktree cycle are only reported.
+  // not ours. Only the bot's own scratch worktrees a crash left are removed, one by one; any other
+  // stale entry is only reported.
+  const swept = await sweepScratchWorktrees(repoPath);
+  if (swept.length) logger.info({ project: project.key }, `Removed ${swept.length} scratch worktree(s) a stopped run left in ${repoPath}.`);
   const stale = (await listWorktrees(repoPath)).filter((w: any) => w.prunable);
   if (stale.length) logger.info({ project: project.key }, `${stale.length} stale worktree entr${stale.length === 1 ? 'y' : 'ies'} in ${repoPath} (their folders are gone). If none is on an unplugged drive, \`git worktree prune\` there clears them.`);
 }

@@ -1,9 +1,6 @@
-import { mkdtemp, rm } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
 import { gitIn } from './git.ts';
 import { head, pushTo, updateRef } from './git-refs.ts';
-import { addWorktree, removeWorktree } from './git-worktree.ts';
+import { withScratchWorktree } from './scratch-worktree.ts';
 import { fixesStatus } from './fixes.ts';
 import { ownFixes } from './fixes-identity.ts';
 
@@ -31,10 +28,7 @@ export async function pushOneFix(project: any, mr: any, sha: string) {
   }
   if (oldestFirst[0].merge) return { pushed: false, status: before, error: 'the fixes were made on top of the merge that settles the conflicts: push that one first' };
 
-  const dir = await mkdtemp(join(tmpdir(), 'marginalia-push-'));
-  const work = join(dir, 'tree');
-  try {
-    await addWorktree(project.repoPath, work, String(before.remoteSha));
+  return withScratchWorktree(project.repoPath, String(before.remoteSha), async (work) => {
     // The commits keep their author; the committer is whoever committed them (the bot's identity),
     // since this machine may have none configured. No hook of the repo runs on the replay.
     const pick = async (commit: any) => {
@@ -57,8 +51,5 @@ export async function pushOneFix(project: any, mr: any, sha: string) {
     }
     const after = await fixesStatus(project, mr);
     return { pushed: true, status: note ? { ...after, note } : after };
-  } finally {
-    await removeWorktree(project.repoPath, work).catch(() => null);
-    await rm(dir, { recursive: true, force: true });
-  }
+  });
 }
