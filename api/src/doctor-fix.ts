@@ -52,9 +52,11 @@ async function prepare({ trace, doctor, save }: { trace: any, doctor: any, save:
   const branch = `doctor/${trace.id.toLowerCase()}`;
   const dir = join(FIXES_DIR, trace.id);
   try {
+    // An earlier attempt's worktree goes, its registration with it even when its folder is gone.
+    // Never `git worktree prune`: SOURCE_DIR may be a clone the host also uses (worktree-guard.ts).
+    await removeWorktree(SOURCE_DIR, dir).catch(() => {});
     await rm(dir, { recursive: true, force: true });
     const source = gitIn(SOURCE_DIR);
-    await source.run('worktree', 'prune');
     const base = await head(SOURCE_DIR);
     await source.run('worktree', 'add', '-B', branch, dir, base);
     // The tests need the dependencies; the worktree borrows the clone's.

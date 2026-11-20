@@ -4,9 +4,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
-import { mkdtemp, mkdir, rm, writeFile, realpath } from 'node:fs/promises';
+import { mkdtemp, mkdir, readdir, readFile, rm, writeFile, realpath } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { git } from './support/git-repo.mjs';
 
 process.env.MR_REVIEW_BOT_SKIP_CONFIG_CHECK = '1';
@@ -81,6 +82,14 @@ test('the bot never prunes: a worktree entry whose folder is gone is still regis
   await ensureBotWorktree(project);
   assert.match(git(repo, 'worktree', 'list'), /someone-elses-worktree/, 'still registered');
   assert.match(git(repo, 'worktree', 'list'), /bot-worktree/, 'and the bot got its own');
+});
+
+test('no module of the bot runs `git worktree prune` (one registration goes with `worktree remove`)', async () => {
+  const src = fileURLToPath(new URL('../src/', import.meta.url));
+  const files = (await readdir(src, { recursive: true })).filter((f) => f.endsWith('.ts'));
+  const pruning = [];
+  for (const f of files) if (/['"]worktree['"],\s*['"]prune['"]/.test(await readFile(join(src, f), 'utf8'))) pruning.push(f);
+  assert.deepEqual(pruning, []);
 });
 
 test('in the container a checkout with worktrees it cannot see is refused, and left exactly as it was', async () => {
