@@ -66,6 +66,8 @@ export function aiEvents(call: AiCall) {
       $ai_cache_creation_input_tokens: number(usage.cache_creation_input_tokens),
       $ai_total_cost_usd: number(result?.total_cost_usd),
       $ai_latency: number(result?.duration_ms) === undefined ? undefined : result.duration_ms / 1000,
+      // Time spent waiting on the model API, apart from the run's wall time: the gap is tool and queue time.
+      marginalia_api_latency: number(result?.duration_api_ms) === undefined ? undefined : result.duration_api_ms / 1000,
       marginalia_turns: number(result?.num_turns),
       marginalia_tool_calls: call.calls.length,
       marginalia_tool_errors: call.calls.filter((t) => t.ok === false).length,
