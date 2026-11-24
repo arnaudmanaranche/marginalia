@@ -62,7 +62,7 @@ export function StopChat({ slug, stopId }: { slug: string; stopId: string }) {
       </div>
       <form
         onSubmit={(e) => { e.preventDefault(); send(text); }}
-        className="sticky bottom-0 -mx-4 bg-surface px-4 pb-4 pt-2"
+        className="sticky bottom-0 z-20 -mx-4 bg-surface px-4 pb-4 pt-2"
       >
         <div className={cn(
           'flex items-end gap-1 rounded-xl border bg-canvas py-1.5 pl-3.5 pr-1.5 transition-colors focus-within:border-run focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500/40 dark:focus-within:bg-zinc-950',
