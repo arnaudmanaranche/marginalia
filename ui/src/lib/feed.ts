@@ -20,4 +20,13 @@ export function failuresNeedingYou(jobs: Job[]): Job[] {
   return [...latest.values()].filter((j) => j.outcome === 'failed' && !j.failure?.transient);
 }
 
+// What needs you, ranked by what matters rather than by kind: a review with critical findings, then
+// one of high risk, then the turns in their usual order, the one waiting longest first. Each keeps
+// its reason, so a mixed list still says why every row is there.
+export function rankNeedingYou(rows: { item: ReviewItem; reason: string }[]): { item: ReviewItem; reason: string }[] {
+  const weight = ({ item }: { item: ReviewItem }) => (item.critical > 0 ? 0 : item.risk === 'high' ? 1 : 2);
+  const turn = (r: { item: ReviewItem }) => MINE.indexOf(groupOf(r.item) ?? 'first');
+  return rows.toSorted((a, b) => weight(a) - weight(b) || turn(a) - turn(b) || a.item.reviewedAt.localeCompare(b.item.reviewedAt));
+}
+
 export const runningNow = (jobs: Job[]) => jobs.filter((j) => j.outcome === 'running');

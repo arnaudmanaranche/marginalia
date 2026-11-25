@@ -102,7 +102,7 @@ export function ReviewTour({ stops, findings, post, diff: source, showFullDiff, 
     <div ref={grid} style={{ '--panel': `${width}px` } as React.CSSProperties} className={cn(
       'grid gap-4 lg:flex lg:gap-0',
       source ? 'lg:min-h-0 lg:flex-1' : 'mx-auto w-full max-w-3xl',
-      wide ? 'fixed inset-x-0 bottom-0 top-[var(--chrome-h)] z-30 overflow-y-auto bg-canvas p-4 lg:overflow-visible' : 'mb-6 lg:mb-0',
+      wide ? 'fixed inset-x-0 bottom-0 top-[var(--chrome-h)] z-30 md:left-[var(--nav-w,0px)] overflow-y-auto bg-canvas p-4 lg:overflow-visible' : 'mb-6 lg:mb-0',
     )}>
     <section ref={pane} aria-label="Review tour" className={cn('rounded-xl border border-line bg-surface px-4 lg:overflow-y-auto', source ? 'lg:h-full lg:w-[var(--panel)] lg:max-w-[70%] lg:shrink-0' : 'lg:w-full lg:flex-1 lg:self-start', post ? 'pb-0' : 'pb-4')}>
       <ChapterRail stops={stops} findings={findings} index={index} direction={direction} onGo={setIndex} wide={wide} onWide={source ? () => setWide((w) => !w) : undefined}>

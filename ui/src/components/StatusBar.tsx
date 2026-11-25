@@ -1,4 +1,4 @@
-import { Command, Settings, Inbox } from 'lucide-react';
+import { Command, Menu } from 'lucide-react';
 import { LivePill } from './ds/LivePill';
 import type { BotStatus } from '../lib/api';
 import { inTime, timeAgo } from '../lib/utils';
@@ -38,40 +38,25 @@ function BotLine({ status, connection, shownSince }: { status: BotStatus | null;
   );
 }
 
-export function StatusBar({ status, connection, shownSince = null, streaming = true, settingsActive, approvalsActive, approvals, onOpenPalette, onHome, onSettings, onApprovals }: { status: BotStatus | null; connection: 'connecting' | 'unreachable' | 'ok'; shownSince?: number | null; streaming?: boolean; settingsActive: boolean; approvalsActive: boolean; approvals: number; onOpenPalette: () => void; onHome: () => void; onSettings: () => void; onApprovals: () => void }) {
+// The bar over every screen: the bot's state, search and the account. The screens themselves are in
+// the sidebar (ADR 0012); on a narrow screen, where the sidebar is a drawer, the bar opens it.
+export function StatusBar({ status, connection, shownSince = null, streaming = true, onOpenPalette, onHome, onMenu }: { status: BotStatus | null; connection: 'connecting' | 'unreachable' | 'ok'; shownSince?: number | null; streaming?: boolean; onOpenPalette: () => void; onHome: () => void; onMenu: () => void }) {
   return (
     <div className="border-b border-line">
-      <div className="flex h-14 items-center gap-4 px-4">
-        <button onClick={onHome} className="touch-target flex items-center gap-2 font-semibold tracking-tight"><Logo />Marginalia</button>
-        <div className="ml-2 min-w-0 text-sm"><BotLine status={status} connection={connection} shownSince={shownSince} />
+      <div className="flex h-14 items-center gap-3 px-4">
+        <button type="button" onClick={onMenu} aria-label="Open the menu" className="touch-target -ml-1.5 rounded-md p-1.5 text-fg-muted hover:bg-sunken md:hidden"><Menu className="size-5" /></button>
+        <button type="button" onClick={onHome} aria-label="Marginalia, Home" className="touch-target md:hidden"><Logo /></button>
+        <div className="min-w-0 text-sm"><BotLine status={status} connection={connection} shownSince={shownSince} />
           {/* The API answers but the live stream is down: changes show within 30s instead of at once. */}
           {connection === 'ok' && !streaming && <span title="The live connection dropped and is reconnecting. Until then the page checks every 30 seconds." className="ml-2 hidden text-xs text-fg-muted sm:inline">· live updates paused, checking every 30s</span>}</div>
 
         <button
           onClick={onOpenPalette}
-          className="touch-target ml-auto flex items-center gap-2 rounded-lg border border-line bg-surface px-3 py-1.5 text-sm text-fg-muted hover:border-zinc-300 dark:hover:border-zinc-700"
+          aria-label="Search"
+          className="touch-target ml-auto flex items-center gap-2 rounded-lg border border-line bg-surface px-3 py-1.5 text-sm text-fg-muted hover:border-line-strong"
         >
-          Search…
+          <span className="hidden sm:inline">Search…</span>
           <kbd className="flex items-center gap-0.5 rounded bg-sunken px-1.5 py-0.5 text-xs"><Command className="size-3" />K</kbd>
-        </button>
-        <button
-          onClick={onApprovals}
-          aria-label={approvals > 0 ? `Approvals, ${approvals} waiting` : 'Approvals'}
-          aria-current={approvalsActive ? 'page' : undefined}
-          data-tip="Approvals: proposed comments waiting for your decision"
-          className={`touch-target relative rounded-lg border p-2 hover:border-zinc-300 dark:hover:border-zinc-700 ${approvalsActive ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-line bg-surface text-fg-muted'}`}
-        >
-          <Inbox className="size-4" />
-          {approvals > 0 && <span aria-hidden className="absolute -right-1.5 -top-1.5 min-w-4 rounded-full bg-blue-600 px-1 text-center text-[11px] font-semibold leading-4 text-white">{approvals > 99 ? '99+' : approvals}</span>}
-        </button>
-        <button
-          onClick={onSettings}
-          aria-label="Settings"
-          aria-current={settingsActive ? 'page' : undefined}
-          data-tip="Settings"
-          className={`touch-target rounded-lg border p-2 hover:border-zinc-300 dark:hover:border-zinc-700 ${settingsActive ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-line bg-surface text-fg-muted'}`}
-        >
-          <Settings className="size-4" />
         </button>
         <AccountMenu />
       </div>

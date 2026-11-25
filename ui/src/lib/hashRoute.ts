@@ -28,7 +28,10 @@ export const versionRoute = (slug: string, versionId: string | null) => (version
 
 export const SETTINGS_ROUTE = 'settings';
 export const APPROVALS_ROUTE = 'approvals';
-// Retired: Home is the feed now (ADR 0007), so an old `#/jobs` link lands there.
+// The sidebar's pages (ADR 0012): every job by day, and the bot's queue.
+export const ACTIVITY_ROUTE = 'activity';
+export const QUEUE_ROUTE = 'queue';
+// Retired: the job list's old name, so an old `#/jobs` link lands on Activity.
 export const JOBS_ROUTE = 'jobs';
 const CONTEXT_ROUTE = 'context:';
 
@@ -40,7 +43,8 @@ export const contextKeyOf = (route: string | null) => (route?.startsWith(CONTEXT
 export const criticalPathRoute = (projectKey: string, name: string) => `${contextRoute(projectKey)}?path=${encodeURIComponent(name)}`;
 
 // Whether a route is a review rather than a page.
-export const isReviewRoute = (slug: string | null) => slug !== null && slug !== SETTINGS_ROUTE && slug !== APPROVALS_ROUTE && slug !== JOBS_ROUTE && contextKeyOf(slug) === null;
+const PAGES = [SETTINGS_ROUTE, APPROVALS_ROUTE, ACTIVITY_ROUTE, QUEUE_ROUTE, JOBS_ROUTE];
+export const isReviewRoute = (slug: string | null) => slug !== null && !PAGES.includes(slug) && contextKeyOf(slug) === null;
 
 // The link to a route; no route is Home.
 export const hrefOf = (route: string | null) => (route ? `#/${route}` : '#/');

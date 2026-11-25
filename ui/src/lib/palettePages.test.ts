@@ -6,6 +6,8 @@ describe('palettePages', () => {
     const pages = palettePages([{ key: 'webapp' }, { key: 'api' }]);
     expect(pages.map((p) => [p.label, p.route])).toEqual([
       ['Home', null],
+      ['Activity', 'activity'],
+      ['Queue', 'queue'],
       ['Approvals', 'approvals'],
       ['Settings', 'settings'],
       ['webapp project context', 'context:webapp'],

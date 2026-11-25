@@ -1,9 +1,10 @@
 import { Suspense, lazy, type ReactNode } from 'react';
 import type { ReviewItem, ReviewsPayload } from '../lib/api';
-import { APPROVALS_ROUTE, SETTINGS_ROUTE, contextKeyOf, isReviewRoute } from '../lib/hashRoute';
+import { ACTIVITY_ROUTE, APPROVALS_ROUTE, JOBS_ROUTE, QUEUE_ROUTE, SETTINGS_ROUTE, contextKeyOf, isReviewRoute } from '../lib/hashRoute';
 import { liveRunOf } from '../lib/liveRun';
 import { useReview } from '../lib/useReviews';
 import { ApprovalsView } from './ApprovalsPage';
+import { ActivityView, QueueScreen } from './Pages';
 import { ProjectView } from './ProjectPage';
 import { ReviewMissing, ReviewSkeleton } from './ReviewSkeleton';
 import { SettingsPage } from './SettingsPage';
@@ -47,6 +48,8 @@ export function Screen({ home, ...props }: ScreenProps) {
   const projectKey = contextKeyOf(slug);
   if (slug === SETTINGS_ROUTE) return <SettingsPage settings={props.data?.settings ?? null} defaults={props.data?.settingsDefaults ?? null} projects={props.data?.projects ?? []} nextPollAt={props.data?.status?.nextPollAt ?? null} />;
   if (slug === APPROVALS_ROUTE) return <ApprovalsView onOpen={props.onOpen} />;
+  if (slug === ACTIVITY_ROUTE || slug === JOBS_ROUTE) return <ActivityView items={props.items} onOpen={props.onOpen} />;
+  if (slug === QUEUE_ROUTE) return <QueueScreen nextPollAt={props.data?.status?.nextPollAt ?? null} onOpen={props.onOpen} />;
   if (projectKey) return <ProjectView key={slug} projectKey={projectKey} focusPath={path} />;
   return isReviewRoute(slug) ? <ReviewScreen {...props} /> : home;
 }

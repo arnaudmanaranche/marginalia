@@ -26,7 +26,11 @@ The words below are the only ones the code, the docs and the studio use for thes
 
 **Own review**: a review of the configured user's own branch or MR, shown only to them, never posted. Not triage, which works through comments other people left.
 
-**Feed**: Home (ADR 0007): what needs you (reviews whose turn is yours, comments to decide, failures that need a person, a context to approve), the jobs running now, and every job by day.
+**Feed**: Home (ADR 0007): what needs you (reviews whose turn is yours, comments to decide, failures that need a person, a context to approve) ranked by what matters, and the jobs running now, opened by the briefing (ADR 0012). Every job by day is on the Activity page.
+
+**Briefing**: the top of Home (ADR 0012): a greeting, one sentence on what changed since the person last looked at Home (kept per browser), and a few notes the studio draws from the reviews, jobs, queue and budget when something stands out (spend well above a usual day, the same failure repeating, a backlog, a project with no approved context). A note is said only when it is true and worth acting on; a quiet day says so in one line.
+
+**Since you last looked**: the moment this browser last left Home. The briefing counts what changed after it; on a first visit it counts the last day.
 
 **Approval**: a person's decision on a write the factory proposes: approve as-is, edit then approve, or dismiss. Nothing reaches GitLab without an approval or a mention.
 

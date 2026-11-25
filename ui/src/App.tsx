@@ -15,6 +15,8 @@ import { KEY_PREFIX } from './lib/storage';
 import { botBySlug } from './lib/botState';
 import { postedFor } from './lib/postedKey';
 import { StatusBar } from './components/StatusBar';
+import { Sidebar, type NavProject } from './components/Sidebar';
+import { NavDrawer } from './components/NavDrawer';
 import { TabStrip } from './components/TabStrip';
 import { HomeFeed } from './components/HomeFeed';
 import { ProjectFilter } from './components/ProjectFilter';
@@ -25,7 +27,10 @@ import { Crashed } from './components/Crashed';
 import { useApprovals } from './lib/approvalsApi';
 import { liveRunOf } from './lib/liveRun';
 import { useTheme } from './lib/theme';
-import { APPROVALS_ROUTE, JOBS_ROUTE, SETTINGS_ROUTE, contextKeyOf, hrefOf } from './lib/hashRoute';
+import { hrefOf } from './lib/hashRoute';
+import { useContexts, waitsForApproval } from './lib/contextApi';
+import { useQueue } from './lib/useQueue';
+import { runningNow } from './lib/feed';
 import { useHashRoute } from './lib/useHashRoute';
 import { useSeen } from './lib/useSeen';
 import { useCloseTabShortcut } from './lib/useCloseTabShortcut';
@@ -44,6 +49,8 @@ export function App() {
   const posted = useMergedPosted(data?.posted ?? EMPTY_POSTED);
   const { slug, finding, path: focusPath, version } = useHashRoute();
   const [palette, setPalette] = useState(false);
+  const [drawer, setDrawer] = useState(false);
+  const [collapsed, setCollapsed] = usePersistentState(`${KEY_PREFIX}nav-collapsed`, false);
 
   useEffect(() => {
     if (error) toast.error('Studio API unreachable', { id: 'api-error', description: error, duration: Infinity });
@@ -100,15 +107,34 @@ export function App() {
   };
 
   useCloseTabShortcut(slug, palette, close);
-  useEffect(() => { if (slug === JOBS_ROUTE) go(null); }, [slug]);
+
+  // The sidebar's counts and projects (ADR 0012): what waits on you, the proposals, the work under way.
+  const queue = useQueue().queue;
+  const contexts = useContexts().contexts;
+  const counts = {
+    needsYou: waitingAll, inbox: approvalCount,
+    running: needsYou.jobs ? runningNow(needsYou.jobs).length : 0,
+    waiting: queue?.tasks.filter((t) => t.status === 'queued').length ?? 0,
+  };
+  const navProjects: NavProject[] = (projects ?? []).map((p) => {
+    const c = contexts.find((x) => x.project === p.key);
+    return { key: p.key, attention: Boolean(c && (waitsForApproval(c) || !c.approvedAt)) };
+  });
+  const nav = { slug, counts, projects: navProjects, onGo: go, collapsed, onCollapse: setCollapsed };
 
   return (
     <MotionConfig reducedMotion="user">
     <LazyMotion features={loadMotionFeatures} strict>
       <Toaster position="bottom-right" theme={theme} richColors />
+      {/* The sidebar holds the screens (ADR 0012); `--nav-w` lets full-width overlays start after it. */}
+      <div className="flex min-h-dvh" style={{ '--nav-w': collapsed ? '3.5rem' : '14rem' } as React.CSSProperties}>
+      <div className="sticky top-0 hidden h-dvh shrink-0 md:block"><Sidebar {...nav} /></div>
+      <NavDrawer open={drawer} onClose={() => setDrawer(false)}><Sidebar {...nav} onClose={() => setDrawer(false)} /></NavDrawer>
+      <div className="min-w-0 flex-1">
       <header className="sticky top-0 z-40 bg-canvas">
-        <StatusBar status={data?.status ?? null} connection={error ? 'unreachable' : data ? 'ok' : 'connecting'} shownSince={data ? updatedAt : null} streaming={streaming} settingsActive={slug === SETTINGS_ROUTE || Boolean(contextKeyOf(slug))} approvalsActive={slug === APPROVALS_ROUTE} approvals={approvalCount} onApprovals={() => go(APPROVALS_ROUTE)} onOpenPalette={() => setPalette(true)} onHome={() => go(null)} onSettings={() => go(SETTINGS_ROUTE)} />
-        <TabStrip
+        <StatusBar status={data?.status ?? null} connection={error ? 'unreachable' : data ? 'ok' : 'connecting'} shownSince={data ? updatedAt : null} streaming={streaming} onOpenPalette={() => setPalette(true)} onHome={() => go(null)} onMenu={() => setDrawer(true)} />
+        {/* The strip holds the reviews being read: with none open, it is not drawn. */}
+        {tabItems.length > 0 && <TabStrip
           tabs={tabItems}
           activeSlug={slug}
           botBySlug={bots}
@@ -117,29 +143,29 @@ export function App() {
           homeUnread={waitingAll}
           onSelect={go}
           onClose={close}
-        />
+        />}
       </header>
       <TipLayer />
       <CommandPalette open={palette} setOpen={setPalette} items={items} pages={pages} onSelect={go} />
 
       <LinkContext.Provider value={links}>
-      <div className="flex">
-        <main className="min-w-0 flex-1">
+        <main className="min-w-0">
       {/* A screen that fails to render says so in its place; the bar and the tabs stay. */}
       <Crashed resetKey={slug}>
       <Screen
         route={{ slug, finding, path: focusPath, version }} data={data} items={items} posted={posted} reload={reload} isPosted={isPosted} onOpen={go}
         home={(
           <HomeFeed
-            loaded={Boolean(data)} items={shown} titles={titles} isUnread={isUnread} isReviewing={isReviewing} isHeld={isHeld} isNew={isNew} isChanged={isChanged} showProject={several} onOpen={go}
+            loaded={Boolean(data)} items={shown} titles={titles} isUnread={isUnread} isReviewing={isReviewing} isHeld={isHeld} isNew={isNew} isChanged={isChanged} showProject={several} onOpen={go} nextPollAt={data?.status?.nextPollAt ?? null} projects={(projects ?? []).map((p) => p.key)}
             filter={several ? <ProjectFilter options={filterOptions(projects)} value={filter} onChange={setProjectFilter} /> : undefined}
           />
         )}
       />
       </Crashed>
         </main>
-      </div>
       </LinkContext.Provider>
+      </div>
+      </div>
     </LazyMotion>
     </MotionConfig>
   );

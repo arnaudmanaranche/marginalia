@@ -128,7 +128,7 @@ export function SettingsPage({ settings, defaults, projects = [], nextPollAt = n
       {/* Appears only when something changed, over the page's foot: Save is the one primary action. */}
       <AnimatePresence initial={false}>
         {dirty && (
-          <m.div {...arrive} role="region" aria-label="Unsaved changes" className="fixed inset-x-0 bottom-0 z-30 px-6 pb-4">
+          <m.div {...arrive} role="region" aria-label="Unsaved changes" className="fixed inset-x-0 bottom-0 z-30 px-6 pb-4 md:left-[var(--nav-w,0px)]">
             <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 rounded-xl border border-line-strong bg-surface px-4 py-3">
               <span className="text-sm"><span className="font-medium tabular-nums">{changes}</span> unsaved change{changes > 1 ? 's' : ''}</span>
               <span className="flex items-center gap-2">

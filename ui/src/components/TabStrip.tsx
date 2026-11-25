@@ -25,7 +25,8 @@ export function TabStrip({ tabs, activeSlug, botBySlug, isUnread, isPosted, home
     <nav aria-label="Open reviews" className="flex h-[var(--strip-h)] items-stretch border-b border-line bg-strip">
 
       <ul className="flex min-w-0 flex-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <li className="flex shrink-0">
+        {/* Home is in the sidebar from md up (ADR 0012); on a phone, where the sidebar is a drawer, it stays a tab. */}
+        <li className="flex shrink-0 md:hidden">
         <a
           href={hrefOf(null)}
           aria-current={activeSlug === null ? 'page' : undefined}
