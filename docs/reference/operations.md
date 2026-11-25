@@ -66,7 +66,13 @@ each stage stays in code. The first step of a run says which version of each met
 
 To release a method: save a new version in PostHog, try it with `MARGINALIA_PROMPT_VERSIONS=<name>@<n>
 npm run eval -- --upload`, compare it in Offline Evaluations, then move the `production` label to it.
-Moving the label back undoes it.
+Moving the label back undoes it. The upload needs `POSTHOG_EVAL_KEY` (a project secret key with
+`offline_evaluation_ingestion:write` and `llm_analytics:read`/`write`), `POSTHOG_PROJECT_ID` and the app host,
+for the eval only. Each case is an item, and each scorer in `api/scripts/eval-score.ts` is a boolean
+`marginalia.<scorer>`: `contract_valid`, `found_planted`, `no_critical_on_clean`, `cites_repo_rule` (the
+finding about the planted problem names the repo rule or ADR it breaks), `no_generic_noise` (nothing above
+the case's `maxSeverity`) and `verification_ok`. All experiments share the suite `marginalia-review`, and
+their prompt version lists the methods used (`review-chapter@4,review-map@built-in`).
 
 Runs the bot recorded before you turned it on are in the `run` table; `npm run posthog:backfill` shows what
 would be sent, and `npm run posthog:backfill -- --send` sends it. A run always has the same event id, so
