@@ -13,9 +13,11 @@ export const postedOutcome = (proposed: string | null | undefined, sent: string)
 interface FindingEventInput {
   project: string; iid: number | string | null; scope?: string; findingId: string; severity: string | null;
   outcome: FindingOutcome; own: boolean; criticalPaths: number; reviewer: string; at: string; version?: string;
+  // The stage methods of the review the finding came from, name to version (ADR 0014).
+  methods?: Record<string, number | null> | null;
 }
 
-export function findingEvent({ project, iid, scope, findingId, severity, outcome, own, criticalPaths, reviewer, at, version }: FindingEventInput) {
+export function findingEvent({ project, iid, scope, findingId, severity, outcome, own, criticalPaths, reviewer, at, version, methods = null }: FindingEventInput) {
   return {
     event: FINDING_EVENT,
     distinct_id: `marginalia:${reviewer}`,
@@ -36,6 +38,8 @@ export function findingEvent({ project, iid, scope, findingId, severity, outcome
       acted_on: true,
       own_review: own,
       critical_paths: criticalPaths,
+      // A finding is written by a chapter's reviewer: its outcome measures the review-chapter method.
+      ...(methods && { prompt_name: 'review-chapter', prompt_version: methods['review-chapter'] ?? null, marginalia_prompts: methods }),
     },
   };
 }

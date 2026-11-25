@@ -46,6 +46,28 @@ The prompt and the answer (`$ai_input`, `$ai_output_choices`) are sent only with
 They hold the reviewed team's code and the MR's content, so turn it on only where PostHog may keep that.
 Off, nothing but numbers and names leaves. Tests never reach PostHog: they clear these variables.
 
+A generation also says which tools it called (`$ai_tools_called`, `$ai_tool_call_count`), for PostHog's
+Tools view, and which stage methods its prompt was built from: `$ai_prompt_name` and `$ai_prompt_version`
+for the main one when it came from PostHog, and `marginalia_prompts` (each method's version, `null` for a
+built-in one).
+
+### Stage methods
+
+How each stage is asked to work (`review-system`, `review-map`, `review-chapter`, `verify-system`,
+`verify-method`, `triage-system`, `triage-judge`, `triage-fix`, `triage-conflict`) can live in PostHog
+prompt management, one prompt per name (ADR 0014). With `POSTHOG_PERSONAL_API_KEY` (a project secret key
+`phs_...` with only `llm_prompt:read`) and `POSTHOG_KEY` set, a run reads the version under the label
+`MARGINALIA_PROMPT_LABEL` (default `production`) from `POSTHOG_APP_HOST` (default: `POSTHOG_HOST` without
+its `.i.`), once, before its first stage. `MARGINALIA_PROMPT_VERSIONS=review-chapter@4,...` pins versions
+instead. A method is cached five minutes; when PostHog fails, the last version read is kept, else the
+built-in copy (`api/src/pipeline/stage-methods.ts`) is used. Only the method moves: the answer shape of
+each stage stays in code. The first step of a run says which version of each method it used
+(`Methods: review-map v3, review-chapter built-in`).
+
+To release a method: save a new version in PostHog, try it with `MARGINALIA_PROMPT_VERSIONS=<name>@<n>
+npm run eval -- --upload`, compare it in Offline Evaluations, then move the `production` label to it.
+Moving the label back undoes it.
+
 Runs the bot recorded before you turned it on are in the `run` table; `npm run posthog:backfill` shows what
 would be sent, and `npm run posthog:backfill -- --send` sends it. A run always has the same event id, so
 sending it twice, or after live events started, never duplicates it. `doctor --dry-run` never sends.

@@ -27,3 +27,11 @@ test('a run event says whether it was an own review and how many critical paths 
   assert.equal(e.properties.own_review, true);
   assert.equal(e.properties.critical_paths, 2);
 });
+
+test('a finding outcome names the review-chapter method version of the review it came from', () => {
+  const e = findingEvent({ ...input, methods: { 'review-chapter': 6, 'review-map': null } });
+  assert.equal(e.properties.prompt_name, 'review-chapter');
+  assert.equal(e.properties.prompt_version, 6);
+  assert.deepEqual(e.properties.marginalia_prompts, { 'review-chapter': 6, 'review-map': null });
+  assert.equal(findingEvent(input).properties.prompt_version, undefined);
+});

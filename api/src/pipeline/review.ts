@@ -14,7 +14,8 @@ import { projectContextPrompt } from '../context-prompt.ts';
 import { reviewVerifier } from './verify.ts';
 import { isVerifyCandidate } from './verify-select.ts';
 import { createLimiter } from './limiter.ts';
-import { REVIEW_SYSTEM, chapterPrompt, mapPrompt, parseChapter, parseMap } from './review-prompts.ts';
+import { chapterPrompt, mapPrompt, parseChapter, parseMap } from './review-prompts.ts';
+import { methodsLine, resolveMethods } from '../prompt-source.ts';
 
 // A reproduction that broke is said, never silent: the blocking findings about behaviour it was to try come
 // back inconclusive, and the report warns.
@@ -40,10 +41,14 @@ export async function stagedReview({ mr, run, outputPath, stack = null, settings
   const extra = REVIEW_PROMPT_EXTRA.trim() ? `What the team asks of every review:\n${REVIEW_PROMPT_EXTRA.trim()}` : '';
   const approved = await readContext(DATA_DIR, mr.project.key, 'approved');
   const text = [contextText(context), projectContextPrompt(approved), extra].filter(Boolean).join('\n\n');
+  // One version of each stage method for the whole run, the verifications included (ADR 0014).
+  const methods = await resolveMethods(['review-system', 'review-map', 'review-chapter', 'verify-system', 'verify-method']);
+  run.step(methodsLine(Object.values(methods)), { stage: 'context' });
+  const system = methods['review-system'];
 
   await run.stage('map');
   const changed = context.files.map((f: any) => f.path);
-  const map = await agentStage({ run, stage: 'map', prompt: mapPrompt(text), system: REVIEW_SYSTEM, tools: STAGE_READ_TOOLS, cwd, settings, parse: (t: string) => parseMap(t, changed) });
+  const map = await agentStage({ run, stage: 'map', prompt: mapPrompt(text, methods['review-map'].text), system: system.text, methods: [methods['review-map'], system], tools: STAGE_READ_TOOLS, cwd, settings, parse: (t: string) => parseMap(t, changed) });
   const ids = map.chapters.map((_: any, i: number) => `chapter-${i + 1}`);
   await run.plan('map', map.chapters.map((c: any, i: number) => [ids[i], `Review: ${c.title}`]));
   await run.end('map');
@@ -53,15 +58,15 @@ export async function stagedReview({ mr, run, outputPath, stack = null, settings
   // for; both plugins stay read-only to it.
   const catalog = await assembleCatalog(DATA_DIR);
   const team = await teamRunExtras(DATA_DIR);
-  const lens = { system: [REVIEW_SYSTEM, lensPrompt(catalog.skills)].filter(Boolean).join('\n\n'), tools: [...STAGE_READ_TOOLS, 'Skill'], settings: withTeamDeny(settings, { deny: [...team.deny, ...catalog.deny] }), extraArgs: [...team.args, ...catalog.args] };
+  const lens = { methods: [methods['review-chapter'], system], system: [system.text, lensPrompt(catalog.skills)].filter(Boolean).join('\n\n'), tools: [...STAGE_READ_TOOLS, 'Skill'], settings: withTeamDeny(settings, { deny: [...team.deny, ...catalog.deny] }), extraArgs: [...team.args, ...catalog.args] };
   // Each chapter's blocking findings about behaviour are reproduced as soon as it is reviewed, while the
   // other chapters are still being read (ADR 0009, 0010).
-  const verify = reviewVerifier({ run, mr, recipe: approved?.context.verification ?? null, context: text, settings });
+  const verify = reviewVerifier({ run, mr, recipe: approved?.context.verification ?? null, context: text, settings, methods: [methods['verify-method'], methods['verify-system']] });
   const limit = createLimiter(CONCURRENCY);
   const reviewed = await Promise.all(map.chapters.map((chapter: any, i: number) => limit(async () => {
     await run.begin(ids[i]);
     try {
-      const result = await agentStage({ run, stage: ids[i], prompt: chapterPrompt({ context: text, map, chapter, index: i, checklist }), ...lens, cwd, parse: parseChapter });
+      const result = await agentStage({ run, stage: ids[i], prompt: chapterPrompt({ context: text, map, chapter, index: i, checklist, method: methods['review-chapter'].text }), ...lens, cwd, parse: parseChapter });
       await run.found(ids[i], result.findings ?? []);
       await run.end(ids[i]);
       const verifying = verify({ after: ids[i], chapter: map.chapters[i], findings: result.findings ?? [] }).catch((err) => unverified(result.findings ?? [], err));
@@ -81,7 +86,7 @@ export async function stagedReview({ mr, run, outputPath, stack = null, settings
   }));
   if (chapters.every((c) => !c.result)) throw new Error(`No chapter could be reviewed: ${chapters[0].error}`);
 
-  const merged = mergeReview({ map, chapters });
+  const merged = mergeReview({ map, chapters, methods: Object.fromEntries(Object.values(methods).map((m) => [m.name, m.version])) });
   await run.stage('report');
   const data = merged.data;
   return { content: renderReview({ title: mr.title, iid: mr.iid, branch: mr.source_branch }, data), findingsRaw: JSON.stringify(data), warnings: [...merged.warnings, ...verifiedWarnings] };

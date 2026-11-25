@@ -28,9 +28,23 @@ interface AiCall {
   systemPrompt: string;
   includeContent: boolean;
   version?: string;
+  prompts?: { name: string; version: number | null }[];
 }
 
 const number = (n: unknown) => (typeof n === 'number' && Number.isFinite(n) ? n : undefined);
+
+// The stage methods behind the call (ADR 0014). PostHog links a generation to one prompt: the main
+// method, when it came from PostHog. Every method used, built-in ones as null, goes in
+// `marginalia_prompts`.
+function promptProps(prompts: { name: string; version: number | null }[] = []) {
+  if (!prompts.length) return {};
+  const [main] = prompts;
+  return {
+    ...(main.version !== null && { $ai_prompt_name: main.name, $ai_prompt_version: main.version }),
+    marginalia_prompt_source: main.version === null ? 'built-in' : 'posthog',
+    marginalia_prompts: Object.fromEntries(prompts.map((p) => [p.name, p.version])),
+  };
+}
 
 // The events of one call, generation first.
 export function aiEvents(call: AiCall) {
@@ -71,6 +85,9 @@ export function aiEvents(call: AiCall) {
       marginalia_turns: number(result?.num_turns),
       marginalia_tool_calls: call.calls.length,
       marginalia_tool_errors: call.calls.filter((t) => t.ok === false).length,
+      // PostHog reads these only from the SDKs it wraps; a `claude -p` call states them itself.
+      ...(call.calls.length && { $ai_tools_called: [...new Set(call.calls.map((t) => t.tool))].join(','), $ai_tool_call_count: call.calls.length }),
+      ...promptProps(call.prompts),
       ...(call.failed && { $ai_is_error: true, $ai_error: errorKind(call.error ?? '') }),
       ...(call.includeContent && {
         $ai_input: [{ role: 'system', content: clip(call.systemPrompt) }, { role: 'user', content: clip(call.prompt) }],

@@ -7,6 +7,7 @@ import { STAGE_FIX_TOOLS } from '../allowed-tools.ts';
 import { agentStage } from './agent-stage.ts';
 import { parseMergeTree } from './context-text.ts';
 import { TRIAGE_SYSTEM, conflictPrompt, parseConflict } from './triage-prompts.ts';
+import { builtIn, type ResolvedMethod } from '../prompt-source.ts';
 
 // What git writes in a file it could not merge.
 const MARKER = /^(<{7}|>{7})( |$)|^={7}$/m;
@@ -16,7 +17,8 @@ const MARKER = /^(<{7}|>{7})( |$)|^={7}$/m;
 // fast-forward), one agent settles the conflicted files, and the bot checks no marker is left
 // before committing the merge. The fixes are then made on top of it. When the agent can't
 // settle them, the merge is undone and the triage goes on without it.
-export async function settleConflicts({ mr, run, context, settings }: { mr: any; run: any; context: string; settings: any }) {
+export async function settleConflicts({ mr, run, context, settings, methods = [builtIn('triage-conflict'), builtIn('triage-system')] }: { mr: any; run: any; context: string; settings: any; methods?: ResolvedMethod[] }) {
+  const [method, system] = methods;
   const cwd = mr.project.worktreeDir;
   const target = mr.target_branch;
   const git = gitIn(cwd);
@@ -31,7 +33,7 @@ export async function settleConflicts({ mr, run, context, settings }: { mr: any;
   run.step(`Merging ${target} in conflicts in ${files.length} file(s): ${files.join(', ')}`, { stage: 'conflicts' });
   await git.run('merge', '--no-ff', '--no-commit', `origin/${target}`).catch(() => null);
   try {
-    const done = await agentStage({ run, stage: 'conflicts', prompt: conflictPrompt({ context, target, files }), system: TRIAGE_SYSTEM, tools: STAGE_FIX_TOOLS, cwd, settings, parse: parseConflict });
+    const done = await agentStage({ run, stage: 'conflicts', prompt: conflictPrompt({ context, target, files, method: method.text }), system: system?.text ?? TRIAGE_SYSTEM, methods, tools: STAGE_FIX_TOOLS, cwd, settings, parse: parseConflict });
     const left: string[] = [];
     for (const f of files) if (MARKER.test(await readFile(join(cwd, f), 'utf8').catch(() => ''))) left.push(f);
     if (left.length) throw new Error(`conflict markers are left in ${left.join(', ')}`);

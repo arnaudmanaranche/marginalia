@@ -24,3 +24,14 @@ test('a chapter prompt keeps the answer shape whatever method it is given', () =
   assert.match(p, /Answer with only this JSON/);
   assert.doesNotMatch(p, /How to review/);
 });
+
+test('the stage methods a run used are kept with its review, and read back from its findings file', async () => {
+  const { mergeReview } = await import('../dist/src/pipeline/review-merge.js');
+  const { buildShape } = await import('../dist/src/findings.js');
+  const map = { overview: { before: 'B', after: 'A' }, risk: { level: 'low' }, chapters: [{ title: 'C', summary: 'S', files: ['a.ts'] }], warnings: [] };
+  const { data } = mergeReview({ map, chapters: [{ result: { findings: [], verified: '' } }], methods: { 'review-chapter': 3, 'review-map': null } });
+  assert.deepEqual(data.methods, { 'review-chapter': 3, 'review-map': null });
+  const shape = buildShape({ markdown: '', findingsRaw: JSON.stringify({ ...data, methods: { ...data.methods, 'bad name!': 1, 'review-system': 'x' } }) });
+  assert.deepEqual(shape.methods, { 'review-chapter': 3, 'review-map': null });
+  assert.equal(mergeReview({ map, chapters: [{ result: { findings: [], verified: '' } }] }).data.methods, undefined);
+});

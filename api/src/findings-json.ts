@@ -36,6 +36,13 @@ function normalizeFinding(raw: any, index: number) {
   };
 }
 
+// The stage methods a run used (ADR 0014), name to version, or null when the file names none.
+function normalizeMethods(raw: any): Record<string, number | null> | null {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const kept = Object.entries(raw).filter(([name, v]) => /^[\w-]{1,60}$/.test(name) && (v === null || Number.isInteger(v)));
+  return kept.length ? Object.fromEntries(kept) as Record<string, number | null> : null;
+}
+
 // Validates and normalizes what a command put in .marginalia-findings.json.
 // Lenient: it keeps what it can and says what it dropped.
 export function normalizeFindingsData(data: any) {
@@ -65,7 +72,7 @@ export function normalizeFindingsData(data: any) {
   if (!walk.tour.length && !triage) warnings.push('there is no tour (the order to read the MR in): every report should have one');
   const { replies, warnings: replyWarnings } = normalizeReplies(data.replies);
   warnings.push(...replyWarnings);
-  return { ok: true, verdict, summary: summary ? clip(plain(summary), 400) : null, findings: withIds, risk, criticalPaths, overview, tour: walk.tour, replies, warnings };
+  return { ok: true, verdict, summary: summary ? clip(plain(summary), 400) : null, findings: withIds, risk, criticalPaths, overview, tour: walk.tour, replies, methods: normalizeMethods(data.methods), warnings };
 }
 
 // The command may wrap the JSON in a code fence.

@@ -15,7 +15,7 @@ export async function recordPosted({ project, slug, iid, commentId, body }: { pr
     if (!finding) return;
     trackFinding({
       project: project.key, iid, findingId: finding.id, severity: finding.severity ?? null,
-      outcome: postedOutcome(finding.comment, body), own: kindOf(slug) === 'own', criticalPaths: (shape.criticalPaths ?? []).length,
+      outcome: postedOutcome(finding.comment, body), own: kindOf(slug) === 'own', criticalPaths: (shape.criticalPaths ?? []).length, methods: shape.methods ?? null,
     });
   } catch {
     /* telemetry never hurts a post */
