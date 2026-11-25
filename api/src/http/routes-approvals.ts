@@ -6,7 +6,7 @@ import { posted } from '../posted.ts';
 import { getDb } from '../store.ts';
 import { trackFinding } from '../telemetry.ts';
 import { actorName, currentScope, visibleProjects } from './request-scope.ts';
-import { broadcast, locate, readStatus } from './context.ts';
+import { broadcast, locate, newerState, readStatus, stateOverrides } from './context.ts';
 import { jsonBody, jsonOf, route } from './route-kit.ts';
 import { notTracked } from './read-kit.ts';
 
@@ -15,11 +15,12 @@ import { notTracked } from './read-kit.ts';
 export function approvalRoutes(app: any) {
   app.openapi(route({
     method: 'get', path: '/api/approvals', tags: ['Pending review'], operationId: 'listApprovals',
-    summary: 'Comments proposed and not decided yet', description: 'Neither added to a review nor dismissed, newest review first.',
+    summary: 'Comments proposed and not decided yet', description: 'Neither added to a review nor dismissed, newest review first. Once you sent your review on an MR after its report, what you left out stays out until the author pushes or answers.',
     responses: { 200: jsonOf(Approvals, 'The proposals.') }, errors: [],
   }), async (c: any) => {
     const status = await readStatus();
-    const proposals = await listProposals({ projects: visibleProjects(), mrs: status?.mrs ?? [], posted: posted.all(), dismissed: dismissedKeys(getDb()) });
+    const proposals = await listProposals({ projects: visibleProjects(), mrs: status?.mrs ?? [], posted: posted.all(), dismissed: dismissedKeys(getDb()),
+      stateOf: (mr: any) => newerState(mr.myState ?? null, stateOverrides.get(`${mr.project}:${mr.iid}`) ?? null) });
     return c.json({ proposals, canPost: Boolean(currentScope()) || ALLOW_POSTING === 'true' }, 200);
   });
 

@@ -32,7 +32,7 @@ The words below are the only ones the code, the docs and the studio use for thes
 
 **Since you last looked**: the moment this browser last left Home. The briefing counts what changed after it; on a first visit it counts the last day.
 
-**Approval**: a person's decision on a write the factory proposes: approve as-is, edit then approve, or dismiss. Nothing reaches GitLab without an approval or a mention.
+**Approval**: a person's decision on a write the factory proposes: approve as-is, edit then approve, or dismiss. Nothing reaches GitLab without an approval or a mention. Sending your review on an MR settles the proposals you left out of it: they leave the approvals inbox until the MR comes back to you (its author pushes or answers).
 
 **Finding outcome**: what happened to a finding: posted as-is, edited, dismissed, or fixed before the MR. The review line's measure.
 

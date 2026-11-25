@@ -46,3 +46,21 @@ test('a dismissed comment leaves the inbox and comes back on undo; an unknown re
   assert.equal((await dismiss({ slug: 'demo/nope', commentId: 'a' })).status, 404);
   assert.equal((await dismiss({ slug: 'demo/feat-x', commentId: 'a b' })).status, 400);
 });
+
+const withState = (myState) => writeFile(join(dir, 'status.json'), JSON.stringify({ pid: 1, phase: 'idle', mrs: [
+  { project: 'demo', iid: 5, kind: 'review', title: 'Add coupons', reviewPath: join(reviews, 'feat-x.md'), status: 'up_to_date', myState },
+] }));
+
+test('a review sent after the report settles what was left out, until the MR comes back', async () => {
+  const sent = { reviewed: true, drafts: 0, myActivityAt: '2026-11-05T11:00:00Z', lastPushAt: '2026-11-05T09:00:00Z', authorActivityAt: null, computedAt: '2026-11-05T11:00:01Z' };
+  await withState(sent);
+  assert.deepEqual((await list()).proposals, []);
+  // The author answered after the review: it is back with me, and so is what I left out.
+  await withState({ ...sent, authorActivityAt: '2026-11-05T12:00:00Z' });
+  assert.equal((await list()).proposals.length, 1);
+  // A review sent before this report, or one still being written, settles nothing.
+  await withState({ ...sent, myActivityAt: '2026-11-05T09:30:00Z' });
+  assert.equal((await list()).proposals.length, 1);
+  await withState({ ...sent, drafts: 1 });
+  assert.equal((await list()).proposals.length, 1);
+});
