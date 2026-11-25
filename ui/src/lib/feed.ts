@@ -14,10 +14,13 @@ export function reviewsNeedingYou(items: ReviewItem[]): { item: ReviewItem; reas
 }
 
 // The jobs whose latest run failed for a reason that does not pass by itself: a person has to look.
-export function failuresNeedingYou(jobs: Job[]): Job[] {
+// A run on an MR only while the bot still tracks it (`open`, every project's, from its status): once
+// the MR is merged or closed, nothing is left to run again. Until the status is known, none is dropped.
+export function failuresNeedingYou(jobs: Job[], open: ReadonlySet<string> | null = null): Job[] {
   const latest = new Map<string, Job>();
   for (const job of jobs) if (!latest.has(job.slug)) latest.set(job.slug, job);
-  return [...latest.values()].filter((j) => j.outcome === 'failed' && !j.failure?.transient);
+  const stillOpen = (j: Job) => open === null || j.iid === null || j.what === 'understand' || open.has(j.slug);
+  return [...latest.values()].filter((j) => j.outcome === 'failed' && !j.failure?.transient && stillOpen(j));
 }
 
 // What needs you, ranked by what matters rather than by kind: a review with critical findings, then

@@ -22,4 +22,9 @@ describe('the feed', () => {
     expect(failuresNeedingYou(jobs).map((j) => j.slug)).toEqual(['c']);
     expect(runningNow(jobs).map((j) => j.slug)).toEqual(['d']);
   });
+  it('drops a failure once the bot no longer tracks its MR, keeps a project job, drops none before the status is known', () => {
+    const jobs = [{ ...job('w/c', 'failed'), iid: 1, what: 'review' }, { ...job('w/e', 'failed'), iid: 2, what: 'review' }, { ...job('w', 'failed'), iid: null, what: 'understand' }] as Job[];
+    expect(failuresNeedingYou(jobs, new Set(['w/e'])).map((j) => j.slug)).toEqual(['w/e', 'w']);
+    expect(failuresNeedingYou(jobs, null)).toHaveLength(3);
+  });
 });

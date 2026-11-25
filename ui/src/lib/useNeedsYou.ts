@@ -1,7 +1,10 @@
+import { useMemo } from 'react';
 import type { ReviewItem } from './api';
 import { useApprovals } from './approvalsApi';
 import { useContexts, waitsForApproval } from './contextApi';
+import { botBySlug } from './botState';
 import { failuresNeedingYou, reviewsNeedingYou } from './feed';
+import { useReviews } from './useReviews';
 import { useJobs } from './useJobs';
 
 // What waits on a person, the one definition Home's headline and the Home tab both count: the reviews
@@ -9,6 +12,9 @@ import { useJobs } from './useJobs';
 // (one line, however many).
 export function useNeedsYou(items: ReviewItem[]) {
   const { jobs, known: jobsKnown } = useJobs();
+  // The MRs the bot still tracks, in every project whatever the filter shows: a failure on any other needs nobody.
+  const mrs = useReviews().data?.status?.mrs;
+  const open = useMemo(() => (mrs ? new Set(botBySlug(mrs).keys()) : null), [mrs]);
   const approvals = useApprovals();
   const proposals = approvals.data?.proposals.length ?? 0;
   const contexts = useContexts();
@@ -18,7 +24,7 @@ export function useNeedsYou(items: ReviewItem[]) {
   const reviews = reviewsNeedingYou(items);
   // A review whose first run failed is already listed (and says it failed): one line, counted once.
   const listed = new Set(reviews.map((r) => r.item.slug));
-  const failures = jobs ? failuresNeedingYou(jobs).filter((j) => !listed.has(j.slug)) : [];
+  const failures = jobs ? failuresNeedingYou(jobs, open).filter((j) => !listed.has(j.slug)) : [];
   const count = reviews.length + failures.length + drafts.length + (proposals > 0 ? 1 : 0);
   return { jobs, proposals, drafts, reviews, failures, count, known };
 }
