@@ -21,6 +21,11 @@ services:
       POSTHOG_KEY: '${POSTHOG_KEY:-}'
       MARGINALIA_TELEMETRY: '${MARGINALIA_TELEMETRY:-}'
       MARGINALIA_AI_CONTENT: '${MARGINALIA_AI_CONTENT:-}'
+      # Stage methods read from PostHog prompt management (ADR 0014); unset, the built-in ones are used.
+      POSTHOG_PERSONAL_API_KEY: '${POSTHOG_PERSONAL_API_KEY:-}'
+      POSTHOG_APP_HOST: '${POSTHOG_APP_HOST:-}'
+      MARGINALIA_PROMPT_LABEL: '${MARGINALIA_PROMPT_LABEL:-}'
+      MARGINALIA_PROMPT_VERSIONS: '${MARGINALIA_PROMPT_VERSIONS:-}'
       # A git clone of Marginalia under /repos (e.g. /repos/marginalia-source) lets the doctor prepare fixes on a branch.
       MARGINALIA_SOURCE_DIR: '${MARGINALIA_SOURCE_DIR:-}'
       MARGINALIA_GIT_NAME: '${MARGINALIA_GIT_NAME:-Marginalia}'

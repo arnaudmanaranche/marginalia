@@ -1,7 +1,8 @@
 // `npm run eval -- --upload`: one PostHog Offline Evaluations experiment per eval run (ADR 0014), so a
 // stage method version is compared with another on the same cases before its label moves. Each case is
 // an item, each scorer of eval-score.ts a boolean result; a scorer that does not apply is not_applicable.
-// Needs POSTHOG_EVAL_KEY (a project secret key, phs_..., with offline_evaluation_ingestion:write and
+// Needs POSTHOG_EVAL_KEY (a personal API key, phx_..., scoped to the project: the scorer endpoints refuse a
+// project secret key; with offline_evaluation_ingestion:write and
 // llm_analytics:read and write), POSTHOG_PROJECT_ID and the app host (POSTHOG_APP_HOST, or POSTHOG_HOST
 // without its `.i.`). The SDK is a dev dependency, loaded only here.
 import type { Score } from './eval-score.ts';

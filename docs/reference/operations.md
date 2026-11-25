@@ -66,7 +66,7 @@ each stage stays in code. The first step of a run says which version of each met
 
 To release a method: save a new version in PostHog, try it with `MARGINALIA_PROMPT_VERSIONS=<name>@<n>
 npm run eval -- --upload`, compare it in Offline Evaluations, then move the `production` label to it.
-Moving the label back undoes it. The upload needs `POSTHOG_EVAL_KEY` (a project secret key with
+Moving the label back undoes it. The upload needs `POSTHOG_EVAL_KEY` (a personal API key `phx_...`, scoped to the project: the scorer endpoints refuse a project secret key, with
 `offline_evaluation_ingestion:write` and `llm_analytics:read`/`write`), `POSTHOG_PROJECT_ID` and the app host,
 for the eval only. Each case is an item, and each scorer in `api/scripts/eval-score.ts` is a boolean
 `marginalia.<scorer>`: `contract_valid`, `found_planted`, `no_critical_on_clean`, `cites_repo_rule` (the
