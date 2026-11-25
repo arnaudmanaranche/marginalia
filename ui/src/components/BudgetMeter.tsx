@@ -1,64 +1,63 @@
+import { useState } from 'react';
+import { AnimatePresence, m } from 'motion/react';
+import { ChevronDown } from 'lucide-react';
 import { money, kindLabel, shareOf, toneOf, type Budget } from '../lib/budget';
+import { unfold } from '../lib/motion';
 import { cn } from '../lib/utils';
-import { LivePill } from './ds/LivePill';
 
 const FILL = { ok: 'bg-ok', warn: 'bg-warn', fail: 'bg-fail' } as const;
 
-// Today's budget (GLOSSARY: Budget), the way a usage meter shows a plan: what the day's Claude runs
-// cost against the limit, filling calm, then amber near it, red once reached, when automatic work
-// waits until midnight. Below, where the money went: by kind of run, and the MRs that cost the most.
+// Today's budget (GLOSSARY: Budget) in one line, the way a usage meter sits in a tool's status bar:
+// what the day's Claude runs cost against the limit, filling calm, then amber near it, red once
+// reached. Where the money went (by kind of run, the MRs that cost the most) opens under it. Once the
+// budget is reached, what that stops is said at once, never folded.
 export function BudgetMeter({ budget, className }: { budget: Budget; className?: string }) {
+  const [open, setOpen] = useState(false);
   const share = shareOf(budget);
   const tone = toneOf(budget);
   const top = budget.byMr.slice(0, 3);
+  const more = budget.byKind.length > 0 || top.length > 0;
   return (
     <section aria-label="Today's budget" className={cn('min-w-0', className)}>
-      <div className="rounded-lg border border-line px-3 py-2.5">
-        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-          <p className="text-xs text-fg-muted">Spent today</p>
-          {budget.over
-            ? <LivePill tone="fail" label="Budget reached" />
-            : <p className="text-xs tabular-nums text-fg-muted">{budget.leftUsd === null ? 'No daily limit' : `${money(budget.leftUsd)} left · resets at midnight`}</p>}
-        </div>
-        <p className="mt-0.5 text-lg font-semibold tabular-nums">
-          {money(budget.spentUsd)}
-          {budget.limitUsd !== null && <span className="text-sm font-normal text-fg-muted"> of {money(budget.limitUsd)}</span>}
-          <span className="text-sm font-normal text-fg-muted"> · {budget.runs} run{budget.runs === 1 ? '' : 's'}</span>
-        </p>
+      <button type="button" disabled={!more} onClick={() => setOpen(!open)} aria-expanded={more ? open : undefined}
+        className="touch-target group flex w-full min-w-0 items-center gap-3 rounded-md text-left enabled:cursor-pointer">
+        <span className="min-w-0">
+          <span className="block text-xs text-fg-muted">Spent today</span>
+          <span className="block text-sm font-semibold whitespace-nowrap tabular-nums">
+            {money(budget.spentUsd)}
+            {budget.limitUsd !== null && <span className="font-normal text-fg-muted"> of {money(budget.limitUsd)}</span>}
+          </span>
+        </span>
         {share !== null && (
-          <div role="meter" aria-label="Share of today's budget spent" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(share * 100)}
-            className="mt-2 h-1.5 overflow-hidden rounded-full bg-sunken">
-            <div className={cn('h-full rounded-full transition-[width] duration-500 motion-reduce:transition-none', FILL[tone])} style={{ width: `${share * 100}%` }} />
-          </div>
+          <span role="meter" aria-label="Share of today's budget spent" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(share * 100)}
+            className="h-1.5 w-full min-w-16 flex-1 overflow-hidden rounded-full bg-sunken">
+            <span className={cn('block h-full rounded-full transition-[width] duration-500 motion-reduce:transition-none', FILL[tone])} style={{ width: `${share * 100}%` }} />
+          </span>
         )}
-        {budget.over && (
-          <p className="mt-2 text-xs text-fail">Automatic reviews and triages wait until midnight. A mention, or Run again (↻) on a review, still runs.</p>
-        )}
-        {(budget.byKind.length > 0 || top.length > 0) && (
-          <dl className="mt-2 grid gap-x-4 gap-y-1 text-xs sm:grid-cols-2">
-            {budget.byKind.length > 0 && (
-              <div className="min-w-0">
-                <dt className="sr-only">By kind of run</dt>
-                <dd className="flex flex-wrap gap-x-3 gap-y-0.5">
-                  {budget.byKind.map((k) => <span key={k.kind} className="tabular-nums"><span className="text-fg-muted">{kindLabel(k.kind)}</span> {money(k.usd)}</span>)}
+        <span className="shrink-0 text-xs whitespace-nowrap text-fg-muted tabular-nums">
+          {budget.over ? <span className="font-medium text-fail">Reached</span> : budget.leftUsd === null ? 'No daily limit' : `${money(budget.leftUsd)} left`}
+        </span>
+        {more && <ChevronDown className={cn('size-3.5 shrink-0 text-fg-subtle transition-transform duration-200 group-hover:text-fg motion-reduce:transition-none', open && 'rotate-180')} aria-hidden />}
+      </button>
+      {budget.over && <p className="mt-1.5 text-xs text-fail">Automatic reviews and triages wait until midnight. A mention, or Run again (↻) on a review, still runs.</p>}
+      <AnimatePresence initial={false}>
+        {open && (
+          <m.div {...unfold} className="overflow-hidden">
+            <dl className="flex flex-wrap gap-x-4 gap-y-1 pt-2 text-xs">
+              <dt className="sr-only">Runs today</dt>
+              <dd className="tabular-nums text-fg-muted">{budget.runs} run{budget.runs === 1 ? '' : 's'} · resets at midnight</dd>
+              <dt className="sr-only">By kind of run</dt>
+              {budget.byKind.map((k) => <dd key={k.kind} className="tabular-nums"><span className="text-fg-muted">{kindLabel(k.kind)}</span> {money(k.usd)}</dd>)}
+              <dt className="sr-only">The MRs that cost the most</dt>
+              {top.map((mr) => (
+                <dd key={`${mr.project}!${mr.iid}`} className="tabular-nums" title={`${mr.runs} run${mr.runs === 1 ? '' : 's'} on this MR today`}>
+                  <span className="font-mono text-[11px] text-fg-muted">{mr.project} !{mr.iid}</span> {money(mr.usd)}
                 </dd>
-              </div>
-            )}
-            {top.length > 0 && (
-              <div className="min-w-0">
-                <dt className="sr-only">The MRs that cost the most</dt>
-                <dd className="flex flex-wrap gap-x-3 gap-y-0.5">
-                  {top.map((mr) => (
-                    <span key={`${mr.project}!${mr.iid}`} className="tabular-nums" title={`${mr.runs} run${mr.runs === 1 ? '' : 's'} on this MR today`}>
-                      <span className="text-fg-muted">{mr.project} !{mr.iid}</span> {money(mr.usd)}
-                    </span>
-                  ))}
-                </dd>
-              </div>
-            )}
-          </dl>
+              ))}
+            </dl>
+          </m.div>
         )}
-      </div>
+      </AnimatePresence>
     </section>
   );
 }

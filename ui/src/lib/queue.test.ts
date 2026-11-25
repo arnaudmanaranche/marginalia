@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { depthSeries, estimateOf, lineOf, measuresOf, median, progressOf, ranMs, waitedMs, type QueueTask, type QueueView } from './queue';
+import { depthSeries, estimateOf, isQuiet, lineOf, measuresOf, median, progressOf, ranMs, waitedMs, type QueueTask, type QueueView } from './queue';
+import { forecastOf, usualRunOf } from './queueForecast';
 
 const T0 = Date.parse('2026-11-05T10:00:00.000Z');
 const at = (s: number) => new Date(T0 + s * 1000).toISOString();
@@ -50,5 +51,42 @@ describe('the queue', () => {
     expect(line.waiting.map((t) => t.id)).toEqual(['w1', 'w2']);
     expect(line.running.map((t) => t.id)).toEqual(['r']);
     expect(line.ended.map((t) => t.id)).toEqual(['e2', 'e1']);
+  });
+});
+
+describe('what comes next', () => {
+  const view = (tasks: QueueTask[], workers = 1): QueueView => ({
+    now: at(0), tasks, totals: { done: 0, failed: 0 }, budget: null,
+    workers: Array.from({ length: workers }, (_, i) => ({ id: `w${i}`, name: `Worker ${i}`, detail: null, taskId: null })),
+  });
+  const quietPoll = (id: string, s: number) => task({ id, status: 'done', enqueuedAt: at(s), startedAt: at(s), endedAt: at(s + 2) });
+  const worked = (id: string, s: number, len: number) => task({ ...quietPoll(id, s), endedAt: at(s + len), jobs: [{ slug: 'a/b', id, outcome: 'reviewed', title: null, startedAt: at(s), endedAt: at(s + len), costUsd: 0.1 }] });
+
+  it('folds the polls that found nothing, and only those', () => {
+    expect(isQuiet(quietPoll('q', 0))).toBe(true);
+    expect(isQuiet(worked('w', 0, 60))).toBe(false);
+    expect(isQuiet(task({ status: 'failed' }))).toBe(false);
+    expect(isQuiet(task({ status: 'done', attempt: 2 }))).toBe(false);
+  });
+  it('measures a running task against the tasks that did something, not the quiet polls', () => {
+    const tasks = [quietPoll('q1', -900), quietPoll('q2', -800), worked('w', -700, 600), task({ id: 'r', status: 'running', startedAt: at(-100) })];
+    expect(usualRunOf(tasks, 'poll', T0)).toBe(600_000);
+    expect(forecastOf(view(tasks), T0).slots.get('r')).toEqual({ start: T0 - 100_000, end: T0 + 500_000, known: true });
+  });
+  it('says nothing sure of a task already past its usual time, nor of what waits behind it', () => {
+    const tasks = [worked('w', -900, 60), task({ id: 'r', status: 'running', startedAt: at(-300) }), task({ id: 'q', position: 1 })];
+    const f = forecastOf(view(tasks), T0);
+    expect(f.slots.get('r')?.known).toBe(false);
+    expect(f.slots.get('q')?.known).toBe(false);
+  });
+  it('starts a waiting task on the first free worker, after its own project is free', () => {
+    const tasks = [
+      worked('w', -900, 100), task({ id: 'r', project: 'a', status: 'running', startedAt: at(-40) }),
+      task({ id: 'qa', project: 'a', position: 1 }), task({ id: 'qb', project: 'b', position: 2 }),
+    ];
+    const f = forecastOf(view(tasks, 2), T0);
+    expect(f.slots.get('qa')?.start).toBe(T0 + 60_000);
+    expect(f.slots.get('qb')?.start).toBe(T0);
+    expect(f.until).toBe(T0 + 160_000);
   });
 });

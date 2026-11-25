@@ -8,6 +8,11 @@ const task = (over: Partial<QueueTask>): QueueTask => ({
   id: 'x', kind: 'poll', project: null, label: 'Poll the open MRs', priority: 'normal', status: 'done',
   enqueuedAt: ago(60), startedAt: ago(59), endedAt: ago(50), attempt: 1, maxAttempts: 2, error: null, position: null, detail: null, jobs: [], ...over,
 });
+// The polls that found nothing, as the live line is mostly made of: every ~2.5 min per project.
+// A project runs one task at a time, so none falls while another task of its project ran (`busy`).
+const quiet = (project: string, offset: number, busy: [number, number][] = []) => Array.from({ length: 28 }, (_, i) => offset + i * 2.5)
+  .filter((min) => !busy.some(([from, to]) => min <= from && min >= to))
+  .map((min) => task({ id: `q-${project}-${min}`, project, label: `Poll ${project}`, enqueuedAt: ago(min), startedAt: ago(min - 0.01), endedAt: ago(min - 0.04) }));
 const job = (id: string, title: string, min: number, cost: number) => ({ slug: `webapp/${id}`, id, outcome: 'reviewed' as const, title, startedAt: ago(min), endedAt: ago(min - 4), costUsd: cost });
 
 const busy: QueueView = {
@@ -24,10 +29,11 @@ const busy: QueueView = {
     task({ id: 'r2', kind: 'understand', project: 'api', label: 'Learn the project', priority: 'high', status: 'running', enqueuedAt: ago(6), startedAt: ago(5), endedAt: null, detail: null }),
     task({ id: 'm', kind: 'mention', project: 'webapp', label: 'Answer a mention on !4012', priority: 'high', status: 'queued', enqueuedAt: ago(3), startedAt: null, endedAt: null, position: 1 }),
     task({ id: 'u', kind: 'understand', project: 'webapp', label: 'Learn the project', priority: 'high', status: 'queued', enqueuedAt: ago(2), startedAt: null, endedAt: null, position: 2, attempt: 2 }),
-    task({ id: 'p', status: 'queued', enqueuedAt: ago(1), startedAt: null, endedAt: null, position: 3 }),
-    task({ id: 'd1', enqueuedAt: ago(40), startedAt: ago(38), endedAt: ago(25), jobs: [job('fix-auth', 'Fix auth redirect', 37, 0.42), job('own-webmcp', 'own: webmcp core', 30, 0.18)] }),
-    task({ id: 'f1', kind: 'mention', project: 'webapp', label: 'Answer a mention on !3990', priority: 'high', status: 'failed', enqueuedAt: ago(70), startedAt: ago(69), endedAt: ago(68), error: 'GitLab API /projects/67/merge_requests/3990 -> 502' }),
-    task({ id: 'd2', enqueuedAt: ago(100), startedAt: ago(95), endedAt: ago(80) }),
+    task({ id: 'p', project: 'api', label: 'Poll api', status: 'queued', enqueuedAt: ago(1), startedAt: null, endedAt: null, position: 3 }),
+    task({ id: 'd1', project: 'webapp', label: 'Poll webapp', enqueuedAt: ago(40), startedAt: ago(38), endedAt: ago(25), jobs: [job('fix-auth', 'Fix auth redirect', 37, 0.42), job('own-webmcp', 'own: webmcp core', 30, 0.18)] }),
+    task({ id: 'f1', kind: 'mention', project: 'webapp', label: 'Answer a mention on !3990', priority: 'high', status: 'failed', enqueuedAt: ago(21.5), startedAt: ago(21), endedAt: ago(20), error: 'GitLab API /projects/67/merge_requests/3990 -> 502' }),
+    task({ id: 'd2', project: 'api', label: 'Poll api', enqueuedAt: ago(54), startedAt: ago(53.8), endedAt: ago(47), jobs: [job('fix-rate', 'fix(rate): round half even', 53, 0.21)] }),
+    ...quiet('webapp', 1.5, [[12, 0], [40, 25], [22, 19.5]]), ...quiet('api', 6.4),
   ],
 };
 
@@ -40,7 +46,7 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Busy: Story = {};
-export const Idle: Story = { args: { queue: { ...busy, workers: [{ id: 'w1', name: 'Worker 1', detail: null, taskId: null }, { id: 'w2', name: 'Worker 2', detail: null, taskId: null }], tasks: busy.tasks.filter((t) => t.status === 'done' || t.status === 'failed') } } };
+export const Idle: Story = { args: { nextPollAt: new Date(now + 4 * 60_000).toISOString(), queue: { ...busy, workers: [{ id: 'w1', name: 'Worker 1', detail: null, taskId: null }, { id: 'w2', name: 'Worker 2', detail: null, taskId: null }], tasks: busy.tasks.filter((t) => t.status === 'done' || t.status === 'failed') } } };
 export const Empty: Story = { args: { queue: { now: busy.now, workers: [{ id: 'w1', name: 'Worker 1', detail: null, taskId: null }, { id: 'w2', name: 'Worker 2', detail: null, taskId: null }], tasks: [], totals: { done: 0, failed: 0 }, budget: { ...busy.budget!, spentUsd: 0, leftUsd: 25, runs: 0, byKind: [], byMr: [] } } } };
 export const NearTheLimit: Story = { args: { queue: { ...busy, budget: { ...busy.budget!, spentUsd: 21.3, leftUsd: 3.7 } } } };
 export const BudgetReached: Story = { args: { queue: { ...busy, budget: { ...busy.budget!, spentUsd: 26.12, leftUsd: 0, over: true, runs: 14 } } } };

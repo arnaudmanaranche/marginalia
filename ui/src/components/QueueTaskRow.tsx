@@ -2,6 +2,7 @@ import { AnimatePresence, m } from 'motion/react';
 import { ChevronRight } from 'lucide-react';
 import { unfold } from '../lib/motion';
 import { kindOf, progressOf, ranMs, waitedMs, type QueueTask, type TaskJob } from '../lib/queue';
+import type { Slot } from '../lib/queueForecast';
 import { duration } from '../lib/runs';
 import { cn, timeAgo } from '../lib/utils';
 import { StatusMark, markOf } from './ds/StatusMark';
@@ -14,16 +15,20 @@ const routeOfJob = (j: TaskJob) => (j.slug.endsWith('/_context') ? `context:${j.
 // One task of the queue as a line: its state, what it is, where it stands (its place in line, the
 // bar of a running one against the usual time of its kind, how an ended one went) and its times.
 // It opens in place into a card with every fact the bot keeps on it and the jobs it started.
-export function QueueTaskRow({ task, now, estimate, open, onToggle, onOpen }: {
-  task: QueueTask; now: number; estimate: number | null; open: boolean; onToggle: () => void; onOpen: (route: string) => void;
+export function QueueTaskRow({ task, now, estimate, slot, open, onToggle, onOpen }: {
+  task: QueueTask; now: number; estimate: number | null; slot?: Slot; open: boolean; onToggle: () => void; onOpen: (route: string) => void;
 }) {
   const ran = ranMs(task, now);
   const progress = task.status === 'running' ? progressOf(task, estimate, now) : null;
   const cost = task.jobs.reduce((s, j) => s + (j.costUsd ?? 0), 0);
-  const facts = [kindOf(task), task.project, task.priority === 'high' && 'asked by a person', task.attempt > 1 && `attempt ${task.attempt} of ${task.maxAttempts}`,
+  // Say it once: a kind or project the label already names ("Poll webapp") is not repeated under it.
+  const named = (fact: string | null) => fact !== null && !task.label.toLowerCase().includes(fact.toLowerCase());
+  const left = slot ? (task.status === 'queued' ? slot.start : slot.end) - now : 0;
+  const ahead = slot?.known ? `~${duration(Math.max(1000, left))}` : null;
+  const facts = [named(kindOf(task)) && kindOf(task), named(task.project) && task.project, task.priority === 'high' && 'asked by a person', task.attempt > 1 && `attempt ${task.attempt} of ${task.maxAttempts}`,
     task.jobs.length > 0 && `${task.jobs.length} job${task.jobs.length > 1 ? 's' : ''}`, cost > 0 && money(cost)].filter(Boolean).join(' · ');
   return (
-    <li>
+    <li data-task={task.id}>
       <button type="button" onClick={onToggle} aria-expanded={open} className={cn('touch-target grid w-full grid-cols-[1.5rem_1rem_minmax(0,1fr)_auto] items-center gap-x-3 px-4 py-2 text-left transition-colors duration-150', open ? 'bg-sunken/60' : 'hover:bg-sunken/40')}>
         <span className="text-right font-mono text-[11px] text-fg-muted">{task.position !== null ? `#${task.position}` : ''}</span>
         <StatusMark state={markOf(task.status)} />
@@ -41,7 +46,8 @@ export function QueueTaskRow({ task, now, estimate, open, onToggle, onOpen }: {
           )}
         </span>
         <span className="flex items-center gap-1 text-right text-xs tabular-nums text-fg-muted">
-          {task.status === 'queued' ? `waiting ${duration(waitedMs(task, now))}` : task.status === 'running' ? duration(ran ?? 0) : <span title={task.endedAt ? new Date(task.endedAt).toLocaleString() : undefined}>{duration(ran ?? 0)} · {timeAgo(task.endedAt)}</span>}
+          {task.status === 'queued' ? (ahead ? <span title={`Waiting for ${duration(waitedMs(task, now))}`}>{left < 5000 ? 'starts next' : `starts in ${ahead}`}</span> : `waiting ${duration(waitedMs(task, now))}`)
+            : task.status === 'running' ? <>{duration(ran ?? 0)}{ahead && <span> · {ahead} left</span>}</> : <span title={task.endedAt ? new Date(task.endedAt).toLocaleString() : undefined}>{duration(ran ?? 0)} · {timeAgo(task.endedAt)}</span>}
           <ChevronRight className={cn('size-3.5 shrink-0 transition-transform duration-200 motion-reduce:transition-none', open && 'rotate-90')} aria-hidden />
         </span>
       </button>

@@ -1,84 +1,137 @@
 import { useState } from 'react';
-import { ListOrdered } from 'lucide-react';
-import { BACKPRESSURE, estimateOf, lineOf, measuresOf, type QueueTask, type QueueView } from '../lib/queue';
+import { AnimatePresence, m } from 'motion/react';
+import { ChevronRight } from 'lucide-react';
+import { BACKPRESSURE, isQuiet, lineOf, measuresOf, type QueueTask, type QueueView } from '../lib/queue';
+import { forecastOf, usualRunOf } from '../lib/queueForecast';
+import { unfold } from '../lib/motion';
 import { duration } from '../lib/runs';
 import { useNow } from '../lib/useNow';
+import { cn, timeAgo } from '../lib/utils';
 import { LivePill } from './ds/LivePill';
 import { StatusMark } from './ds/StatusMark';
-import { Panel, PanelHeader } from './ds/Panel';
+import { Panel } from './ds/Panel';
 import { BudgetMeter } from './BudgetMeter';
-import { QueueDepth } from './QueueDepth';
 import { QueueTaskRow } from './QueueTaskRow';
+import { QueueTrace } from './QueueTrace';
 
-const ENDED_SHOWN = 8;
+const SHOWN = 8;
+const ROW = 'grid grid-cols-[1.5rem_1rem_minmax(0,1fr)_auto] items-center gap-x-3 px-4 py-2 text-left';
 
-function Measure({ label, value, note, warn = false }: { label: string; value: string; note?: string; warn?: boolean }) {
+function Measure({ label, value, warn = false }: { label: string; value: string; warn?: boolean }) {
   return (
-    <div className="min-w-0 rounded-lg border border-line px-3 py-2">
-      <p className="text-xs text-fg-muted">{label}</p>
-      <p className="flex items-center gap-1.5 text-lg font-semibold tabular-nums">
-        {value}
-        {warn && <span className="size-1.5 rounded-full bg-warn" role="img" aria-label="needs a look" />}
-      </p>
-      {note && <p className="truncate text-xs text-fg-subtle">{note}</p>}
+    <div className="min-w-0">
+      <dt className="text-xs text-fg-muted">{label}</dt>
+      <dd className="flex items-center gap-1.5 text-sm font-semibold whitespace-nowrap tabular-nums">
+        {value}{warn && <span className="size-1.5 rounded-full bg-warn" role="img" aria-label="needs a look" />}
+      </dd>
     </div>
   );
 }
 
-function Lane({ title, count, children, empty }: { title: string; count: number; children: React.ReactNode; empty: string }) {
+function Lane({ title, count, note, children }: { title: string; count?: number; note?: React.ReactNode; children: React.ReactNode }) {
   return (
     <section aria-label={title} className="min-w-0">
-      <h3 className="flex items-center gap-1.5 px-4 pt-3 pb-1.5 text-xs font-medium text-fg-muted">{title}{!title.includes('·') && <span className="tabular-nums">{count}</span>}</h3>
-      {count === 0 ? <p className="px-4 pb-3 text-xs text-fg-muted">{empty}</p> : <ul className="divide-y divide-line">{children}</ul>}
+      <h3 className="flex items-baseline gap-1.5 px-4 pt-3 pb-1.5 text-xs font-medium">
+        {title}{count !== undefined && <span className="tabular-nums text-fg-muted">{count}</span>}
+        {note && <span className="ml-auto truncate font-normal text-fg-muted">{note}</span>}
+      </h3>
+      <ul className="divide-y divide-line">{children}</ul>
     </section>
   );
 }
 
-// The bot's queue (GLOSSARY: Queue), the way a CI tool shows its runners: four numbers, today's
-// budget, the backlog
-// over the last two hours, then the line from left to right: what waits in order, what each worker
-// runs (one project each) and how far it is against the usual time of its kind, and what just ended. Any task opens
-// into its card. Stacks on a narrow screen.
-export function QueuePanel({ queue, onOpen }: { queue: QueueView; onOpen: (route: string) => void }) {
+const clock = (at: number) => new Date(at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+// The bot's next poll (its status says when): not a task yet, so it does not open.
+const PollRow = ({ at, now }: { at: number; now: number }) => (
+  <li className={ROW}>
+    <span /><StatusMark state="pending" label="Scheduled" />
+    <span className="min-w-0">
+      <span className="block truncate text-sm">Next poll</span>
+      <span className="block truncate text-xs text-fg-muted">each project's open MRs, at {clock(at)}</span>
+    </span>
+    <span className="pr-4.5 text-xs tabular-nums text-fg-muted">{at - now < 5000 ? 'any moment' : `in ${duration(at - now)}`}</span>
+  </li>
+);
+
+// The bot's queue (GLOSSARY: Queue), read for what comes next. A status line (state, workers, the
+// measures, today's budget), then the line on one clock, then in words: what runs and what comes
+// next with when it should start, and what ended. Polls that found nothing are most of the line:
+// they are ticks on the clock and one folded line in the list, so the tasks that did something
+// stand out. Any task opens into its card; a bar on the clock opens its task. Stacks on a narrow screen.
+// `nextPollAt`: when the bot polls next, from its status; null when it does not say.
+export function QueuePanel({ queue, nextPollAt = null, onOpen }: { queue: QueueView; nextPollAt?: string | null; onOpen: (route: string) => void }) {
   const [openId, setOpenId] = useState<string | null>(null);
+  const [quietOpen, setQuietOpen] = useState(false);
+  const now = useNow(true);
   const line = lineOf(queue.tasks);
-  const now = useNow(line.waiting.length + line.running.length > 0);
-  const m = measuresOf(queue, now);
-  const byId = new Map(queue.tasks.map((t) => [t.id, t]));
+  const meas = measuresOf(queue, now);
+  const forecast = forecastOf(queue, now);
+  const ended = line.ended.filter((t) => !isQuiet(t));
+  const quiet = line.ended.filter(isQuiet);
+  const nextPoll = nextPollAt ? Date.parse(nextPollAt) : null;
+  // A poll already in the line is the next poll.
+  const pollShown = nextPoll !== null && !line.waiting.some((t) => t.kind === 'poll');
   const row = (t: QueueTask) => (
-    <QueueTaskRow key={t.id} task={t} now={now} estimate={estimateOf(queue.tasks, t.kind, now)} open={openId === t.id}
+    <QueueTaskRow key={t.id} task={t} now={now} estimate={usualRunOf(queue.tasks, t.kind, now)} slot={forecast.slots.get(t.id)} open={openId === t.id}
       onToggle={() => setOpenId(openId === t.id ? null : t.id)} onOpen={onOpen} />
   );
-  const pill = m.running > 0
-    ? <LivePill tone="run" label="Running" live detail={m.waiting > 0 ? `${m.waiting} waiting` : undefined} />
-    : m.waiting > 0 ? <LivePill tone="warn" label="Waiting" detail={m.waiting} /> : <LivePill tone="idle" label="Idle" />;
+  const select = (id: string) => {
+    setOpenId(id);
+    if (quiet.some((t) => t.id === id)) setQuietOpen(true);
+    const smooth = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    requestAnimationFrame(() => document.querySelector(`[data-task="${CSS.escape(id)}"]`)?.scrollIntoView({ block: 'nearest', behavior: smooth ? 'smooth' : 'auto' }));
+  };
+  const pill = meas.running > 0
+    ? <LivePill tone="run" label="Running" live detail={meas.waiting > 0 ? `${meas.waiting} waiting` : undefined} />
+    : meas.waiting > 0 ? <LivePill tone="warn" label="Waiting" detail={meas.waiting} /> : <LivePill tone="idle" label="Idle" />;
   return (
-    <Panel label="Queue">
-      <PanelHeader icon={<ListOrdered className="size-4" aria-hidden />} title="Queue" meta={`${queue.workers.length} worker${queue.workers.length > 1 ? 's' : ''} · a person's request goes before a poll`} aside={pill} />
-      <div className="grid grid-cols-2 gap-2 px-4 sm:grid-cols-4">
-        <Measure label="Waiting" value={String(m.waiting)} warn={m.waiting > BACKPRESSURE} />
-        <Measure label="Median wait" value={m.medianWait === null ? '–' : duration(m.medianWait)} />
-        <Measure label="Median run" value={m.medianRun === null ? '–' : duration(m.medianRun)} />
-        {/* Tasks, not jobs: Activity counts jobs (one run on one MR), so each says what it counts. */}
-        <Measure label="Tasks done · failed" value={`${m.done} · ${m.failed}`} note={`of the last ${m.done + m.failed} ended`} warn={m.failed > 0} />
+    <Panel>
+      <div className="flex flex-wrap items-center gap-x-8 gap-y-3 border-b border-line px-4 py-3">
+        {pill}
+        <dl className="flex flex-wrap gap-x-6 gap-y-2">
+          <Measure label="Workers" value={`${meas.running} of ${queue.workers.length} busy`} />
+          <Measure label="Waiting" value={String(meas.waiting)} warn={meas.waiting > BACKPRESSURE} />
+          <Measure label="Median wait" value={meas.medianWait === null ? '–' : duration(meas.medianWait)} />
+          <Measure label="Median run" value={meas.medianRun === null ? '–' : duration(meas.medianRun)} />
+          {/* Tasks, not jobs: Activity counts jobs (one run on one MR), so each says what it counts. */}
+          <Measure label="Tasks failed" value={`${meas.failed} of ${meas.done + meas.failed}`} warn={meas.failed > 0} />
+        </dl>
+        {queue.budget && <BudgetMeter budget={queue.budget} className="w-full lg:ml-auto lg:w-80" />}
       </div>
-      {queue.budget && <BudgetMeter budget={queue.budget} className="px-4 pt-3" />}
-      <QueueDepth tasks={queue.tasks} now={now} className="px-4 pt-3" />
-      <div className="mt-2 grid border-t border-line lg:grid-cols-3 lg:divide-x lg:divide-line">
-        <Lane title="Waiting" count={line.waiting.length} empty="Nothing waits.">{line.waiting.map(row)}</Lane>
-        <Lane title={`Workers · ${line.running.length} of ${queue.workers.length} busy`} count={queue.workers.length} empty="No worker.">
-          {queue.workers.map((w) => {
-            const task = w.taskId ? byId.get(w.taskId) : undefined;
-            return task ? row(task) : (
-              <li key={w.id} className="flex items-center gap-3 px-4 py-2.5 text-xs text-fg-muted">
-                <span className="w-6" /><StatusMark state="pending" label="Idle" /><span>{w.name} · idle: a poll or a person's request starts it</span>
-              </li>
-            );
-          })}
+      <QueueTrace tasks={queue.tasks} now={now} forecast={forecast} nextPoll={pollShown ? nextPoll : null} onSelect={select} />
+      <div className="grid border-t border-line lg:grid-cols-2 lg:divide-x lg:divide-line">
+        <Lane title="Now and next" note="A person's request goes before a poll">
+          {line.running.map(row)}
+          {line.waiting.map(row)}
+          {pollShown && <PollRow at={nextPoll!} now={now} />}
+          {line.running.length + line.waiting.length === 0 && !pollShown && <li className="px-4 py-2.5 text-xs text-fg-muted">Nothing runs or waits. A poll or a person's request starts the next task.</li>}
         </Lane>
-        <Lane title="Ended" count={line.ended.length} empty="Nothing has ended yet.">{line.ended.slice(0, ENDED_SHOWN).map(row)}</Lane>
+        <Lane title="Ended" count={line.ended.length} note={meas.costUsd > 0 && <span title="What the jobs of these tasks cost">${meas.costUsd.toFixed(2)} in jobs</span>}>
+          {ended.slice(0, SHOWN).map(row)}
+          {quiet.length > 0 && (
+            <li>
+              <button type="button" onClick={() => setQuietOpen(!quietOpen)} aria-expanded={quietOpen} className={cn('touch-target w-full transition-colors duration-150 hover:bg-sunken/40', ROW)}>
+                <span /><StatusMark state="done" />
+                <span className="min-w-0">
+                  <span className="block truncate text-sm">{quiet.length} poll{quiet.length > 1 ? 's' : ''} found nothing new</span>
+                  <span className="block truncate text-xs text-fg-muted">last one {timeAgo(quiet[0].endedAt)} · each is a tick on the clock above</span>
+                </span>
+                <ChevronRight className={cn('size-3.5 text-fg-muted transition-transform duration-200 motion-reduce:transition-none', quietOpen && 'rotate-90')} aria-hidden />
+              </button>
+              <AnimatePresence initial={false}>
+                {quietOpen && (
+                  <m.ul {...unfold} className="divide-y divide-line overflow-hidden border-t border-line bg-sunken/30">
+                    {quiet.slice(0, SHOWN).map(row)}
+                    {quiet.length > SHOWN && <li className="px-4 py-2 text-xs text-fg-muted">and {quiet.length - SHOWN} earlier</li>}
+                  </m.ul>
+                )}
+              </AnimatePresence>
+            </li>
+          )}
+          {line.ended.length === 0 && <li className="px-4 py-2.5 text-xs text-fg-muted">Nothing has ended yet.</li>}
+        </Lane>
       </div>
-      {m.costUsd > 0 && <p className="border-t border-line px-4 py-2 text-xs text-fg-muted">The jobs of these tasks cost <span className="tabular-nums">${m.costUsd.toFixed(2)}</span>.</p>}
     </Panel>
   );
 }

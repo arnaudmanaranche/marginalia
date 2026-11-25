@@ -63,7 +63,8 @@ export function measuresOf(view: QueueView, now: number): Measures {
     waiting: view.tasks.filter((t) => t.status === 'queued').length,
     running: view.tasks.filter((t) => t.status === 'running').length,
     medianWait: median(started.map((t) => waitedMs(t, now))),
-    medianRun: median(ended.map((t) => ranMs(t, now) ?? 0)),
+    // Over the tasks that did something: polls that found nothing end in seconds and would hide them.
+    medianRun: median((ended.some((t) => !isQuiet(t)) ? ended.filter((t) => !isQuiet(t)) : ended).map((t) => ranMs(t, now) ?? 0)),
     // Over the tasks shown, the same ones as the Ended lane: the store keeps more than the page gets.
     done: ended.filter((t) => t.status === 'done').length,
     failed: ended.filter((t) => t.status === 'failed').length,
@@ -85,6 +86,10 @@ export function depthSeries(tasks: QueueTask[], now: number, window: number, poi
     return { at, depth };
   });
 }
+
+// A poll that found nothing to do: done at the first try and started no job. Most of the line is
+// made of these; they are counted and folded, not listed one by one.
+export const isQuiet = (t: QueueTask) => t.kind === 'poll' && t.status === 'done' && t.jobs.length === 0 && t.attempt === 1;
 
 // The tasks in the order a person reads the line: waiting by place, running, then ended newest first.
 export function lineOf(tasks: QueueTask[]) {
