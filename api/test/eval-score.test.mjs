@@ -46,3 +46,10 @@ test('the upload names the methods of the run and says what it is missing', () =
   assert.match(evalUploadConfig({}).problem, /POSTHOG_EVAL_KEY, POSTHOG_PROJECT_ID/);
   assert.deepEqual(evalUploadConfig({ POSTHOG_EVAL_KEY: 'phs_x', POSTHOG_PROJECT_ID: '12', POSTHOG_HOST: 'https://us.i.posthog.com' }), { secretKey: 'phs_x', projectId: 12, host: 'https://us.posthog.com' });
 });
+
+test('naming where the code should go is not citing the rule: only its source counts', () => {
+  const expect = { planted: { path: 'src/mailer.mjs', lines: [3, 3] }, cites: ['CLAUDE.md'] };
+  const finding = { id: 'env', severity: 'important', path: 'src/mailer.mjs', line: 3 };
+  assert.equal(byName(scoreCase(expect, { findings: [{ ...finding, title: 'MAIL_FROM is read here instead of src/config.mjs', body: 'Move it to src/config.mjs.' }] })).cites_repo_rule, false);
+  assert.equal(byName(scoreCase(expect, { findings: [{ ...finding, title: 'MAIL_FROM is read here', body: 'CLAUDE.md says settings are read in src/config.mjs only.' }] })).cites_repo_rule, true);
+});

@@ -2,7 +2,8 @@
 // PostHog Offline Evaluations (ADR 0014). Pure. `pass` is null when the scorer does not apply to the
 // case (no planted problem, no rule to cite...). A case's expect.json says what applies:
 //   planted      { path, lines: [from, to] } the problem the change plants, or null for a clean change
-//   cites        strings a finding about the planted problem must name: the repo rule or ADR it breaks
+//   cites        strings a finding about the planted problem must name: the source of the rule it breaks
+//                (the rules file, the ADR's number or file name), never where the fix would go
 //   maxSeverity  the worst severity the change deserves: anything above is generic noise
 //   verification "reproduced" | "none", and evidence: "screenshot" (ADR 0009, 0010)
 

@@ -49,7 +49,7 @@ export async function uploadEval(cases: CaseResult[], { version, env = process.e
     });
     try {
       const results = cases.flatMap((c) => {
-        const item = new EvaluationItem({ caseKey: c.name, input: { case: c.name, about: c.about }, output: { findings: c.findings.map((f) => ({ severity: f.severity, title: f.title, path: f.path ?? null, line: f.line ?? null })) }, metadata: { methods: c.methods } });
+        const item = new EvaluationItem({ caseKey: c.name, input: { case: c.name, about: c.about }, output: { findings: c.findings.map((f) => ({ severity: f.severity, title: f.title, path: f.path ?? null, line: f.line ?? null, body: f.body ?? null, comment: f.comment ?? null })) }, metadata: { methods: c.methods } });
         return c.scores.map((s) => (s.pass === null
           ? { item, scorerVersionId: versions[s.scorer], status: 'not_applicable' as const, reasoning: s.why }
           : { item, scorerVersionId: versions[s.scorer], value: s.pass, reasoning: s.why }));

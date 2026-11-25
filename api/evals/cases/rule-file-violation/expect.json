@@ -1,1 +1,1 @@
-{ "planted": { "path": "src/mailer.mjs", "lines": [3, 3] }, "cites": ["CLAUDE.md", "src/config.mjs", "config.mjs"], "about": "The mailer reads process.env itself, which the repo's CLAUDE.md forbids: settings are read in src/config.mjs only. A finding must point at that rule." }
+{"planted": {"path": "src/mailer.mjs", "lines": [3, 3]}, "cites": ["CLAUDE.md"], "about": "The mailer reads process.env itself, which the repo's CLAUDE.md forbids: settings are read in src/config.mjs only. A finding must name CLAUDE.md, the rule's source, not only where the code should move."}
