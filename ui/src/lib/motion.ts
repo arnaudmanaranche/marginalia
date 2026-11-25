@@ -21,6 +21,13 @@ export const unfold = {
   exit: { opacity: 0, height: 0, transition: transition.fast },
 };
 
+// An inline label opens or closes in its own width, out of the control it sits next to.
+export const widen = {
+  initial: { opacity: 0, width: 0 },
+  animate: { opacity: 1, width: 'auto', transition: { width: transition.base, opacity: { ...transition.base, delay: 0.05 } } },
+  exit: { opacity: 0, width: 0, transition: { width: transition.fast, opacity: { duration: 0.08 } } },
+};
+
 // The person asked the system for less motion: nothing slides or fades in for show.
 export const prefersStill = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
