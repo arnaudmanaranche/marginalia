@@ -3,7 +3,6 @@ import { failureKind, needsDoctor } from './failure-kind.ts';
 import { log, logError } from './log.ts';
 import { logger } from './logger.ts';
 import { recordBelow } from './poll-plan.ts';
-import { branchStateKey } from './own-branches-plan.ts';
 import { heldReason } from './budget.ts';
 
 // The work on one MR inside a pass (see poll-pass.ts). Review and triage share one skeleton:
@@ -37,17 +36,6 @@ const KINDS: Record<string, any> = {
       return deps.runReview(mr, deps.ownPath(mr), info && { stacks: plan.stacks, info }, { own: true });
     },
     record: reviewRecord,
-  },
-  // My branch without an MR yet: same file as its own review once the MR exists.
-  branch: {
-    entry: 'own',
-    label: 'Own review',
-    ready: 'Own review ready',
-    path: (deps: any, mr: any) => deps.ownPath(mr),
-    run: (deps: any, mr: any) => deps.runReview(mr, deps.ownPath(mr), null, { own: true }),
-    record: (state: any, mr: any) => {
-      state[branchStateKey(mr.source_branch)] = mr.sha;
-    },
   },
   triage: {
     entry: 'comments',

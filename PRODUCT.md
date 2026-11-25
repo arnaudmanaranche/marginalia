@@ -14,7 +14,7 @@ Two jobs bring people to it. In the studio: an MR has been reviewed in the backg
 
 ## Product Purpose
 
-marginalia is a software factory for a team's repositories (ADR 0006). It learns a project from its code and tools (GitLab, Jira, Notion, Slack, PostHog) into a project context, runs lines of jobs on it, and leaves every decision to a person in the studio, which shows each job as it runs. It works on any repository, front-end or back-end. Review is the first line: MRs opened by other people, and your own branches before and after their MR exists.
+marginalia is a software factory for a team's repositories (ADR 0006). It learns a project from its code and tools (GitLab, Jira, Notion, Slack, PostHog) into a project context, runs lines of jobs on it, and leaves every decision to a person in the studio, which shows each job as it runs. It works on any repository, front-end or back-end. Review is the first line: MRs opened by other people, and your own open MRs (ADR 0013: drafts and branches without an MR are left alone).
 
 Within the review line, marginalia runs reviews on GitLab merge requests, and the studio is where they are read. A review is requested from the studio or by mentioning `@marginalia` in an MR. The bot checks out the MR, lets an agent review it with whatever tools, sub-agents and skills it chooses, validates the result against a fixed contract, then shows it in the studio or replies on the MR.
 

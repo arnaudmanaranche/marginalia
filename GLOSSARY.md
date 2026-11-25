@@ -24,7 +24,7 @@ The words below are the only ones the code, the docs and the studio use for thes
 
 **Critical path**: a flow in a project whose breakage costs the most (a user journey for a front-end, a request flow, data write or payment for a back-end). Listed in the project context.
 
-**Own review**: a review of the configured user's own branch or MR, shown only to them, never posted. Not triage, which works through comments other people left.
+**Own review**: a review of the configured user's own open MR, shown only to them, never posted. Not triage, which works through comments other people left.
 
 **Feed**: Home (ADR 0007): what needs you (reviews whose turn is yours, comments to decide, failures that need a person, a context to approve) ranked by what matters, and the jobs running now, opened by the briefing (ADR 0012). Every job by day is on the Activity page.
 
