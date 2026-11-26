@@ -13,15 +13,15 @@ export const Signals = z.object({
 }).meta({ id: 'Signals' });
 
 export const RecapComment = z.object({
-  findingId: z.string(), title: z.string(), path: nullable(z.string()), line: nullable(z.number().int()),
+  findingId: z.string(), title: z.string(), path: nullable(z.string()), line: nullable(z.number().int().min(1)),
   standing: Standing, signals: Signals,
   disagreement: z.boolean().describe('The thread and the code say different things: worth a look.'),
   url: nullable(z.string()).describe('The comment on GitLab.'),
 }).meta({ id: 'RecapComment' });
 
 export const RecapFinding = z.object({
-  id: z.string(), title: z.string(), severity: nullable(Severity), path: nullable(z.string()), line: nullable(z.number().int()),
-  onChangedCode: nullable(z.boolean()).describe('On code the author changed since the baseline; false: on older code the bot only raised now. Null when that cannot be told.'),
+  id: z.string(), title: z.string(), severity: nullable(Severity), path: nullable(z.string()), line: nullable(z.number().int().min(1)),
+  onChangedCode: nullable(z.boolean()).describe('Whether this finding is on code changed since the baseline. For a new finding, false means older code the bot only raised now. Null when that cannot be told.'),
 }).meta({ id: 'RecapFinding' });
 
 export const RecapReworded = z.object({ was: RecapFinding, now: RecapFinding }).describe('Probably one finding said differently: for a person to judge, never counted as one gone and one new.').meta({ id: 'RecapReworded' });
@@ -32,13 +32,13 @@ export const RecapBaseline = z.object({
 }).meta({ id: 'RecapBaseline' });
 
 export const RecapMr = z.object({
-  commits: z.number().int(), files: z.number().int(),
-  commentedFilesTouched: z.number().int().describe('Of the files I commented on, how many changed.'),
+  commits: z.number().int().min(0), files: z.number().int().min(0),
+  commentedFilesTouched: z.number().int().min(0).describe('Of the files I commented on, how many changed.'),
 }).meta({ id: 'RecapMr' });
 
 export const RecapCounts = z.object({
-  addressed: z.number().int(), contested: z.number().int(), untouched: z.number().int(), dropped: z.number().int(),
-  fresh: z.number().int().describe('New findings.'), reworded: z.number().int(),
+  addressed: z.number().int().min(0), contested: z.number().int().min(0), untouched: z.number().int().min(0), dropped: z.number().int().min(0),
+  newFindings: z.number().int().min(0), reworded: z.number().int().min(0), gone: z.number().int().min(0),
 }).describe('One summary, computed once: the recap, the finding list and the MR row all read it.').meta({ id: 'RecapCounts' });
 
 export const Recap = z.object({
@@ -46,7 +46,7 @@ export const Recap = z.object({
   baseline: RecapBaseline,
   mr: nullable(RecapMr).describe('Null when the code that changed cannot be told: the version the baseline covered is no longer on GitLab.'),
   comments: z.array(RecapComment),
-  fresh: z.array(RecapFinding),
+  newFindings: z.array(RecapFinding),
   reworded: z.array(RecapReworded),
   gone: z.array(RecapFinding).describe('Findings the bot no longer raises. Information only: bot silence is not an answer.'),
   counts: RecapCounts,
