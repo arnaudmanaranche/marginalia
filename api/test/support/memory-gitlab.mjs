@@ -97,6 +97,7 @@ export function memoryGitlab({ me = 'me', head = 'head1', diffLines = {}, member
 
     listMergeRequestVersions: async () => [],
     getMergeRequestVersion: async () => ({}),
+    compareRange: async () => ({ commits: [], diffs: [] }),
     compareDiffs: async () => [],
   };
 
