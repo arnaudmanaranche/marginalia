@@ -22,22 +22,24 @@ export interface ChangedFile {
 
 export const NEAR = 3;
 
-// The old line each change sits at: a deleted line at its own number, an added line at the old line
-// that follows it.
-function anchors(lines: DiffLine[]): number[] {
+// The line each change sits at on one side of the diff. On the old side a deleted line sits at its
+// own number and an added line at the old line that follows it; on the new side, the other way round.
+export function anchors(lines: DiffLine[], side: 'old' | 'new' = 'old'): number[] {
+  const own = side === 'old' ? 'del' : 'add';
   const at: number[] = [];
-  let nextOld = 0;
+  let next = 0;
   for (const l of lines) {
     if (l.t === 'hunk') {
-      // An addition on a hunk's first line has no old line before it: the header says where it is.
-      // With no old line in the hunk (a pure insertion) `N` is the line before it.
-      const head = /^@@ -(\d+)(?:,(\d+))?/.exec(l.text ?? '');
-      if (head) nextOld = Number(head[1]) + (head[2] === '0' ? 1 : 0);
+      // A change on a hunk's first line has no line before it on this side: the header says where it is.
+      // With no line of this side in the hunk (a pure insertion or deletion) `N` is the line before it.
+      const head = /^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))?/.exec(l.text ?? '');
+      if (head) next = side === 'old' ? Number(head[1]) + (head[2] === '0' ? 1 : 0) : Number(head[3]) + (head[4] === '0' ? 1 : 0);
       continue;
     }
-    if (l.old != null) nextOld = l.old + 1;
-    if (l.t === 'del' && l.old != null) at.push(l.old);
-    else if (l.t === 'add') at.push(nextOld);
+    const here = l[side];
+    if (here != null) next = here + 1;
+    if (l.t === own && here != null) at.push(here);
+    else if (l.t === 'add' || l.t === 'del') at.push(next);
   }
   return at;
 }
