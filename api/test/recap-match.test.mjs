@@ -5,8 +5,9 @@ import { matchFindings, overlap } from '../dist/src/recap-match.js';
 const f = (id, title, path = 'src/a.ts') => ({ id, title, path });
 
 test('a finding that keeps its id is kept, whatever its title says now', () => {
-  const m = matchFindings([f('x', 'Total goes negative')], [f('x', 'Something else entirely')]);
-  assert.equal(m.kept.length, 1);
+  const now = f('x', 'Something else entirely');
+  const m = matchFindings([f('x', 'Total goes negative')], [now]);
+  assert.deepEqual(m.kept, [now]);
   assert.equal(m.added.length + m.gone.length + m.reworded.length, 0);
 });
 
