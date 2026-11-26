@@ -6,6 +6,7 @@ import { Button } from './ui/Button';
 import { CopyButton } from './CopyButton';
 import { NoteMarkdown } from './NoteMarkdown';
 import { PostedBadge } from './PostedBadge';
+import { RecapMark } from './RecapMark';
 import { SeverityBadge } from './ds/Severity';
 
 export function findingTarget(finding: Finding) {
@@ -18,6 +19,7 @@ export function FindingHeader({ finding, info }: { finding: Finding; info: Poste
       <SeverityBadge level={finding.severity} />
       <span className="font-medium">{finding.title}</span>
       {finding.path && <code className="break-all text-xs text-fg-muted">{finding.path}{finding.line ? `:${finding.line}` : ''}</code>}
+      <RecapMark id={finding.id} />
       <PostedBadge info={info} />
     </div>
   );
