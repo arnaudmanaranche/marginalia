@@ -1,9 +1,10 @@
 import * as m from 'motion/react-m';
 import type { ReviewItem } from '../lib/api';
-import { standingOf } from '../lib/dashboard';
+import { groupOf, standingOf } from '../lib/dashboard';
 import { cn, timeAgo } from '../lib/utils';
 import { Badge } from './ui/Badge';
 import { RiskBadge } from './RiskBadge';
+import { RowRecap } from './RowRecap';
 import { VerdictBadge } from './VerdictBadge';
 import { LivePill } from './ds/LivePill';
 import { SeverityDot } from './ds/Severity';
@@ -49,6 +50,8 @@ export function ReviewRow({ item, unread, reviewing = false, held = false, arriv
       <span className={unread ? 'size-2 shrink-0 rounded-full bg-run' : 'size-2 shrink-0'} aria-hidden />
       <a href={hrefOf(item.slug)} data-vt-title={item.slug} className="min-w-0 flex-1 basis-64 truncate font-medium hover:underline">{title}</a>
       {reason && <span className="shrink-0 text-xs text-fg-muted">{reason}</span>}
+      {/* An MR that came back to me says what changed since I last looked, in one line. */}
+      {groupOf(item) === 'returned' && <RowRecap item={item} />}
       {arrived && <Badge tone="info">New</Badge>}
       {reviewing && <LivePill tone="run" label="Reviewing" live title="Open it to follow the run" />}
       {/* Past the budget a queued MR waits for midnight: "Queued" would promise a run that is not coming. */}
