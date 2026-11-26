@@ -32,7 +32,8 @@ test('a finding next to a pure deletion is on changed code: something was remove
 });
 
 test('a finding on the first line of a hunk is anchored by its header, not by the hunk before', () => {
-  const two = '@@ -1,3 +1,3 @@\n one\n-two\n+two!\n three\n@@ -60,2 +60,3 @@\n+top\n sixty\n sixty-one';
+  // The second hunk is a pure deletion: only its header says where on the new side it sits.
+  const two = '@@ -1,3 +1,3 @@\n one\n-two\n+two!\n three\n@@ -60,2 +59,0 @@\n-a\n-b';
   assert.equal(on([file(two)], 61), true);
   assert.equal(on([file(two)], 20), false);
 });
