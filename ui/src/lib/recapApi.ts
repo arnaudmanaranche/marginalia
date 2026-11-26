@@ -43,10 +43,10 @@ export interface Recap {
 }
 
 // What makes the recap stale: a new report, or something on GitLab that the status list already knows
-// (my last activity, the author's, a push, the threads still open). The recap reads GitLab, so it
+// (my last activity, the author's, another reviewer's, a push, the threads still open). The recap reads GitLab, so it
 // follows these and not every file change the live stream announces.
-export const recapRefreshKey = (item: { reviewedAt?: string | null; myState?: Pick<MyState, 'myActivityAt' | 'authorActivityAt' | 'lastPushAt' | 'unresolved'> | null }) =>
-  [item.reviewedAt, item.myState?.myActivityAt, item.myState?.authorActivityAt, item.myState?.lastPushAt, item.myState?.unresolved].map((v) => v ?? '').join('|');
+export const recapRefreshKey = (item: { reviewedAt?: string | null; myState?: Pick<MyState, 'myActivityAt' | 'authorActivityAt' | 'peerActivityAt' | 'lastPushAt' | 'unresolved'> | null }) =>
+  [item.reviewedAt, item.myState?.myActivityAt, item.myState?.authorActivityAt, item.myState?.peerActivityAt, item.myState?.lastPushAt, item.myState?.unresolved].map((v) => v ?? '').join('|');
 
 // The recap of one review, null while it loads, for a first review (nothing to compare) and when it
 // cannot be read. It is read again only when `refreshKey` changes.

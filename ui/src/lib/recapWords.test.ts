@@ -28,17 +28,17 @@ describe('the recap words', () => {
 });
 
 describe('what refreshes the recap', () => {
-  const state = { myActivityAt: '2026-11-24T10:00:00Z', authorActivityAt: null, lastPushAt: '2026-11-24T12:00:00Z', unresolved: 2 };
+  const state = { myActivityAt: '2026-11-24T10:00:00Z', authorActivityAt: null, peerActivityAt: null, lastPushAt: '2026-11-24T12:00:00Z', unresolved: 2 };
 
-  it('changes with a new report, my activity, the author, a push or the open threads, and with nothing else', () => {
+  it('changes with a new report, my activity, the author, another reviewer, a push or the open threads, and with nothing else', () => {
     const base = recapRefreshKey({ reviewedAt: 'r1', myState: state });
     expect(recapRefreshKey({ reviewedAt: 'r1', myState: { ...state } })).toBe(base);
-    for (const changed of [{ reviewedAt: 'r2', myState: state }, { reviewedAt: 'r1', myState: { ...state, myActivityAt: 'x' } }, { reviewedAt: 'r1', myState: { ...state, authorActivityAt: 'x' } },
+    for (const changed of [{ reviewedAt: 'r2', myState: state }, { reviewedAt: 'r1', myState: { ...state, myActivityAt: 'x' } }, { reviewedAt: 'r1', myState: { ...state, authorActivityAt: 'x' } }, { reviewedAt: 'r1', myState: { ...state, peerActivityAt: 'x' } },
       { reviewedAt: 'r1', myState: { ...state, lastPushAt: 'x' } }, { reviewedAt: 'r1', myState: { ...state, unresolved: 1 } }]) expect(recapRefreshKey(changed)).not.toBe(base);
   });
 
   it('is a key even for a review the bot does not track', () => {
-    expect(recapRefreshKey({})).toBe('||||');
+    expect(recapRefreshKey({})).toBe('|||||');
   });
 
   it('is not made stale by every live event: it reads GitLab, so it is outside the live roots', () => {
