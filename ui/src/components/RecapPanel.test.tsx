@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { RecapNotice } from './RecapNotice';
 import { RecapPanel } from './RecapPanel';
 import { recapFinding, recapFixture } from './recapFixture';
 
@@ -55,5 +56,29 @@ describe('the recap panel', () => {
     expect(screen.getByText('Reworded?')).toBeTruthy();
     expect(screen.getByText('Coupon makes the total wrong', { exact: false })).toBeTruthy();
     expect(screen.queryByText('New')).toBeNull();
+  });
+
+  it('folds away what the bot no longer raises, and does not call the panel quiet because of it', () => {
+    render(<RecapPanel recap={recapFixture({ comments: [], newFindings: [], gone: [recapFinding({ id: 'g', title: 'An old worry' })] })} />);
+    const gone = screen.getByText(/No longer raised \(1\)/).closest('details')!;
+    expect(gone.open).toBe(false);
+    expect(screen.getByRole('button', { expanded: true })).toBeTruthy();
+  });
+});
+
+describe('the recap notice', () => {
+  it('says a recap could not be read, with the reason and a way to ask again', () => {
+    const retry = vi.fn();
+    render(<RecapNotice loading={false} error="gitlab said no" retry={retry} />);
+    expect(screen.getByRole('alert').textContent).toMatch(/could not be read \(gitlab said no\)/);
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    expect(retry).toHaveBeenCalledOnce();
+  });
+
+  it('keeps room while it loads, and says nothing otherwise', () => {
+    const { container, rerender } = render(<RecapNotice loading error={null} retry={() => {}} />);
+    expect(container.firstElementChild?.getAttribute('aria-hidden')).toBe('true');
+    rerender(<RecapNotice loading={false} error={null} retry={() => {}} />);
+    expect(container.firstElementChild).toBeNull();
   });
 });

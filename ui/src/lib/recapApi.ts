@@ -49,13 +49,13 @@ export const recapRefreshKey = (item: { reviewedAt?: string | null; myState?: Pi
   [item.reviewedAt, item.myState?.myActivityAt, item.myState?.authorActivityAt, item.myState?.peerActivityAt, item.myState?.lastPushAt, item.myState?.unresolved].map((v) => v ?? '').join('|');
 
 // The recap of one review, null while it loads, for a first review (nothing to compare) and when it
-// cannot be read. It is read again only when `refreshKey` changes.
-export function useRecap(slug: string | null, refreshKey: string): { recap: Recap | null; loading: boolean } {
+// cannot be read (`error` says so, and `retry` asks again). It is read again only when `refreshKey` changes.
+export function useRecap(slug: string | null, refreshKey: string): { recap: Recap | null; loading: boolean; error: string | null; retry: () => void } {
   const query = useQuery({
     queryKey: keys.recap(slug ?? '', refreshKey),
     enabled: slug !== null,
     staleTime: Infinity,
     queryFn: ({ signal }) => fetchJson<{ recap: Recap | null }>(`/api/reviews/${encodeURIComponent(slug!)}/recap`, { signal, retries: 0 }).then((b) => b.recap),
   });
-  return { recap: query.data ?? null, loading: slug !== null && query.isPending };
+  return { recap: query.data ?? null, loading: slug !== null && query.isPending && !query.isError, error: query.error ? String(query.error.message ?? query.error) : null, retry: () => void query.refetch() };
 }

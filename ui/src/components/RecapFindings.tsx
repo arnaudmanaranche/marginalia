@@ -15,8 +15,9 @@ function List({ findings }: { findings: RecapFinding[] }) {
 }
 
 // What the bot says now that it did not before: new findings, those on code the author changed first,
-// those on older code folded away; and the ones that may be an earlier finding said differently.
-export function RecapFindings({ recap }: { recap: Pick<Recap, 'newFindings' | 'reworded'> }) {
+// those on older code folded away; the ones that may be an earlier finding said differently; and,
+// folded, those it no longer raises (most likely fixed, but its silence is not an answer).
+export function RecapFindings({ recap }: { recap: Pick<Recap, 'newFindings' | 'reworded' | 'gone'> }) {
   const { changed, older } = freshGroups(recap.newFindings);
   return (
     <>
@@ -43,6 +44,12 @@ export function RecapFindings({ recap }: { recap: Pick<Recap, 'newFindings' | 'r
             ))}
           </ul>
         </div>
+      )}
+      {recap.gone.length > 0 && (
+        <details>
+          <summary className="cursor-pointer text-fg-muted">No longer raised ({recap.gone.length})</summary>
+          <div className="mt-1"><List findings={recap.gone} /></div>
+        </details>
       )}
     </>
   );

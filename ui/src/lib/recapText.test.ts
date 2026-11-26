@@ -23,9 +23,10 @@ describe('the recap sentences', () => {
   });
 
   it('is quiet when there is nothing of mine, nothing new and nothing reworded', () => {
-    const base = { comments: [], newFindings: [], reworded: [] } as unknown as Recap;
+    const base = { comments: [], newFindings: [], reworded: [], gone: [] } as unknown as Recap;
     expect(isQuiet(base)).toBe(true);
     expect(isQuiet({ ...base, newFindings: [finding('n', true)] })).toBe(false);
+    expect(isQuiet({ ...base, gone: [finding('g', false)] } as Recap)).toBe(false);
   });
 });
 

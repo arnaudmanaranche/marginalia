@@ -14,8 +14,8 @@ export function mrSentence(mr: Recap['mr']): string {
   return mr.commentedFilesTouched ? `${changed}, ${mr.commentedFilesTouched} with your comments` : changed;
 }
 
-// Nothing to list: no comment of mine, nothing new or reworded. The MR sentence alone is the news.
-export const isQuiet = (r: Recap) => !r.comments.length && !r.newFindings.length && !r.reworded.length;
+// Nothing to list: no comment of mine, nothing new, reworded or gone. The MR sentence alone is the news.
+export const isQuiet = (r: Recap) => !r.comments.length && !r.newFindings.length && !r.reworded.length && !r.gone.length;
 
 // What a comment's standing rests on, in words. Unknown code says nothing: it is not a signal.
 export function signalWords(c: RecapComment): string[] {

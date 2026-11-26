@@ -7,6 +7,7 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const ReReviewed: Story = {};
-export const NothingHappened: Story = { args: { recap: recapFixture({ comments: [], newFindings: [], mr: { commits: 0, files: 0, commentedFilesTouched: 0 }, counts: { addressed: 0, contested: 0, untouched: 0, dropped: 0, newFindings: 0, reworded: 0, gone: 0 } }) } };
-export const VersionGone: Story = { args: { recap: recapFixture({ mr: null, newFindings: [recapFinding({ onChangedCode: null })], counts: { addressed: 1, contested: 1, untouched: 1, dropped: 0, newFindings: 1, reworded: 0, gone: 0 } }) } };
-export const NothingSubmitted: Story = { args: { recap: recapFixture({ baseline: { kind: 'previous', at: new Date(Date.now() - 26 * 3_600_000).toISOString() }, comments: [], counts: { addressed: 0, contested: 0, untouched: 0, dropped: 0, newFindings: 2, reworded: 0, gone: 0 } }) } };
+export const NothingHappened: Story = { args: { recap: recapFixture({ comments: [], newFindings: [], mr: { commits: 0, files: 0, commentedFilesTouched: 0 } }) } };
+export const VersionGone: Story = { args: { recap: recapFixture({ mr: null, newFindings: [recapFinding({ onChangedCode: null })] }) } };
+export const NothingSubmitted: Story = { args: { recap: recapFixture({ baseline: { kind: 'previous', at: new Date(Date.now() - 26 * 3_600_000).toISOString() }, comments: [] }) } };
+export const NoLongerRaised: Story = { args: { recap: recapFixture({ comments: [], newFindings: [], gone: [recapFinding({ id: 'g', title: 'An old worry the bot dropped', onChangedCode: true })] }) } };
