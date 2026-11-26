@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { fetchJson } from './fetchRetry';
 import { keys } from './queryKeys';
-import type { Finding } from './api';
+import type { Finding, MyState } from './api';
 
 // What changed on a re-reviewed MR since its baseline (GLOSSARY: Recap), as GET /api/reviews/:slug/recap
 // gives it (Recap in the contract).
@@ -42,12 +42,19 @@ export interface Recap {
   counts: RecapCounts;
 }
 
+// What makes the recap stale: a new report, or something on GitLab that the status list already knows
+// (my last activity, the author's, a push, the threads still open). The recap reads GitLab, so it
+// follows these and not every file change the live stream announces.
+export const recapRefreshKey = (item: { reviewedAt?: string | null; myState?: Pick<MyState, 'myActivityAt' | 'authorActivityAt' | 'lastPushAt' | 'unresolved'> | null }) =>
+  [item.reviewedAt, item.myState?.myActivityAt, item.myState?.authorActivityAt, item.myState?.lastPushAt, item.myState?.unresolved].map((v) => v ?? '').join('|');
+
 // The recap of one review, null while it loads, for a first review (nothing to compare) and when it
-// cannot be read. It follows the review: a new report, a posted comment or an answered thread refresh it.
-export function useRecap(slug: string | null, refreshKey?: string): { recap: Recap | null; loading: boolean } {
+// cannot be read. It is read again only when `refreshKey` changes.
+export function useRecap(slug: string | null, refreshKey: string): { recap: Recap | null; loading: boolean } {
   const query = useQuery({
     queryKey: keys.recap(slug ?? '', refreshKey),
     enabled: slug !== null,
+    staleTime: Infinity,
     queryFn: ({ signal }) => fetchJson<{ recap: Recap | null }>(`/api/reviews/${encodeURIComponent(slug!)}/recap`, { signal, retries: 0 }).then((b) => b.recap),
   });
   return { recap: query.data ?? null, loading: slug !== null && query.isPending };
