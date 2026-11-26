@@ -31,10 +31,20 @@ test('another file never matches, so it is one gone and one new', () => {
   assert.equal(m.gone.length, 1);
 });
 
-test('one earlier finding is matched once: the closest current finding takes it', () => {
-  const m = matchFindings([f('a', 'cart total goes negative')], [f('b', 'cart total goes negative'), f('c', 'cart total goes negative too')]);
-  assert.equal(m.kept.length, 1);
+test('one earlier finding is matched once, by the closest current finding whatever the order', () => {
+  const was = f('a', 'cart total goes negative with coupon');
+  const weaker = f('b', 'cart total wrong somewhere else'); // 2 of 5 words: only a reworded candidate, and the earlier finding is gone by then
+  const near = f('c', 'cart total goes negative now'); // 4 of 5 words: the closest
+  const middling = f('d', 'cart total goes wrong again'); // 3 of 5 words: first in the list, but not the closest
+  const m = matchFindings([was], [middling, weaker, near]);
+  assert.deepEqual(m.kept.map((k) => k.id), ['c']);
+  assert.deepEqual(m.added.map((k) => k.id).sort(), ['b', 'd']);
+});
+
+test('two findings without a file are never matched on their titles', () => {
+  const m = matchFindings([f('a', 'cart total goes negative', null)], [f('b', 'cart total goes negative', null)]);
   assert.equal(m.added.length, 1);
+  assert.equal(m.gone.length, 1);
 });
 
 test('no words to compare means no match', () => {

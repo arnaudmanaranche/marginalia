@@ -22,9 +22,10 @@ export const MAYBE_SAME = 0.3;
 
 const words = (s: string) => new Set(s.toLowerCase().match(/[a-z0-9]{3,}/g) ?? []);
 
-// The share of the shorter title's words found in the other; 0 across files or without words.
+// The share of the shorter title's words found in the other; 0 across files, without a file (no
+// file, no identity to compare on) or without words.
 export function overlap(a: Matchable, b: Matchable) {
-  if (a.path !== b.path) return 0;
+  if (a.path === null || a.path !== b.path) return 0;
   const x = words(a.title);
   const y = words(b.title);
   const shorter = Math.min(x.size, y.size);
@@ -32,43 +33,33 @@ export function overlap(a: Matchable, b: Matchable) {
 }
 
 export function matchFindings<F extends Matchable>(previous: F[], current: F[]): Match<F> {
-  const unmatched = new Set(previous);
-  // The closest earlier finding still unmatched, when its overlap lies in [min, max).
-  const closest = (f: F, min: number, max: number) => {
-    let best: F | null = null;
-    let score = 0;
-    for (const p of unmatched) {
-      const s = overlap(p, f);
-      if (s >= min && s < max && s > score) { best = p; score = s; }
-    }
-    return best;
-  };
+  const free = new Set(previous);
   const kept: F[] = [];
   const reworded: { was: F; now: F }[] = [];
-  const added: F[] = [];
-  // Each pass settles what it can; a finding settled is out of the next pass.
   let rest = current;
-  const pass = (settle: (f: F) => boolean) => { rest = rest.filter((f) => !settle(f)); };
+  // Pairs the closest first, so a finding never takes an earlier one a closer finding wants.
+  const settle = (min: number, max: number, done: (was: F, now: F) => void) => {
+    const pairs = rest.flatMap((now) => [...free].map((was) => ({ was, now, score: overlap(was, now) })))
+      .filter((p) => p.score >= min && p.score < max)
+      .sort((a, b) => b.score - a.score);
+    const taken = new Set<F>();
+    for (const { was, now } of pairs) {
+      if (!free.has(was) || taken.has(now)) continue;
+      free.delete(was);
+      taken.add(now);
+      done(was, now);
+    }
+    rest = rest.filter((f) => !taken.has(f));
+  };
   // A re-run is told to keep the id of a finding still there.
-  pass((f) => {
-    const was = [...unmatched].find((p) => p.id === f.id);
-    if (!was) return false;
-    unmatched.delete(was);
-    kept.push(f);
-    return true;
-  });
-  pass((f) => {
-    const was = closest(f, SAME, Infinity);
-    if (!was) return false;
-    unmatched.delete(was);
-    kept.push(f);
-    return true;
-  });
-  for (const f of rest) {
-    const was = closest(f, MAYBE_SAME, SAME);
-    if (!was) { added.push(f); continue; }
-    unmatched.delete(was);
-    reworded.push({ was, now: f });
+  for (const now of [...rest]) {
+    const was = [...free].find((p) => p.id === now.id);
+    if (!was) continue;
+    free.delete(was);
+    kept.push(now);
+    rest = rest.filter((f) => f !== now);
   }
-  return { kept, added, gone: [...unmatched], reworded };
+  settle(SAME, Infinity, (_, now) => kept.push(now));
+  settle(MAYBE_SAME, SAME, (was, now) => reworded.push({ was, now }));
+  return { kept, added: rest, gone: [...free], reworded };
 }
