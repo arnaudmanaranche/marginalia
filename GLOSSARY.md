@@ -40,9 +40,13 @@ The words below are the only ones the code, the docs and the studio use for thes
 
 **Signals**: what is returned alongside a standing: whether the flagged code changed since (or that it cannot be told), whether someone other than me (and not a bot) replied, and whether the thread is resolved. The code and the resolved thread decide the standing; a reply is shown, not weighed. Not the Evidence of a reproduction.
 
+**Disagreement**: a flag on a posted comment when its thread and the code say different things: the thread is resolved but the code it flagged is known to be untouched. Worth a look, so it is shown.
+
 **Reworded**: a finding of a re-run that is probably an earlier finding said differently: same file, some but not most of the title in common. Shown as a pair for a person to judge, never counted as one gone and one new.
 
 **Baseline**: what a recap compares the MR against: the report I last submitted from, or, with nothing submitted, the report before the current one.
+
+**Recap**: what changed on a re-reviewed MR since its Baseline, at a glance: the MR itself (commits, files), where each comment I posted stands (its Standing), and the findings that are new, gone or Reworded. Counts are computed once and read by the review page, the finding list and the MR row.
 
 **Bot**: the `api/` side. It listens, runs the agent, validates the result and posts. It has no screen. Not the studio.
 
