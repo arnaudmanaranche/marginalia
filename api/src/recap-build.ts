@@ -26,7 +26,8 @@ export function buildRecap({ slug, baseline, current, previous, posted, dismisse
   // A finding already shown as one of my comments is not listed again as gone: its standing says what became of it.
   const shown = new Set(comments.map((c) => c.findingId));
   const gone = match.gone.filter((f) => !shown.has(f.id)).map(was);
-  const commented = new Set(comments.flatMap((c) => (c.path ? [c.path] : [])));
+  // The files I commented on: those of comments I sent, not of findings I dropped.
+  const commented = new Set(comments.flatMap((c) => (c.path && c.standing !== 'dropped' ? [c.path] : [])));
   const touched = (files ?? []).filter((f) => commented.has(f.oldPath ?? f.path)).length;
   const standing = (s: string) => comments.filter((c) => c.standing === s).length;
   return {

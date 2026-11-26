@@ -17,7 +17,6 @@ const current = [finding('a', 'src/a.ts', 12), finding('d', 'src/a.ts', 40), fin
 const posted = [
   { findingId: 'a', body: 'Please guard the total.', url: 'https://gl/a' },
   { findingId: 'b', body: 'Handle the empty list.', url: 'https://gl/b' },
-  { findingId: 'thread-9', body: 'a reply, not a finding comment', url: null },
   { findingId: 'e', body: 'still a draft', url: null, state: 'draft' },
 ];
 const threads = [
@@ -37,9 +36,39 @@ test('the recap says where each comment stands, from its thread and the code, an
   assert.equal(r.comments.find((c) => c.findingId === 'b').signals.replied, true);
 });
 
-test('a reply record and a draft are not comments of the review', () => {
-  const ids = buildRecap(input).comments.map((c) => c.findingId);
-  assert.ok(!ids.includes('thread-9') && !ids.includes('e'));
+test('a draft is not a comment of the review yet', () => {
+  assert.ok(!buildRecap(input).comments.map((c) => c.findingId).includes('e'));
+});
+
+test('a published comment whose finding is in neither report stays a comment, titled by its first line', () => {
+  const r = buildRecap({ ...input, posted: [{ findingId: 'old', body: '\nGuard the total before dividing.\nMore detail.', url: 'https://gl/o' }], dismissed: [] });
+  Recap.parse(r);
+  const c = r.comments.find((k) => k.findingId === 'old');
+  assert.equal(c.title, 'Guard the total before dividing.');
+  assert.deepEqual([c.path, c.line, c.standing], [null, null, 'untouched']);
+});
+
+test('two comments with the same text each get their own thread, the one at their own place first', () => {
+  const same = 'Please guard this.';
+  const two = [finding('a', 'src/a.ts', 12), finding('b', 'src/b.ts', 5)];
+  const r = buildRecap({
+    ...input, previous: two, current: two, dismissed: [], files,
+    posted: [{ findingId: 'a', body: same, url: 'u1' }, { findingId: 'b', body: same, url: 'u2' }],
+    threads: [
+      { resolved: false, path: 'src/b.ts', line: 5, notes: [note(same, true)] },
+      { resolved: true, path: 'src/a.ts', line: 12, notes: [note(same, true), note('done', false)] },
+    ],
+  });
+  assert.equal(r.comments.find((c) => c.findingId === 'a').signals.resolved, true);
+  assert.equal(r.comments.find((c) => c.findingId === 'b').signals.resolved, false);
+});
+
+test('a finding I dropped claims nothing about the code, and its file is not one I commented on', () => {
+  const r = buildRecap({ ...input, posted: [], dismissed: ['a'], threads: [] });
+  const c = r.comments.find((k) => k.findingId === 'a');
+  assert.equal(c.standing, 'dropped');
+  assert.equal(c.signals.linesChanged, null);
+  assert.equal(r.mr.commentedFilesTouched, 0);
 });
 
 test('new findings say whether they sit on code the author changed; a finding the bot dropped is gone', () => {
@@ -88,4 +117,15 @@ test('a reworded finding is a pair, and is neither new nor gone', () => {
   Recap.parse(r);
   assert.equal(r.reworded.length, 1);
   assert.deepEqual([r.newFindings.length, r.gone.length], [0, 0]);
+});
+
+test('with no place to tell them apart, two comments with the same text still never share a thread', () => {
+  const same = 'Please guard this.';
+  const two = [finding('a', null, null), finding('b', null, null)];
+  const r = buildRecap({
+    ...input, previous: two, current: two, dismissed: [], files: null,
+    posted: [{ findingId: 'a', body: same, url: 'u1' }, { findingId: 'b', body: same, url: 'u2' }],
+    threads: [{ resolved: true, notes: [note(same, true)] }, { resolved: false, notes: [note(same, true)] }],
+  });
+  assert.deepEqual(r.comments.map((c) => c.signals.resolved), [true, false]);
 });

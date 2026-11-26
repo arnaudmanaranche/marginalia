@@ -70,3 +70,10 @@ test('a reworded finding is not also new or gone', () => {
   assert.equal(Recap.safeParse(recap({ newFindings: [finding({ id: 'now' })], reworded: [pair], counts })).success, false);
   assert.equal(Recap.safeParse(recap({ newFindings: [], gone: [finding({ id: 'old' })], reworded: [pair], counts: { ...counts, newFindings: 0, gone: 1 } })).success, false);
 });
+
+test('a finding shown as one of my comments is not also gone', () => {
+  const gone = finding({ id: 'y' });
+  const counts = { ...recap().counts, gone: 1 };
+  assert.equal(Recap.safeParse(recap({ gone: [gone], counts })).success, false);
+  assert.ok(Recap.safeParse(recap({ gone: [finding({ id: 'other' })], counts })).success);
+});
