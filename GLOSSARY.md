@@ -36,6 +36,10 @@ The words below are the only ones the code, the docs and the studio use for thes
 
 **Finding outcome**: what happened to a finding: posted as-is, edited, dismissed, or fixed before the MR. The review line's measure.
 
+**Verdict**: what became of one comment I posted once the MR moved on: addressed, contested, untouched or dropped. Never overclaims: only changed code or a resolved thread counts as addressed; bot silence, a reply alone or an unknown code state do not.
+
+**Signals**: what a verdict rests on: whether the flagged code changed since (or that it cannot be told), whether the author replied and whether the thread is resolved. Not the Evidence of a reproduction.
+
 **Bot**: the `api/` side. It listens, runs the agent, validates the result and posts. It has no screen. Not the studio.
 
 **Studio**: the `ui/` side, the web app where a person reads a review and decides what to say. It talks to the bot over HTTP only. Not the bot.
