@@ -129,3 +129,8 @@ test('with no place to tell them apart, two comments with the same text still ne
   });
   assert.deepEqual(r.comments.map((c) => c.signals.resolved), [true, false]);
 });
+
+test('a finding keeps the severity its report gave it', () => {
+  const r = buildRecap({ ...input, current: [{ ...finding('d', 'src/a.ts', 40, 'unrelated race in the queue'), severity: 'critical' }] });
+  assert.equal(r.newFindings.find((f) => f.id === 'd').severity, 'critical');
+});

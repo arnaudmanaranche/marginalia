@@ -6,7 +6,7 @@ import { onChangedCode } from './recap-touched.ts';
 import { buildComments, type BodyThread, type PostedComment, type ReportFinding } from './recap-comments.ts';
 import type { Baseline } from './recap-baseline.ts';
 
-const asFinding = (f: ReportFinding, onChanged: boolean | null) => ({ id: f.id, title: f.title, severity: f.severity ?? 'info', path: f.path, line: f.line, onChangedCode: onChanged });
+const asFinding = (f: ReportFinding, onChanged: boolean | null) => ({ id: f.id, title: f.title, severity: f.severity, path: f.path, line: f.line, onChangedCode: onChanged });
 
 // `previous` is the baseline report's findings, or null when there is no report to compare with (a
 // submit from the current report, or from before the history): then nothing is new, gone or reworded.

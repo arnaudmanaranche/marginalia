@@ -6,7 +6,7 @@ import { commentStanding, type RecapThread } from './recap-standing.ts';
 export interface ReportFinding {
   id: string;
   title: string;
-  severity?: string | null;
+  severity: string;
   path: string | null;
   line: number | null;
 }
@@ -51,7 +51,7 @@ export function buildComments({ posted, dismissed, findings, threads, files }: {
     return { findingId: f.id, title: f.title, path: f.path, line: f.line, standing, signals, disagreement, url: extra.url };
   };
   const sent = posted.filter((p) => p.state !== 'draft').map((p) => {
-    const f = find(p.findingId) ?? { id: p.findingId, title: firstLine(p.body) || p.findingId, path: null, line: null };
+    const f = find(p.findingId) ?? { id: p.findingId, title: firstLine(p.body) || p.findingId, severity: 'info', path: null, line: null };
     return one(f, { url: p.url, thread: threadFor(threads, p.body, claimed, f), dropped: false });
   });
   const chosen = new Set(sent.map((c) => c.findingId));
