@@ -27,7 +27,9 @@ export const RecapComment = z.object({
 export const RecapFinding = z.object({
   id: FindingKey, title: z.string(), severity: nullable(Severity), path: nullable(z.string()), line: nullable(z.number().int().min(1)),
   onChangedCode: nullable(z.boolean()).describe('Whether this finding is on code changed since the baseline. For a new finding, false means older code the bot only raised now. Null when that cannot be told.'),
-}).refine((f) => f.line === null || f.path !== null, { message: 'a line needs a path', path: ['line'] }).meta({ id: 'RecapFinding' });
+}).refine((f) => f.line === null || f.path !== null, { message: 'a line needs a path', path: ['line'] })
+  .refine((f) => f.line !== null || f.onChangedCode === null, { message: 'the code cannot be compared without a line', path: ['onChangedCode'] })
+  .meta({ id: 'RecapFinding' });
 
 export const RecapReworded = z.object({ was: RecapFinding, now: RecapFinding }).describe('Probably one finding said differently: for a person to judge, never counted as one gone and one new.').meta({ id: 'RecapReworded' });
 

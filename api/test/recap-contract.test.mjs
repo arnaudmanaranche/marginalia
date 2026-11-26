@@ -33,3 +33,9 @@ test('a comment on the whole file or MR cannot claim to know whether its code ch
   assert.equal(RecapComment.safeParse(comment({ line: null, signals: { ...signals, linesChanged: true } })).success, false);
   assert.ok(RecapComment.safeParse(comment({ line: null, signals })).success);
 });
+
+test('a finding without a line cannot claim to be on changed code or on older code', () => {
+  assert.equal(RecapFinding.safeParse(finding({ line: null, onChangedCode: true })).success, false);
+  assert.equal(RecapFinding.safeParse(finding({ line: null, onChangedCode: false })).success, false);
+  assert.ok(RecapFinding.safeParse(finding({ line: null, onChangedCode: null })).success);
+});
