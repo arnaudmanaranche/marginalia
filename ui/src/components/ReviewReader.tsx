@@ -5,6 +5,7 @@ import { submitReview, type BotStatus, type PostedInfo, type ReviewAction, type 
 import { LinkContext } from '../lib/links';
 import { cn } from '../lib/utils';
 import { useRerun } from '../lib/useRerun';
+import { useRecap, recapRefreshKey } from '../lib/recapApi';
 import { useReviewVersions } from '../lib/useReviewVersions';
 import { useSectionState } from '../lib/useSectionState';
 import { useThreads } from '../lib/useThreads';
@@ -23,7 +24,7 @@ import { ReaderNotices } from './ReaderNotices';
 import { ReviewOverview } from './ReviewOverview';
 import { ReviewRisk } from './ReviewRisk';
 import { ReplyBoard } from './ReplyBoard';
-import { ReportDelta } from './ReportDelta';
+import { RecapPanel } from './RecapPanel';
 import { ReviewTour } from './ReviewTour';
 import { CleanReview } from './CleanReview';
 import { RunPanel } from './RunPanel';
@@ -33,7 +34,9 @@ import { postedFor } from '../lib/postedKey';
 
 export function ReviewReader({ item, review: currentReview, reviewError, onRetry, projectUrl, allowPosting, showFullDiff, live, finding = null, version = null, posted, reload }: { showFullDiff: boolean; finding?: string | null; version?: string | null; item: ReviewItem | undefined; review: ReviewContent | null; reviewError: string | null; onRetry: () => void; projectUrl: string | null; allowPosting: boolean; live: BotStatus['current']; posted: Record<string, PostedInfo>; reload: () => void }) {
   const [submitting, setSubmitting] = useState(false);
-  const { versionId, setVersionId, oldReview, previous, previousLoading, historyKnown } = useReviewVersions(item?.slug, item?.reviewedAt, version);
+  const { versionId, setVersionId, oldReview, historyKnown } = useReviewVersions(item?.slug, item?.reviewedAt, version);
+  // What changed since the baseline: only for a tracked MR, and not while reading an older version.
+  const { recap } = useRecap(item?.tracked ? item.slug : null, item ? recapRefreshKey(item) : '');
   const viewingOld = versionId !== null;
   const content = viewingOld ? oldReview : currentReview;
   const markdown = historyKnown ? content?.markdown ?? null : null;
@@ -105,10 +108,7 @@ export function ReviewReader({ item, review: currentReview, reviewError, onRetry
       ) : <TourSkeleton />)}
       {markdown !== null && shape?.overview && <ReviewOverview overview={shape.overview} />}
       {markdown !== null && <ReviewRisk risk={shape?.risk ?? null} />}
-      {markdown !== null && !viewingOld && previous && (
-        <ReportDelta previous={previous.review.shape?.findings ?? []} at={previous.at} current={shape?.findings ?? []} onRead={() => setVersionId(previous.id)} />
-      )}
-      {markdown !== null && !viewingOld && !previous && previousLoading && <div aria-hidden className="mb-4 h-[42px] shrink-0 animate-pulse rounded-xl border border-line motion-reduce:animate-none" />}
+      {markdown !== null && !viewingOld && recap && <RecapPanel recap={recap} />}
       {markdown !== null && hasTour && (
           <ReviewTour showFullDiff={showFullDiff} target={finding} stops={stops} findings={shape!.findings} diff={item?.tracked && item.iid ? { slug: item.slug, version: versionId, key: item.reviewedAt } : null} post={item?.tracked && item.iid && !viewingOld ? { slug: item.slug, iid: item.iid, allowPosting: mayPost, locked, posted, reload } : null} onReport={setVersionId} />
       )}
