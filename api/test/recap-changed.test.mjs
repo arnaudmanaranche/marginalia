@@ -43,3 +43,9 @@ test('an addition on the first line of a hunk is anchored by its header, not by 
   assert.equal(at([file(two)], 20), false);
   assert.equal(at([file('@@ -5,2 +5,3 @@\n+new\n five\n six')], 5), true);
 });
+
+test('a pure insertion is anchored at the old line after it: git names the line before', () => {
+  const insert = '@@ -20,0 +21,2 @@\n+a\n+b';
+  assert.equal(at([file(insert)], 24), true);
+  assert.equal(at([file(insert)], 25), false);
+});

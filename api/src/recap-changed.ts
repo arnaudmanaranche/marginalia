@@ -30,7 +30,9 @@ function anchors(lines: DiffLine[]): number[] {
   for (const l of lines) {
     if (l.t === 'hunk') {
       // An addition on a hunk's first line has no old line before it: the header says where it is.
-      nextOld = Number(/^@@ -(\d+)/.exec(l.text ?? '')?.[1] ?? nextOld);
+      // With no old line in the hunk (a pure insertion) `N` is the line before it.
+      const head = /^@@ -(\d+)(?:,(\d+))?/.exec(l.text ?? '');
+      if (head) nextOld = Number(head[1]) + (head[2] === '0' ? 1 : 0);
       continue;
     }
     if (l.old != null) nextOld = l.old + 1;
