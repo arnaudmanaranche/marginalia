@@ -4,6 +4,9 @@ import { ReviewId, nullable, Severity } from './common.ts';
 // The recap of a re-reviewed merge request: what became of what was said, and what is new, since
 // the baseline (GLOSSARY: Recap, Baseline, Standing, Signals, Reworded).
 
+// The id of a finding, as the endpoints that post or dismiss it take it.
+const FindingKey = z.string().regex(/^[\w-]{1,64}$/);
+
 export const Standing = z.enum(['addressed', 'contested', 'untouched', 'dropped']).describe('Where a comment I posted stands. Decided in order: `dropped` if I chose not to send it; `contested` if its thread is resolved over code known to be untouched; `addressed` if the code changed or its thread is resolved; else `untouched`. Never overclaims: a reply alone, bot silence or an unknown code state are `untouched`.').meta({ id: 'Standing' });
 
 export const Signals = z.object({
@@ -13,14 +16,16 @@ export const Signals = z.object({
 }).meta({ id: 'Signals' });
 
 export const RecapComment = z.object({
-  findingId: z.string(), title: z.string(), path: nullable(z.string()), line: nullable(z.number().int().min(1)),
+  findingId: FindingKey, title: z.string(), path: nullable(z.string()), line: nullable(z.number().int().min(1)),
   standing: Standing, signals: Signals,
   disagreement: z.boolean().describe('The thread and the code say different things: worth a look.'),
   url: nullable(z.string()).describe('The comment on GitLab.'),
-}).refine((c) => c.line === null || c.path !== null, { message: 'a line needs a path', path: ['line'] }).meta({ id: 'RecapComment' });
+}).refine((c) => c.line === null || c.path !== null, { message: 'a line needs a path', path: ['line'] })
+  .refine((c) => c.line !== null || c.signals.linesChanged === null, { message: 'the code cannot be compared without a line', path: ['signals', 'linesChanged'] })
+  .meta({ id: 'RecapComment' });
 
 export const RecapFinding = z.object({
-  id: z.string(), title: z.string(), severity: nullable(Severity), path: nullable(z.string()), line: nullable(z.number().int().min(1)),
+  id: FindingKey, title: z.string(), severity: nullable(Severity), path: nullable(z.string()), line: nullable(z.number().int().min(1)),
   onChangedCode: nullable(z.boolean()).describe('Whether this finding is on code changed since the baseline. For a new finding, false means older code the bot only raised now. Null when that cannot be told.'),
 }).refine((f) => f.line === null || f.path !== null, { message: 'a line needs a path', path: ['line'] }).meta({ id: 'RecapFinding' });
 

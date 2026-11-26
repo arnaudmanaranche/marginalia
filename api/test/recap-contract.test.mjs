@@ -21,3 +21,15 @@ test('a count is never negative', () => {
   assert.ok(RecapCounts.safeParse(counts).success);
   assert.equal(RecapCounts.safeParse({ ...counts, gone: -1 }).success, false);
 });
+
+test('an id is one the posting endpoints accept', () => {
+  assert.equal(RecapComment.safeParse(comment({ findingId: 'has space' })).success, false);
+  assert.equal(RecapComment.safeParse(comment({ findingId: 'a'.repeat(65) })).success, false);
+  assert.equal(RecapFinding.safeParse(finding({ id: '' })).success, false);
+  assert.ok(RecapFinding.safeParse(finding({ id: 'neg-total_2' })).success);
+});
+
+test('a comment on the whole file or MR cannot claim to know whether its code changed', () => {
+  assert.equal(RecapComment.safeParse(comment({ line: null, signals: { ...signals, linesChanged: true } })).success, false);
+  assert.ok(RecapComment.safeParse(comment({ line: null, signals })).success);
+});
