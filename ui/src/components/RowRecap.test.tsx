@@ -3,13 +3,18 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ReviewItem } from '../lib/api';
+import { recapRefreshKey } from '../lib/recapApi';
+import { keys } from '../lib/queryKeys';
 import { RecapLine, RowRecap } from './RowRecap';
 import { recapFixture } from './recapFixture';
 
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
 const item = { slug: 'back/feat-x', tracked: true, reviewedAt: 'r1', myState: { myActivityAt: null, authorActivityAt: null, peerActivityAt: null, lastPushAt: null, unresolved: 0 } } as unknown as ReviewItem;
-const mount = (i: ReviewItem) => render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><RowRecap item={i} /></QueryClientProvider>);
+const mount = (i: ReviewItem) => {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return { client, ...render(<QueryClientProvider client={client}><RowRecap item={i} /></QueryClientProvider>) };
+};
 const answer = (status: number, body: unknown) => vi.fn(async (_url: string) => ({ ok: status < 300, status, json: async () => body, text: async () => JSON.stringify(body) }));
 
 describe('the recap line of a row', () => {
@@ -36,8 +41,9 @@ describe('the recap line of a row', () => {
 
   it('shows nothing when the recap cannot be read: the row is not the place for the reason', async () => {
     vi.stubGlobal('fetch', answer(502, { error: 'gitlab down' }));
-    const { container } = mount(item);
-    await waitFor(() => expect(globalThis.fetch).toHaveBeenCalled());
+    const { client, container } = mount(item);
+    // The failure has been seen, not just asked for: the query is in its error state.
+    await waitFor(() => expect(client.getQueryState(keys.recap(item.slug, recapRefreshKey(item)))?.status).toBe('error'));
     expect(container.firstElementChild).toBeNull();
   });
 
