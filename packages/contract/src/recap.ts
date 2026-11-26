@@ -55,7 +55,7 @@ export const Recap = z.object({
   comments: z.array(RecapComment),
   newFindings: z.array(RecapFinding),
   reworded: z.array(RecapReworded),
-  gone: z.array(RecapFinding).describe('Findings the bot no longer raises. Information only: bot silence is not an answer.'),
+  gone: z.array(RecapFinding).describe('Findings the bot no longer raises that are not one of my comments (those say what became of them in their standing). Information only: bot silence is not an answer.'),
   counts: RecapCounts,
 }).refine((r) => {
   const standing = (s: string) => r.comments.filter((c) => c.standing === s).length;
@@ -69,6 +69,7 @@ export const Recap = z.object({
     const gone = ids(r.gone);
     return r.reworded.every((p) => !fresh.has(p.now.id) && !gone.has(p.was.id));
   }, { message: 'a reworded finding is neither new nor gone', path: ['reworded'] })
+  .refine((r) => { const shown = new Set(r.comments.map((c) => c.findingId)); return r.gone.every((f) => !shown.has(f.id)); }, { message: 'a finding shown as one of my comments is not also gone', path: ['gone'] })
   .meta({ id: 'Recap' });
 
 export const RecapResponse = z.object({

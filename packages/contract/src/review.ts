@@ -21,6 +21,7 @@ export const Finding = z.object({
     })).optional().describe('Evidence kept by a browser reproduction (ADR 0010).'),
   }).optional().describe('What reproducing the finding against the project found (ADR 0009). Absent when no verification was asked.'),
 }).meta({ id: 'Finding' });
+export type ReviewFinding = z.infer<typeof Finding>;
 
 export const Reply = z.object({
   thread: DiscussionId,
