@@ -1,15 +1,11 @@
 // The comments I posted on a review, each with where it stands. Pure: the caller reads the posted
 // records, the threads and the diff since the baseline.
+import type { ReviewFinding } from '@worldia/marginalia-contract';
 import { linesChanged, type ChangedFile } from './recap-changed.ts';
 import { commentStanding, type RecapThread } from './recap-standing.ts';
 
-export interface ReportFinding {
-  id: string;
-  title: string;
-  severity: string;
-  path: string | null;
-  line: number | null;
-}
+// What a recap reads of a finding of a report: the contract's own fields, so `severity` stays its enum.
+export type ReportFinding = Pick<ReviewFinding, 'id' | 'title' | 'severity' | 'path' | 'line'>;
 
 export interface PostedComment {
   findingId: string;
@@ -51,7 +47,7 @@ export function buildComments({ posted, dismissed, findings, threads, files }: {
     return { findingId: f.id, title: f.title, path: f.path, line: f.line, standing, signals, disagreement, url: extra.url };
   };
   const sent = posted.filter((p) => p.state !== 'draft').map((p) => {
-    const f = find(p.findingId) ?? { id: p.findingId, title: firstLine(p.body) || p.findingId, severity: 'info', path: null, line: null };
+    const f = find(p.findingId) ?? { id: p.findingId, title: firstLine(p.body) || p.findingId, severity: 'info' as const, path: null, line: null };
     return one(f, { url: p.url, thread: threadFor(threads, p.body, claimed, f), dropped: false });
   });
   const chosen = new Set(sent.map((c) => c.findingId));
