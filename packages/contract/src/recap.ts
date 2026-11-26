@@ -35,7 +35,7 @@ export const RecapReworded = z.object({ was: RecapFinding, now: RecapFinding }).
 
 export const RecapBaseline = z.object({
   kind: z.enum(['submitted', 'previous']).describe('`submitted`: the report I last submitted from. `previous`: nothing submitted, so the report before the current one.'),
-  at: nullable(z.string()).describe('When I submitted, or when the previous report was written.'),
+  at: z.string().describe('When I submitted, or when the previous report was written. Always set: with no baseline there is no recap.'),
 }).meta({ id: 'RecapBaseline' });
 
 export const RecapMr = z.object({
@@ -62,7 +62,14 @@ export const Recap = z.object({
   const c = r.counts;
   return c.addressed === standing('addressed') && c.contested === standing('contested') && c.untouched === standing('untouched') && c.dropped === standing('dropped')
     && c.newFindings === r.newFindings.length && c.reworded === r.reworded.length && c.gone === r.gone.length;
-}, { message: 'the counts disagree with the lists they summarize', path: ['counts'] }).meta({ id: 'Recap' });
+}, { message: 'the counts disagree with the lists they summarize', path: ['counts'] })
+  .refine((r) => {
+    const ids = (list: { id: string }[]) => new Set(list.map((f) => f.id));
+    const fresh = ids(r.newFindings);
+    const gone = ids(r.gone);
+    return r.reworded.every((p) => !fresh.has(p.now.id) && !gone.has(p.was.id));
+  }, { message: 'a reworded finding is neither new nor gone', path: ['reworded'] })
+  .meta({ id: 'Recap' });
 
 export const RecapResponse = z.object({
   recap: nullable(Recap).describe('Null when there is nothing to compare: the first review of an MR, or no report before this one.'),

@@ -41,7 +41,7 @@ test('a finding without a line cannot claim to be on changed code or on older co
 });
 
 const recap = (over = {}) => ({
-  slug: 'back/feat-x', baseline: { kind: 'previous', at: null }, mr: null,
+  slug: 'back/feat-x', baseline: { kind: 'previous', at: '2026-11-25T10:00:00Z' }, mr: null,
   comments: [comment(), comment({ findingId: 'y', standing: 'addressed' })],
   newFindings: [finding()], reworded: [], gone: [],
   counts: { addressed: 1, contested: 0, untouched: 1, dropped: 0, newFindings: 1, reworded: 0, gone: 0 },
@@ -57,4 +57,16 @@ test('a recap whose counts match its lists is valid, and one whose counts do not
   assert.equal(Recap.safeParse(recap({ counts: { ...recap().counts, addressed: 2 } })).success, false);
   assert.equal(Recap.safeParse(recap({ counts: { ...recap().counts, newFindings: 0 } })).success, false);
   assert.equal(Recap.safeParse(recap({ gone: [finding({ id: 'z' })] })).success, false);
+});
+
+test('a recap always says when its baseline was; with none there is no recap', () => {
+  assert.equal(Recap.safeParse(recap({ baseline: { kind: 'previous', at: null } })).success, false);
+});
+
+test('a reworded finding is not also new or gone', () => {
+  const pair = { was: finding({ id: 'old' }), now: finding({ id: 'now' }) };
+  const counts = { ...recap().counts, newFindings: 1, reworded: 1 };
+  assert.ok(Recap.safeParse(recap({ newFindings: [finding({ id: 'other' })], reworded: [pair], counts })).success);
+  assert.equal(Recap.safeParse(recap({ newFindings: [finding({ id: 'now' })], reworded: [pair], counts })).success, false);
+  assert.equal(Recap.safeParse(recap({ newFindings: [], gone: [finding({ id: 'old' })], reworded: [pair], counts: { ...counts, newFindings: 0, gone: 1 } })).success, false);
 });
