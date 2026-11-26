@@ -1,9 +1,11 @@
 // The real reads behind a recap: the review's files, the posted records, GitLab.
+import { readFile } from 'node:fs/promises';
 import { artifactAt } from './artifact.ts';
 import { buildShape } from './findings.ts';
 import { dismissedKeys } from './dismissed-store.ts';
 import { gitlab } from './gitlab-api.ts';
 import { posted } from './posted.ts';
+import { reviewFile } from './review-id.ts';
 import { postedKey } from './state-shape.ts';
 import { getDb } from './store.ts';
 import type { RecapSources } from './review-recap.ts';
@@ -21,7 +23,11 @@ export function liveSources(project: any, mr: any, slug: string, id: string): Re
     dismissed: [...dismissedKeys(getDb())].filter((k) => k.startsWith(prefix)).map((k) => k.slice(prefix.length)),
     current: async () => {
       const at = await artifact.writtenAt();
-      return at === null ? null : { shape: await artifact.readShape(), at };
+      if (at === null) return null;
+      // The markdown is the fallback for a review written before findings were stored apart; without it
+      // such a review would read as having no findings, and every earlier one would look gone.
+      const markdown = await readFile(reviewFile(project, slug), 'utf8').catch(() => '');
+      return { shape: await artifact.readShape(markdown), at };
     },
     history: () => artifact.listHistory(),
     historyShape: async (versionId) => {

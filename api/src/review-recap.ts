@@ -28,7 +28,8 @@ export interface RecapSources {
   discussions(): Promise<BodyThread[]>;
 }
 
-// The diff from the version the baseline covered to the MR now. `files` is null when that version is
+// The diff from the version the baseline covered to the MR now. A report that did not record its
+// version (`sha` null) is placed by its own time, which is `at`. `files` is null when that version is
 // gone (or GitLab no longer has the commit): an empty list is a diff with no change.
 async function sinceBaseline(src: RecapSources, versions: { head_commit_sha: string }[], { sha, at }: { sha: string | null; at: number }) {
   const reviewed = resolveReviewedVersion({ versions, sha, at });
@@ -56,7 +57,7 @@ export async function reviewRecap(src: RecapSources) {
   const earlier = baseline.report?.id ? await src.historyShape(baseline.report.id) : null;
   const covered = baseline.report && baseline.report.id === null ? current.shape : earlier;
   const [versions, threads] = await Promise.all([src.versions(), src.discussions()]);
-  const { files, commits } = await sinceBaseline(src, versions, { sha: covered?.reviewedSha ?? null, at: baseline.at });
+  const { files, commits } = await sinceBaseline(src, versions, { sha: covered?.reviewedSha ?? null, at: baseline.report?.at ?? baseline.at });
   const recap = buildRecap({
     slug: src.id, baseline, current: current.shape.findings, previous: earlier?.findings ?? null,
     posted: src.posted.filter((p) => !p.reply), dismissed: src.dismissed, threads, files, commits,

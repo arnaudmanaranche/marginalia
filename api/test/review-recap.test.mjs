@@ -1,7 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { RecapResponse } from '@worldia/marginalia-contract';
-import { reviewRecap } from '../dist/src/review-recap.js';
+import { reviewRecap as rawRecap } from '../dist/src/review-recap.js';
+
+// Every answer must be one the contract accepts, whatever branch it came from.
+const reviewRecap = async (src) => RecapResponse.parse(await rawRecap(src));
 
 const T = (iso) => Date.parse(iso);
 const finding = (id, path, line, title = `finding ${id} is wrong here`) => ({ id, title, severity: 'important', path, line });
@@ -30,7 +33,6 @@ function sources(over = {}) {
 test('a re-reviewed MR gets its recap: comments by standing, the MR line, and what is new, as the contract says', async () => {
   const { src } = sources();
   const out = await reviewRecap(src);
-  RecapResponse.parse(out);
   const r = out.recap;
   assert.equal(r.baseline.kind, 'submitted');
   assert.equal(r.baseline.at, '2026-11-24T10:00:00.000Z');
@@ -87,4 +89,19 @@ test('a commit GitLab no longer has is "gone"; any other GitLab failure is repor
   assert.equal((await reviewRecap(gone.src)).recap.mr, null);
   const down = sources({ compare: async () => { throw new Error('GET /compare -> 500: boom'); } });
   await assert.rejects(reviewRecap(down.src), /500/);
+});
+
+test('a report that did not record its version places the diff by its own time, not by the submit time', async () => {
+  const from = [];
+  const { src } = sources({
+    historyShape: async () => ({ findings: [finding('a', 'src/a.ts', 12)] }),
+    versions: async () => [
+      { head_commit_sha: 'head2', created_at: '2026-11-24T12:00:00Z' },
+      { head_commit_sha: 'pushed-after-the-report', created_at: '2026-11-24T08:00:00Z' },
+      { head_commit_sha: 'covered-by-the-report', created_at: '2026-11-22T10:00:00Z' },
+    ],
+    compare: async (f) => { from.push(f); return { commits: [], diffs: [] }; },
+  });
+  await reviewRecap(src);
+  assert.deepEqual(from, ['covered-by-the-report']);
 });
