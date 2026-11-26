@@ -21,8 +21,9 @@ export interface Baseline {
 }
 
 // The latest time a comment of mine reached GitLab from the review, or null.
-export function lastSubmittedAt(entries: { state: string; at: string }[]): number | null {
-  const times = entries.filter((e) => e.state === 'published').map((e) => Date.parse(e.at)).filter(Number.isFinite);
+// A record without a state is an older one, and published (see the posted comments' contract).
+export function lastSubmittedAt(entries: { state?: string; at: string }[]): number | null {
+  const times = entries.filter((e) => e.state !== 'draft').map((e) => Date.parse(e.at)).filter(Number.isFinite);
   return times.length ? Math.max(...times) : null;
 }
 

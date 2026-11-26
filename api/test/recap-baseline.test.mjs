@@ -15,6 +15,10 @@ test('the last submit is the latest published comment; drafts do not count', () 
   assert.equal(lastSubmittedAt([]), null);
 });
 
+test('an older record without a state counts as published', () => {
+  assert.equal(lastSubmittedAt([{ at: '2026-11-20T10:00:00Z' }]), Date.parse('2026-11-20T10:00:00Z'));
+});
+
 test('after a submit, the baseline is the newest report written at or before it', () => {
   const b = pickBaseline({ submittedAt: 250, reports });
   assert.equal(b.kind, 'submitted');
