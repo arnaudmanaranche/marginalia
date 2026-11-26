@@ -55,7 +55,7 @@ export const Recap = z.object({
   comments: z.array(RecapComment),
   newFindings: z.array(RecapFinding),
   reworded: z.array(RecapReworded),
-  gone: z.array(RecapFinding).describe('Findings the bot no longer raises. Information only: bot silence is not an answer.'),
+  gone: z.array(RecapFinding).describe('Findings the bot no longer raises that are not one of my comments (those say what became of them in their standing). Information only: bot silence is not an answer.'),
   counts: RecapCounts,
 }).refine((r) => {
   const standing = (s: string) => r.comments.filter((c) => c.standing === s).length;
