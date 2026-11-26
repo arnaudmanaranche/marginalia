@@ -22,7 +22,7 @@ export function useReviewVersions(slug: string | undefined, reviewedAt: string |
     enabled: Boolean(slug && versionId),
     queryFn: () => fetchHistoryVersion(slug!, versionId!),
   });
-  // The latest earlier report, if any: the recap compares against one, and its panel keeps its place when one exists.
+  // The latest earlier report, if any. Only whether one exists is read from it: the recap names its own baseline.
   const last = list.data?.[0] ?? null;
   useEffect(() => {
     if (!version.isError || version.isFetching) return;
@@ -34,9 +34,10 @@ export function useReviewVersions(slug: string | undefined, reviewedAt: string |
     versionId,
     setVersionId,
     oldReview: versionId ? version.data ?? null : null,
-    // Whether there is an earlier report: the reader waits for it, so what changed since never pushes the
-    // tour down once it is on screen.
+    // Whether there is an earlier report: a re-review is likely, so the recap keeps its place while it loads.
     hasEarlier: Boolean(slug && last),
+    // Whether the history is known: until then the reader waits, so the recap never pushes the tour down
+    // once it is on screen.
     historyKnown: !slug || !list.isPending,
   };
 }
