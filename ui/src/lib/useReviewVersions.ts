@@ -22,13 +22,8 @@ export function useReviewVersions(slug: string | undefined, reviewedAt: string |
     enabled: Boolean(slug && versionId),
     queryFn: () => fetchHistoryVersion(slug!, versionId!),
   });
-  // The report the current one replaced, to say what changed since (cached with the versions read).
+  // The latest earlier report, if any: the recap compares against one, and its panel keeps its place when one exists.
   const last = list.data?.[0] ?? null;
-  const previous = useQuery({
-    queryKey: keys.historyVersion(slug ?? '', last?.id ?? ''),
-    enabled: Boolean(slug && last),
-    queryFn: () => fetchHistoryVersion(slug!, last!.id),
-  });
   useEffect(() => {
     if (!version.isError || version.isFetching) return;
     toast.error('Could not load that version', { description: version.error.message });
@@ -39,11 +34,9 @@ export function useReviewVersions(slug: string | undefined, reviewedAt: string |
     versionId,
     setVersionId,
     oldReview: versionId ? version.data ?? null : null,
-    previous: slug && last && previous.data ? { id: last.id, at: last.at, review: previous.data } : null,
-    // Whether there is a previous report is known: until then the reader waits, so the line saying what
-    // changed since never pushes the tour down once it is on screen.
+    // Whether there is an earlier report: the reader waits for it, so what changed since never pushes the
+    // tour down once it is on screen.
+    hasEarlier: Boolean(slug && last),
     historyKnown: !slug || !list.isPending,
-    // There is a previous report and it is on its way: its line can keep its place.
-    previousLoading: Boolean(slug && last && !previous.data && previous.isFetching),
   };
 }
