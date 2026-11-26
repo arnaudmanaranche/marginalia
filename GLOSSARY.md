@@ -42,6 +42,8 @@ The words below are the only ones the code, the docs and the studio use for thes
 
 **Reworded**: a finding of a re-run that is probably an earlier finding said differently: same file, some but not most of the title in common. Shown as a pair for a person to judge, never counted as one gone and one new.
 
+**Baseline**: what a recap compares the MR against: the report I last submitted from, or, with nothing submitted, the report before the current one.
+
 **Bot**: the `api/` side. It listens, runs the agent, validates the result and posts. It has no screen. Not the studio.
 
 **Studio**: the `ui/` side, the web app where a person reads a review and decides what to say. It talks to the bot over HTTP only. Not the bot.
