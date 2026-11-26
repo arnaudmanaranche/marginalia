@@ -5,8 +5,15 @@ const HUNK = /^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@\s?(.*)$/;
 
 // A unified diff as lines: { t: 'hunk', text } or { t: 'add' | 'del' | 'ctx', old, new, text }.
 // `old` is null on an added line and `new` on a deleted one.
+export interface DiffLine {
+  t: 'hunk' | 'add' | 'del' | 'ctx';
+  text: string;
+  old?: number | null;
+  new?: number | null;
+}
+
 export function parseDiff(diff: any) {
-  const lines: Record<string, any>[] = [];
+  const lines: DiffLine[] = [];
   let oldNo = 0;
   let newNo = 0;
   for (const raw of String(diff ?? '').split('\n')) {
