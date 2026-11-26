@@ -44,6 +44,8 @@ The words below are the only ones the code, the docs and the studio use for thes
 
 **Baseline**: what a recap compares the MR against: the report I last submitted from, or, with nothing submitted, the report before the current one.
 
+**Recap**: what changed on a re-reviewed MR since its Baseline, at a glance: the MR itself (commits, files), where each comment I posted stands (its Standing), and the findings that are new, gone or Reworded. Counts are computed once and read by the review page, the finding list and the MR row.
+
 **Bot**: the `api/` side. It listens, runs the agent, validates the result and posts. It has no screen. Not the studio.
 
 **Studio**: the `ui/` side, the web app where a person reads a review and decides what to say. It talks to the bot over HTTP only. Not the bot.
