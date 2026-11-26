@@ -25,7 +25,7 @@ export const RecapComment = z.object({
   .meta({ id: 'RecapComment' });
 
 export const RecapFinding = z.object({
-  id: FindingKey, title: z.string(), severity: nullable(Severity), path: nullable(z.string()), line: nullable(z.number().int().min(1)),
+  id: FindingKey, title: z.string(), severity: Severity, path: nullable(z.string()), line: nullable(z.number().int().min(1)),
   onChangedCode: nullable(z.boolean()).describe('Whether this finding is on code changed since the baseline. For a new finding, false means older code the bot only raised now. Null when that cannot be told.'),
 }).refine((f) => f.line === null || f.path !== null, { message: 'a line needs a path', path: ['line'] })
   .refine((f) => f.line !== null || f.onChangedCode === null, { message: 'the code cannot be compared without a line', path: ['onChangedCode'] })
@@ -57,7 +57,12 @@ export const Recap = z.object({
   reworded: z.array(RecapReworded),
   gone: z.array(RecapFinding).describe('Findings the bot no longer raises. Information only: bot silence is not an answer.'),
   counts: RecapCounts,
-}).meta({ id: 'Recap' });
+}).refine((r) => {
+  const standing = (s: string) => r.comments.filter((c) => c.standing === s).length;
+  const c = r.counts;
+  return c.addressed === standing('addressed') && c.contested === standing('contested') && c.untouched === standing('untouched') && c.dropped === standing('dropped')
+    && c.newFindings === r.newFindings.length && c.reworded === r.reworded.length && c.gone === r.gone.length;
+}, { message: 'the counts disagree with the lists they summarize', path: ['counts'] }).meta({ id: 'Recap' });
 
 export const RecapResponse = z.object({
   recap: nullable(Recap).describe('Null when there is nothing to compare: the first review of an MR, or no report before this one.'),
