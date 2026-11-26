@@ -36,9 +36,9 @@ The words below are the only ones the code, the docs and the studio use for thes
 
 **Finding outcome**: what happened to a finding: posted as-is, edited, dismissed, or fixed before the MR. The review line's measure.
 
-**Verdict**: what became of one comment I posted once the MR moved on: addressed, contested, untouched or dropped. Never overclaims: changed code, or a resolved thread whose code is not known to be untouched, is addressed; a resolved thread over code known to be untouched is contested; bot silence, a reply alone or an unknown code state alone are untouched.
+**Standing**: where one comment I posted stands once the MR moved on: addressed, contested, untouched or dropped. Never overclaims: changed code, or a resolved thread whose code is not known to be untouched, is addressed; a resolved thread over code known to be untouched is contested; bot silence, a reply alone or an unknown code state alone are untouched.
 
-**Signals**: what a verdict rests on: whether the flagged code changed since (or that it cannot be told), whether someone other than me (and not a bot) replied, and whether the thread is resolved. Not the Evidence of a reproduction.
+**Signals**: what a standing rests on: whether the flagged code changed since (or that it cannot be told), whether someone other than me (and not a bot) replied, and whether the thread is resolved. Not the Evidence of a reproduction.
 
 **Bot**: the `api/` side. It listens, runs the agent, validates the result and posts. It has no screen. Not the studio.
 
