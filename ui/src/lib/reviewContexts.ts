@@ -1,5 +1,6 @@
 import { createContext } from 'react';
 import type { Finding, PostedInfo } from './api';
+import type { RecapMark } from './recapMarks';
 
 export interface PostContextValue {
   allowPosting: boolean;
@@ -15,3 +16,5 @@ export interface PostContextValue {
 export const PostContext = createContext<PostContextValue>({ allowPosting: false, slug: null, iid: null, posted: {}, reload: () => {}, locked: false, findings: [] });
 // The markdown a blockquote's `position.start.offset` refers to (one section body, not the whole review).
 export const SourceContext = createContext('');
+// What the recap says of each finding, by id: its badge in the list (see marksOf). Empty without a recap.
+export const RecapMarksContext = createContext<Map<string, RecapMark>>(new Map());

@@ -13,7 +13,8 @@ import { useFixes } from '../lib/useFixes';
 import { useRuns } from '../lib/useRuns';
 import { runToFlag } from '../lib/runs';
 import { reviewerThreads } from '../lib/replies';
-import { PostContext } from '../lib/reviewContexts';
+import { PostContext, RecapMarksContext } from '../lib/reviewContexts';
+import { marksOf } from '../lib/recapMarks';
 import { useReportParts } from '../lib/useReportParts';
 import { CollapsibleCard } from './CollapsibleCard';
 import { ConfirmSubmit } from './ConfirmSubmit';
@@ -38,6 +39,7 @@ export function ReviewReader({ item, review: currentReview, reviewError, onRetry
   const { versionId, setVersionId, oldReview, previous, historyKnown } = useReviewVersions(item?.slug, item?.reviewedAt, version);
   // What changed since the baseline: only for a tracked MR, and not while reading an older version.
   const { recap, loading: recapLoading, error: recapError, retry: retryRecap } = useRecap(item?.tracked ? item.slug : null, item ? recapRefreshKey(item) : '');
+  const marks = useMemo(() => marksOf(recap), [recap]);
   const viewingOld = versionId !== null;
   const content = viewingOld ? oldReview : currentReview;
   const markdown = historyKnown ? content?.markdown ?? null : null;
@@ -82,6 +84,7 @@ export function ReviewReader({ item, review: currentReview, reviewError, onRetry
   return (
     <LinkContext.Provider value={linkCtx}>
     <PostContext.Provider value={postCtx}>
+    <RecapMarksContext.Provider value={marks}>
     <div className="px-6 py-6">
       {/* A review with a tour fits the window: header and overview on top, the tour taking the rest
           with each pane scrolling inside it. What comes after is below, on the page. */}
@@ -151,6 +154,7 @@ export function ReviewReader({ item, review: currentReview, reviewError, onRetry
         }}
       />
     )}
+    </RecapMarksContext.Provider>
     </PostContext.Provider>
     </LinkContext.Provider>
   );
