@@ -7,12 +7,13 @@
 import { anchors, NEAR, type ChangedFile } from './recap-changed.ts';
 
 export function onChangedCode({ files, path, line }: { files: ChangedFile[] | null; path: string | null; line: number | null }): boolean | null {
-  // No diff to compare, or a finding on the whole MR or a whole file.
+  // No diff to compare (`null`; an empty list is a diff with no change, so false), or a finding on
+  // the whole MR or a whole file.
   if (!files || path === null || line === null) return null;
   const file = files.find((f) => f.path === path);
   if (!file || file.status === 'deleted') return false;
-  if (file.omitted) return null;
-  // A file added since the baseline is changed all through.
+  // A file added since the baseline is changed all through, whether or not its diff was shown.
   if (file.status === 'added') return true;
+  if (file.omitted) return null;
   return anchors(file.lines, 'new').some((a) => Math.abs(a - line) <= NEAR);
 }

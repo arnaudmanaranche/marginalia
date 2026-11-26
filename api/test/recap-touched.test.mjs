@@ -43,3 +43,18 @@ test('it is null, never a guess, when it cannot be told', () => {
   assert.equal(onChangedCode({ files: [file(rewrite)], path: null, line: 12 }), null);
   assert.equal(on([file('', { omitted: true })], 12), null);
 });
+
+test('the line is read on the new side: a hunk that moved down is found at its new numbers, not the old', () => {
+  const moved = '@@ -10,3 +20,3 @@\n ten\n-eleven\n+eleven!\n twelve';
+  assert.equal(on([file(moved)], 21), true);
+  assert.equal(on([file(moved)], 11), false);
+});
+
+test('an added file is on changed code even when its diff was left out', () => {
+  assert.equal(on([file('', { status: 'added', omitted: true })], 5), true);
+});
+
+test('an empty diff is a diff with no change, so older code; no diff at all is null', () => {
+  assert.equal(on([], 12), false);
+  assert.equal(on(null, 12), null);
+});
