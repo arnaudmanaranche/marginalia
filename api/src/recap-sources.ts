@@ -26,7 +26,10 @@ export function liveSources(project: any, mr: any, slug: string, id: string): Re
       if (at === null) return null;
       // The markdown is the fallback for a review written before findings were stored apart; without it
       // such a review would read as having no findings, and every earlier one would look gone.
-      const markdown = await readFile(reviewFile(project, slug), 'utf8').catch(() => '');
+      const markdown = await readFile(reviewFile(project, slug), 'utf8').catch((err) => {
+        if (err?.code === 'ENOENT') return '';
+        throw err;
+      });
       return { shape: await artifact.readShape(markdown), at };
     },
     history: () => artifact.listHistory(),

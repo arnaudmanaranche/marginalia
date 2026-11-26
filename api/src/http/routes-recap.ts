@@ -6,6 +6,8 @@ import { shortMessage } from './context.ts';
 import { slug, tracked } from './read-kit.ts';
 
 // What changed on a re-reviewed merge request since its baseline, at a glance.
+// `app` and `c` are `any` like in every route file: `route-kit` types its handlers loosely, and typing
+// it is a change of its own (docs/guidelines/api.md, migration debt), not of one route.
 export function recapRoutes(app: any) {
   app.openapi(route({
     method: 'get', path: '/api/reviews/{slug}/recap', tags: ['Reviews'], operationId: 'getRecap',
