@@ -40,6 +40,8 @@ The words below are the only ones the code, the docs and the studio use for thes
 
 **Signals**: what is returned alongside a standing: whether the flagged code changed since (or that it cannot be told), whether someone other than me (and not a bot) replied, and whether the thread is resolved. The code and the resolved thread decide the standing; a reply is shown, not weighed. Not the Evidence of a reproduction.
 
+**Reworded**: a finding of a re-run that is probably an earlier finding said differently: same file, some but not most of the title in common. Shown as a pair for a person to judge, never counted as one gone and one new.
+
 **Bot**: the `api/` side. It listens, runs the agent, validates the result and posts. It has no screen. Not the studio.
 
 **Studio**: the `ui/` side, the web app where a person reads a review and decides what to say. It talks to the bot over HTTP only. Not the bot.
