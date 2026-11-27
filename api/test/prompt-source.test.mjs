@@ -1,4 +1,4 @@
-import { test, beforeEach } from 'node:test';
+import { test, beforeEach, mock } from 'node:test';
 import assert from 'node:assert/strict';
 import { clearMethodCache, methodUrl, methodsLine, parsePins, promptSourceFromEnv, resolveMethods } from '../dist/src/prompt-source.js';
 import { BUILT_IN_METHODS } from '../dist/src/pipeline/stage-methods.js';
@@ -48,6 +48,21 @@ test('a method fetched once is served from the cache, and kept when PostHog fail
   await resolveMethods(['review-map'], { env, fetchFn: ok });
   await resolveMethods(['review-map'], { env, fetchFn: ok });
   assert.equal(calls, 1);
+});
+
+test('a method read earlier is kept when PostHog fails once the cache has expired', async () => {
+  mock.timers.enable({ apis: ['Date'], now: 1_000_000 });
+  try {
+    const ok = async () => ({ ok: true, json: async () => ({ prompt: 'v5 text', version: 5 }) });
+    await resolveMethods(['review-map'], { env, fetchFn: ok });
+    mock.timers.tick(10 * 60_000);
+    const down = async () => { throw new Error('PostHog is down'); };
+    const m = await resolveMethods(['review-map'], { env, fetchFn: down });
+    assert.equal(m['review-map'].version, 5);
+    assert.equal(m['review-map'].source, 'posthog');
+  } finally {
+    mock.timers.reset();
+  }
 });
 
 test('the prompt key never reaches the agent', () => {

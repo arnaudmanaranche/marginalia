@@ -66,7 +66,7 @@ The words below are the only ones the code, the docs and the studio use for thes
 
 **Contract**: the schema a review must satisfy (`packages/contract`). The bot owns it and the studio renders only what it describes. The bot states it to each stage of a run and checks each answer against it.
 
-**Stage method**: how one stage of a run is asked to work (the review map, a chapter's review, the triage judge, a verify...), apart from the answer shape, which is the contract and stays in code. Versioned in PostHog prompt management and fetched at run time (ADR 0014); the bot holds a built-in copy of each and uses it whenever PostHog is off or cannot answer. A run uses one version of each method from start to end.
+**Stage method**: how one stage of a run is asked to work (the review map, a chapter's review, the triage judge, a verify...), apart from the answer shape, which is the contract and stays in code. Versioned in PostHog prompt management and fetched at run time (ADR 0014); the bot holds a built-in copy of each and uses it whenever PostHog is off or cannot answer. A run resolves each method once and uses that copy from start to end: a PostHog version, the last one read when PostHog fails, or the built-in copy, which has no version.
 
 **Guardrail**: a check the bot applies before anything is shown or posted: schema validation of a review, authorization of a mention, deduplication by note id and the daily cap. Mentions found together become one follow-up; waiting is the queue's job. A result that fails a guardrail is never half-rendered and never posted.
 

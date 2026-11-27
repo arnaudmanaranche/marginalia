@@ -37,10 +37,13 @@ function normalizeFinding(raw: any, index: number) {
 }
 
 // The stage methods a run used (ADR 0014), name to version, or null when the file names none.
-function normalizeMethods(raw: any): Record<string, number | null> | null {
-  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
-  const kept = Object.entries(raw).filter(([name, v]) => /^[\w-]{1,60}$/.test(name) && (v === null || Number.isInteger(v)));
-  return kept.length ? Object.fromEntries(kept) as Record<string, number | null> : null;
+function normalizeMethods(raw: any): { methods: Record<string, number | null> | null; warnings: string[] } {
+  if (raw === undefined || raw === null) return { methods: null, warnings: [] };
+  if (typeof raw !== 'object' || Array.isArray(raw)) return { methods: null, warnings: ['"methods" is not an object, dropped'] };
+  const entries = Object.entries(raw);
+  const kept = entries.filter(([name, v]) => /^[\w-]{1,60}$/.test(name) && (v === null || Number.isInteger(v)));
+  const warnings = kept.length < entries.length ? [`${entries.length - kept.length} of the "methods" entries are not a name and a version, dropped`] : [];
+  return { methods: kept.length ? Object.fromEntries(kept) as Record<string, number | null> : null, warnings };
 }
 
 // Validates and normalizes what a command put in .marginalia-findings.json.
@@ -72,7 +75,9 @@ export function normalizeFindingsData(data: any) {
   if (!walk.tour.length && !triage) warnings.push('there is no tour (the order to read the MR in): every report should have one');
   const { replies, warnings: replyWarnings } = normalizeReplies(data.replies);
   warnings.push(...replyWarnings);
-  return { ok: true, verdict, summary: summary ? clip(plain(summary), 400) : null, findings: withIds, risk, criticalPaths, overview, tour: walk.tour, replies, methods: normalizeMethods(data.methods), warnings };
+  const { methods, warnings: methodWarnings } = normalizeMethods(data.methods);
+  warnings.push(...methodWarnings);
+  return { ok: true, verdict, summary: summary ? clip(plain(summary), 400) : null, findings: withIds, risk, criticalPaths, overview, tour: walk.tour, replies, methods, warnings };
 }
 
 // The command may wrap the JSON in a code fence.

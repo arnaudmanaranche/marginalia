@@ -32,7 +32,7 @@
     "posthog:backfill": "node dist/scripts/posthog-backfill.js"
   },
   "engines": {
-    "node": ">=22"
+    "node": ">=22.22.0"
   },
   "dependencies": {
     "@clack/prompts": "^1.8.1",

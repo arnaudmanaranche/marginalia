@@ -8,7 +8,7 @@ Decision: the text that tells each stage how to work (its **stage method**: the 
 - A run resolves its methods once, before its first stage, so every stage and every chapter of one run uses the same versions.
 - The version used is recorded: on each `$ai_generation` (`$ai_prompt_name`, `$ai_prompt_version`), in the run journal, and on the `marginalia_finding` event of each finding, so a finding outcome is measured per method version. A built-in copy has no version.
 - Only `api/` holds the prompt key (`POSTHOG_PERSONAL_API_KEY`, read scope on prompts only). It is never passed to the agent. `MARGINALIA_TELEMETRY=off` stops events, not prompt fetches: without the prompt key, the built-in copies are used.
-- A new version is tried with `npm run eval` pinned to it, compared in PostHog Offline Evaluations, then released by moving the label. Moving it back is the rollback.
+- A new version is tried with `npm run eval -- --upload` pinned to it, compared in PostHog Offline Evaluations, then released by moving the label. Moving it back is the rollback.
 
 Why: a better review is one that rests on the reviewed repo's own rules, ADRs and code, not generic advice, and getting there takes many small changes to the methods, each measured. In code, each change needed a release, and nothing tied a change to the outcomes of the findings it produced.
 

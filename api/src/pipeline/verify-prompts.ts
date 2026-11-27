@@ -4,7 +4,7 @@
 // file that exists, so it cannot make a finding come true.
 import { jsonAnswer } from './json-answer.ts';
 import { normalizeVerification } from '../finding-proof.ts';
-import { BUILT_IN_METHODS, fillMethod } from './stage-methods.ts';
+import { BUILT_IN_METHODS } from './stage-methods.ts';
 
 export const VERIFY_SYSTEM = BUILT_IN_METHODS['verify-system'];
 
@@ -26,7 +26,7 @@ export function verifyPrompt({ context, finding, chapter, recipe, method = BUILT
     `## The claim\n[${finding.severity}] ${finding.title}${finding.path ? ` (${finding.path}${finding.line ? `:${finding.line}` : ''})` : ''}\n${finding.body}`,
     chapter ? `\nThe chapter it belongs to: ${chapter.title}. ${chapter.summary}` : '',
     '', recipeText(recipe), '',
-    fillMethod(method),
+    method,
     '',
     'Answer with only this JSON, in a ```json block:',
     '{"status": "reproduced|not_reproduced|inconclusive", "evidence": "...", "command": "..."}',

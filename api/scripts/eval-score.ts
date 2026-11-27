@@ -49,8 +49,10 @@ export function scoreCase(expect: any, shape: any | null, runError: string | nul
   if (!expect.verification) scores.push({ scorer: 'verification_ok', pass: null, why: 'no verification expected' });
   else {
     const problems: string[] = [];
-    if (expect.verification === 'reproduced' && !tried.some((f) => f.verification.status === 'reproduced')) problems.push(`no finding was reproduced (${findings.map((f) => `${f.id}: ${f.proof}/${f.verification?.status ?? 'no verification'}`).join(', ') || 'no finding'})`);
-    if (expect.evidence === 'screenshot' && !tried.some((f) => f.verification.status === 'reproduced' && f.verification.artifacts?.some((a: any) => a.kind === 'screenshot'))) problems.push('no reproduced finding carries a screenshot (is VERIFY_RUNNER_IMAGE the browser image?)');
+    // A planted case is judged on the finding at the planted place, not on any other one.
+    const judged = expect.planted ? tried.filter((f) => near.includes(f)) : tried;
+    if (expect.verification === 'reproduced' && !judged.some((f) => f.verification.status === 'reproduced')) problems.push(`no finding was reproduced (${findings.map((f) => `${f.id}: ${f.proof}/${f.verification?.status ?? 'no verification'}`).join(', ') || 'no finding'})`);
+    if (expect.evidence === 'screenshot' && !judged.some((f) => f.verification.status === 'reproduced' && f.verification.artifacts?.some((a: any) => a.kind === 'screenshot'))) problems.push('no reproduced finding carries a screenshot (is VERIFY_RUNNER_IMAGE the browser image?)');
     if (expect.verification === 'none' && tried.length) problems.push(`something was run for a pattern-only change: ${tried.map((f) => f.id).join(', ')}`);
     scores.push({ scorer: 'verification_ok', pass: !problems.length, why: problems.join('; ') || `verification ${expect.verification} as expected` });
   }

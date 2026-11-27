@@ -53,3 +53,10 @@ test('naming where the code should go is not citing the rule: only its source co
   assert.equal(byName(scoreCase(expect, { findings: [{ ...finding, title: 'MAIL_FROM is read here instead of src/config.mjs', body: 'Move it to src/config.mjs.' }] })).cites_repo_rule, false);
   assert.equal(byName(scoreCase(expect, { findings: [{ ...finding, title: 'MAIL_FROM is read here', body: 'CLAUDE.md says settings are read in src/config.mjs only.' }] })).cites_repo_rule, true);
 });
+
+test('a planted case is verified on the finding at the planted place, not on another one', () => {
+  const run = { verification: { status: 'reproduced', evidence: 'e' } };
+  const elsewhere = f({ id: 'y', line: 40, ...run });
+  const s = byName(scoreCase({ ...planted, verification: 'reproduced' }, { findings: [f(), elsewhere] }));
+  assert.equal(s.verification_ok, false);
+});

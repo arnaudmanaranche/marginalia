@@ -59,9 +59,9 @@ prompt management, one prompt per name (ADR 0014). With `POSTHOG_PERSONAL_API_KE
 `phs_...` with only `llm_prompt:read`) and `POSTHOG_KEY` set, a run reads the version under the label
 `MARGINALIA_PROMPT_LABEL` (default `production`) from `POSTHOG_APP_HOST` (default: `POSTHOG_HOST` without
 its `.i.`), once, before its first stage. `MARGINALIA_PROMPT_VERSIONS=review-chapter@4,...` pins versions
-instead. A method is cached five minutes; when PostHog fails, the last version read is kept, else the
+instead. A method is cached five minutes; when PostHog fails, the last version read for the same label or pin is kept, else the
 built-in copy (`api/src/pipeline/stage-methods.ts`) is used. Only the method moves: the answer shape of
-each stage stays in code. The first step of a run says which version of each method it used
+each stage stays in code. A step of the run's journal says which version of each method it used
 (`Methods: review-map v3, review-chapter built-in`).
 
 To release a method: save a new version in PostHog, try it with `MARGINALIA_PROMPT_VERSIONS=<name>@<n>
