@@ -61,7 +61,8 @@ export function ReviewReader({ item, review: currentReview, reviewError, onRetry
   const send = (it: ReviewItem, summary: string | undefined, action: ReviewAction) => {
     const id = `submit-${it.slug}`;
     const what = it.kind === 'comments' ? `replies on !${it.iid}` : `review of !${it.iid}`;
-    toast.loading(`Sending the ${what}…`, { id });
+    // The same id as a failure before it: its description, action and lasting duration are reset.
+    toast.loading(`Sending the ${what}…`, { id, description: undefined, action: undefined, duration: undefined, closeButton: false });
     trackSend(it.slug, () => submitReview(it.slug, summary, action)).then(() => {
       reload();
       const done = { comment: 'submitted', approve: 'approved', request_changes: 'submitted with changes requested' }[action];

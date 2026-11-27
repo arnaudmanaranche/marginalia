@@ -28,10 +28,10 @@ describe('the submit dialog', () => {
   it('sends the verdict the user picked', async () => {
     const onConfirm = vi.fn();
     mount(onConfirm);
+    // The verdicts sit in a disabled fieldset until the drafts are read.
+    await waitFor(() => expect((screen.getByRole('button', { name: /Submit comments/ }) as HTMLButtonElement).disabled).toBe(false));
     fireEvent.click(screen.getByLabelText(/Approve/));
-    const button = await screen.findByRole('button', { name: 'Approve', hidden: false });
-    await waitFor(() => expect((button as HTMLButtonElement).disabled).toBe(false));
-    fireEvent.click(button);
+    fireEvent.click(screen.getByRole('button', { name: 'Approve' }));
     expect(onConfirm).toHaveBeenCalledWith('', 'approve');
   });
 });
