@@ -1,6 +1,6 @@
 import { useContext, useMemo, useState } from 'react';
 import { toast } from '../lib/toast';
-import { useMutation } from '@tanstack/react-query';
+import { useIsMutating, useMutation } from '@tanstack/react-query';
 import { submitReview, type BotStatus, type PostedInfo, type ReviewAction, type ReviewContent, type ReviewItem } from '../lib/api';
 import { LinkContext } from '../lib/links';
 import { cn } from '../lib/utils';
@@ -55,9 +55,25 @@ export function ReviewReader({ item, review: currentReview, reviewError, onRetry
   const runPanel = item && (awaiting || live || flagged)
     ? <RunPanel key={item.slug} slug={item.slug} awaiting={awaiting} failure={item.failure ?? null} collapsible={!awaiting && !live} defaultOpen={Boolean(awaiting || live)} liveRunId={live?.runId ?? null} />
     : null;
-  const submit = useMutation({ mutationFn: (v: { slug: string; summary?: string; action: ReviewAction }) => submitReview(v.slug, v.summary, v.action) });
+  const submit = useMutation({ mutationKey: ['submit', item?.slug], mutationFn: (v: { slug: string; summary?: string; action: ReviewAction }) => submitReview(v.slug, v.summary, v.action) });
   const draftCount = item ? postedFor(posted, item.slug).filter((p) => p.state === 'draft').length : 0;
   // A comment still on its way would land after the submit, as a new pending one: wait for it.
+  // Sent in the background: the modal is already closed and the reader moves on. One toast follows
+  // the request from "sending" to its outcome, and a failure offers to try again.
+  const send = (it: ReviewItem, summary: string | undefined, action: ReviewAction) => {
+    const id = `submit-${it.slug}`;
+    const what = it.kind === 'comments' ? `replies on !${it.iid}` : `review of !${it.iid}`;
+    toast.loading(`Sending the ${what}…`, { id });
+    submit.mutateAsync({ slug: it.slug, summary, action }).then(() => {
+      reload();
+      const done = { comment: 'submitted', approve: 'approved', request_changes: 'submitted with changes requested' }[action];
+      toast.sent(it.kind === 'comments' ? `Replies on !${it.iid} sent` : `Review of !${it.iid} ${done}`, { id, action: it.webUrl ? { label: 'Open', onClick: () => window.open(it.webUrl!, '_blank', 'noopener') } : undefined });
+    }, (e: Error) => {
+      reload();
+      toast.error(`Could not send the ${what}`, { id, description: e.message, duration: Infinity, closeButton: true, action: { label: 'Try again', onClick: () => send(it, summary, action) } });
+    });
+  };
+  const inFlight = useIsMutating({ mutationKey: ['submit', item?.slug] }) > 0;
   const sending = item ? postedFor(posted, item.slug).some((p) => p.pending) : false;
   const locked = rerunning || Boolean(live) || viewingOld;
   // My own MR: I answer the reviewers and push the triage's fixes, I do not review it.
@@ -96,6 +112,7 @@ export function ReviewReader({ item, review: currentReview, reviewError, onRetry
         showSubmit={(mayPost || author) && Boolean(item?.tracked) && !awaiting && !held && (draftCount > 0 || item?.kind === 'review')}
         draftCount={draftCount}
         sending={sending}
+        submitting={inFlight}
         reviewing={rerunning || Boolean(live)}
         onSubmit={() => setSubmitting(true)}
         locked={locked}
@@ -145,12 +162,9 @@ export function ReviewReader({ item, review: currentReview, reviewError, onRetry
         count={draftCount}
         canVerdict={item.kind === 'review'}
         onCancel={() => setSubmitting(false)}
-        onConfirm={async (summary, action) => {
-          await submit.mutateAsync({ slug: item.slug, summary: summary.trim() || undefined, action });
+        onConfirm={(summary, action) => {
           setSubmitting(false);
-          reload();
-          const done = { comment: 'submitted', approve: 'approved', request_changes: 'submitted with changes requested' }[action];
-          toast.sent(author ? `Replies on !${item.iid} sent` : `Review of !${item.iid} ${done}`, item.webUrl ? { action: { label: 'Open', onClick: () => window.open(item.webUrl!, '_blank', 'noopener') } } : undefined);
+          send(item, summary.trim() || undefined, action);
         }}
       />
     )}

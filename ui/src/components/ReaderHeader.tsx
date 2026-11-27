@@ -21,7 +21,7 @@ function TicketChip({ ticket }: { ticket: { key: string; priority: string | null
   return url ? <a href={url} target="_blank" rel="noreferrer">{chip}</a> : chip;
 }
 
-export function ReaderHeader({ item, risk, criticalPaths = [], showSubmit, draftCount, sending, reviewing, onSubmit, locked, onRerun }: {
+export function ReaderHeader({ item, risk, criticalPaths = [], showSubmit, draftCount, sending, submitting, reviewing, onSubmit, locked, onRerun }: {
   item: ReviewItem | undefined;
   risk: Risk | null;
   // The project's critical paths the MR touches: said once, quietly, under the title.
@@ -29,6 +29,8 @@ export function ReaderHeader({ item, risk, criticalPaths = [], showSubmit, draft
   showSubmit: boolean;
   draftCount: number;
   sending: boolean;
+  // My review or replies are on their way to GitLab (the modal is closed): no second submit.
+  submitting: boolean;
   // The bot is reviewing the MR: the findings behind the drafts are about to be replaced.
   reviewing: boolean;
   onSubmit: () => void;
@@ -69,8 +71,8 @@ export function ReaderHeader({ item, risk, criticalPaths = [], showSubmit, draft
       </div>
       <div className="flex shrink-0 items-center gap-2">
         {showSubmit && (
-          <Button variant="primary" disabled={sending || locked} title={sending ? 'Waiting for GitLab to confirm the comments being added' : reviewing ? 'Wait for the review in progress to finish' : locked ? 'Go back to the latest version to submit' : undefined} onClick={onSubmit}>
-            {sending ? <Spinner className="size-3.5" /> : <Send className="size-3.5" />}{item?.kind === 'comments' ? 'Send replies' : 'Submit review'}{draftCount > 0 ? ` (${draftCount})` : ''}
+          <Button variant="primary" disabled={sending || submitting || locked} title={submitting ? 'Your review is being sent' : sending ? 'Waiting for GitLab to confirm the comments being added' : reviewing ? 'Wait for the review in progress to finish' : locked ? 'Go back to the latest version to submit' : undefined} onClick={onSubmit}>
+            {sending || submitting ? <Spinner className="size-3.5" /> : <Send className="size-3.5" />}{item?.kind === 'comments' ? 'Send replies' : 'Submit review'}{draftCount > 0 ? ` (${draftCount})` : ''}
           </Button>
         )}
         {item?.tracked && item.kind !== 'retro' && <RerunButton item={item} locked={locked} reviewing={reviewing} onRerun={onRerun} />}

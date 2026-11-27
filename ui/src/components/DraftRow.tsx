@@ -7,7 +7,7 @@ import { Button } from './ui/Button';
 import { NoteMarkdown } from './NoteMarkdown';
 
 // One pending draft: read, edit in place, or delete. Goes straight to GitLab's draft notes.
-export function DraftRow({ slug, draft, disabled, onChanged }: { slug: string; draft: DraftNote; disabled: boolean; onChanged: () => void }) {
+export function DraftRow({ slug, draft, disabled, onChanged }: { slug: string; draft: DraftNote; disabled?: boolean; onChanged: () => void }) {
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState(draft.body);
   const { update, remove } = useDraftMutations(slug, onChanged);
