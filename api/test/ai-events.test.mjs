@@ -61,3 +61,22 @@ test('no API time in the result leaves the property out', () => {
   const [gen] = aiEvents(call({ result: { duration_ms: 3000 } }));
   assert.equal(gen.properties.marginalia_api_latency, undefined);
 });
+
+test('a generation names its tools and the stage method versions behind its prompt', () => {
+  const [gen] = aiEvents(call({ calls: [tc({ id: 'a', tool: 'read' }), tc({ id: 'b', tool: 'read' }), tc({ id: 'c', tool: 'git' })], prompts: [{ name: 'review-chapter', version: 4 }, { name: 'review-system', version: null }] }));
+  assert.equal(gen.properties.$ai_tools_called, 'read,git');
+  assert.equal(gen.properties.$ai_tool_call_count, 3);
+  assert.equal(gen.properties.$ai_prompt_name, 'review-chapter');
+  assert.equal(gen.properties.$ai_prompt_version, 4);
+  assert.equal(gen.properties.marginalia_prompt_source, 'posthog');
+  assert.deepEqual(gen.properties.marginalia_prompts, { 'review-chapter': 4, 'review-system': null });
+});
+
+test('a built-in method links no PostHog prompt, and a call without tools names none', () => {
+  const [gen] = aiEvents(call({ calls: [], prompts: [{ name: 'review-map', version: null }] }));
+  assert.equal(gen.properties.$ai_prompt_name, undefined);
+  assert.equal(gen.properties.$ai_tools_called, undefined);
+  assert.equal(gen.properties.marginalia_prompt_source, 'built-in');
+  const [bare] = aiEvents(call());
+  assert.equal(bare.properties.marginalia_prompts, undefined);
+});

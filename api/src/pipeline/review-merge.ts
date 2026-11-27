@@ -13,7 +13,8 @@ const RANK = ['skipped', 'inconclusive', 'not_reproduced', 'reproduced'];
 const rank = (v: any) => (v ? RANK.indexOf(v.status) + 1 : 0);
 
 // The findings file's shape (see findings.ts), and the warnings to show.
-export function mergeReview({ map, chapters }: { map: any, chapters: { result: { findings: any[], verified: string } | null, error?: string | null }[] }) {
+// `methods`: the stage methods the run used, name to version (ADR 0014), kept with the review.
+export function mergeReview({ map, chapters, methods = null }: { map: any, chapters: { result: { findings: any[], verified: string } | null, error?: string | null }[], methods?: Record<string, number | null> | null }) {
   const seen = new Map<string, Record<string, any>>();
   const ids = new Set<string>();
   const findings: Record<string, any>[] = [];
@@ -52,6 +53,7 @@ export function mergeReview({ map, chapters }: { map: any, chapters: { result: {
       ...(map.criticalPaths?.length && { criticalPaths: map.criticalPaths }),
       tour,
       findings,
+      ...(methods && { methods }),
     },
     warnings: [...map.warnings, ...(failed ? [`${failed} of ${chapters.length} chapters could not be reviewed`] : [])],
   };

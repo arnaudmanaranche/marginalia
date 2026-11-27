@@ -5,22 +5,16 @@ import { Severity } from '@worldia/marginalia-contract';
 import { jsonAnswer, matchesPattern, text } from './json-answer.ts';
 import { normalizeProof } from '../finding-proof.ts';
 import { RISK_LEVELS, atLeastWorst, normalizeAxes, normalizeMitigations } from '../risk-axes.ts';
+import { BUILT_IN_METHODS, fillMethod } from './stage-methods.ts';
 
-export const REVIEW_SYSTEM = "You are a senior engineer reviewing a colleague's merge request, as one stage of Marginalia's review. You only read and run read-only commands: never edit a file, never commit, never post anything on GitLab. Write everything in English, whatever language the MR, the ticket or the code comments use.";
+export const REVIEW_SYSTEM = BUILT_IN_METHODS['review-system'];
 
-const PLAIN = 'Write for someone who has not seen the code: name behaviour a user or a teammate would recognise, not functions or files. Names of code may come later in a summary, never in a title or in the overview.';
-
-export function mapPrompt(context: any) {
+// The method (stage-methods.ts) says how to work; the JSON asked for here is the contract and stays in code.
+export function mapPrompt(context: any, method: string = BUILT_IN_METHODS['review-map']) {
   return [
     'Your stage: map the change, so the reviewers after you and the person reading the review grasp it without opening every file. Do not look for bugs yet.',
     '', context, '',
-    'Read the diff (start with the files that carry the idea), the ticket and the description. Then answer:',
-    '- overview: what the system did before this MR and what it does now, one or two plain sentences each. ' + PLAIN,
-    '- risk: low (contained, tested, nothing sensitive), medium (behaviour change in shared code, or real logic with thin tests) or high (auth, payments, data, migrations, a public contract, concurrency, wide blast radius with weak tests), why in one sentence, and the factors as short strings.',
-    '- risk.axes: the same question asked five ways, each low, medium or high with one plain sentence: verification (is it proven to work: tests that exercise the change, before/after; thin or none is high), alignment (does it do what the ticket and description ask and nothing else; drive-by changes or side effects raise it), impact (blast radius, and sensitive areas such as auth, permissions, billing, data), rollback (can it be undone: a destructive migration or a public contract change is a one-way door, high), detection (would a failure be seen: swallowed errors, no log or alert on a new path). The level above is never lower than the worst axis.',
-    '- risk.mitigations: up to 5 short lines on what would lower the risk (cut the unrelated change, add a test or monitoring on the new path, split the high-impact part into its own MR), or [].',
-    '- criticalPaths: the exact names of the project\'s critical paths this change touches, when a project context is given above; else [].',
-    '- chapters: one idea each, the core change first, then what supports it, and database, tests and generated files last. Every changed file belongs to exactly one chapter (a glob such as `src/flights/**` is fine). 1 or 2 chapters for a tiny MR, 3 to 8 otherwise. Each has a title naming the idea, a summary of two or three plain sentences (what changed and why, then what is safe to skim), and `check`: what the reviewer of this chapter must verify, concretely (the input that could break it, the caller that could be missed).',
+    fillMethod(method),
     '',
     'Answer with only this JSON, in a ```json block:',
     '{"overview": {"before": "...", "after": "..."}, "criticalPaths": ["..."], "risk": {"level": "low|medium|high", "rationale": "...", "factors": ["..."], "axes": [{"axis": "verification|alignment|impact|rollback|detection", "level": "low|medium|high", "note": "..."}], "mitigations": ["..."]}, "chapters": [{"title": "...", "summary": "...", "files": ["path or glob"], "check": "..."}]}',
@@ -68,7 +62,7 @@ const weakAxes = (risk: any) => {
   return weak.length ? `\nWeakest points of the change: ${weak.map((a: any) => `${a.axis} (${a.level}${a.note ? `: ${a.note}` : ''})`).join('; ')}. Weigh your files against them.` : '';
 };
 
-export function chapterPrompt({ context, map, chapter, index, checklist }: any) {
+export function chapterPrompt({ context, map, chapter, index, checklist, method = BUILT_IN_METHODS['review-chapter'] }: any) {
   const others = map.chapters.map((c: any, i: any) => `${i + 1}. ${c.title}${i === index ? ' (yours)' : ''}`).join('\n');
   return [
     `Your stage: review chapter ${index + 1} of ${map.chapters.length}, "${chapter.title}". Other agents review the other chapters at the same time: stay on your files, read anything else only to understand them.`,
@@ -77,13 +71,7 @@ export function chapterPrompt({ context, map, chapter, index, checklist }: any) 
     '',
     `## Your chapter\n${chapter.summary}\nFiles: ${chapter.files.join(', ')}\nWhat to verify: ${chapter.check}`,
     '',
-    '## How to review',
-    '- Learn the standard first: the rules files named above, then two or three files next to the changed ones. A finding that cites the repo\'s own rule or an existing example is worth ten that cite taste; with no rule on a point it is at most a suggestion.',
-    checklist ? `- This repo keeps a review checklist in ${checklist}: read it, its checklists apply to your files.` : '',
-    '- Verify, do not guess: for each behaviour change read the callers and the callees, not only the diff, and ask what input breaks it (empty, negative, concurrent, repeated, untrusted). Report what you confirmed; a suspicion you could not verify is at most a suggestion and says so.',
-    '- Severity: critical (wrong behaviour, data loss, security hole, broken build: blocks the merge), important (likely bug, missing test on risky logic, breaks a repo rule), suggestion (an improvement the author may skip), info (a question). Few and real: no restating the diff, no praise, no nit a linter enforces.',
-    '- Each finding has the file and the line of the new version it is about (a line the MR changed), `body`: what is wrong and why, with the evidence, and `comment`: the comment to post, written to the author, first person, two or three short sentences, precise about what is wrong and the direction of the fix, no code, no greeting, no dash used as a connector. A finding about no file (the description, the ticket) has no path and no line.',
-    '- `proof` on each finding: "runtime" when the claim is about behaviour someone could observe by running the project (a wrong result, a crash on some input, a broken flow, a race), "static" when it is about a pattern, a naming, a rule of the repo or a missing test, which running proves nothing about. When unsure, "static".',
+    ...fillMethod(method, { checklist }).split('\n'),
     '',
     'Answer with only this JSON, in a ```json block (an empty "findings" is a fine answer):',
     '{"findings": [{"id": "short-kebab-id", "severity": "critical|important|suggestion|info", "title": "...", "path": "repo/relative/path", "line": 42, "body": "...", "comment": "...", "proof": "runtime|static"}], "verified": "what you checked and found sound, one or two sentences"}',

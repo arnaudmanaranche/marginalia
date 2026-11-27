@@ -1,0 +1,1 @@
+{ "planted": null, "maxSeverity": "suggestion", "about": "The badge reuses fullName instead of repeating it, with a test. It breaks no rule of the repo: anything louder than a suggestion is generic advice." }

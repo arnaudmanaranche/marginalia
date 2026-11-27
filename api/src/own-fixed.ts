@@ -25,7 +25,7 @@ export async function recordFixedBefore({ project, slug, newSha, iid }: { projec
       const diff = await gitIn(project.worktreeDir).run('diff', '-U0', '--no-renames', before, newSha, '--', finding.path).catch(() => null);
       if (diff === null || !fixedBy(finding, diff) || !markFixed(db, key, newSha)) continue;
       fixed.push(finding.id);
-      trackFinding({ project: project.key, iid, scope: slug, findingId: finding.id, severity: finding.severity ?? null, outcome: 'fixed_before_mr', own: true, criticalPaths: (previous.criticalPaths ?? []).length });
+      trackFinding({ project: project.key, iid, scope: slug, findingId: finding.id, severity: finding.severity ?? null, outcome: 'fixed_before_mr', own: true, criticalPaths: (previous.criticalPaths ?? []).length, methods: previous.methods ?? null });
     }
   } catch (err) {
     logger.debug({ err }, 'Could not tell which findings a push fixed');

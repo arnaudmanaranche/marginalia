@@ -28,7 +28,7 @@
     "build": "npm --workspace @worldia/marginalia-contract run build && npm --workspace api run build"
   },
   "engines": {
-    "node": ">=22"
+    "node": ">=22.22.0"
   },
   "devDependencies": {
     "@types/node": "^26.6.5",

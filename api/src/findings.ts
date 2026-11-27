@@ -63,6 +63,7 @@ export function buildShape({ markdown, findingsRaw = null }: { markdown: string;
         criticalPaths: parsed.criticalPaths ?? [],
         tour: parsed.tour,
         replies: parsed.replies ?? [],
+        methods: parsed.methods ?? null,
         warnings,
       };
     }

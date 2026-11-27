@@ -49,6 +49,8 @@ Every review and triage is Marginalia's staged pipeline (`api/src/pipeline/`, AD
 
 `api/src/catalog.ts` plans the merge and `catalog-assemble.ts` builds `<data dir>/catalog`, a read-only plugin named `marginalia` passed with `--plugin-dir` to each chapter's reviewer, which loads the lenses its files call for with the Skill tool. Marginalia has no per-project skill list and no knowledge of any stack.
 
+What each stage is asked is two parts: its **stage method** (how to work), and its answer shape (the JSON its parser checks). The methods have built-in copies in `api/src/pipeline/stage-methods.ts`. With a prompt key set, `api/src/prompt-source.ts` reads them from PostHog prompt management by label, once per run (ADR 0014). The answer shapes never leave the code.
+
 A review is also told the project's approved context, inline (`api/src/context-prompt.ts`), and `REVIEW_PROMPT_EXTRA`; the review names the critical paths it touches in `criticalPaths`. Without an approved context nothing changes.
 
 ## Credentials

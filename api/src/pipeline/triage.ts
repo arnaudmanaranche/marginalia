@@ -10,7 +10,8 @@ import { settleConflicts } from './conflicts.ts';
 import { codeAround, gatherContext } from './context.ts';
 import { contextText } from './context-text.ts';
 import { renderTriage } from './report-render.ts';
-import { TRIAGE_SYSTEM, fixPrompt, judgePrompt, parseFix, parseJudge } from './triage-prompts.ts';
+import { fixPrompt, judgePrompt, parseFix, parseJudge } from './triage-prompts.ts';
+import { methodsLine, resolveMethods } from '../prompt-source.ts';
 
 const place = (t: any) => (t?.path ? `${t.path}${t.line ? `:${t.line}` : ''}` : 'general comment');
 const VERDICT: Record<string, string> = { already_fixed: ReplyVerdict.enum.already_fixed, not_relevant: ReplyVerdict.enum.not_relevant, wrong: ReplyVerdict.enum.wrong, answer: ReplyVerdict.enum.answered };
@@ -29,7 +30,11 @@ export async function stagedTriage({ mr, run, settings }: { mr: any; run: any; s
   // The threads are listed on their own, with their ids: the conversation would say them twice.
   const text = contextText({ ...context, conversation: '', previous: '' });
   const mrInfo = { title: mr.title, iid: mr.iid, branch: mr.source_branch };
-  const conflicts = await settleConflicts({ mr, run, context: text, settings });
+  // One version of each stage method for the whole run (ADR 0014).
+  const methods = await resolveMethods(['triage-system', 'triage-judge', 'triage-fix', 'triage-conflict']);
+  run.step(methodsLine(Object.values(methods)), { stage: 'context' });
+  const system = methods['triage-system'];
+  const conflicts = await settleConflicts({ mr, run, context: text, settings, methods: [methods['triage-conflict'], system] });
   const warnings = conflicts?.error ? [`The MR conflicts with ${mr.target_branch} and the triage could not settle it (${conflicts.error})`] : [];
   if (!open.length) {
     await run.stage('report');
@@ -38,7 +43,7 @@ export async function stagedTriage({ mr, run, settings }: { mr: any; run: any; s
   }
 
   await run.stage('judge');
-  const verdicts = await agentStage({ run, stage: 'judge', prompt: judgePrompt({ context: text, threads: open }), system: TRIAGE_SYSTEM, tools: STAGE_READ_TOOLS, cwd, settings, parse: (t: string) => parseJudge(t, open.map((x: any) => x.id)) });
+  const verdicts = await agentStage({ run, stage: 'judge', prompt: judgePrompt({ context: text, threads: open, method: methods['triage-judge'].text }), system: system.text, methods: [methods['triage-judge'], system], tools: STAGE_READ_TOOLS, cwd, settings, parse: (t: string) => parseJudge(t, open.map((x: any) => x.id)) });
   for (const v of verdicts) run.step(`${place(open.find((t: any) => t.id === v.thread))}: ${v.verdict.replace('_', ' ')}. ${v.why}`, { stage: 'judge' });
   const toFix = verdicts.filter((v: any) => v.verdict === 'fix');
   const ids = toFix.map((_: any, i: number) => `fix-${i + 1}`);
@@ -53,7 +58,7 @@ export async function stagedTriage({ mr, run, settings }: { mr: any; run: any; s
     const git = gitIn(cwd);
     const before = await head(cwd);
     try {
-      const done = await agentStage({ run, stage: ids[i], prompt: fixPrompt({ context: text, thread, plan: v.plan }), system: TRIAGE_SYSTEM, tools: STAGE_FIX_TOOLS, cwd, settings, parse: parseFix });
+      const done = await agentStage({ run, stage: ids[i], prompt: fixPrompt({ context: text, thread, plan: v.plan, method: methods['triage-fix'].text }), system: system.text, methods: [methods['triage-fix'], system], tools: STAGE_FIX_TOOLS, cwd, settings, parse: parseFix });
       // The bot commits the fix, one commit with the thread in its trailer. A commit the agent made
       // anyway is folded back into it.
       await git.run('reset', '--soft', '-q', before);

@@ -1,3 +1,4 @@
+import type { StageMethods } from '@worldia/marginalia-contract';
 import { normalizeSeverity, normalizeVerdict } from './findings-vocabulary.ts';
 import { buildTour, normalizeOverview, normalizeRisk } from './findings-walkthrough.ts';
 import { assignIds, cleanPath, clip, locate, plain, str } from './findings-text.ts';
@@ -36,6 +37,16 @@ function normalizeFinding(raw: any, index: number) {
   };
 }
 
+// The stage methods a run used (ADR 0014), name to version, or null when the file names none.
+function normalizeMethods(raw: unknown): { methods: StageMethods | null; warnings: string[] } {
+  if (raw === undefined || raw === null) return { methods: null, warnings: [] };
+  if (typeof raw !== 'object' || Array.isArray(raw)) return { methods: null, warnings: ['"methods" is not an object, dropped'] };
+  const entries = Object.entries(raw);
+  const kept = entries.filter(([name, v]) => /^[\w-]{1,60}$/.test(name) && (v === null || Number.isInteger(v)));
+  const warnings = kept.length < entries.length ? [`${entries.length - kept.length} of the "methods" entries are not a name and a version, dropped`] : [];
+  return { methods: kept.length ? Object.fromEntries(kept) as StageMethods : null, warnings };
+}
+
 // Validates and normalizes what a command put in .marginalia-findings.json.
 // Lenient: it keeps what it can and says what it dropped.
 export function normalizeFindingsData(data: any) {
@@ -65,7 +76,9 @@ export function normalizeFindingsData(data: any) {
   if (!walk.tour.length && !triage) warnings.push('there is no tour (the order to read the MR in): every report should have one');
   const { replies, warnings: replyWarnings } = normalizeReplies(data.replies);
   warnings.push(...replyWarnings);
-  return { ok: true, verdict, summary: summary ? clip(plain(summary), 400) : null, findings: withIds, risk, criticalPaths, overview, tour: walk.tour, replies, warnings };
+  const { methods, warnings: methodWarnings } = normalizeMethods(data.methods);
+  warnings.push(...methodWarnings);
+  return { ok: true, verdict, summary: summary ? clip(plain(summary), 400) : null, findings: withIds, risk, criticalPaths, overview, tour: walk.tour, replies, methods, warnings };
 }
 
 // The command may wrap the JSON in a code fence.

@@ -15,6 +15,7 @@ import { evidenceFolder, evidenceId, readEvidence } from '../verify-evidence.ts'
 import { agentStage } from './agent-stage.ts';
 import { copyWorktree } from './verify-copy.ts';
 import { VERIFY_SYSTEM, parseVerification, verifyPrompt } from './verify-prompts.ts';
+import { builtIn, type ResolvedMethod } from '../prompt-source.ts';
 import { findingKey } from './review-merge.ts';
 import { OVER_LIMIT, isVerifyCandidate, selectForVerify } from './verify-select.ts';
 import { createLimiter } from './limiter.ts';
@@ -34,8 +35,9 @@ function gate(mr: any, recipe: any) {
 const sentence = (reason: string) => `${reason[0].toUpperCase()}${reason.slice(1)}.`;
 const skipped = (reason: string) => ({ status: 'skipped', evidence: sentence(reason) });
 
-/** The verifier of one review: `chapter()` is called once per chapter, as its reviewer answers. */
-export function reviewVerifier({ run, mr, recipe, context, settings }: { run: any; mr: any; recipe: any; context: string; settings: object | null }) {
+/** The verifier of one review: `chapter()` is called once per chapter, as its reviewer answers. `methods`: its method and system, as the review resolved them. */
+export function reviewVerifier({ run, mr, recipe, context, settings, methods = [builtIn('verify-method'), builtIn('verify-system')] }: { run: any; mr: any; recipe: any; context: string; settings: object | null; methods?: ResolvedMethod[] }) {
+  const [method, system] = methods;
   const limits = verifyLimits(mr.project);
   const slot = createLimiter(CONCURRENCY);
   const taken = new Set<string>();
@@ -53,7 +55,7 @@ export function reviewVerifier({ run, mr, recipe, context, settings }: { run: an
       const egress = VERIFY_EGRESS_NETWORK && VERIFY_EGRESS_PROXY ? { network: VERIFY_EGRESS_NETWORK, proxy: VERIFY_EGRESS_PROXY } : null;
       await writeFile(config, JSON.stringify({ image: VERIFY_RUNNER_IMAGE, workdir: copy.dir, limits, steps: recipe.steps, hosts: recipe.hosts ?? [], browser: recipe.browser ?? null, evidenceDir: recipe.browser ? evidenceFolder(DATA_DIR, mr.project.key, id) : null, forbidden: [DATA_DIR, join(homedir(), '.claude'), mr.project.repoPath, mr.project.worktreeDir], docker: DOCKER_BIN, egress, work: VERIFY_WORK_VOLUME && VERIFY_WORK_DIR ? { volume: VERIFY_WORK_VOLUME, subpath: relative(VERIFY_WORK_DIR, copy.dir) } : null }));
       const mcp = JSON.stringify({ mcpServers: { verify: { command: process.execPath, args: [SERVER, config] } } });
-      const value = await agentStage({ run, stage, prompt: verifyPrompt({ context, finding, chapter, recipe }), system: VERIFY_SYSTEM, tools: recipe.browser ? STAGE_VERIFY_BROWSER_TOOLS : STAGE_VERIFY_TOOLS, cwd: mr.project.worktreeDir, settings, extraArgs: ['--mcp-config', mcp, '--strict-mcp-config'], parse: parseVerification });
+      const value = await agentStage({ run, stage, prompt: verifyPrompt({ context, finding, chapter, recipe, method: method.text }), system: system?.text ?? VERIFY_SYSTEM, methods, tools: recipe.browser ? STAGE_VERIFY_BROWSER_TOOLS : STAGE_VERIFY_TOOLS, cwd: mr.project.worktreeDir, settings, extraArgs: ['--mcp-config', mcp, '--strict-mcp-config'], parse: parseVerification });
       await run.end(stage);
       // What the browser kept is attached to the finding whatever the agent answered.
       const artifacts = recipe.browser ? await readEvidence(evidenceFolder(DATA_DIR, mr.project.key, id), mr.project.key, id).catch((err) => { run.step(`The evidence could not be read: ${String(err.message).slice(0, 160)}`, { stage }); return []; }) : [];

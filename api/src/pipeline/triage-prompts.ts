@@ -2,10 +2,9 @@
 // thread, then one agent per thread to fix makes that fix, which the bot commits; one more settles
 // the conflicts of merging the target in, when there are some. Pure.
 import { jsonAnswer, text } from './json-answer.ts';
+import { BUILT_IN_METHODS, fillMethod } from './stage-methods.ts';
 
-export const TRIAGE_SYSTEM = "You are the author of this merge request, working through your reviewers' comments as one stage of Marginalia's triage. Never push, never post or resolve anything on GitLab. Write everything in English, whatever language the comments or the code use.";
-
-const VOICE = 'Write each reply as me, the author, answering a teammate on my own MR: first person, casual and direct, like a real GitLab comment, one to three sentences. Never a third-person report about "the fix" or "this MR", never a dash used to join two clauses (write two sentences or use a comma), no filler, no inflated words, no list of three for rhythm.';
+export const TRIAGE_SYSTEM = BUILT_IN_METHODS['triage-system'];
 
 // One thread as the agents see it: where it is, who said what, and the code it is about at head.
 export function threadText(t: any) {
@@ -18,19 +17,12 @@ export function threadText(t: any) {
 
 export const JUDGE_VERDICTS = ['fix', 'already_fixed', 'not_relevant', 'wrong', 'answer'];
 
-export function judgePrompt({ context, threads }: { context: string; threads: any[] }) {
+export function judgePrompt({ context, threads, method = BUILT_IN_METHODS['triage-judge'] }: { context: string; threads: any[]; method?: string }) {
   return [
     'Your stage: weigh each open reviewer comment on my MR. Do not change any file in this stage.',
     '', context, '',
     '## The open reviewer threads', '', ...threads.map(threadText), '',
-    'For each thread, ground the verdict in the ticket, the description and the code as it is now, not in how the comment frames it:',
-    '- fix: a real issue that applies; say in `plan` what to change, concretely (files, the behaviour after).',
-    '- already_fixed: the MR already does what the comment asks; say where.',
-    '- not_relevant: out of scope for this MR, or a misunderstanding.',
-    '- wrong: factually wrong about the code; say why, with the evidence.',
-    '- answer: a question to answer.',
-    `For every verdict but fix, write \`reply\`. ${VOICE}`,
-    '`why` is for me, not the reviewer: one or two sentences on how you decided.',
+    fillMethod(method),
     '',
     'Answer with only this JSON, in a ```json block, one entry per thread:',
     '{"threads": [{"thread": "<thread id>", "verdict": "fix|already_fixed|not_relevant|wrong|answer", "why": "...", "plan": "for fix", "reply": "for the others"}]}',
@@ -56,16 +48,13 @@ export function parseJudge(answer: string, ids: string[]) {
   return { ok: true, value: out };
 }
 
-export function fixPrompt({ context, thread, plan }: { context: string; thread: any; plan: string }) {
+export function fixPrompt({ context, thread, plan, method = BUILT_IN_METHODS['triage-fix'] }: { context: string; thread: any; plan: string; method?: string }) {
   return [
     'Your stage: fix one reviewer comment on my MR, in this working tree.',
     '', context, '',
     '## The comment', threadText(thread), '',
     `## What to change\n${plan}`, '',
-    '- Read the repo\'s rules files first and follow them. Change only what this comment needs.',
-    '- Do not run git add or commit: the bot commits your change as its own commit, under `what`. Never push.',
-    '- If, once you read the code, the change is not needed or not right, change nothing, and say why in the reply.',
-    `- Then write \`reply\`, saying what changed, without a commit id (it is added when the fix is pushed). ${VOICE}`,
+    fillMethod(method),
     '',
     'Answer with only this JSON, in a ```json block:',
     '{"changed": true, "what": "one sentence for me", "reply": "..."}',
@@ -82,14 +71,12 @@ export function parseFix(answer: string) {
 
 // Settling the conflicts of merging the target branch into mine. The bot started the merge and
 // commits it: the agent only edits the conflicted files.
-export function conflictPrompt({ context, target, files }: { context: string; target: string; files: string[] }) {
+export function conflictPrompt({ context, target, files, method = BUILT_IN_METHODS['triage-conflict'] }: { context: string; target: string; files: string[]; method?: string }) {
   return [
     `Your stage: settle the conflicts of merging ${target} into my MR's branch. The bot started the merge; the conflicted files hold git's conflict markers.`,
     '', context, '',
     '## The conflicted files', ...files.map((f: string) => `- ${f}`), '',
-    `- For each file, read both sides (\`git diff\`, \`git log --oneline -5 MERGE_HEAD -- <file>\` for what ${target} changed and why) and write the version that keeps both intents. Follow the repo's rules files.`,
-    '- Remove every conflict marker. Change nothing outside these files. Do not run git add, commit or merge: the bot does.',
-    '- If a conflict cannot be settled without a decision only I can make, leave that file as it is and say so.',
+    fillMethod(method, { target }),
     '',
     'Answer with only this JSON, in a ```json block:',
     '{"settled": true, "how": "one or two sentences for me: what each side wanted and what you kept"}',

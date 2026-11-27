@@ -1,0 +1,1 @@
+{"planted": {"path": "src/invoice.mjs", "lines": [7, 7]}, "cites": ["0003", "money-is-integer-cents"], "about": "The new VAT total returns a float in euros, which the repo's ADR 0003 forbids: money is integer cents, rounded once. A finding must name that ADR, not only float precision in general."}

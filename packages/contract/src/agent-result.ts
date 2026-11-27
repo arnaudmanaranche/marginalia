@@ -53,6 +53,8 @@ export const AgentReview = z.object({
   overview: z.object({ before: text, after: text }),
   // The project's critical paths this MR touches, by name, when the project has an approved context.
   criticalPaths: z.array(text).optional(),
+  // The stage methods the run used, name to version, null for a built-in one (ADR 0014). Set by the bot.
+  methods: z.record(z.string(), z.number().int().nullable()).optional(),
   tour: z.array(AgentChapter).min(1),
   findings: z.array(AgentFinding),
 }).superRefine((r, ctx) => {

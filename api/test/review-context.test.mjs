@@ -58,3 +58,10 @@ test('the staged map carries the critical paths into the merged review', () => {
   assert.deepEqual(data.criticalPaths, ['Payment']);
   enforceContract('review', JSON.stringify(data));
 });
+
+test('a methods map with entries that are not a name and a version says what it dropped', () => {
+  const out = normalizeFindingsData({ findings: [], methods: { 'review-map': 3, 'bad name!': 2, 'review-chapter': 'x' } });
+  assert.deepEqual(out.methods, { 'review-map': 3 });
+  assert.ok(out.warnings.some((w) => /2 of the "methods" entries/.test(w)));
+  assert.ok(!normalizeFindingsData({ findings: [] }).warnings.some((w) => /methods/.test(w)));
+});

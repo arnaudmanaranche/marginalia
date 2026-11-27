@@ -4,8 +4,9 @@
 // file that exists, so it cannot make a finding come true.
 import { jsonAnswer } from './json-answer.ts';
 import { normalizeVerification } from '../finding-proof.ts';
+import { BUILT_IN_METHODS } from './stage-methods.ts';
 
-export const VERIFY_SYSTEM = "You are checking one claim a reviewer made about a merge request, as one stage of Marginalia's review, by running the project. You only have these ways to run anything: the `run` tool (one step of the approved recipe, with arguments), `write_file` (a new file in a disposable copy of the project) and, when the recipe says where the project is served, `browse` (one browser step at a time on that copy). You cannot change an existing file and you must not try. Write everything in English. A reproduction proves or fails to prove the claim; it never edits the project's code to make it true.";
+export const VERIFY_SYSTEM = BUILT_IN_METHODS['verify-system'];
 
 export function recipeText(recipe: any) {
   const steps = recipe.steps.map((s: any) => `- ${s.purpose}: \`${s.run}\` (${s.summary})`).join('\n');
@@ -18,18 +19,14 @@ export function recipeText(recipe: any) {
   ].filter(Boolean).join('\n');
 }
 
-export function verifyPrompt({ context, finding, chapter, recipe }: { context: string; finding: any; chapter: any; recipe: any }) {
+export function verifyPrompt({ context, finding, chapter, recipe, method = BUILT_IN_METHODS['verify-method'] }: { context: string; finding: any; chapter: any; recipe: any; method?: string }) {
   return [
     'Your stage: try to reproduce this finding by running the project. The code is read from the checkout you are in; the copy where things run is separate and disposable.',
     '', context, '',
     `## The claim\n[${finding.severity}] ${finding.title}${finding.path ? ` (${finding.path}${finding.line ? `:${finding.line}` : ''})` : ''}\n${finding.body}`,
     chapter ? `\nThe chapter it belongs to: ${chapter.title}. ${chapter.summary}` : '',
     '', recipeText(recipe), '',
-    '## How',
-    '- Read the code the claim is about first. Decide the smallest thing that would show the claim true or false: an input, a call, a request.',
-    '- Run a `setup` step only if what you need is not already there. Create a throwaway test or script with `write_file`, in the style and the place the repo\'s own tests use, then run it through the recipe\'s test (or run) step with that file as the argument.',
-    '- Judge fairly: `reproduced` when what you observed is the wrong behaviour the claim describes, `not_reproduced` when a fair attempt shows the behaviour is correct, `inconclusive` when you could not run it (setup failed, no way to exercise it here, out of time). Never say reproduced from reading alone.',
-    '- `evidence`: what you ran and what came out, in two to five sentences, quoting the decisive line of output. `command`: the one command that showed it.',
+    method,
     '',
     'Answer with only this JSON, in a ```json block:',
     '{"status": "reproduced|not_reproduced|inconclusive", "evidence": "...", "command": "..."}',

@@ -12,12 +12,14 @@ import type { ToolCall } from './tool-calls.ts';
 // only logged at debug. The prompt and the answer go with the call only when MARGINALIA_AI_CONTENT=on.
 
 // What a caller says about the call: its name (a stage, "chat", "doctor"), and the job it belongs to
-// so the calls of one job are one trace.
+// so the calls of one job are one trace, and the stage methods its prompt was built from (ADR 0014),
+// the main one first.
 export interface AiContext {
   name: string;
   traceId?: string;
   kind?: string;
   project?: string | null;
+  prompts?: { name: string; version: number | null }[];
 }
 
 const argAfter = (args: string[], flag: string) => (args.includes(flag) ? args[args.indexOf(flag) + 1] ?? '' : '');
@@ -41,6 +43,7 @@ export function captureAi({ ctx, args, model, result, calls, failed, error = nul
       prompt: argAfter(args, '-p'),
       systemPrompt: argAfter(args, '--append-system-prompt'),
       version: RUNNING_VERSION,
+      prompts: ctx.prompts ?? [],
       includeContent: process.env.MARGINALIA_AI_CONTENT === 'on',
     });
     void client.send(events).catch((err: unknown) => logger.debug({ err }, 'Could not send the AI observability events'));

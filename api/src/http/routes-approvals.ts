@@ -5,6 +5,7 @@ import { dismissFinding, dismissedKeys, restoreFinding } from '../dismissed-stor
 import { posted } from '../posted.ts';
 import { getDb } from '../store.ts';
 import { trackFinding } from '../telemetry.ts';
+import { artifactAt } from '../artifact.ts';
 import { actorName, currentScope, visibleProjects } from './request-scope.ts';
 import { broadcast, locate, newerState, readStatus, stateOverrides } from './context.ts';
 import { jsonBody, jsonOf, route } from './route-kit.ts';
@@ -37,7 +38,9 @@ export function approvalRoutes(app: any) {
     if (undo) restoreFinding(getDb(), project.key, found.slug, commentId);
     else {
       dismissFinding(getDb(), project.key, found.slug, commentId, actorName());
-      trackFinding({ project: project.key, iid: mr.iid, findingId: commentId, severity: null, outcome: 'dismissed', own: false, criticalPaths: 0 });
+      // The review's stage methods, so a dismissal counts against the method version that proposed it.
+      const shape = await artifactAt(project.reviewsDir, found.slug).readShape().catch(() => null);
+      trackFinding({ project: project.key, iid: mr.iid, findingId: commentId, severity: null, outcome: 'dismissed', own: false, criticalPaths: 0, methods: shape?.methods ?? null });
     }
     broadcast();
     return c.json({ ok: true }, 200);
