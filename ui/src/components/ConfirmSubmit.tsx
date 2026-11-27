@@ -1,5 +1,4 @@
 import { useEffect, useEffectEvent, useRef, useState } from 'react';
-import { toast } from '../lib/toast';
 import { m } from 'motion/react';
 import { Check, MessageSquare, Send, X, type LucideIcon } from 'lucide-react';
 import { cn } from '../lib/utils';
@@ -9,7 +8,6 @@ import { useScrollLock } from '../lib/useScrollLock';
 import { useModalFocus } from '../lib/useModalFocus';
 import { Button } from './ui/Button';
 import { DraftRow } from './DraftRow';
-import { Spinner } from './ds/Spinner';
 
 const ACTIONS: { value: ReviewAction; label: string; submit: string; hint: string; Icon: LucideIcon; on: string }[] = [
   { value: 'comment', label: 'Comment', submit: 'Submit comments', hint: 'Publish your comments without a verdict.', Icon: MessageSquare, on: 'border-blue-500 bg-blue-500/10 text-blue-700 dark:text-blue-300' },
@@ -18,10 +16,10 @@ const ACTIONS: { value: ReviewAction; label: string; submit: string; hint: strin
 ];
 
 // Publishes the pending review: every draft comment of this MR, plus an optional summary,
-// with the verdict the user picks. On my own MR (no verdict) it sends my replies to the
+// with the verdict the user picks. It closes on confirm: the parent sends in the background and
+// tells the outcome with a toast. On my own MR (no verdict) it sends my replies to the
 // reviewers, each in its thread, resolving the ones I ticked.
-export function ConfirmSubmit({ slug, iid, count, canVerdict, reload, onCancel, onConfirm }: { slug: string; reload: () => void; iid: string | number; count: number; canVerdict: boolean; onCancel: () => void; onConfirm: (summary: string, action: ReviewAction) => Promise<void> }) {
-  const [busy, setBusy] = useState(false);
+export function ConfirmSubmit({ slug, iid, count, canVerdict, reload, onCancel, onConfirm }: { slug: string; reload: () => void; iid: string | number; count: number; canVerdict: boolean; onCancel: () => void; onConfirm: (summary: string, action: ReviewAction) => void }) {
   const [summary, setSummary] = useState('');
   const [action, setAction] = useState<ReviewAction>('comment');
   const chosen = ACTIONS.find((a) => a.value === action)!;
@@ -32,21 +30,20 @@ export function ConfirmSubmit({ slug, iid, count, canVerdict, reload, onCancel, 
   const dialogRef = useRef<HTMLDivElement>(null);
   useScrollLock(true);
   useModalFocus(true, dialogRef, { initial: '[data-autofocus]' });
-  const onKey = useEffectEvent((e: KeyboardEvent) => e.key === 'Escape' && !busy && onCancel());
+  const onKey = useEffectEvent((e: KeyboardEvent) => e.key === 'Escape' && onCancel());
   useEffect(() => {
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, []);
   const loading = !drafts && !draftsError;
-  const locked = busy || loading;
   return (
-    <div role="presentation" className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4" onClick={busy ? undefined : onCancel}>
+    <div role="presentation" className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4" onClick={onCancel}>
       <m.div
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="confirm-submit-title"
-        aria-busy={locked}
+        aria-busy={loading}
         initial={{ opacity: 0, y: 12, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
@@ -61,7 +58,7 @@ export function ConfirmSubmit({ slug, iid, count, canVerdict, reload, onCancel, 
               : <>{count} pending repl{count === 1 ? 'y' : 'ies'}, each published in its thread under your account. The reviewers will see them, and the threads you chose to resolve are resolved.</>}
           </p>
         </header>
-        <fieldset disabled={locked} className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 pb-2 disabled:[&_textarea]:opacity-60">
+        <fieldset disabled={loading} className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 pb-2 disabled:[&_textarea]:opacity-60">
           <legend className="sr-only">Review to submit</legend>
           <div className="max-h-56 space-y-2 overflow-y-auto rounded-lg" aria-label="Pending comments">
             {draftsError && <p className="text-sm text-fail">Could not load the drafts: {draftsError}</p>}
@@ -72,7 +69,7 @@ export function ConfirmSubmit({ slug, iid, count, canVerdict, reload, onCancel, 
             )}
             {drafts?.length === 0 && <p className="rounded-lg border border-dashed border-line-strong px-3 py-4 text-center text-sm text-fg-muted">No pending comment on GitLab.</p>}
             {drafts?.map((d) => (
-              <DraftRow key={d.id} slug={slug} draft={d} disabled={busy} onChanged={reload} />
+              <DraftRow key={d.id} slug={slug} draft={d} onChanged={reload} />
             ))}
           </div>
           {canVerdict && (
@@ -94,22 +91,9 @@ export function ConfirmSubmit({ slug, iid, count, canVerdict, reload, onCancel, 
           </div>
         </fieldset>
         <footer className="flex items-center justify-end gap-2 border-t border-line px-6 py-3">
-          <Button disabled={busy} onClick={onCancel}>Cancel</Button>
-          <Button
-            variant="primary"
-            disabled={locked}
-            onClick={async () => {
-              setBusy(true);
-              try {
-                await onConfirm(summary, canVerdict ? action : 'comment');
-              } catch (e) {
-                toast.error('Could not submit the review', { description: (e as Error).message });
-              } finally {
-                setBusy(false);
-              }
-            }}
-          >
-            {busy ? <Spinner className="size-4" /> : <Send className="size-4" />}{busy ? 'Submitting…' : canVerdict ? chosen.submit : 'Send replies'}
+          <Button onClick={onCancel}>Cancel</Button>
+          <Button variant="primary" disabled={loading} onClick={() => onConfirm(summary, canVerdict ? action : 'comment')}>
+            <Send className="size-4" />{canVerdict ? chosen.submit : 'Send replies'}
           </Button>
         </footer>
       </m.div>
