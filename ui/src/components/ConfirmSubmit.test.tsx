@@ -13,7 +13,7 @@ const mount = (onConfirm: (summary: string, action: string) => void, onCancel = 
 };
 
 describe('the submit dialog', () => {
-  it('hands the review over on confirm and does not wait for GitLab', async () => {
+  it('hands the summary and the default verdict over on confirm', async () => {
     const onConfirm = vi.fn();
     mount(onConfirm);
     fireEvent.change(screen.getByLabelText(/Summary/), { target: { value: 'Looks good' } });
