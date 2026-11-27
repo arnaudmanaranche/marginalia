@@ -31,6 +31,9 @@ export const Reply = z.object({
   commit: z.string().optional().describe('The commit that fixed this thread (staged triage): the reply names it once pushed.'),
 }).meta({ id: 'Reply' });
 
+export const StageMethods = z.record(z.string(), z.number().int().nullable());
+export type StageMethods = z.infer<typeof StageMethods>;
+
 export const ReviewShape = z.object({
   version: z.literal(1),
   source: ShapeSource,
@@ -41,7 +44,7 @@ export const ReviewShape = z.object({
   criticalPaths: z.array(z.string()).optional().describe('The project\'s critical paths this MR touches, by name (from its approved project context).'),
   tour: z.array(z.object({ id: z.string(), title: z.string(), summary: z.string(), files: z.array(z.string()) }).passthrough()).optional(),
   findings: z.array(Finding),
-  methods: z.record(z.string(), z.number().int().nullable()).nullable().optional().describe('The version of each stage method the run used; null for a built-in copy.'),
+  methods: StageMethods.nullable().optional().describe('The version of each stage method the run used; null for a built-in copy.'),
   replies: z.array(Reply).optional().describe('A triage of my own MR: the drafted reply to each reviewer thread.'),
   warnings: z.array(z.string()),
   generatedAt: z.string().optional(),

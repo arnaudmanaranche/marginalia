@@ -1,3 +1,4 @@
+import type { StageMethods } from '@worldia/marginalia-contract';
 import { normalizeSeverity, normalizeVerdict } from './findings-vocabulary.ts';
 import { buildTour, normalizeOverview, normalizeRisk } from './findings-walkthrough.ts';
 import { assignIds, cleanPath, clip, locate, plain, str } from './findings-text.ts';
@@ -37,13 +38,13 @@ function normalizeFinding(raw: any, index: number) {
 }
 
 // The stage methods a run used (ADR 0014), name to version, or null when the file names none.
-function normalizeMethods(raw: any): { methods: Record<string, number | null> | null; warnings: string[] } {
+function normalizeMethods(raw: unknown): { methods: StageMethods | null; warnings: string[] } {
   if (raw === undefined || raw === null) return { methods: null, warnings: [] };
   if (typeof raw !== 'object' || Array.isArray(raw)) return { methods: null, warnings: ['"methods" is not an object, dropped'] };
   const entries = Object.entries(raw);
   const kept = entries.filter(([name, v]) => /^[\w-]{1,60}$/.test(name) && (v === null || Number.isInteger(v)));
   const warnings = kept.length < entries.length ? [`${entries.length - kept.length} of the "methods" entries are not a name and a version, dropped`] : [];
-  return { methods: kept.length ? Object.fromEntries(kept) as Record<string, number | null> : null, warnings };
+  return { methods: kept.length ? Object.fromEntries(kept) as StageMethods : null, warnings };
 }
 
 // Validates and normalizes what a command put in .marginalia-findings.json.
